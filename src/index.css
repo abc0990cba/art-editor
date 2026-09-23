@@ -1,0 +1,96 @@
+@import 'tailwindcss';
+
+:root {
+  color-scheme: dark;
+  --app: #131316;
+  --panel: #17171b;
+  --raised: #1e1e23;
+  --body: #e4e4ea;
+  --muted: #9a9aa6;
+  --line: rgba(255, 255, 255, 0.1);
+  --chip: rgba(255, 255, 255, 0.05);
+  --chip-line: rgba(255, 255, 255, 0.1);
+  --chip-active: rgba(255, 255, 255, 0.1);
+  --accent-soft: rgba(129, 140, 248, 0.15);
+  --accent-line: rgba(129, 140, 248, 0.6);
+  --accent-text: #c7d2fe;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --app: #eef0f4;
+  --panel: #e4e7ee;
+  --raised: #ffffff;
+  --body: #24242b;
+  --muted: #63636e;
+  --line: rgba(20, 20, 35, 0.12);
+  --chip: rgba(20, 20, 35, 0.04);
+  --chip-line: rgba(20, 20, 35, 0.14);
+  --chip-active: rgba(20, 20, 35, 0.08);
+  --accent-soft: rgba(99, 102, 241, 0.12);
+  --accent-line: rgba(99, 102, 241, 0.55);
+  --accent-text: #4f46e5;
+}
+
+@theme inline {
+  --color-app: var(--app);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-chip: var(--chip);
+  --color-chip-line: var(--chip-line);
+  --color-chip-active: var(--chip-active);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-accent-text: var(--accent-text);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app);
+  color: var(--body);
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  overscroll-behavior: none;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  opacity: 0.35;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--chip-active);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* the tool rail list keeps a clearly visible vertical scrollbar while it overflows */
+.rail-list {
+  scrollbar-width: auto;
+  scrollbar-color: var(--muted) transparent;
+}
+.rail-list::-webkit-scrollbar {
+  width: 10px;
+}
+.rail-list::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 5px;
+}

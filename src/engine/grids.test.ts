@@ -1,0 +1,229 @@
+import { describe, expect, it } from 'vitest'
+import { docSize, makeGrid } from './grids'
+import { defaultDoc, type Doc } from './doc'
+import { buildGeometry } from './geometry'
+import { deserialize, serialize } from './project'
+import type { Pt } from './marchingSquares'
+
+describe('grid geometry', () => {
+  for (const type of ['square', 'hex', 'triangle', 'radial'] as const) {
+    it(`${type}: cellAt(center(i)) round-trips for every cell`, () => {
+      const g = makeGrid(type, 12, 10)
+      for (let i = 0; i < g.count; i++) {
+        const c = g.center(i)
+        expect(g.cellAt(c.x, c.y)).toBe(i)
+      }
+    })
+
+    it(`${type}: polygons have 3+ distinct vertices inside the canvas`, () => {
+      const g = makeGrid(type, 12, 10)
+      for (let i = 0; i < g.count; i++) {
+        const poly = g.polygon(i)
+        expect(poly.length).toBeGreaterThanOrEqual(3)
+        for (const p of poly) {
+          expect(p.x).toBeGreaterThanOrEqual(-1e-9)
+          expect(p.x).toBeLessThanOrEqual(g.w + 1e-9)
+          expect(p.y).toBeGreaterThanOrEqual(-1e-9)
+          expect(p.y).toBeLessThanOrEqual(g.h + 1e-9)
+        }
+      }
+    })
+
+    it(`${type}: docSize covers all cell centers`, () => {
+      const g = makeGrid(type, 12, 10)
+      const { w, h } = docSize(type, 12, 10)
+      expect(w).toBe(g.w)
+      expect(h).toBe(g.h)
+    })
+  }
+
+  it('hex interior cells have 6 edge neighbors', () => {
+    const g = makeGrid('hex', 10, 10)
+    const i = 5 * 10 + 5
+    expect(g.edgeNeighbors(i).length).toBe(6)
+  })
+
+  it('triangle interior cells have 4 edge neighbors (base split in halves)', () => {
+    const g = makeGrid('triangle', 8, 6)
+    const i = 2 * 8 + 2
+    expect(g.edgeNeighbors(i).length).toBe(4)
+  })
+
+  it('radial interior cells have 3+ edge neighbors', () => {
+    const g = makeGrid('radial', 12, 8)
+    const i = 4 * 12 + 3
+    expect(g.edgeNeighbors(i).length).toBeGreaterThanOrEqual(3)
+  })
+})
+
+function docOn(type: 'hex' | 'triangle' | 'radial', cells: number[]): Doc {
+  const doc = defaultDoc()
+  doc.gridType = type
+  doc.cols = 12
+  doc.rows = 10
+  doc.cells = new Uint16Array(makeGrid(type, 12, 10).count)
+  cells.forEach((i) => (doc.cells[i] = 1))
+  return doc
+}
+
+describe('rendering on non-square grids', () => {
+  it('hex: outline merges two adjacent cells into one loop', () => {
+    const doc = docOn('hex', [])
+    const g0 = makeGrid('hex', 12, 10)
+    doc.cells = new Uint16Array(g0.count)
+    doc.cells[5 * 12 + 5] = 1
+    doc.cells[5 * 12 + 6] = 1 // edge-adjacent hex
+    doc.renderMode = 'outline'
+    const geo = buildGeometry(doc)
+    expect(geo.paths).toHaveLength(1)
+    expect((geo.paths[0].d.match(/M/g) ?? []).length).toBe(1)
+  })
+
+  it('hex: separate cells produce separate subpaths', () => {
+    const doc = docOn('hex', [])
+    const g0 = makeGrid('hex', 12, 10)
+    doc.cells = new Uint16Array(g0.count)
+    doc.cells[5 * 12 + 5] = 1
+    doc.cells[5 * 12 + 7] = 1 // one hex apart
+    doc.renderMode = 'outline'
+    const geo = buildGeometry(doc)
+    expect((geo.paths[0].d.match(/M/g) ?? []).length).toBe(2)
+  })
+
+  it('triangle: pixels mode emits arcs for rounded triangles', () => {
+    const doc = docOn('triangle', [3])
+    doc.renderMode = 'pixels'
+    doc.style.radius = 0.3
+    const geo = buildGeometry(doc)
+    expect(geo.paths[0].d).toContain('A')
+  })
+
+  it('radial: pixels mode fill follows the ring arc, not a straight chord', () => {
+    const doc = docOn('radial', [])
+    const g0 = makeGrid('radial', 12, 10)
+    doc.cells = new Uint16Array(g0.count)
+    const cell = 8 * 12 + 3
+    doc.cells[cell] = 1
+    doc.renderMode = 'pixels'
+    doc.style.radius = 0.2
+    const geo = buildGeometry(doc)
+    // path vertices: endpoint of every M/L and of every A segment (its last two numbers)
+    const verts: Pt[] = []
+    for (const [, , cmd] of geo.paths[0].d.matchAll(/([MLAZ])([^MLAZ]*)/g)) {
+      const n = (cmd.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number)
+      if (n.length >= 2) verts.push({ x: n[n.length - 2], y: n[n.length - 1] })
+    }
+    expect(verts.length).toBeGreaterThan(4)
+    // take the polygon's outer-arc mid sample and shrink it exactly like the renderer
+    // (scaledPolygon: size about the centroid), then require it as a path vertex
+    const poly = g0.polygon(cell)
+    const cx0 = poly.reduce((s, p) => s + p.x, 0) / poly.length
+    const cy0 = poly.reduce((s, p) => s + p.y, 0) / poly.length
+    const { x: cx, y: cy } = g0.center(cell)
+    const midA = (2 * Math.PI * (3 + 0.5)) / 12
+    let sample = poly[0]
+    let best = Infinity
+    for (const p of poly) {
+      const da = Math.abs(Math.atan2(p.y - cy, p.x - cx) - midA)
+      if (da < best) {
+        best = da
+        sample = p
+      }
+    }
+    const sx = doc.style.sizeX
+    const sy = doc.style.sizeY
+    const expected = { x: cx0 + (sample.x - cx0) * sx, y: cy0 + (sample.y - cy0) * sy }
+    const nearest = Math.min(...verts.map((v) => Math.hypot(v.x - expected.x, v.y - expected.y)))
+    expect(nearest).toBeLessThan(2e-3)
+  })
+
+  it('radial: metaball merges adjacent sectors into one blob', () => {
+    const doc = docOn('radial', [])
+    doc.cells = new Uint16Array(makeGrid('radial', 12, 10).count)
+    doc.cells[1 * 12 + 3] = 1
+    doc.cells[1 * 12 + 4] = 1
+    doc.renderMode = 'metaball'
+    doc.metaball.strength = 40
+    const geo = buildGeometry(doc)
+    expect(geo.paths).toHaveLength(1)
+    expect((geo.paths[0].d.match(/M/g) ?? []).length).toBe(1)
+  })
+})
+
+describe('grid project round trip', () => {
+  it('restores gridType and content', () => {
+    const doc = docOn('hex', [5, 6, 7])
+    doc.renderMode = 'outline'
+    const restored = deserialize(JSON.parse(JSON.stringify(serialize(doc))))
+    expect(restored.gridType).toBe('hex')
+    expect(Array.from(restored.cells.slice(5, 8))).toEqual([1, 1, 1])
+    expect(deserialize({ gridType: 'nonsense' }).gridType).toBe('square')
+  })
+})
+
+describe('radial grid: equal cells per ring (radialEven)', () => {
+  const g = makeGrid('radial', 24, 12, true)
+
+  it('sector counts grow with radius and never exceed cols', () => {
+    const count = (ring: number) => {
+      // count cells whose center sits on that ring
+      const target = ((ring + 0.5) / 12) * 12 // rm = (ring+0.5), rMax = rows
+      let n = 0
+      for (let i = 0; i < g.count; i++) {
+        const c = g.center(i)
+        const r = Math.hypot(c.x - g.w / 2, c.y - g.h / 2)
+        if (Math.abs(r - target) < 1e-9) n++
+      }
+      return n
+    }
+    const counts: number[] = []
+    for (let ring = 0; ring < 12; ring++) counts.push(count(ring))
+    expect(counts[0]).toBeLessThan(counts[11])
+    for (let ring = 1; ring < counts.length; ring++) {
+      expect(counts[ring]).toBeGreaterThanOrEqual(counts[ring - 1])
+    }
+    expect(Math.max(...counts)).toBeLessThanOrEqual(24)
+  })
+
+  it('cellAt(center(i)) round-trips and cellByAngle stays on the ring', () => {
+    for (let i = 0; i < g.count; i++) {
+      const c = g.center(i)
+      expect(g.cellAt(c.x, c.y)).toBe(i)
+      const r0 = g.radiusOf(i)
+      for (let a = 0; a < 12; a++) {
+        const j = g.cellByAngle(i, (a / 12) * 2 * Math.PI)
+        if (j >= 0) expect(Math.abs(g.radiusOf(j) - r0)).toBeLessThanOrEqual(0.75)
+      }
+    }
+  })
+
+  it('edgeNeighbors connect every pair of vertically adjacent rings (even mode)', () => {
+    // every cell must have neighbors in ring−1 and ring+1, and the whole grid
+    // must be one connected component — otherwise fill/brush stop at ring borders
+    for (let i = 0; i < g.count; i++) {
+      const ring = Math.floor((g.radiusOf(i) / 12) * 12 - 0.5 + 1e-9)
+      void ring
+      const neigh = g.edgeNeighbors(i)
+      expect(neigh.length).toBeGreaterThanOrEqual(2)
+      expect(new Set(neigh).size).toBe(neigh.length)
+    }
+    const seen = new Set<number>([0])
+    const queue = [0]
+    while (queue.length > 0) {
+      const i = queue.pop()!
+      for (const j of g.edgeNeighbors(i)) {
+        if (!seen.has(j)) {
+          seen.add(j)
+          queue.push(j)
+        }
+      }
+    }
+    expect(seen.size).toBe(g.count)
+  })
+
+  it('uneven grid keeps the classic uniform layout', () => {
+    const u = makeGrid('radial', 24, 12)
+    expect(u.count).toBe(24 * 12)
+    expect(u.cellAt(u.center(5 * 24 + 3).x, u.center(5 * 24 + 3).y)).toBe(5 * 24 + 3)
+  })
+})
