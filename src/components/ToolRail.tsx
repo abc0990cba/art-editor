@@ -279,13 +279,20 @@ function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onClose: ()
       onChange={(v) => setOpt('shapeBulge', v)}
     />
   )
+  // a brush wider than half the canvas is useless: cap the slider to the canvas,
+  // typing may still reach the hard 16-cell limit
+  const strokeMax = Math.max(4, Math.min(16, Math.floor(Math.min(doc.cols, doc.rows) / 2)))
   const strokeSlider = (
     <Slider
       label={t('opt.stroke')}
       title={t('opt.stroke.desc')}
       value={brush.size}
       min={1}
-      max={16}
+      max={strokeMax}
+      int
+      editable
+      hardMin={1}
+      hardMax={16}
       onChange={(v) => patchBrush({ size: v })}
     />
   )

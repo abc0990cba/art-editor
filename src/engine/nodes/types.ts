@@ -19,9 +19,17 @@ export type NodeDomain = 'raster' | 'style' | 'vector'
 /** Semantic family: sources paint, mods transform, ramps recolor, styles dress. */
 export type NodeKind = 'source' | 'mod' | 'ramp' | 'style'
 
+/**
+ * What a numeric parameter measures, when it scales with the canvas: `x`/`y` are
+ * absolute coordinates along an axis, `size` is a length/distance in cells, `delta`
+ * is a signed shift. Marked params get editor ranges derived from the current grid
+ * (canvas ±15%) instead of their static schema bounds.
+ */
+export type ParamSpan = 'x' | 'y' | 'size' | 'delta'
+
 export type NodeParamSpec =
-  | { kind: 'number'; min: number; max: number; step?: number; default: number }
-  | { kind: 'int'; min: number; max: number; default: number }
+  | { kind: 'number'; min: number; max: number; step?: number; default: number; span?: ParamSpan }
+  | { kind: 'int'; min: number; max: number; default: number; span?: ParamSpan }
   | { kind: 'select'; options: readonly string[]; default: string }
   | { kind: 'hex'; default: string }
   | { kind: 'bool'; default: boolean }

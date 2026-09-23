@@ -18,6 +18,9 @@ export const ru: Dict = {
   'project.create': 'Создать проект',
   'project.apply': 'Применить',
   'project.size': 'Размер холста',
+  'project.grid': 'Тип сетки',
+  'num.scrub':
+    'Тяните влево/вправо, чтобы менять; клик — точный ввод; Shift — мельче шаг; ↑/↓ и колесо — шаг',
 
   'project.untitled': 'Без названия',
   'project.save': 'Сохранить проект',

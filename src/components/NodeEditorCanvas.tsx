@@ -23,6 +23,8 @@ import {
 import { elementFromDoc } from '../engine/doc'
 import type { SceneObj } from '../engine/scene'
 import { CellsPreview, StyleSamplePreview } from './NodePreview'
+import { DragNumber } from './DragNumber'
+import { boundsWithValue, paramBounds } from '../engine/nodes'
 import { Chip } from './ui'
 import { Tooltip } from './Tooltip'
 import { download } from './fileDownload'
@@ -954,21 +956,25 @@ function ParamInput({
   value: unknown
   onChange: (v: number | string | boolean) => void
 }) {
+  const { t } = useI18n()
+  const doc = useStore((s) => s.doc)
   if (spec.kind === 'number' || spec.kind === 'int') {
     const current = typeof value === 'number' ? value : spec.default
+    // drag stops at the canvas-derived range; typing may reach the schema bounds
+    const soft = boundsWithValue(paramBounds(spec, doc) ?? { min: spec.min, max: spec.max }, current)
     return (
-      <input
-        type="number"
+      <DragNumber
         value={current}
         min={spec.min}
         max={spec.max}
+        softMin={soft.min}
+        softMax={soft.max}
         step={spec.kind === 'int' ? 1 : (spec.step ?? 0.01)}
-        onChange={(e) => {
-          const n = Number(e.target.value)
-          if (Number.isFinite(n)) onChange(Math.max(spec.min, Math.min(spec.max, spec.kind === 'int' ? Math.round(n) : n)))
-        }}
-        aria-label={pkey}
-        className="w-16 rounded border border-line bg-chip px-1 py-0.5 text-right text-[10px] text-body outline-none focus:border-accent-line"
+        int={spec.kind === 'int'}
+        ariaLabel={pkey}
+        title={t('num.scrub')}
+        className="w-16"
+        onChange={onChange}
       />
     )
   }

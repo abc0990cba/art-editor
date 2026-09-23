@@ -15,6 +15,7 @@ import {
   type NodeParamSpec,
 } from '../engine/nodes'
 import { CheckRow, Chip, ColorInput, Section, Slider } from './ui'
+import { boundsWithValue, paramBounds } from '../engine/nodes'
 import { Tooltip } from './Tooltip'
 import { download } from './fileDownload'
 
@@ -36,14 +37,25 @@ function ParamControl({
   value: unknown
   onChange: (v: number | string | boolean) => void
 }) {
+  const doc = useStore((s) => s.doc)
+  const { t } = useI18n()
   if (spec.kind === 'number' || spec.kind === 'int') {
+    const current = typeof value === 'number' ? value : spec.default
+    // canvas-marked params (positions/sizes in cells) get their slider range from
+    // the current grid (±15%); everything else keeps the schema bounds
+    const eff = boundsWithValue(paramBounds(spec, doc) ?? { min: spec.min, max: spec.max }, current)
     return (
       <Slider
         label={pkey}
-        value={typeof value === 'number' ? value : spec.default}
-        min={spec.min}
-        max={spec.max}
+        value={current}
+        min={eff.min}
+        max={eff.max}
         step={spec.kind === 'int' ? 1 : (spec.step ?? 0.01)}
+        editable
+        int={spec.kind === 'int'}
+        hardMin={spec.min}
+        hardMax={spec.max}
+        title={t('num.scrub')}
         onChange={onChange}
       />
     )

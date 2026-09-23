@@ -75,6 +75,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
         {/* conventional save affordance: enabled exactly while unsaved changes exist,
             disabled once the project matches its library entry (Photoshop/Figma-like) */}
         <IconButton
+          plate
           title={projectDirty ? `${t('project.save')} (Ctrl+S)` : t('project.saved')}
           disabled={!projectDirty}
           className={projectDirty ? 'text-accent-text' : undefined}
@@ -95,7 +96,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
         </IconButton>
         {/* project settings: name + canvas size, edited in a dialog */}
         <Tooltip label={t('project.settings')}>
-          <IconButton title={t('project.settings')} onClick={() => setSetupOpen(true)}>
+          <IconButton plate title={t('project.settings')} onClick={() => setSetupOpen(true)}>
             <svg
               viewBox="0 0 16 16"
               className="h-4 w-4"
@@ -120,8 +121,8 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
         </span>
       </div>
 
-      <div className="flex items-center gap-0.5">
-        <IconButton title={t('projects.title')} onClick={() => setProjectsOpen(true)}>
+      <div className="flex items-center gap-1">
+        <IconButton plate title={t('projects.title')} onClick={() => setProjectsOpen(true)}>
           <svg
             viewBox="0 0 16 16"
             className="h-4 w-4"
@@ -133,6 +134,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
           </svg>
         </IconButton>
         <IconButton
+          plate
           title={t('editor.open')}
           onClick={() => (nodeEditorOpen ? closeNodeEditor() : openNodeEditor())}
         >
@@ -143,7 +145,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
             <path d="M4.8 4.4l5 1.9M10.2 8.4L6 10.7" />
           </svg>
         </IconButton>
-        <IconButton title={`${t('top.undo')} (Ctrl+Z)`} onClick={undo} disabled={!canUndo}>
+        <IconButton plate title={`${t('top.undo')} (Ctrl+Z)`} onClick={undo} disabled={!canUndo}>
           <svg
             viewBox="0 0 16 16"
             className="h-4 w-4"
@@ -155,7 +157,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
             <path d="M3 7.5h6a4 4 0 010 8H6" />
           </svg>
         </IconButton>
-        <IconButton title={`${t('top.redo')} (Ctrl+Shift+Z)`} onClick={redo} disabled={!canRedo}>
+        <IconButton plate title={`${t('top.redo')} (Ctrl+Shift+Z)`} onClick={redo} disabled={!canRedo}>
           <svg
             viewBox="0 0 16 16"
             className="h-4 w-4 -scale-x-100"
@@ -167,7 +169,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
             <path d="M3 7.5h6a4 4 0 010 8H6" />
           </svg>
         </IconButton>
-        <IconButton title={`${t('export.clear')} — ${t('export.clear.desc')}`} onClick={clear}>
+        <IconButton plate title={`${t('export.clear')} — ${t('export.clear.desc')}`} onClick={clear}>
           <svg
             viewBox="0 0 16 16"
             className="h-4 w-4"

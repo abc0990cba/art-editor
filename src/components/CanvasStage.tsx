@@ -2204,15 +2204,6 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         </div>
       )}
       <div className="absolute right-3 bottom-3 flex items-center gap-2 rounded-lg bg-black/50 px-2 py-1 text-xs text-body backdrop-blur">
-        <Tooltip label={`${t('view.fit')} (F)`}>
-          <button
-            type="button"
-            onClick={fit}
-            className="rounded px-1.5 py-0.5 hover:bg-chip-active"
-          >
-            {t('view.fit')}
-          </button>
-        </Tooltip>
         <Tooltip label={t('view.cursor.desc')}>
           <span className="font-mono text-muted">
             {hover

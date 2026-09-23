@@ -11,7 +11,6 @@ import {
   type EditorPreset,
 } from '../engine/presets'
 import { presetPreviewDataURL } from '../engine/presetPreview'
-import { GRID_TYPES } from '../engine/grids'
 import { MAX_CELL, MIN_CELL, TILING_MODES, WALLPAPER_MODES, isRepeat } from '../engine/symmetry'
 import { ColorPicker } from './ColorPicker'
 import { PresetsDialog } from './PresetsDialog'
@@ -64,7 +63,6 @@ export function SettingsPanel() {
   const setConnectorWidth = useStore((s) => s.setConnectorWidth)
   const setRenderMode = useStore((s) => s.setRenderMode)
   const setConnectivity = useStore((s) => s.setConnectivity)
-  const setGridType = useStore((s) => s.setGridType)
   const recent = useStore((s) => s.recent)
   const applyPalette = useStore((s) => s.applyPalette)
   const replacePalette = useStore((s) => s.replacePalette)
@@ -323,19 +321,8 @@ export function SettingsPanel() {
         <LayersPanel />
         <NodePresetsPanel />
         <ObjectGraphPanel />
+        {/* grid TYPE is chosen at project creation / in project settings — not here */}
         <Section title={t('panel.grid')} icon="grid">
-          <div className="grid grid-cols-2 gap-1.5">
-            {GRID_TYPES.map((gt) => (
-              <Chip
-                key={gt}
-                active={doc.gridType === gt}
-                title={t(`grid.${gt}.desc` as 'grid.square.desc')}
-                onClick={() => setGridType(gt)}
-              >
-                {t(`grid.${gt}` as 'grid.square')}
-              </Chip>
-            ))}
-          </div>
           {doc.gridType === 'radial' && (
             <>
               <CheckRow

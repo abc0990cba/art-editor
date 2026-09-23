@@ -15,6 +15,9 @@ export const en = {
   'project.create': 'Create project',
   'project.apply': 'Apply',
   'project.size': 'Canvas size',
+  'project.grid': 'Grid type',
+  'num.scrub':
+    'Drag left/right to change; click to type an exact value; Shift for finer steps; ↑/↓ and wheel to step',
 
   'project.untitled': 'Untitled',
   'project.save': 'Save project',

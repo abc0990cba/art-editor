@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react'
+import { DragNumber } from './DragNumber'
 import { Tooltip } from './Tooltip'
 
 /** Small stroke glyphs shown next to section titles for faster scanning. */
@@ -116,6 +117,10 @@ export function Slider({
   step = 1,
   display,
   title,
+  editable,
+  int,
+  hardMin,
+  hardMax,
   onChange,
 }: {
   label: string
@@ -125,6 +130,13 @@ export function Slider({
   step?: number
   display?: (v: number) => string
   title?: string
+  /** show a scrubbable numeric field instead of the plain value readout */
+  editable?: boolean
+  /** round edited values to whole numbers */
+  int?: boolean
+  /** typing bounds for the editable field; the slider itself uses min/max */
+  hardMin?: number
+  hardMax?: number
   onChange: (v: number) => void
 }) {
   return (
@@ -132,7 +144,23 @@ export function Slider({
       <label className="flex flex-col gap-1">
         <span className="flex justify-between text-xs text-muted">
           <span>{label}</span>
-          <span className="text-body">{display ? display(value) : value}</span>
+          {editable ? (
+            <DragNumber
+              value={value}
+              min={hardMin ?? min}
+              max={hardMax ?? max}
+              softMin={min}
+              softMax={max}
+              step={step}
+              int={int}
+              title={title}
+              ariaLabel={label}
+              className="w-16"
+              onChange={onChange}
+            />
+          ) : (
+            <span className="text-body">{display ? display(value) : value}</span>
+          )}
         </span>
         <input
           type="range"
@@ -210,6 +238,7 @@ export function IconButton({
   onClick,
   disabled,
   className,
+  plate,
   children,
 }: {
   title: string
@@ -217,6 +246,8 @@ export function IconButton({
   disabled?: boolean
   /** extra classes on the button, e.g. an accent tint for an active save state */
   className?: string
+  /** chip plate behind the icon (top-bar style, like the import/export buttons) */
+  plate?: boolean
   children: ReactNode
 }) {
   return (
@@ -225,7 +256,11 @@ export function IconButton({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`flex h-8 w-8 items-center justify-center rounded-md text-body transition hover:bg-chip-active disabled:opacity-30 disabled:hover:bg-transparent ${className ?? ''}`}
+        className={`flex h-8 w-8 items-center justify-center rounded-md text-body transition disabled:opacity-30 ${
+          plate
+            ? 'border border-line bg-chip hover:border-chip-line disabled:hover:border-line'
+            : 'hover:bg-chip-active disabled:hover:bg-transparent'
+        } ${className ?? ''}`}
       >
         {children}
       </button>

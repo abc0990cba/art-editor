@@ -29,8 +29,8 @@ export const TRANSFORM_NODES = [
     category: 'transform',
     tags: ['move', 'shift', 'translate'],
     params: {
-      dx: { kind: 'int', min: -2048, max: 2048, default: 2 },
-      dy: { kind: 'int', min: -2048, max: 2048, default: 0 },
+      dx: { kind: 'int', min: -2048, max: 2048, default: 2, span: 'delta' },
+      dy: { kind: 'int', min: -2048, max: 2048, default: 0, span: 'delta' },
     },
     evaluate: (ctx, p, input) => {
       const out = new Map<number, number>()

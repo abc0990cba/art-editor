@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
 import { useI18n } from '../i18n'
 import { SIZE_GROUPS } from '../engine/sizes'
+import { GRID_TYPES, type GridType } from '../engine/grids'
 
 const sizeKey = (cols: number, rows: number) => `${cols}×${rows}`
 
@@ -22,12 +23,16 @@ export function ProjectDialog({
   const projectName = useStore((s) => s.projectName)
   const newDoc = useStore((s) => s.newDoc)
   const setSize = useStore((s) => s.setSize)
+  const setGridType = useStore((s) => s.setGridType)
+  const setRadialEven = useStore((s) => s.setRadialEven)
   const setProjectName = useStore((s) => s.setProjectName)
   const requestFit = useStore((s) => s.requestFit)
 
   const [name, setName] = useState(mode === 'edit' ? projectName : '')
   const [cols, setCols] = useState(mode === 'create' ? 128 : doc.cols)
   const [rows, setRows] = useState(mode === 'create' ? 128 : doc.rows)
+  const [gridType, setGridTypeLocal] = useState<GridType>(mode === 'edit' ? doc.gridType : 'square')
+  const [even, setEven] = useState(mode === 'edit' ? doc.radialEven : false)
 
   const currentKey = sizeKey(cols, rows)
   const isPreset = SIZE_GROUPS.some((g) => g.sizes.some((s) => sizeKey(s.cols, s.rows) === currentKey))
@@ -42,6 +47,8 @@ export function ProjectDialog({
 
   const apply = () => {
     if (mode === 'create') newDoc()
+    setGridType(gridType)
+    if (gridType === 'radial') setRadialEven(even)
     setSize(Math.max(1, cols), Math.max(1, rows))
     setProjectName(name.trim())
     requestFit()
@@ -133,6 +140,32 @@ export function ProjectDialog({
             ))}
           </select>
         </label>
+
+        <label className="mb-2.5 block">
+          <span className="mb-1 block text-xs text-muted">{t('project.grid')}</span>
+          <select
+            value={gridType}
+            onChange={(e) => setGridTypeLocal(e.target.value as GridType)}
+            className={fieldClass + ' cursor-pointer'}
+          >
+            {GRID_TYPES.map((gt) => (
+              <option key={gt} value={gt}>
+                {t(`grid.${gt}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {gridType === 'radial' && (
+          <label className="mb-3 flex cursor-pointer items-center gap-2 text-xs text-body">
+            <input
+              type="checkbox"
+              checked={even}
+              onChange={(e) => setEven(e.target.checked)}
+              className="accent-indigo-500"
+            />
+            <span className="pt-0.5">{t('grid.evenCells')}</span>
+          </label>
+        )}
 
         <div className="flex items-center justify-end gap-2">
           <button
