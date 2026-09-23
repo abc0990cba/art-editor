@@ -124,6 +124,7 @@ export type Tool =
   | 'chevron'
   | 'concentric'
   | 'concentricRect'
+  | 'skull'
 
 /**
  * Partial update applied to every selected element: style parts patch the frozen pixel
@@ -228,6 +229,30 @@ export interface ToolOpts {
   ellipsePower: number
   /** hole radius of the ring tool as a fraction of the outer radius */
   ringThickness: number
+  /* --- skull --- */
+  skullCraniumWidth: number
+  skullCraniumHeight: number
+  skullCrown: 'round' | 'flat'
+  skullBrowRidge: number
+  skullCheekWidth: number
+  skullJawWidth: number
+  skullJawHeight: number
+  skullMandible: boolean
+  skullEyeSize: number
+  skullEyeSpacing: number
+  skullEyeY: number
+  skullEyeShape: 'round' | 'oval' | 'square' | 'angled'
+  skullEyeTilt: number
+  skullEyeAsym: number
+  skullNoseWidth: number
+  skullNoseHeight: number
+  skullNoseY: number
+  skullNoseShape: 'triangle' | 'heart' | 'teardrop' | 'slit'
+  skullTeethCount: number
+  skullTeethLen: number
+  skullTeethGap: number
+  skullTeethShape: 'rect' | 'rounded' | 'pointed' | 'fangs'
+  skullMouthY: number
 }
 
 const DEFAULT_TOOL_OPTS: ToolOpts = {
@@ -278,6 +303,29 @@ const DEFAULT_TOOL_OPTS: ToolOpts = {
   shapeBulge: 0,
   ellipsePower: 2,
   ringThickness: 0.25,
+  skullCraniumWidth: 1,
+  skullCraniumHeight: 0.6,
+  skullCrown: 'round',
+  skullBrowRidge: 0.03,
+  skullCheekWidth: 0.92,
+  skullJawWidth: 0.72,
+  skullJawHeight: 0.22,
+  skullMandible: true,
+  skullEyeSize: 0.16,
+  skullEyeSpacing: 0.26,
+  skullEyeY: 0.48,
+  skullEyeShape: 'round',
+  skullEyeTilt: 0,
+  skullEyeAsym: 0,
+  skullNoseWidth: 0.09,
+  skullNoseHeight: 0.11,
+  skullNoseY: 0.63,
+  skullNoseShape: 'triangle',
+  skullTeethCount: 8,
+  skullTeethLen: 0.08,
+  skullTeethGap: 0.35,
+  skullTeethShape: 'rect',
+  skullMouthY: 0.82,
 }
 
 /** What one fill click covers on a radial grid: a cell, the whole sector wedge or the ring. */

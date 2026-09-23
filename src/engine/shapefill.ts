@@ -80,6 +80,42 @@ export function regionCells(outline: ReadonlySet<number>, bw: number, bh: number
   return { inside, outside }
 }
 
+/**
+ * Even-odd filled cell set of traced integer loops — the fill for shapes whose
+ * loops punch holes (e.g. the skull's eye sockets). Half-integer test points keep
+ * boundary cells out; callers stamp the outline cells separately as material.
+ */
+export function fillCellsEvenOdd(
+  loops: ReadonlyArray<ReadonlyArray<readonly [number, number]>>,
+  bw: number,
+  bh: number,
+): Set<number> {
+  const inside = new Set<number>()
+  if (!loops.length || bw <= 0 || bh <= 0) return inside
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const loop of loops) {
+    for (const [x, y] of loop) {
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+  }
+  minX = Math.max(0, Math.floor(minX))
+  minY = Math.max(0, Math.floor(minY))
+  maxX = Math.min(bw - 1, Math.ceil(maxX))
+  maxY = Math.min(bh - 1, Math.ceil(maxY))
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      if (pointInPolys(loops as never, x + 0.5, y + 0.5)) inside.add(y * bw + x)
+    }
+  }
+  return inside
+}
+
 /** Even-odd containment test of a point against a set of polylines. */
 export function pointInPolys(
   polys: ReadonlyArray<ReadonlyArray<readonly [number, number]>>,

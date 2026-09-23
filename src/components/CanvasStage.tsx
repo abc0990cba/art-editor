@@ -13,7 +13,7 @@ import {
   type Geometry,
   type Staging,
 } from '../engine/geometry'
-import { regionCells, pointInPolys } from '../engine/shapefill'
+import { regionCells, pointInPolys, fillCellsEvenOdd } from '../engine/shapefill'
 import { nodeProtected, objLayer, type SceneLayer } from '../engine/scene'
 import { applyFillStyle, patternCoord } from '../engine/fillpatterns'
 import { scrollbarMetrics } from '../engine/scrollbars'
@@ -35,6 +35,8 @@ import {
   rectPoints,
   shapePathPoints,
   shapePathSegments,
+  shapeHasHoles,
+  shapePathLoops,
 } from '../engine/shapes'
 import type { SymmetryState } from '../engine/doc'
 
@@ -779,12 +781,23 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         st.cells.set(i, val)
         st.objs!.set(i, PENDING_OBJ)
       }
+      /** even-odd fill of a hole-bearing copy (skull); null for regular shapes */
+      const holeFillFor = (a: [number, number], b: [number, number]) =>
+        isShapeTool(tool) && shapeHasHoles(tool)
+          ? fillCellsEvenOdd(
+              shapePathLoops(tool, a[0], a[1], b[0], b[1], { ...toolOpts, circles: concentricRadii }),
+              bw,
+              bh,
+            )
+          : null
       /** fill + aligned stroke of one rasterized copy (square grid) */
-      const emitSquareCopy = (outlinePts: Array<[number, number]>) => {
+      const emitSquareCopy = (outlinePts: Array<[number, number]>, holeFill?: Set<number> | null) => {
         const outlineSet = new Set(outlinePts.map(([x, y]) => y * bw + x))
         let inside: Set<number> | null = null
         let outside: Set<number> | null = null
-        if (shapePaint.fill !== 'none' || shapePaint.align !== 'center') {
+        if (holeFill) {
+          inside = holeFill
+        } else if (shapePaint.fill !== 'none' || shapePaint.align !== 'center') {
           const region = regionCells(outlineSet, bw, bh)
           inside = region.inside
           outside = region.outside
@@ -856,7 +869,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
             if (!shapeLike) {
               for (const [px, py] of rasterize([ax, ay], [bx, by])) stampTipInto(st, vStroke, px, py)
             } else {
-              emitSquareCopy(rasterize([ax, ay], [bx, by]))
+              emitSquareCopy(rasterize([ax, ay], [bx, by]), holeFillFor([ax, ay], [bx, by]))
             }
           }
         } else {
@@ -882,6 +895,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
             const cap = Math.max(64, Math.floor(MAX_STAMPS / Math.max(1, tipOffsets.length)))
             const outlineSet = new Set(outlinePts.map(([x, y]) => y * bw + x))
             const region = regionCells(outlineSet, bw, bh)
+            const hf = holeFillFor(s0, s1)
+            if (hf) region.inside = hf
             const orbitOf = (x: number, y: number) =>
               symmetryPoints(x, y, bw, bh, symmetry.mode, symmetry.n, symmetry.cell, radialOpts)
             if (shapePaint.fill !== 'none') {
@@ -1303,6 +1318,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       case 'chevron':
       case 'concentric':
       case 'concentricRect':
+      case 'skull':
         if (drawBlocked) break
         drag.current = { kind: 'shape', start: [p.x, p.y] }
         shapeStartRef.current = [p.x, p.y]

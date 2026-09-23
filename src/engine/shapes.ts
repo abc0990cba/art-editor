@@ -119,6 +119,7 @@ export type ShapeToolId =
   | 'chevron'
   | 'concentric'
   | 'concentricRect'
+  | 'skull'
 
 /** Rail display order of the shape tools. */
 export const SHAPE_TOOLS: readonly ShapeToolId[] = [
@@ -143,6 +144,7 @@ export const SHAPE_TOOLS: readonly ShapeToolId[] = [
   'chevron',
   'concentric',
   'concentricRect',
+  'skull',
 ]
 
 const SHAPE_TOOL_IDS = new Set<string>(SHAPE_TOOLS)
@@ -232,6 +234,53 @@ export interface ShapeOpts {
   ringThickness?: number
   /** normalized radii (0..1, roughly descending) of the concentric tools' loops */
   circles?: number[]
+  /* --- skull: cranium --- */
+  /** dome width as a fraction of the drag box width */
+  skullCraniumWidth?: number
+  /** dome height as a fraction of the drag box height */
+  skullCraniumHeight?: number
+  /** 'round' = spherical vault, 'flat' = boxy (superellipse) crown */
+  skullCrown?: 'round' | 'flat'
+  /** brow ridge bulge below the temples, fraction of the box width */
+  skullBrowRidge?: number
+  /** width at the cheekbones, fraction of the box width */
+  skullCheekWidth?: number
+  /* --- skull: jaw --- */
+  /** width of the lower face, fraction of the box width */
+  skullJawWidth?: number
+  /** lower-face depth: how far the chin section rises, fraction of the box height */
+  skullJawHeight?: number
+  /** mandible visible: false closes the silhouette just under the mouth */
+  skullMandible?: boolean
+  /* --- skull: eyes --- */
+  /** eye socket radius, fraction of the box width */
+  skullEyeSize?: number
+  /** distance between the socket centers, fraction of the box width */
+  skullEyeSpacing?: number
+  /** socket line height, fraction of the box height from the top */
+  skullEyeY?: number
+  /** socket silhouette */
+  skullEyeShape?: 'round' | 'oval' | 'square' | 'angled'
+  /** socket slant, -1 = sad (outer corners down) … 1 = angry (outer corners up) */
+  skullEyeTilt?: number
+  /** left socket smaller and lower (0 = symmetric) */
+  skullEyeAsym?: number
+  /* --- skull: nose --- */
+  skullNoseWidth?: number
+  skullNoseHeight?: number
+  /** nasal aperture center height, fraction of the box height */
+  skullNoseY?: number
+  skullNoseShape?: 'triangle' | 'heart' | 'teardrop' | 'slit'
+  /* --- skull: mouth / teeth --- */
+  /** number of upper teeth (0 = a plain dark opening) */
+  skullTeethCount?: number
+  /** tooth length, fraction of the box height */
+  skullTeethLen?: number
+  /** how deep the gaps between teeth cut in, 0..1 */
+  skullTeethGap?: number
+  skullTeethShape?: 'rect' | 'rounded' | 'pointed' | 'fangs'
+  /** mouth line height, fraction of the box height */
+  skullMouthY?: number
 }
 
 type Polyline = Array<[number, number]>
@@ -586,8 +635,230 @@ function boxShapePolylines(tool: BoxShapeId, opts: ShapeOpts, steps: number): Po
         ]
       })
     }
+    case 'skull':
+      return skullPolylines(opts, steps)
   }
 }
+
+/* ------------------------------- skull ------------------------------- */
+//
+// A front-view skull built from one closed silhouette (cranium dome → brow →
+// cheekbones → jaw → chin) plus nested hole loops: two eye sockets, the nasal
+// aperture and the toothed mouth opening. Later loops punch holes, so the fill
+// must be even-odd (see shapeHasHoles / fillCellsEvenOdd).
+
+/** Quadratic Bézier sampler: from a through control c to b. */
+function quadSeg(a: [number, number], c: [number, number], b: [number, number], n: number): Polyline {
+  const pts: Polyline = []
+  for (let i = 0; i <= n; i++) {
+    const t = i / n
+    const u = 1 - t
+    pts.push([u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1]])
+  }
+  return pts
+}
+
+/** Ellipse arc sampler with optional rotation (radians) around its center. */
+function ellipseArc(
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  a0: number,
+  a1: number,
+  n: number,
+  rot = 0,
+): Polyline {
+  const pts: Polyline = []
+  const cos = Math.cos(rot)
+  const sin = Math.sin(rot)
+  for (let i = 0; i <= n; i++) {
+    const t = a0 + ((a1 - a0) * i) / n
+    const x = rx * Math.cos(t)
+    const y = ry * Math.sin(t)
+    pts.push([cx + x * cos - y * sin, cy + x * sin + y * cos])
+  }
+  return pts
+}
+
+function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
+  const craniumW = clamp(opts.skullCraniumWidth ?? 1, 0.6, 1.25)
+  const craniumH = clamp(opts.skullCraniumHeight ?? 0.6, 0.45, 0.75)
+  const crown = opts.skullCrown ?? 'round'
+  const brow = clamp(opts.skullBrowRidge ?? 0.03, 0, 0.12)
+  const cheekW = clamp(opts.skullCheekWidth ?? 0.92, 0.6, 1.1)
+  const jawW = clamp(opts.skullJawWidth ?? 0.72, 0.35, 0.95)
+  const jawH = clamp(opts.skullJawHeight ?? 0.22, 0.1, 0.3)
+  const mandible = opts.skullMandible ?? true
+  const eyeR = clamp(opts.skullEyeSize ?? 0.16, 0.06, 0.26) * 0.5
+  const eyeDX = clamp(opts.skullEyeSpacing ?? 0.26, 0.12, 0.4) * 0.5
+  const eyeY = clamp(opts.skullEyeY ?? 0.48, 0.38, 0.6)
+  const eyeShape = opts.skullEyeShape ?? 'round'
+  const eyeTilt = clamp(opts.skullEyeTilt ?? 0, -1, 1)
+  const eyeAsym = clamp(opts.skullEyeAsym ?? 0, 0, 1)
+  const noseW = clamp(opts.skullNoseWidth ?? 0.09, 0.04, 0.16)
+  const noseH = clamp(opts.skullNoseHeight ?? 0.11, 0.05, 0.2)
+  const noseY = clamp(opts.skullNoseY ?? 0.63, 0.52, 0.75)
+  const noseShape = opts.skullNoseShape ?? 'triangle'
+  const teeth = clampInt(opts.skullTeethCount ?? 8, 0, 14)
+  const teethLen = clamp(opts.skullTeethLen ?? 0.08, 0.04, 0.14)
+  const teethGap = clamp(opts.skullTeethGap ?? 0.35, 0, 1)
+  const teethShape = opts.skullTeethShape ?? 'rect'
+  const mouthY = clamp(opts.skullMouthY ?? 0.82, 0.68, 0.9)
+
+  const polys: Polyline[] = []
+
+  /* ---- silhouette: right half from the crown down, mirrored to the left ---- */
+  const domeRx = Math.min(0.49, 0.5 * craniumW)
+  const domeCy = craniumH
+  const domePow = crown === 'flat' ? 0.55 : 1 // superellipse exponent 2/p: 2 → round, ~3.6 → boxy
+  const templeA = -0.12 // radians below the equator where the dome hands over
+  const domeEndX = 0.5 + domeRx * Math.cos(templeA)
+  const domeEndY = domeCy + domeCy * Math.sin(templeA)
+  const browX = Math.min(0.49, domeRx * 0.94 + brow)
+  const browY = domeEndY + 0.03
+  const cheekY = Math.min(0.78, eyeY + 0.1)
+  const jawTopY = Math.min(0.94, Math.max(mouthY + teethLen + 0.04, 1 - jawH))
+  const chinY = mandible ? 1 : jawTopY + 0.02
+  const jawX = 0.5 + 0.5 * jawW
+  const cheekX = 0.5 + 0.5 * cheekW
+
+  const right: Polyline = []
+  // crown: superellipse arc from the top center to the temple
+  const domeRy = domeCy // top of the dome sits on y=0
+  const domeSeg = Math.max(14, Math.ceil(steps / 8))
+  for (let i = 0; i <= domeSeg; i++) {
+    const a = -Math.PI / 2 + ((templeA + Math.PI / 2) * i) / domeSeg
+    const ct = Math.cos(a)
+    const st = Math.sin(a)
+    right.push([
+      0.5 + domeRx * Math.sign(ct) * Math.pow(Math.abs(ct), domePow),
+      domeCy + domeRy * Math.sign(st) * Math.pow(Math.abs(st), domePow),
+    ])
+  }
+  right.push([domeEndX, domeEndY])
+  // brow ridge: small outward bump under the temple
+  right.push(...quadSeg([domeEndX, domeEndY], [browX + 0.01, browY - 0.02], [browX, browY], 6))
+  // cheekbone: curve out to the widest lower point
+  right.push(...quadSeg([browX, browY], [cheekX + 0.02, cheekY - 0.07], [cheekX, cheekY], 8))
+  // taper to the jaw corner
+  right.push(...quadSeg([cheekX, cheekY], [jawX + 0.02, cheekY + 0.08], [jawX, jawTopY], 8))
+  if (mandible) {
+    // jaw side down to the rounded chin
+    right.push(...quadSeg([jawX, jawTopY], [jawX, chinY - 0.06], [0.5, chinY], 8))
+  } else {
+    right.push(...quadSeg([jawX, jawTopY], [0.5 + jawW * 0.25, chinY], [0.5, chinY], 6))
+  }
+  const loop: Polyline = [...right]
+  // mirror the right half (skip duplicated endpoints) in reverse
+  for (let i = right.length - 2; i >= 1; i--) {
+    loop.push([1 - right[i][0], right[i][1]])
+  }
+  loop.push(loop[0])
+  polys.push(decoratePolylines([loop], opts)[0])
+
+  /* ---- eye sockets ---- */
+  const eye = (side: 1 | -1) => {
+    const cx = 0.5 + side * eyeDX
+    const cy = eyeY + (side === -1 ? eyeAsym * 0.035 : 0)
+    const r = eyeR * (side === -1 ? 1 - eyeAsym * 0.22 : 1)
+    const rot = eyeTilt * 0.32 * side
+    const n = 24
+    if (eyeShape === 'square') {
+      return roundedRectPolyline(cx - r * 0.95, cy - r * 0.72, cx + r * 0.95, cy + r * 0.72, r * 0.35)
+    }
+    const ry = eyeShape === 'oval' ? r * 1.4 : eyeShape === 'angled' ? r * 0.62 : r
+    const rx = eyeShape === 'angled' ? r * 1.18 : r
+    const pts = ellipseArc(cx, cy, rx, ry, 0, 2 * Math.PI, n, rot)
+    pts.push(pts[0])
+    return pts
+  }
+  polys.push(eye(1), eye(-1))
+
+  /* ---- nasal aperture ---- */
+  {
+    const top = noseY - noseH / 2
+    const bot = noseY + noseH / 2
+    const w2 = noseW / 2
+    const cx = 0.5
+    if (noseShape === 'slit') {
+      const pts = roundedRectPolyline(cx - w2 * 0.45, top, cx + w2 * 0.45, bot, w2 * 0.2)
+      polys.push(pts)
+    } else if (noseShape === 'triangle') {
+      polys.push([
+        [cx - w2, top],
+        [cx + w2, top],
+        [cx + w2 * 0.3, bot - noseH * 0.12],
+        [cx, bot],
+        [cx - w2 * 0.3, bot - noseH * 0.12],
+        [cx - w2, top],
+      ])
+    } else if (noseShape === 'heart') {
+      // two lobes on top, tapering to a point — the classic nasal aperture
+      const pts: Polyline = []
+      pts.push(...quadSeg([cx - w2, top + noseH * 0.3], [cx - w2 * 0.8, bot - noseH * 0.2], [cx, bot], 8))
+      pts.push(...quadSeg([cx, bot], [cx + w2 * 0.8, bot - noseH * 0.2], [cx + w2, top + noseH * 0.3], 8))
+      pts.push(...quadSeg([cx + w2, top + noseH * 0.3], [cx + w2 * 0.5, top - noseH * 0.08], [cx + w2 * 0.12, top + noseH * 0.16], 6))
+      pts.push(...quadSeg([cx + w2 * 0.12, top + noseH * 0.16], [cx, top + noseH * 0.26], [cx - w2 * 0.12, top + noseH * 0.16], 5))
+      pts.push(...quadSeg([cx - w2 * 0.12, top + noseH * 0.16], [cx - w2 * 0.5, top - noseH * 0.08], [cx - w2, top + noseH * 0.3], 6))
+      pts.push(pts[0])
+      polys.push(pts)
+    } else {
+      // teardrop: round top, tapering to the bottom point
+      const r = w2 * 0.9
+      const cyc = top + r
+      const pts: Polyline = []
+      pts.push(...ellipseArc(cx, cyc, r, r, Math.PI * 0.95, Math.PI * 2.05, 14))
+      pts.push(...quadSeg([cx + r * 0.95, cyc + r * 0.3], [cx + w2 * 0.4, bot - noseH * 0.18], [cx, bot], 6))
+      pts.push(...quadSeg([cx, bot], [cx - w2 * 0.4, bot - noseH * 0.18], [cx - r * 0.95, cyc + r * 0.3], 6))
+      pts.push(pts[0])
+      polys.push(pts)
+    }
+  }
+
+  /* ---- mouth opening with a toothed top edge ---- */
+  {
+    const mouthW = jawW * 0.68
+    const ml = 0.5 - mouthW / 2
+    const mr = 0.5 + mouthW / 2
+    const mt = mouthY
+    const mb = mt + teethLen * 1.2
+    if (teeth < 1) {
+      polys.push(roundedRectPolyline(ml, mt, mr, mb, teethLen * 0.3))
+    } else {
+      const tw = mouthW / teeth
+      const gapFrac = 0.12 + teethGap * 0.3 // bare gum strip on each side of a tooth
+      const tipOf = (i: number) =>
+        teethShape === 'fangs' && (i === 1 || i === teeth - 2) ? teethLen * 1.7 : teethLen
+      const pts: Polyline = []
+      pts.push([ml, mt])
+      for (let i = 0; i < teeth; i++) {
+        const x0 = ml + i * tw + tw * gapFrac
+        const x1 = ml + (i + 1) * tw - tw * gapFrac
+        const depth = mt + tipOf(i)
+        pts.push([x0, mt])
+        if (teethShape === 'rect') {
+          pts.push([x0, depth], [x1, depth])
+        } else if (teethShape === 'rounded') {
+          pts.push(...quadSeg([x0, mt], [x0 + (x1 - x0) * 0.1, depth], [0.5 * (x0 + x1), depth], 4))
+          pts.push(...quadSeg([0.5 * (x0 + x1), depth], [x1 - (x1 - x0) * 0.1, depth], [x1, mt], 4))
+        } else {
+          // pointed teeth and fangs: a V dip under every tooth
+          pts.push([0.5 * (x0 + x1), depth])
+        }
+      }
+      pts.push([mr, mt])
+      // bottom edge: shallow arc suggesting the lower jaw line
+      pts.push(...quadSeg([mr, mt], [mr, mb], [0.5, mb], 6))
+      pts.push(...quadSeg([0.5, mb], [ml, mb], [ml, mt], 6))
+      pts.push(pts[0])
+      polys.push(pts)
+    }
+  }
+
+  return polys
+}
+
 
 /** Normalized radii of the concentric tools, sorted descending and clamped. */
 function concentricRadii(opts: ShapeOpts): number[] {
@@ -978,4 +1249,26 @@ export function shapePathPoints(
 ): Array<[number, number]> {
   const segs = shapePathSegments(tool, ax, ay, bx, by, opts, steps)
   return polylineCells(segs)
+}
+
+/** Tools whose outline includes nested loops that must read as holes when filled. */
+export function shapeHasHoles(tool: ShapeToolId): boolean {
+  return tool === 'skull'
+}
+
+/**
+ * Integer-cell outline loops of a shape, one entry per polyline (holes included as
+ * their own loops). Union over the entries equals shapePathPoints; hole-aware fills
+ * run even-odd across the entries instead.
+ */
+export function shapePathLoops(
+  tool: ShapeToolId,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  opts: ShapeOpts = {},
+  steps?: number,
+): Polyline[] {
+  return shapePathSegments(tool, ax, ay, bx, by, opts, steps).map((poly) => polylineCells([poly]))
 }

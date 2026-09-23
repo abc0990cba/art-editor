@@ -1,9 +1,14 @@
 import { useEffect, useState, type JSX } from 'react'
 import { useStore, type Tool, type ToolOpts } from '../state/store'
+
+/** ToolOpts keys that hold numbers — the sliders' writable keys. */
+type NumericOptKey = {
+  [K in keyof ToolOpts]: ToolOpts[K] extends number ? K : never
+}[keyof ToolOpts]
 import { SHAPE_TOOLS } from '../engine/shapes'
 import { useI18n } from '../i18n'
 import { Tooltip } from './Tooltip'
-import { Chip, Slider } from './ui'
+import { CheckRow, Chip, Slider } from './ui'
 import { FillSettings } from './FillSettings'
 import { ToolPreview } from './ToolPreview'
 import { ExpandablePreview } from './PreviewExpander'
@@ -112,6 +117,15 @@ const icons: Record<Tool, JSX.Element> = {
       <rect x="5.5" y="5.5" width="5" height="5" rx="0.5" />
     </>
   ),
+  skull: (
+    <>
+      <path d="M3.5 7a4.5 4.5 0 019 0v2.2c0 .9-.5 1.5-1.2 1.9l-.3 2.4h-6l-.3-2.4C4 11.7 3.5 11.1 3.5 10.2z" />
+      <circle cx="5.9" cy="7.6" r="1.15" />
+      <circle cx="10.1" cy="7.6" r="1.15" />
+      <path d="M8 9.3l-.7 1.6h1.4z" />
+      <path d="M6.2 11.5v2M8 11.5v2M9.8 11.5v2" />
+    </>
+  ),
 }
 
 const toolKeys: Record<Tool, string> = {
@@ -145,6 +159,7 @@ const toolKeys: Record<Tool, string> = {
   chevron: '1',
   concentric: '2',
   concentricRect: '3',
+  skull: '6',
 }
 
 const order: Tool[] = [
@@ -243,8 +258,8 @@ function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onClose: ()
 
   const pct = (v: number) => `${Math.round(v * 100)}%`
   const deg = (v: number) => `${Math.round(v)}°`
-  const setOpt = (k: keyof ToolOpts, v: number) => patch({ [k]: v } as Partial<ToolOpts>)
-  const rotation = (k: keyof ToolOpts) => (
+  const setOpt = (k: NumericOptKey, v: number) => patch({ [k]: v } as Partial<ToolOpts>)
+  const rotation = (k: NumericOptKey) => (
     <Slider
       label={t('opt.rotation')}
       title={t('opt.rotation.desc')}
@@ -778,6 +793,96 @@ function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onClose: ()
             {t('opt.bentoReroll')}
           </Chip>
         </div>
+      </>
+    )
+  } else if (tool === 'skull') {
+    // style presets patch several knobs at once; every knob stays editable after
+    const preset = (label: string, p: Partial<ToolOpts>) => (
+      <Chip key={label} onClick={() => patch(p)}>
+        {label}
+      </Chip>
+    )
+    const row = (label: string, k: NumericOptKey, min: number, max: number, step = 0.01) => (
+      <Slider label={label} value={opts[k] as number} min={min} max={max} step={step} editable int={step >= 1} onChange={(v) => setOpt(k, v)} />
+    )
+    const chips = (label: string, cur: string, vals: Array<[string, string]>, pick: (v: string) => void) => (
+      <div className="flex items-center justify-between gap-2 text-xs text-body">
+        <span className="text-muted">{label}</span>
+        <div className="flex flex-wrap justify-end gap-1">
+          {vals.map(([v, key]) => (
+            <Chip key={v} active={cur === v} onClick={() => pick(v)}>
+              {t(key as never)}
+            </Chip>
+          ))}
+        </div>
+      </div>
+    )
+    const group = (label: string) => (
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</div>
+    )
+    body = (
+      <>
+        <div className="flex flex-wrap gap-1">
+          {preset(t('skull.preset.anatomic'), {
+            skullCraniumWidth: 1, skullCraniumHeight: 0.6, skullCrown: 'round', skullBrowRidge: 0.03,
+            skullCheekWidth: 0.92, skullJawWidth: 0.72, skullJawHeight: 0.22, skullMandible: true,
+            skullEyeSize: 0.16, skullEyeSpacing: 0.26, skullEyeY: 0.48, skullEyeShape: 'round',
+            skullEyeTilt: 0, skullEyeAsym: 0, skullNoseWidth: 0.09, skullNoseHeight: 0.11,
+            skullNoseY: 0.63, skullNoseShape: 'triangle', skullTeethCount: 8, skullTeethLen: 0.08,
+            skullTeethGap: 0.35, skullTeethShape: 'rect', skullMouthY: 0.82,
+          })}
+          {preset(t('skull.preset.cartoon'), {
+            skullCraniumWidth: 1.15, skullCraniumHeight: 0.66, skullCrown: 'round', skullBrowRidge: 0,
+            skullCheekWidth: 0.8, skullJawWidth: 0.55, skullJawHeight: 0.16, skullMandible: true,
+            skullEyeSize: 0.24, skullEyeSpacing: 0.3, skullEyeY: 0.5, skullEyeShape: 'round',
+            skullEyeTilt: 0, skullEyeAsym: 0, skullNoseWidth: 0.07, skullNoseHeight: 0.08,
+            skullNoseY: 0.64, skullNoseShape: 'heart', skullTeethCount: 6, skullTeethLen: 0.06,
+            skullTeethGap: 0.2, skullTeethShape: 'rounded', skullMouthY: 0.84,
+          })}
+          {preset(t('skull.preset.demon'), {
+            skullCraniumWidth: 1, skullCraniumHeight: 0.58, skullCrown: 'flat', skullBrowRidge: 0.08,
+            skullCheekWidth: 1.02, skullJawWidth: 0.6, skullJawHeight: 0.24, skullMandible: true,
+            skullEyeSize: 0.14, skullEyeSpacing: 0.28, skullEyeY: 0.47, skullEyeShape: 'angled',
+            skullEyeTilt: 0.9, skullEyeAsym: 0, skullNoseWidth: 0.05, skullNoseHeight: 0.16,
+            skullNoseY: 0.62, skullNoseShape: 'slit', skullTeethCount: 10, skullTeethLen: 0.1,
+            skullTeethGap: 0.6, skullTeethShape: 'fangs', skullMouthY: 0.8,
+          })}
+          {preset(t('skull.preset.alien'), {
+            skullCraniumWidth: 1.2, skullCraniumHeight: 0.72, skullCrown: 'round', skullBrowRidge: 0,
+            skullCheekWidth: 0.7, skullJawWidth: 0.42, skullJawHeight: 0.12, skullMandible: true,
+            skullEyeSize: 0.24, skullEyeSpacing: 0.34, skullEyeY: 0.46, skullEyeShape: 'oval',
+            skullEyeTilt: -0.4, skullEyeAsym: 0, skullNoseWidth: 0.04, skullNoseHeight: 0.06,
+            skullNoseY: 0.58, skullNoseShape: 'slit', skullTeethCount: 0, skullTeethLen: 0.06,
+            skullTeethGap: 0.3, skullTeethShape: 'rect', skullMouthY: 0.86,
+          })}
+        </div>
+        {group(t('skull.group.cranium'))}
+        {row(t('opt.skullCraniumWidth'), 'skullCraniumWidth', 0.6, 1.25)}
+        {row(t('opt.skullCraniumHeight'), 'skullCraniumHeight', 0.45, 0.75)}
+        {chips(t('opt.skullCrown'), opts.skullCrown, [['round', 'skull.crown.round'], ['flat', 'skull.crown.flat']], (v) => patch({ skullCrown: v as 'round' | 'flat' }))}
+        {row(t('opt.skullBrowRidge'), 'skullBrowRidge', 0, 0.12)}
+        {row(t('opt.skullCheekWidth'), 'skullCheekWidth', 0.6, 1.1)}
+        {group(t('skull.group.eyes'))}
+        {row(t('opt.skullEyeSize'), 'skullEyeSize', 0.06, 0.26)}
+        {row(t('opt.skullEyeSpacing'), 'skullEyeSpacing', 0.12, 0.4)}
+        {row(t('opt.skullEyeY'), 'skullEyeY', 0.38, 0.6)}
+        {chips(t('opt.skullEyeShape'), opts.skullEyeShape, [['round', 'skull.eye.round'], ['oval', 'skull.eye.oval'], ['square', 'skull.eye.square'], ['angled', 'skull.eye.angled']], (v) => patch({ skullEyeShape: v as 'round' | 'oval' | 'square' | 'angled' }))}
+        {row(t('opt.skullEyeTilt'), 'skullEyeTilt', -1, 1)}
+        {row(t('opt.skullEyeAsym'), 'skullEyeAsym', 0, 1)}
+        {group(t('skull.group.nose'))}
+        {row(t('opt.skullNoseWidth'), 'skullNoseWidth', 0.04, 0.16)}
+        {row(t('opt.skullNoseHeight'), 'skullNoseHeight', 0.05, 0.2)}
+        {row(t('opt.skullNoseY'), 'skullNoseY', 0.52, 0.75)}
+        {chips(t('opt.skullNoseShape'), opts.skullNoseShape, [['triangle', 'skull.nose.triangle'], ['heart', 'skull.nose.heart'], ['teardrop', 'skull.nose.teardrop'], ['slit', 'skull.nose.slit']], (v) => patch({ skullNoseShape: v as 'triangle' | 'heart' | 'teardrop' | 'slit' }))}
+        {group(t('skull.group.jaw'))}
+        {row(t('opt.skullJawWidth'), 'skullJawWidth', 0.35, 0.95)}
+        {row(t('opt.skullJawHeight'), 'skullJawHeight', 0.1, 0.3)}
+        <CheckRow label={t('opt.skullMandible')} checked={opts.skullMandible} onChange={(v) => patch({ skullMandible: v })} />
+        {row(t('opt.skullMouthY'), 'skullMouthY', 0.68, 0.9)}
+        {row(t('opt.skullTeethCount'), 'skullTeethCount', 0, 14, 1)}
+        {row(t('opt.skullTeethLen'), 'skullTeethLen', 0.04, 0.14)}
+        {row(t('opt.skullTeethGap'), 'skullTeethGap', 0, 1)}
+        {chips(t('opt.skullTeethShape'), opts.skullTeethShape, [['rect', 'skull.teeth.rect'], ['rounded', 'skull.teeth.rounded'], ['pointed', 'skull.teeth.pointed'], ['fangs', 'skull.teeth.fangs']], (v) => patch({ skullTeethShape: v as 'rect' | 'rounded' | 'pointed' | 'fangs' }))}
       </>
     )
   } else {

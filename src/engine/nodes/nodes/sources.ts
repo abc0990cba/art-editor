@@ -2,8 +2,18 @@
 
 import { defineNode, Resolved, type Cells, type NodeParamSpec } from '../types'
 import { combineCells } from '../context'
-import { regionCells } from '../../shapefill'
-import { linePoints, shapePathPoints, type ShapeOpts, type ShapeToolId } from '../../shapes'
+import {
+  fillCellsEvenOdd,
+  regionCells,
+} from '../../shapefill'
+import {
+  linePoints,
+  shapeHasHoles,
+  shapePathLoops,
+  shapePathPoints,
+  type ShapeOpts,
+  type ShapeToolId,
+} from '../../shapes'
 
 const MODE = {
   kind: 'select',
@@ -61,9 +71,34 @@ const SHAPE_TOOL_PARAMS: Record<string, NodeParamSpec> = Object.fromEntries(
       ['shapeCorner', 'number', 0, 0.5, 0],
       ['shapeBulge', 'number', -1, 1, 0],
       ['ringThickness', 'number', 0.05, 0.9, 0.25],
+      ['skullCraniumWidth', 'number', 0.6, 1.25, 1],
+      ['skullCraniumHeight', 'number', 0.45, 0.75, 0.6],
+      ['skullBrowRidge', 'number', 0, 0.12, 0.03],
+      ['skullCheekWidth', 'number', 0.6, 1.1, 0.92],
+      ['skullJawWidth', 'number', 0.35, 0.95, 0.72],
+      ['skullJawHeight', 'number', 0.1, 0.3, 0.22],
+      ['skullEyeSize', 'number', 0.06, 0.26, 0.16],
+      ['skullEyeSpacing', 'number', 0.12, 0.4, 0.26],
+      ['skullEyeY', 'number', 0.38, 0.6, 0.48],
+      ['skullEyeTilt', 'number', -1, 1, 0],
+      ['skullEyeAsym', 'number', 0, 1, 0],
+      ['skullNoseWidth', 'number', 0.04, 0.16, 0.09],
+      ['skullNoseHeight', 'number', 0.05, 0.2, 0.11],
+      ['skullNoseY', 'number', 0.52, 0.75, 0.63],
+      ['skullTeethCount', 'int', 0, 14, 8],
+      ['skullTeethLen', 'number', 0.04, 0.14, 0.08],
+      ['skullTeethGap', 'number', 0, 1, 0.35],
+      ['skullMouthY', 'number', 0.68, 0.9, 0.82],
     ] as Array<[string, 'int' | 'number', number, number, number]>
   ).map(([key, kind, min, max, def]) => [key, { kind, min, max, default: def } satisfies NodeParamSpec]),
 )
+Object.assign(SHAPE_TOOL_PARAMS, {
+  skullCrown: { kind: 'select', options: ['round', 'flat'], default: 'round' },
+  skullMandible: { kind: 'bool', default: true },
+  skullEyeShape: { kind: 'select', options: ['round', 'oval', 'square', 'angled'], default: 'round' },
+  skullNoseShape: { kind: 'select', options: ['triangle', 'heart', 'teardrop', 'slit'], default: 'triangle' },
+  skullTeethShape: { kind: 'select', options: ['rect', 'rounded', 'pointed', 'fangs'], default: 'rect' },
+} satisfies Record<string, NodeParamSpec>)
 
 function shapeOptsFrom(p: Resolved): ShapeOpts {
   return {
@@ -113,6 +148,29 @@ function shapeOptsFrom(p: Resolved): ShapeOpts {
     shapeCorner: p.num('shapeCorner'),
     shapeBulge: p.num('shapeBulge'),
     ringThickness: p.num('ringThickness'),
+    skullCraniumWidth: p.num('skullCraniumWidth'),
+    skullCraniumHeight: p.num('skullCraniumHeight'),
+    skullCrown: p.str('skullCrown') as ShapeOpts['skullCrown'],
+    skullBrowRidge: p.num('skullBrowRidge'),
+    skullCheekWidth: p.num('skullCheekWidth'),
+    skullJawWidth: p.num('skullJawWidth'),
+    skullJawHeight: p.num('skullJawHeight'),
+    skullMandible: p.bool('skullMandible'),
+    skullEyeSize: p.num('skullEyeSize'),
+    skullEyeSpacing: p.num('skullEyeSpacing'),
+    skullEyeY: p.num('skullEyeY'),
+    skullEyeShape: p.str('skullEyeShape') as ShapeOpts['skullEyeShape'],
+    skullEyeTilt: p.num('skullEyeTilt'),
+    skullEyeAsym: p.num('skullEyeAsym'),
+    skullNoseWidth: p.num('skullNoseWidth'),
+    skullNoseHeight: p.num('skullNoseHeight'),
+    skullNoseY: p.num('skullNoseY'),
+    skullNoseShape: p.str('skullNoseShape') as ShapeOpts['skullNoseShape'],
+    skullTeethCount: p.num('skullTeethCount'),
+    skullTeethLen: p.num('skullTeethLen'),
+    skullTeethGap: p.num('skullTeethGap'),
+    skullTeethShape: p.str('skullTeethShape') as ShapeOpts['skullTeethShape'],
+    skullMouthY: p.num('skullMouthY'),
   }
 }
 
@@ -212,7 +270,7 @@ export const SOURCE_NODES = [
         options: [
           'star', 'polygon', 'diamond', 'heart', 'spiral', 'arrow', 'lightning', 'moon',
           'wave', 'zigzag', 'cross', 'flower', 'gear', 'sun', 'bento', 'ring', 'arc',
-          'drop', 'chevron', 'concentric', 'concentricRect',
+          'drop', 'chevron', 'concentric', 'concentricRect', 'skull',
         ] as const,
         default: 'star',
       },
@@ -231,14 +289,19 @@ export const SOURCE_NODES = [
       const y0 = p.num('y')
       const x1 = x0 + p.num('w')
       const y1 = y0 + p.num('h')
-      const outline = shapePathPoints(p.str('shape') as ShapeToolId, x0, y0, x1, y1, shapeOptsFrom(p))
+      const shape = p.str('shape') as ShapeToolId
+      const outline = shapePathPoints(shape, x0, y0, x1, y1, shapeOptsFrom(p))
       const outlineSet = new Set<number>()
       for (const [x, y] of outline) {
         if (x >= 0 && y >= 0 && x < ctx.bw && y < ctx.bh) outlineSet.add(y * ctx.bw + x)
       }
-      const { inside } = regionCells(outlineSet, ctx.bw, ctx.bh)
+      // hole-bearing shapes (skull) fill even-odd across their loops, so sockets
+      // and the mouth stay empty; every other shape keeps the flood-fill inside
+      const fill = shapeHasHoles(shape)
+        ? fillCellsEvenOdd(shapePathLoops(shape, x0, y0, x1, y1, shapeOptsFrom(p)), ctx.bw, ctx.bh)
+        : regionCells(outlineSet, ctx.bw, ctx.bh).inside
       for (const i of outlineSet) cells.set(i, v)
-      for (const i of inside) cells.set(i, v)
+      for (const i of fill) cells.set(i, v)
       return combineCells(input, cells, p.str('mode'))
     },
   }),
