@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { shapeHasHoles, shapePathLoops, shapePathPoints, type ShapeOpts } from './shapes'
+
 import { fillCellsEvenOdd } from './shapefill'
+import { shapeHasHoles, shapePathLoops, shapePathPoints, type ShapeOpts } from './shapes'
 
 const BW = 80
 const BH = 80
@@ -13,7 +14,7 @@ const fill = (opts: ShapeOpts = {}) => {
 
 const cell = (x: number, y: number) => y * BW + x
 
-/** cells in a rect that are neither fill nor outline — i.e. holes */
+/** Cells in a rect that are neither fill nor outline — i.e. holes */
 const holesIn = (f: ReturnType<typeof fill>, x0: number, y0: number, x1: number, y1: number) => {
   let n = 0
   for (let y = y0; y <= y1; y++) {
@@ -25,7 +26,7 @@ const holesIn = (f: ReturnType<typeof fill>, x0: number, y0: number, x1: number,
   return n
 }
 
-/** filled (bone) cells in a rect */
+/** Filled (bone) cells in a rect */
 const boneIn = (f: ReturnType<typeof fill>, x0: number, y0: number, x1: number, y1: number) => {
   let n = 0
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (f.inside.has(cell(x, y))) n++
@@ -118,12 +119,20 @@ function knobs() {
   it('style presets all render non-empty geometry', () => {
     for (const preset of [
       {
-        skullCraniumWidth: 1.15, skullCraniumHeight: 0.66, skullEyeShape: 'oval' as const,
-        skullNoseShape: 'heart' as const, skullTeethShape: 'rounded' as const, skullTeethCount: 6,
+        skullCraniumWidth: 1.15,
+        skullCraniumHeight: 0.66,
+        skullEyeShape: 'oval' as const,
+        skullNoseShape: 'heart' as const,
+        skullTeethShape: 'rounded' as const,
+        skullTeethCount: 6,
       },
       {
-        skullCrown: 'flat' as const, skullEyeShape: 'angled' as const, skullEyeTilt: 0.9,
-        skullNoseShape: 'slit' as const, skullTeethShape: 'fangs' as const, skullTeethCount: 10,
+        skullCrown: 'flat' as const,
+        skullEyeShape: 'angled' as const,
+        skullEyeTilt: 0.9,
+        skullNoseShape: 'slit' as const,
+        skullTeethShape: 'fangs' as const,
+        skullTeethCount: 10,
       },
       { skullEyeAsym: 0.6, skullTeethGap: 0.8, skullBrowRidge: 0.1, skullJawWidth: 0.4 },
     ]) {

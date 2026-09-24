@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { parseGpl, parsePaletteText, serializeGpl, serializeHex } from './paletteIO'
 
 describe('parsePaletteText', () => {

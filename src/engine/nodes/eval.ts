@@ -1,46 +1,47 @@
 /**
  * Graph evaluation. Two flow modes:
- *  - `edges` present → topological pass over the raster graph; several wires into one
- *    input merge by union; the final picture is the union of the sink outputs;
- *  - no edges → the list order is the flow: each raster node feeds the next.
- * Style nodes always write the cloned base style in list order (order only matters
- * between two style nodes writing the same field). Unknown (version-skew) nodes are
- * skipped, not removed — graphs survive app-version skew without data loss.
+ *
+ * - `edges` present → topological pass over the raster graph; several wires into one input merge by
+ *   union; the final picture is the union of the sink outputs;
+ * - No edges → the list order is the flow: each raster node feeds the next. Style nodes always write
+ *   the cloned base style in list order (order only matters between two style nodes writing the
+ *   same field). Unknown (version-skew) nodes are skipped, not removed — graphs survive app-version
+ *   skew without data loss.
  */
 
 import type { ElementStyle } from '../doc'
-import type { Cells, Graph, GraphNode, RasterNodeDef } from './types'
-import { nodeDef, resolveParams } from './registry'
 import { withNodeRng } from './context'
+import { nodeDef, resolveParams } from './registry'
+import type { Cells, Graph, GraphNode, RasterNodeDef } from './types'
 
 export interface EvalInput {
-  /** buffer size in cells */
+  /** Buffer size in cells */
   bw: number
   bh: number
-  /** number of entries in the (derived) palette — ramps clamp against it */
+  /** Number of entries in the (derived) palette — ramps clamp against it */
   paletteLen: number
-  /** hex color → 1-based palette value */
+  /** Hex color → 1-based palette value */
   hexValue: (hex: string) => number
-  /** the object's appearance the style nodes write on top of (never mutated) */
+  /** The object's appearance the style nodes write on top of (never mutated) */
   baseStyle: ElementStyle
 }
 
 export interface EvalOutput {
   cells: Cells
-  /** the evaluated appearance (a clone of the base style, written by style nodes) */
+  /** The evaluated appearance (a clone of the base style, written by style nodes) */
   style: ElementStyle
 }
 
 export interface GraphStage {
-  /** id of the raster node that produced this stage */
+  /** Id of the raster node that produced this stage */
   id: string
   cells: Cells
 }
 
 /**
- * Evaluate each raster node cumulatively (prefix stages) — powers per-node previews:
- * stage k shows what the chain produces through node k. Style nodes don't add stages
- * (they only write the appearance clone).
+ * Evaluate each raster node cumulatively (prefix stages) — powers per-node previews: stage k shows
+ * what the chain produces through node k. Style nodes don't add stages (they only write the
+ * appearance clone).
  */
 export function evalGraphStages(
   graph: Graph,
@@ -100,7 +101,11 @@ export function evalGraphStages(
       for (const src of incoming.get(id) ?? []) {
         for (const [i, v] of outputs.get(src) ?? []) if (!acc.has(i)) acc.set(i, v)
       }
-      const out = def.evaluate(withNodeRng(base, id, node.op), resolveParams(node.op, node.params), acc)
+      const out = def.evaluate(
+        withNodeRng(base, id, node.op),
+        resolveParams(node.op, node.params),
+        acc,
+      )
       outputs.set(id, out)
       stages.push({ id, cells: out })
     }
@@ -110,22 +115,27 @@ export function evalGraphStages(
       if (node.unknown) continue
       const def = nodeDef(node.op)
       if (!def || def.kind === 'style') continue
-      acc = def.evaluate(withNodeRng(base, node.id, node.op), resolveParams(node.op, node.params), acc)
+      acc = def.evaluate(
+        withNodeRng(base, node.id, node.op),
+        resolveParams(node.op, node.params),
+        acc,
+      )
       stages.push({ id: node.id, cells: new Map(acc) })
     }
   }
   return { stages, style }
 }
 
-/** Evaluate a graph; deterministic — the same graph, palette and base style always
- *  produce identical cells. The base style is never mutated. The object's own stored
- *  ink acts as the implicit first input — EXCEPT when the graph contains a source node:
- *  then the graph is fully procedural and the stored ink is ignored (moving or editing
- *  source params never leaves stale pixels behind). */
+/**
+ * Evaluate a graph; deterministic — the same graph, palette and base style always produce identical
+ * cells. The base style is never mutated. The object's own stored ink acts as the implicit first
+ * input — EXCEPT when the graph contains a source node: then the graph is fully procedural and the
+ * stored ink is ignored (moving or editing source params never leaves stale pixels behind).
+ */
 export function evalGraph(graph: Graph, base: EvalInput, input?: Cells): EvalOutput {
   const { stages, style } = evalGraphStages(graph, base, input)
   return {
-    cells: stages.length > 0 ? stages[stages.length - 1].cells : input ?? new Map(),
+    cells: stages.length > 0 ? stages[stages.length - 1].cells : (input ?? new Map()),
     style,
   }
 }

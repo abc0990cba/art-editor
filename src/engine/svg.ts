@@ -4,7 +4,7 @@ import { buildGeometry } from './geometry'
 
 export interface SvgOptions {
   includeBg: boolean
-  /** rendered width/height in px per grid cell */
+  /** Rendered width/height in px per grid cell */
   scale?: number
 }
 

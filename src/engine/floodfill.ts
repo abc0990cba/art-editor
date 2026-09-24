@@ -25,9 +25,9 @@ function gridTopology(doc: Doc): { neighbors: (i: number) => number[]; count: nu
 }
 
 /**
- * Indices of the connected region of equal values under buffer index `start`, without
- * writing anything. Square grids spread over the 4 orthogonal directions; other grids
- * use their edge adjacency.
+ * Indices of the connected region of equal values under buffer index `start`, without writing
+ * anything. Square grids spread over the 4 orthogonal directions; other grids use their edge
+ * adjacency.
  */
 export function floodRegion(doc: Doc, start: number): number[] {
   const { neighbors, count } = gridTopology(doc)

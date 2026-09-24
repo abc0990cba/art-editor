@@ -1,6 +1,6 @@
 /**
- * Node registry: registration, lookup, the machine-readable schema export (AI bridge)
- * and defensive graph validation. Registration happens once, from `nodes/index.ts`.
+ * Node registry: registration, lookup, the machine-readable schema export (AI bridge) and defensive
+ * graph validation. Registration happens once, from `nodes/index.ts`.
  */
 
 import type { AnyNodeDef, Graph, GraphNode, ParamValue } from './types'
@@ -102,12 +102,11 @@ export type ValidateResult = {
 }
 
 /**
- * Validate untrusted graph JSON. Structurally valid payloads always come back `ok` with
- * a cleaned graph: unknown operations are kept flagged (`unknown: true`, the evaluator
- * skips them) so graphs survive app-version skew, and every parameter is clamped to the
- * registry schema, and edges referencing dropped nodes are removed — cycles are broken
- * at a back-edge with a warning. Only broken shapes (not an object, `nodes` not an
- * array) fail.
+ * Validate untrusted graph JSON. Structurally valid payloads always come back `ok` with a cleaned
+ * graph: unknown operations are kept flagged (`unknown: true`, the evaluator skips them) so graphs
+ * survive app-version skew, and every parameter is clamped to the registry schema, and edges
+ * referencing dropped nodes are removed — cycles are broken at a back-edge with a warning. Only
+ * broken shapes (not an object, `nodes` not an array) fail.
  */
 export function validateGraph(raw: unknown): ValidateResult {
   const fail = (errors: string[]): ValidateResult => ({

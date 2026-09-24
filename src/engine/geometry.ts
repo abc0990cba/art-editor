@@ -1,11 +1,11 @@
 import type { Doc, ElementStyle, Link, PixelStyle } from './doc'
 import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from './doc'
-import { marchingSquares, type Pt } from './marchingSquares'
-import { outlineGeometry } from './outline'
 import { gridBuildGeometry } from './gridGeometry'
-import { fieldTextureFragments, regionTextureFragments, type TextureCell } from './texture'
-import { visibleObjs } from './scene'
+import { marchingSquares, type Pt } from './marchingSquares'
 import { evalGraph } from './nodes'
+import { outlineGeometry } from './outline'
+import { visibleObjs } from './scene'
+import { fieldTextureFragments, regionTextureFragments, type TextureCell } from './texture'
 
 export interface StyledPath {
   d: string
@@ -19,22 +19,22 @@ export interface Geometry {
 }
 
 export interface Staging {
-  /** buffer index -> value (null = erase) applied on top of doc.cells */
+  /** Buffer index -> value (null = erase) applied on top of doc.cells */
   cells?: ReadonlyMap<number, number | null>
-  /** replaces doc.links entirely when provided (preview) */
+  /** Replaces doc.links entirely when provided (preview) */
   links?: readonly Link[]
-  /** element ids (null = clear) merged over doc.cellObj for the staged cells */
+  /** Element ids (null = clear) merged over doc.cellObj for the staged cells */
   objs?: ReadonlyMap<number, number | null>
   /**
-   * Palette the staged values refer to — shape fills/strokes may resolve colors that
-   * only join doc.palette at commit, so the preview needs the future palette to paint
-   * them with their real colors.
+   * Palette the staged values refer to — shape fills/strokes may resolve colors that only join
+   * doc.palette at commit, so the preview needs the future palette to paint them with their real
+   * colors.
    */
   palette?: readonly string[]
   /**
-   * Scene docs: the layer staged INK belongs to (the active layer). Staged erases on
-   * other layers are routed by each cell's composite owner instead, which keeps a
-   * multi-layer move preview honest.
+   * Scene docs: the layer staged INK belongs to (the active layer). Staged erases on other layers
+   * are routed by each cell's composite owner instead, which keeps a multi-layer move preview
+   * honest.
    */
   layerId?: number
 }
@@ -42,8 +42,8 @@ export interface Staging {
 const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
 
 /**
- * Rounded-rect path with radii [tl, tr, br, bl] clamped to the box. Chamfer style replaces
- * each corner arc with a straight 45° cut of the same tangent length.
+ * Rounded-rect path with radii [tl, tr, br, bl] clamped to the box. Chamfer style replaces each
+ * corner arc with a straight 45° cut of the same tangent length.
  */
 function roundedRectPath(
   x: number,
@@ -73,9 +73,11 @@ function roundedRectPath(
   return d + 'Z'
 }
 
-/** Merge staging cell edits into a scratch copy of the buffer. The scratch is reused
- * across frames: a fresh copy per stroke frame allocates megabytes on large grids
- * (512×512×sub3 ≈ 2.36 M entries) and thrashes the GC mid-stroke. */
+/**
+ * Merge staging cell edits into a scratch copy of the buffer. The scratch is reused across frames:
+ * a fresh copy per stroke frame allocates megabytes on large grids (512×512×sub3 ≈ 2.36 M entries)
+ * and thrashes the GC mid-stroke.
+ */
 let mergeScratch: Uint16Array | null = null
 let mergeObjScratch: Uint32Array | null = null
 
@@ -206,7 +208,7 @@ interface Field {
   f: Float32Array
   fw: number
   fh: number
-  /** field node -> doc units */
+  /** Field node -> doc units */
   scale: number
 }
 
@@ -215,7 +217,7 @@ function buildField(
   cells: Uint16Array,
   links: readonly Link[],
   take: (v: number) => boolean,
-  /** cap on the field side in nodes: lowered during in-stroke previews */
+  /** Cap on the field side in nodes: lowered during in-stroke previews */
   maxSide: number,
 ): Field {
   const bw = bufferWidth(doc)
@@ -445,15 +447,17 @@ interface ElementGroup {
 }
 
 /**
- * Element-scope rendering: group painted cells by owning element, merge groups whose frozen
- * styles are equal (so same-style strokes merge into one metaball field / silhouette), then
- * run the regular per-mode builders over each group's virtual document. Unattributed cells
- * and links (legacy content, corrupt data) render as one bottom group with the doc-level
- * style so nothing ever disappears.
+ * Element-scope rendering: group painted cells by owning element, merge groups whose frozen styles
+ * are equal (so same-style strokes merge into one metaball field / silhouette), then run the
+ * regular per-mode builders over each group's virtual document. Unattributed cells and links
+ * (legacy content, corrupt data) render as one bottom group with the doc-level style so nothing
+ * ever disappears.
  */
-/** Stable style key per frozen ElementStyle object: the exact fields `sameElementStyle`
- * compares, so grouping by key matches the deep compare without rescanning all groups
- * (O(ids) string keys once per style object instead of O(ids²) field compares per frame). */
+/**
+ * Stable style key per frozen ElementStyle object: the exact fields `sameElementStyle` compares, so
+ * grouping by key matches the deep compare without rescanning all groups (O(ids) string keys once
+ * per style object instead of O(ids²) field compares per frame).
+ */
 const styleKeyCache = new WeakMap<ElementStyle, string>()
 
 export function elementStyleKey(el: ElementStyle): string {
@@ -597,9 +601,9 @@ let sceneScratchCells: Uint16Array | null = null
 let sceneScratchObjs: Uint32Array | null = null
 
 /**
- * Scene rendering: one scoped buffer per visible layer, bottom → top. Each layer runs
- * through the regular builders in isolation, which is what makes layers independent
- * compositing spaces — metaball fields and outlines never fuse across layers.
+ * Scene rendering: one scoped buffer per visible layer, bottom → top. Each layer runs through the
+ * regular builders in isolation, which is what makes layers independent compositing spaces —
+ * metaball fields and outlines never fuse across layers.
  */
 function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
   const layers = doc.layers!
@@ -635,13 +639,17 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
     const links: Link[] = []
     for (const o of objs) {
       const { cells: ink } = o.graph
-        ? evalGraph(o.graph, {
-            bw: doc.cols * doc.sub,
-            bh: doc.rows * doc.sub,
-            paletteLen: length,
-            hexValue,
-            baseStyle: o.style,
-          }, o.cells)
+        ? evalGraph(
+            o.graph,
+            {
+              bw: doc.cols * doc.sub,
+              bh: doc.rows * doc.sub,
+              paletteLen: length,
+              hexValue,
+              baseStyle: o.style,
+            },
+            o.cells,
+          )
         : { cells: o.cells }
       for (const [i, v] of ink) cells[i] = v
       for (const [i] of ink) cellObjs[i] = o.id
@@ -653,8 +661,7 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
       for (const [i, v] of staging.cells) {
         if (v === null || v === 0) {
           const owner = doc.cellObj?.[i] ?? 0
-          const home =
-            owner > 0 ? (objLayerOf.get(owner) ?? -1) : stagedInk ? layer.id : -1
+          const home = owner > 0 ? (objLayerOf.get(owner) ?? -1) : stagedInk ? layer.id : -1
           if (home === layer.id) {
             cells[i] = 0
             cellObjs[i] = 0
@@ -706,26 +713,26 @@ export function buildGeometry(doc: Doc, staging?: Staging): Geometry {
 /* ------------------------------- staging preview ------------------------------- */
 
 /**
- * Element id used while a stroke is in flight: out of range for doc.elements, so staged
- * cells preview with the document-level drawing style — exactly the style they will be
- * frozen with when the stroke commits.
+ * Element id used while a stroke is in flight: out of range for doc.elements, so staged cells
+ * preview with the document-level drawing style — exactly the style they will be frozen with when
+ * the stroke commits.
  */
 export const PENDING_OBJ = 0xffffffff
 
 export interface StagingPreview {
-  /** staged ink: one path per (style group × color), drawn above the committed artwork */
+  /** Staged ink: one path per (style group × color), drawn above the committed artwork */
   paths: StyledPath[]
-  /** buffer indices staged as erased; the caller punches these out of the committed layer */
+  /** Buffer indices staged as erased; the caller punches these out of the committed layer */
   erase: number[]
 }
 
 /**
- * Incremental in-stroke preview built from ONLY the staged cells — a frame costs
- * O(staged cells) instead of a full-document rebuild, which keeps drawing responsive on
- * 500×500+ grids with any corner-rounding option (fragments go through the same path
- * builders as shapeGeometry). Returns null when the preview needs global context and the
- * caller must fall back to buildGeometry: outline/metaball contours, baked textures,
- * connector edits and non-square grids all reshape content outside the staged cell set.
+ * Incremental in-stroke preview built from ONLY the staged cells — a frame costs O(staged cells)
+ * instead of a full-document rebuild, which keeps drawing responsive on 500×500+ grids with any
+ * corner-rounding option (fragments go through the same path builders as shapeGeometry). Returns
+ * null when the preview needs global context and the caller must fall back to buildGeometry:
+ * outline/metaball contours, baked textures, connector edits and non-square grids all reshape
+ * content outside the staged cell set.
  */
 export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | null {
   const s = staging.cells

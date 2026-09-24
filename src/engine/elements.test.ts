@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { buildGeometry } from './geometry'
+
+import { useStore } from '../state/store'
 import {
   changeSub,
   defaultDoc,
@@ -9,8 +10,8 @@ import {
   withStyleScope,
   type Doc,
 } from './doc'
+import { buildGeometry } from './geometry'
 import { decodeCellObj, deserialize, encodeCellObj, serialize } from './project'
-import { useStore } from '../state/store'
 
 /** Simulate a stroke: paint cells and freeze the current drawing style as a new element. */
 function paint(doc: Doc, cells: Array<[number, number]>, v: number): Doc {

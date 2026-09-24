@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
+
 import { cellColor, type Doc } from '../engine/doc'
 import { findNode, nodeProtected, type SceneItem, type SceneLayer } from '../engine/scene'
-import { Section } from './ui'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 import { Tooltip } from './Tooltip'
+import { Section } from './ui'
 
 /** Display rows of the layers tree, top of the canvas first (reverse tree order). */
 interface Row {
@@ -30,18 +31,36 @@ function buildRows(layers: SceneLayer[]): Row[] {
 }
 
 const eyeIcon = (
-  <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.3">
+  <svg
+    viewBox="0 0 16 16"
+    className="h-3.5 w-3.5"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.3"
+  >
     <path d="M1.8 8s2.2-3.8 6.2-3.8S14.2 8 14.2 8s-2.2 3.8-6.2 3.8S1.8 8 1.8 8z" />
     <circle cx="8" cy="8" r="1.7" />
   </svg>
 )
 const eyeOffIcon = (
-  <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.3">
+  <svg
+    viewBox="0 0 16 16"
+    className="h-3.5 w-3.5"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.3"
+  >
     <path d="M3 3l10 10M6.2 6.3A1.9 1.9 0 008 9.9M4.4 4.6C2.6 5.9 1.8 8 1.8 8s2.2 3.8 6.2 3.8c1 0 1.9-.2 2.7-.6M7 4.3c.3 0 .7-.1 1-.1 4 0 6.2 3.8 6.2 3.8s-.5.9-1.5 1.9" />
   </svg>
 )
 const lockIcon = (
-  <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.3">
+  <svg
+    viewBox="0 0 16 16"
+    className="h-3.5 w-3.5"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.3"
+  >
     <rect x="3.5" y="7" width="9" height="6.2" rx="1.2" />
     <path d="M5.5 7V5.2a2.5 2.5 0 015 0V7" />
   </svg>
@@ -95,9 +114,9 @@ export function LayersPanel() {
     // legacy global-scope document: layers need per-element styles
     return (
       <Section title={t('panel.layers')} icon="layers">
-        <p className="text-xs text-muted">{t('layers.scopeHint')}</p>
+        <p className="text-muted text-xs">{t('layers.scopeHint')}</p>
         <button
-          className="self-start rounded-md border border-chip-line bg-chip px-2 py-1 text-xs text-body hover:border-chip-line hover:bg-chip-active"
+          className="border-chip-line bg-chip text-body hover:border-chip-line hover:bg-chip-active self-start rounded-md border px-2 py-1 text-xs"
           onClick={() => setStyleScope('element')}
         >
           {t('layers.switchScope')}
@@ -127,10 +146,9 @@ export function LayersPanel() {
       contentClassName="max-h-72 overflow-y-auto"
     >
       <div className="flex flex-col gap-0.5">
-        {rows.length > 0 &&
-          layers.every((l) => l.children.length === 0) && (
-            <p className="px-1 pb-1 text-[11px] leading-snug text-muted">{t('layers.empty')}</p>
-          )}
+        {rows.length > 0 && layers.every((l) => l.children.length === 0) && (
+          <p className="text-muted px-1 pb-1 text-[11px] leading-snug">{t('layers.empty')}</p>
+        )}
         {rows.map(({ node, depth }) => {
           const isObj = node.kind === 'obj'
           const protectedNode = nodeProtected(layers, node.id)
@@ -168,7 +186,7 @@ export function LayersPanel() {
                   ? 'border-accent-line bg-accent-soft text-accent-text'
                   : active
                     ? 'border-accent-line/60 bg-accent-soft/40 text-body'
-                    : 'border-transparent text-body hover:bg-chip-active'
+                    : 'text-body hover:bg-chip-active border-transparent'
               } ${dropAt?.id === node.id ? (dropAt.place === 'before' ? 'border-t-accent-line' : 'border-b-accent-line') : ''} ${
                 protectedNode ? 'opacity-50' : ''
               }`}
@@ -185,7 +203,7 @@ export function LayersPanel() {
               </Tooltip>
               {isObj && (
                 <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-sm border border-line"
+                  className="border-line h-2.5 w-2.5 shrink-0 rounded-sm border"
                   style={{ background: swatch ?? 'transparent' }}
                 />
               )}
@@ -193,7 +211,7 @@ export function LayersPanel() {
                 <input
                   autoFocus
                   defaultValue={node.name}
-                  className="min-w-0 flex-1 rounded border border-accent-line bg-app px-1 py-0.5 text-xs text-body outline-none"
+                  className="border-accent-line bg-app text-body min-w-0 flex-1 rounded border px-1 py-0.5 text-xs outline-none"
                   onBlur={(e) => {
                     renameNode(node.id, e.target.value.trim())
                     setRenaming(null)
@@ -229,7 +247,7 @@ export function LayersPanel() {
                   <Tooltip label={t('layers.delete.desc')}>
                     <button
                       aria-label={t('layers.delete')}
-                      className="hidden shrink-0 rounded p-0.5 text-muted hover:text-body group-hover:block"
+                      className="text-muted hover:text-body hidden shrink-0 rounded p-0.5 group-hover:block"
                       onClick={() => setConfirmDelete(node.id)}
                     >
                       ✕
@@ -255,10 +273,16 @@ export function LayersPanel() {
         <Tooltip label={t('layers.new.desc')}>
           <button
             aria-label={t('layers.new')}
-            className="flex h-6 items-center gap-1 rounded-md border border-chip-line bg-chip px-1.5 text-xs text-body hover:bg-chip-active"
+            className="border-chip-line bg-chip text-body hover:bg-chip-active flex h-6 items-center gap-1 rounded-md border px-1.5 text-xs"
             onClick={addLayer}
           >
-            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            >
               <path d="M8 3.2v9.6M3.2 8h9.6" />
             </svg>
             {t('layers.new')}
@@ -268,10 +292,16 @@ export function LayersPanel() {
           <button
             aria-label={t('layers.group')}
             disabled={selection.length === 0}
-            className="flex h-6 w-6 items-center justify-center rounded-md border border-chip-line bg-chip text-body hover:bg-chip-active disabled:opacity-40"
+            className="border-chip-line bg-chip text-body hover:bg-chip-active flex h-6 w-6 items-center justify-center rounded-md border disabled:opacity-40"
             onClick={groupSelection}
           >
-            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.3">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+            >
               <rect x="2" y="2" width="12" height="12" rx="1.5" strokeDasharray="2.4 2" />
               <rect x="5" y="5" width="6" height="6" rx="1" />
             </svg>
@@ -281,10 +311,16 @@ export function LayersPanel() {
           <button
             aria-label={t('layers.ungroup')}
             disabled={selection.length === 0}
-            className="flex h-6 w-6 items-center justify-center rounded-md border border-chip-line bg-chip text-body hover:bg-chip-active disabled:opacity-40"
+            className="border-chip-line bg-chip text-body hover:bg-chip-active flex h-6 w-6 items-center justify-center rounded-md border disabled:opacity-40"
             onClick={ungroupSelection}
           >
-            <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.3">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.3"
+            >
               <rect x="2" y="2" width="12" height="12" rx="1.5" strokeDasharray="2.4 2" />
               <path d="M5.5 8h5M8 5.5v5" strokeDasharray="1.6 1.6" />
             </svg>
@@ -292,7 +328,7 @@ export function LayersPanel() {
         </Tooltip>
       </div>
 
-      <label className="flex cursor-pointer items-start gap-2 text-xs text-body">
+      <label className="text-body flex cursor-pointer items-start gap-2 text-xs">
         <input
           type="checkbox"
           checked={doc.fuseObjects}
@@ -301,7 +337,7 @@ export function LayersPanel() {
         />
         <span>
           {t('layers.fuse')}
-          <span className="mt-0.5 block text-[11px] leading-snug text-muted">
+          <span className="text-muted mt-0.5 block text-[11px] leading-snug">
             {t('layers.fuse.desc')}
           </span>
         </span>

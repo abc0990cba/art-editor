@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
+
 import { changeSub, defaultDoc, resizeDoc } from './doc'
 import { buildGeometry, distanceToLinkSq } from './geometry'
-import { buildSvg } from './svg'
 import { deserialize, serialize } from './project'
+import { buildSvg } from './svg'
 
 function docWith(cells: Array<[number, number]>, cols = 8, rows = 8) {
   const doc = defaultDoc()

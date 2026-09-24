@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { PALETTES, matchedPresetId } from './palettes'
+
 import { en } from '../i18n/en'
+import { useStore } from '../state/store'
 import { cellColor, defaultDoc } from './doc'
 import { buildGeometry } from './geometry'
+import { PALETTES, matchedPresetId } from './palettes'
 import { deserialize, serialize } from './project'
-import { useStore } from '../state/store'
 
 describe('palette presets', () => {
   it('all presets have unique valid hex colors and sane sizes', () => {

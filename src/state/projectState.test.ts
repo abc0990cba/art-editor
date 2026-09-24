@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+
 import { defaultDoc } from '../engine/doc'
 import { ensureScene } from '../engine/scene'
 import { useStore } from './store'

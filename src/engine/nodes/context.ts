@@ -1,7 +1,7 @@
 /**
- * Evaluation context services: deterministic randomness, palette resolution and the
- * raster merge rule. Everything future nodes might need (noise, scatter, sampling)
- * should land here as a service, so node definitions stay pure and portable.
+ * Evaluation context services: deterministic randomness, palette resolution and the raster merge
+ * rule. Everything future nodes might need (noise, scatter, sampling) should land here as a
+ * service, so node definitions stay pure and portable.
  */
 
 import type { Cells, EvalContext } from './types'
@@ -16,7 +16,7 @@ export function hashStr(s: string): number {
   return h >>> 0
 }
 
-/** mulberry32: tiny deterministic PRNG, [0,1) from a 32-bit seed. */
+/** Mulberry32: tiny deterministic PRNG, [0,1) from a 32-bit seed. */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0
   return () => {
@@ -28,23 +28,27 @@ export function mulberry32(seed: number): () => number {
 }
 
 /**
- * Bind the context's rng to one node: (node id, key) fully determines the value, so
- * randomness survives re-evaluation and stays stable across undo/redo.
+ * Bind the context's rng to one node: (node id, key) fully determines the value, so randomness
+ * survives re-evaluation and stays stable across undo/redo.
  */
-export function withNodeRng(base: Omit<EvalContext, 'rng'>, nodeId: string, op: string): EvalContext {
+export function withNodeRng(
+  base: Omit<EvalContext, 'rng'>,
+  nodeId: string,
+  op: string,
+): EvalContext {
   const seed = hashStr(`${op}::${nodeId}`)
   return { ...base, rng: (key: string) => mulberry32(seed ^ hashStr(key))() }
 }
 
-/** hex → 1-based palette value over a fixed (derived) palette; unknown hex → 1. */
+/** Hex → 1-based palette value over a fixed (derived) palette; unknown hex → 1. */
 export function hexResolver(palette: readonly string[]): (hex: string) => number {
   const map = new Map(palette.map((hex, i) => [hex.toLowerCase(), i + 1]))
   return (hex: string) => map.get(hex.toLowerCase()) ?? 1
 }
 
 /**
- * Merge `add` into the accumulated cells: union (paint-over), subtraction or
- * intersection — the boolean semantics of source nodes.
+ * Merge `add` into the accumulated cells: union (paint-over), subtraction or intersection — the
+ * boolean semantics of source nodes.
  */
 export function combineCells(acc: Cells, add: Cells, mode: string): Cells {
   if (mode === 'subtract') {

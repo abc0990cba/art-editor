@@ -1,4 +1,5 @@
 import { useEffect, useState, type JSX } from 'react'
+
 import { useStore, type Tool, type ToolOpts } from '../state/store'
 
 /** ToolOpts keys that hold numbers — the sliders' writable keys. */
@@ -6,15 +7,15 @@ type NumericOptKey = {
   [K in keyof ToolOpts]: ToolOpts[K] extends number ? K : never
 }[keyof ToolOpts]
 import { SHAPE_TOOLS } from '../engine/shapes'
+import { isShapeTool } from '../engine/shapes'
 import { useI18n } from '../i18n'
-import { Tooltip } from './Tooltip'
-import { CheckRow, Chip, Slider, useMediaQuery } from './ui'
 import { FillSettings } from './FillSettings'
-import { ToolPreview } from './ToolPreview'
+import { FloatingPanel } from './FloatingPanel'
 import { ExpandablePreview } from './PreviewExpander'
 import { ShapePaintControls } from './ShapePaintControls'
-import { FloatingPanel } from './FloatingPanel'
-import { isShapeTool } from '../engine/shapes'
+import { ToolPreview } from './ToolPreview'
+import { Tooltip } from './Tooltip'
+import { CheckRow, Chip, Slider, useMediaQuery } from './ui'
 
 /** CSS width of the per-tool settings popover (w-80); anchors flip when this won't fit. */
 const SETTINGS_W = 320
@@ -432,7 +433,7 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
       </>
     )
   } else if (tool === 'picker' || tool === 'select') {
-    body = <p className="text-xs text-muted">{t('opt.none')}</p>
+    body = <p className="text-muted text-xs">{t('opt.none')}</p>
   } else if (tool === 'star') {
     body = (
       <>
@@ -492,7 +493,7 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
           step={0.25}
           onChange={(v) => setOpt('spiralTurns', v)}
         />
-        <div className="flex items-center justify-between text-xs text-body">
+        <div className="text-body flex items-center justify-between text-xs">
           <span>{t('opt.spiralDir')}</span>
           <div className="flex gap-1">
             <Chip
@@ -609,7 +610,7 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
   } else if (tool === 'sun') {
     body = (
       <>
-        <div className="flex items-center justify-between text-xs text-body">
+        <div className="text-body flex items-center justify-between text-xs">
           <span>{t('opt.sunRayShape')}</span>
           <div className="flex gap-1">
             <Chip
@@ -788,9 +789,12 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
           display={pct}
           onChange={(v) => setOpt('bentoMerge', v)}
         />
-        <div className="flex items-center justify-between text-xs text-body">
+        <div className="text-body flex items-center justify-between text-xs">
           <span>{t('opt.bentoSeed')}</span>
-          <Chip title={t('opt.bentoReroll.desc')} onClick={() => setOpt('bentoSeed', opts.bentoSeed + 1)}>
+          <Chip
+            title={t('opt.bentoReroll.desc')}
+            onClick={() => setOpt('bentoSeed', opts.bentoSeed + 1)}
+          >
             {t('opt.bentoReroll')}
           </Chip>
         </div>
@@ -804,10 +808,24 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
       </Chip>
     )
     const row = (label: string, k: NumericOptKey, min: number, max: number, step = 0.01) => (
-      <Slider label={label} value={opts[k] as number} min={min} max={max} step={step} editable int={step >= 1} onChange={(v) => setOpt(k, v)} />
+      <Slider
+        label={label}
+        value={opts[k] as number}
+        min={min}
+        max={max}
+        step={step}
+        editable
+        int={step >= 1}
+        onChange={(v) => setOpt(k, v)}
+      />
     )
-    const chips = (label: string, cur: string, vals: Array<[string, string]>, pick: (v: string) => void) => (
-      <div className="flex items-center justify-between gap-2 text-xs text-body">
+    const chips = (
+      label: string,
+      cur: string,
+      vals: Array<[string, string]>,
+      pick: (v: string) => void,
+    ) => (
+      <div className="text-body flex items-center justify-between gap-2 text-xs">
         <span className="text-muted">{label}</span>
         <div className="flex flex-wrap justify-end gap-1">
           {vals.map(([v, key]) => (
@@ -819,71 +837,181 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
       </div>
     )
     const group = (label: string) => (
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">{label}</div>
+      <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">{label}</div>
     )
     body = (
       <>
         <div className="flex flex-wrap gap-1">
           {preset(t('skull.preset.anatomic'), {
-            skullCraniumWidth: 1, skullCraniumHeight: 0.6, skullCrown: 'round', skullBrowRidge: 0.03,
-            skullCheekWidth: 0.92, skullJawWidth: 0.72, skullJawHeight: 0.22, skullMandible: true,
-            skullEyeSize: 0.16, skullEyeSpacing: 0.26, skullEyeY: 0.48, skullEyeShape: 'round',
-            skullEyeTilt: 0, skullEyeAsym: 0, skullNoseWidth: 0.09, skullNoseHeight: 0.11,
-            skullNoseY: 0.63, skullNoseShape: 'triangle', skullTeethCount: 8, skullTeethLen: 0.08,
-            skullTeethGap: 0.35, skullTeethShape: 'rect', skullMouthY: 0.82,
+            skullCraniumWidth: 1,
+            skullCraniumHeight: 0.6,
+            skullCrown: 'round',
+            skullBrowRidge: 0.03,
+            skullCheekWidth: 0.92,
+            skullJawWidth: 0.72,
+            skullJawHeight: 0.22,
+            skullMandible: true,
+            skullEyeSize: 0.16,
+            skullEyeSpacing: 0.26,
+            skullEyeY: 0.48,
+            skullEyeShape: 'round',
+            skullEyeTilt: 0,
+            skullEyeAsym: 0,
+            skullNoseWidth: 0.09,
+            skullNoseHeight: 0.11,
+            skullNoseY: 0.63,
+            skullNoseShape: 'triangle',
+            skullTeethCount: 8,
+            skullTeethLen: 0.08,
+            skullTeethGap: 0.35,
+            skullTeethShape: 'rect',
+            skullMouthY: 0.82,
           })}
           {preset(t('skull.preset.cartoon'), {
-            skullCraniumWidth: 1.15, skullCraniumHeight: 0.66, skullCrown: 'round', skullBrowRidge: 0,
-            skullCheekWidth: 0.8, skullJawWidth: 0.55, skullJawHeight: 0.16, skullMandible: true,
-            skullEyeSize: 0.24, skullEyeSpacing: 0.3, skullEyeY: 0.5, skullEyeShape: 'round',
-            skullEyeTilt: 0, skullEyeAsym: 0, skullNoseWidth: 0.07, skullNoseHeight: 0.08,
-            skullNoseY: 0.64, skullNoseShape: 'heart', skullTeethCount: 6, skullTeethLen: 0.06,
-            skullTeethGap: 0.2, skullTeethShape: 'rounded', skullMouthY: 0.84,
+            skullCraniumWidth: 1.15,
+            skullCraniumHeight: 0.66,
+            skullCrown: 'round',
+            skullBrowRidge: 0,
+            skullCheekWidth: 0.8,
+            skullJawWidth: 0.55,
+            skullJawHeight: 0.16,
+            skullMandible: true,
+            skullEyeSize: 0.24,
+            skullEyeSpacing: 0.3,
+            skullEyeY: 0.5,
+            skullEyeShape: 'round',
+            skullEyeTilt: 0,
+            skullEyeAsym: 0,
+            skullNoseWidth: 0.07,
+            skullNoseHeight: 0.08,
+            skullNoseY: 0.64,
+            skullNoseShape: 'heart',
+            skullTeethCount: 6,
+            skullTeethLen: 0.06,
+            skullTeethGap: 0.2,
+            skullTeethShape: 'rounded',
+            skullMouthY: 0.84,
           })}
           {preset(t('skull.preset.demon'), {
-            skullCraniumWidth: 1, skullCraniumHeight: 0.58, skullCrown: 'flat', skullBrowRidge: 0.08,
-            skullCheekWidth: 1.02, skullJawWidth: 0.6, skullJawHeight: 0.24, skullMandible: true,
-            skullEyeSize: 0.14, skullEyeSpacing: 0.28, skullEyeY: 0.47, skullEyeShape: 'angled',
-            skullEyeTilt: 0.9, skullEyeAsym: 0, skullNoseWidth: 0.05, skullNoseHeight: 0.16,
-            skullNoseY: 0.62, skullNoseShape: 'slit', skullTeethCount: 10, skullTeethLen: 0.1,
-            skullTeethGap: 0.6, skullTeethShape: 'fangs', skullMouthY: 0.8,
+            skullCraniumWidth: 1,
+            skullCraniumHeight: 0.58,
+            skullCrown: 'flat',
+            skullBrowRidge: 0.08,
+            skullCheekWidth: 1.02,
+            skullJawWidth: 0.6,
+            skullJawHeight: 0.24,
+            skullMandible: true,
+            skullEyeSize: 0.14,
+            skullEyeSpacing: 0.28,
+            skullEyeY: 0.47,
+            skullEyeShape: 'angled',
+            skullEyeTilt: 0.9,
+            skullEyeAsym: 0,
+            skullNoseWidth: 0.05,
+            skullNoseHeight: 0.16,
+            skullNoseY: 0.62,
+            skullNoseShape: 'slit',
+            skullTeethCount: 10,
+            skullTeethLen: 0.1,
+            skullTeethGap: 0.6,
+            skullTeethShape: 'fangs',
+            skullMouthY: 0.8,
           })}
           {preset(t('skull.preset.alien'), {
-            skullCraniumWidth: 1.2, skullCraniumHeight: 0.72, skullCrown: 'round', skullBrowRidge: 0,
-            skullCheekWidth: 0.7, skullJawWidth: 0.42, skullJawHeight: 0.12, skullMandible: true,
-            skullEyeSize: 0.24, skullEyeSpacing: 0.34, skullEyeY: 0.46, skullEyeShape: 'oval',
-            skullEyeTilt: -0.4, skullEyeAsym: 0, skullNoseWidth: 0.04, skullNoseHeight: 0.06,
-            skullNoseY: 0.58, skullNoseShape: 'slit', skullTeethCount: 0, skullTeethLen: 0.06,
-            skullTeethGap: 0.3, skullTeethShape: 'rect', skullMouthY: 0.86,
+            skullCraniumWidth: 1.2,
+            skullCraniumHeight: 0.72,
+            skullCrown: 'round',
+            skullBrowRidge: 0,
+            skullCheekWidth: 0.7,
+            skullJawWidth: 0.42,
+            skullJawHeight: 0.12,
+            skullMandible: true,
+            skullEyeSize: 0.24,
+            skullEyeSpacing: 0.34,
+            skullEyeY: 0.46,
+            skullEyeShape: 'oval',
+            skullEyeTilt: -0.4,
+            skullEyeAsym: 0,
+            skullNoseWidth: 0.04,
+            skullNoseHeight: 0.06,
+            skullNoseY: 0.58,
+            skullNoseShape: 'slit',
+            skullTeethCount: 0,
+            skullTeethLen: 0.06,
+            skullTeethGap: 0.3,
+            skullTeethShape: 'rect',
+            skullMouthY: 0.86,
           })}
         </div>
         {group(t('skull.group.cranium'))}
         {row(t('opt.skullCraniumWidth'), 'skullCraniumWidth', 0.6, 1.25)}
         {row(t('opt.skullCraniumHeight'), 'skullCraniumHeight', 0.45, 0.75)}
-        {chips(t('opt.skullCrown'), opts.skullCrown, [['round', 'skull.crown.round'], ['flat', 'skull.crown.flat']], (v) => patch({ skullCrown: v as 'round' | 'flat' }))}
+        {chips(
+          t('opt.skullCrown'),
+          opts.skullCrown,
+          [
+            ['round', 'skull.crown.round'],
+            ['flat', 'skull.crown.flat'],
+          ],
+          (v) => patch({ skullCrown: v as 'round' | 'flat' }),
+        )}
         {row(t('opt.skullBrowRidge'), 'skullBrowRidge', 0, 0.12)}
         {row(t('opt.skullCheekWidth'), 'skullCheekWidth', 0.6, 1.1)}
         {group(t('skull.group.eyes'))}
         {row(t('opt.skullEyeSize'), 'skullEyeSize', 0.06, 0.26)}
         {row(t('opt.skullEyeSpacing'), 'skullEyeSpacing', 0.12, 0.4)}
         {row(t('opt.skullEyeY'), 'skullEyeY', 0.38, 0.6)}
-        {chips(t('opt.skullEyeShape'), opts.skullEyeShape, [['round', 'skull.eye.round'], ['oval', 'skull.eye.oval'], ['square', 'skull.eye.square'], ['angled', 'skull.eye.angled']], (v) => patch({ skullEyeShape: v as 'round' | 'oval' | 'square' | 'angled' }))}
+        {chips(
+          t('opt.skullEyeShape'),
+          opts.skullEyeShape,
+          [
+            ['round', 'skull.eye.round'],
+            ['oval', 'skull.eye.oval'],
+            ['square', 'skull.eye.square'],
+            ['angled', 'skull.eye.angled'],
+          ],
+          (v) => patch({ skullEyeShape: v as 'round' | 'oval' | 'square' | 'angled' }),
+        )}
         {row(t('opt.skullEyeTilt'), 'skullEyeTilt', -1, 1)}
         {row(t('opt.skullEyeAsym'), 'skullEyeAsym', 0, 1)}
         {group(t('skull.group.nose'))}
         {row(t('opt.skullNoseWidth'), 'skullNoseWidth', 0.04, 0.16)}
         {row(t('opt.skullNoseHeight'), 'skullNoseHeight', 0.05, 0.2)}
         {row(t('opt.skullNoseY'), 'skullNoseY', 0.52, 0.75)}
-        {chips(t('opt.skullNoseShape'), opts.skullNoseShape, [['triangle', 'skull.nose.triangle'], ['heart', 'skull.nose.heart'], ['teardrop', 'skull.nose.teardrop'], ['slit', 'skull.nose.slit']], (v) => patch({ skullNoseShape: v as 'triangle' | 'heart' | 'teardrop' | 'slit' }))}
+        {chips(
+          t('opt.skullNoseShape'),
+          opts.skullNoseShape,
+          [
+            ['triangle', 'skull.nose.triangle'],
+            ['heart', 'skull.nose.heart'],
+            ['teardrop', 'skull.nose.teardrop'],
+            ['slit', 'skull.nose.slit'],
+          ],
+          (v) => patch({ skullNoseShape: v as 'triangle' | 'heart' | 'teardrop' | 'slit' }),
+        )}
         {group(t('skull.group.jaw'))}
         {row(t('opt.skullJawWidth'), 'skullJawWidth', 0.35, 0.95)}
         {row(t('opt.skullJawHeight'), 'skullJawHeight', 0.1, 0.3)}
-        <CheckRow label={t('opt.skullMandible')} checked={opts.skullMandible} onChange={(v) => patch({ skullMandible: v })} />
+        <CheckRow
+          label={t('opt.skullMandible')}
+          checked={opts.skullMandible}
+          onChange={(v) => patch({ skullMandible: v })}
+        />
         {row(t('opt.skullMouthY'), 'skullMouthY', 0.68, 0.9)}
         {row(t('opt.skullTeethCount'), 'skullTeethCount', 0, 14, 1)}
         {row(t('opt.skullTeethLen'), 'skullTeethLen', 0.04, 0.14)}
         {row(t('opt.skullTeethGap'), 'skullTeethGap', 0, 1)}
-        {chips(t('opt.skullTeethShape'), opts.skullTeethShape, [['rect', 'skull.teeth.rect'], ['rounded', 'skull.teeth.rounded'], ['pointed', 'skull.teeth.pointed'], ['fangs', 'skull.teeth.fangs']], (v) => patch({ skullTeethShape: v as 'rect' | 'rounded' | 'pointed' | 'fangs' }))}
+        {chips(
+          t('opt.skullTeethShape'),
+          opts.skullTeethShape,
+          [
+            ['rect', 'skull.teeth.rect'],
+            ['rounded', 'skull.teeth.rounded'],
+            ['pointed', 'skull.teeth.pointed'],
+            ['fangs', 'skull.teeth.fangs'],
+          ],
+          (v) => patch({ skullTeethShape: v as 'rect' | 'rounded' | 'pointed' | 'fangs' }),
+        )}
       </>
     )
   } else {
@@ -916,20 +1044,27 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
     return (
       <>
         <div className="fixed inset-0 z-40" onClick={onClose} />
-        <div className="fixed inset-x-2 bottom-2 z-50 max-h-[72dvh] overflow-y-auto rounded-xl border border-line bg-panel p-3 shadow-2xl">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
+        <div className="border-line bg-panel fixed inset-x-2 bottom-2 z-50 max-h-[72dvh] overflow-y-auto rounded-xl border p-3 shadow-2xl">
+          <div className="text-muted mb-1 text-[10px] font-semibold tracking-widest uppercase">
             {t('tool.settings')}
           </div>
-          <div className="mb-2.5 flex items-center gap-1.5 text-body">
+          <div className="text-body mb-2.5 flex items-center gap-1.5">
             <ToolIcon id={tool} className="h-4 w-4" />
             <span className="flex-1 text-xs font-medium">{t(`tool.${tool}`)}</span>
             <button
               type="button"
               onClick={onClose}
               aria-label={t('preview.close')}
-              className="text-muted transition hover:text-body"
+              className="text-muted hover:text-body transition"
             >
-              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <svg
+                viewBox="0 0 16 16"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              >
                 <path d="M4 4l8 8M12 4l-8 8" />
               </svg>
             </button>
@@ -948,19 +1083,19 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
       <FloatingPanel
         x={anchor.x}
         y={anchor.y}
-        className="fixed z-50 w-80 rounded-xl border border-line bg-panel p-3 shadow-xl"
+        className="border-line bg-panel fixed z-50 w-80 rounded-xl border p-3 shadow-xl"
       >
-        <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
+        <div className="text-muted mb-1 text-[10px] font-semibold tracking-widest uppercase">
           {t('tool.settings')}
         </div>
-        <div className="mb-2.5 flex items-center gap-1.5 text-body">
+        <div className="text-body mb-2.5 flex items-center gap-1.5">
           <ToolIcon id={tool} className="h-4 w-4" />
           <span className="flex-1 text-xs font-medium">{t(`tool.${tool}`)}</span>
           <button
             type="button"
             onClick={onClose}
             aria-label={t('tool.settings')}
-            className="text-muted transition hover:text-body"
+            className="text-muted hover:text-body transition"
           >
             <svg
               viewBox="0 0 16 16"
@@ -999,7 +1134,7 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
                 />
               </ExpandablePreview>
               {/* editable sample-grid size, clamped to the current canvas dimensions */}
-              <div className="flex items-center gap-1.5 text-xs text-body">
+              <div className="text-body flex items-center gap-1.5 text-xs">
                 <Tooltip label={t('preview.grid.desc')}>
                   <span className="text-muted">{t('preview.grid')}</span>
                 </Tooltip>
@@ -1011,7 +1146,7 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
                   onChange={(e) => commitGrid('cols', e.target.value)}
                   onBlur={() => setGridText((prev) => ({ ...prev, cols: null }))}
                   title={`${t('preview.grid.desc')} (max ${doc.cols})`}
-                  className="w-14 rounded-md border border-line bg-chip px-1.5 py-1 text-right text-xs text-body outline-none focus:border-accent-line"
+                  className="border-line bg-chip text-body focus:border-accent-line w-14 rounded-md border px-1.5 py-1 text-right text-xs outline-none"
                 />
                 <span className="text-muted">×</span>
                 <input
@@ -1022,7 +1157,7 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
                   onChange={(e) => commitGrid('rows', e.target.value)}
                   onBlur={() => setGridText((prev) => ({ ...prev, rows: null }))}
                   title={`${t('preview.grid.desc')} (max ${doc.rows})`}
-                  className="w-14 rounded-md border border-line bg-chip px-1.5 py-1 text-right text-xs text-body outline-none focus:border-accent-line"
+                  className="border-line bg-chip text-body focus:border-accent-line w-14 rounded-md border px-1.5 py-1 text-right text-xs outline-none"
                 />
                 {previewGrid && (
                   <Chip title={t('preview.gridReset.desc')} onClick={() => setPreviewGrid(null)}>
@@ -1052,11 +1187,16 @@ export function ToolRail() {
   // phones and tablets: tools live in the bottom strip (App), so the side rail is off
   const narrow = useMediaQuery('(max-width: 1023px)')
 
-  /** open the per-tool settings next to the double-clicked row; FloatingPanel keeps
-      the popover inside the viewport even for rows near the bottom edge */
+  /**
+   * Open the per-tool settings next to the double-clicked row; FloatingPanel keeps the popover
+   * inside the viewport even for rows near the bottom edge
+   */
   const openSettings = (id: Tool) => (e: React.MouseEvent<HTMLButtonElement>) => {
     const r = e.currentTarget.getBoundingClientRect()
-    const x = r.right + 8 + SETTINGS_W > window.innerWidth ? Math.max(8, r.left - SETTINGS_W - 8) : r.right + 8
+    const x =
+      r.right + 8 + SETTINGS_W > window.innerWidth
+        ? Math.max(8, r.left - SETTINGS_W - 8)
+        : r.right + 8
     setSettings({ tool: id, x, y: r.top })
   }
 
@@ -1074,12 +1214,12 @@ export function ToolRail() {
             ? `flex h-8 w-full items-center gap-2 rounded-lg border px-2 transition ${
                 tool === id
                   ? 'border-accent-line bg-accent-soft text-accent-text'
-                  : 'border-transparent text-muted hover:bg-chip hover:text-body'
+                  : 'text-muted hover:bg-chip hover:text-body border-transparent'
               }`
             : `flex h-9 w-9 items-center justify-center rounded-lg border transition ${
                 tool === id
                   ? 'border-accent-line bg-accent-soft text-accent-text'
-                  : 'border-transparent text-muted hover:bg-chip hover:text-body'
+                  : 'text-muted hover:bg-chip hover:text-body border-transparent'
               }`
         }
       >
@@ -1087,7 +1227,7 @@ export function ToolRail() {
         {expanded && (
           <>
             <span className="flex-1 truncate text-left text-xs">{t(`tool.${id}`)}</span>
-            <span className="text-[10px] tabular-nums text-muted">{toolKeys[id]}</span>
+            <span className="text-muted text-[10px] tabular-nums">{toolKeys[id]}</span>
           </>
         )}
       </button>
@@ -1098,11 +1238,11 @@ export function ToolRail() {
 
   if (railOpen) {
     return (
-      <nav className="flex w-48 shrink-0 flex-col border-r border-line">
-        <div className="rail-list flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-2">
+      <nav className="border-line flex w-48 shrink-0 flex-col border-r">
+        <div className="rail-list flex min-h-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto px-2 py-2">
           {allOrder.map((id) => row(id, true))}
         </div>
-        <div className="border-t border-line p-2">
+        <div className="border-line border-t p-2">
           <Tooltip label={t('panel.railCollapse')}>
             <button
               type="button"
@@ -1110,7 +1250,7 @@ export function ToolRail() {
                 setSettings(null)
                 toggleRail()
               }}
-              className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-muted transition hover:bg-chip hover:text-body"
+              className="text-muted hover:bg-chip hover:text-body flex h-8 w-full items-center gap-2 rounded-lg px-2 transition"
             >
               <Chevron d="M9.5 4L5.5 8l4 4" />
               <span className="flex-1 truncate text-left text-xs">{t('panel.railCollapse')}</span>
@@ -1123,11 +1263,11 @@ export function ToolRail() {
   }
 
   return (
-    <nav className="flex w-12 shrink-0 flex-col border-r border-line">
-      <div className="rail-list flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden py-2">
+    <nav className="border-line flex w-12 shrink-0 flex-col border-r">
+      <div className="rail-list flex min-h-0 flex-1 flex-col items-center gap-1 overflow-x-hidden overflow-y-auto py-2">
         {allOrder.map((id) => row(id, false))}
       </div>
-      <div className="flex justify-center border-t border-line py-2">
+      <div className="border-line flex justify-center border-t py-2">
         <Tooltip label={t('panel.railExpand')}>
           <button
             type="button"
@@ -1136,7 +1276,7 @@ export function ToolRail() {
               toggleRail()
             }}
             aria-label={t('panel.railExpand')}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition hover:bg-chip hover:text-body"
+            className="text-muted hover:bg-chip hover:text-body flex h-7 w-7 items-center justify-center rounded-lg transition"
           >
             <Chevron d="M6.5 4l4 4-4 4" />
           </button>

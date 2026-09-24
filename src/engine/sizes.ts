@@ -1,9 +1,9 @@
 import { MAX_SIZE } from './doc'
 
 /**
- * Popular canvas size presets grouped by aspect ratio. Every base size comes with an
- * odd sibling (+1 on both axes, stepping down when +1 would exceed MAX_SIZE): odd grids
- * have a central row/column, so symmetry axes can anchor on a real pixel line.
+ * Popular canvas size presets grouped by aspect ratio. Every base size comes with an odd sibling
+ * (+1 on both axes, stepping down when +1 would exceed MAX_SIZE): odd grids have a central
+ * row/column, so symmetry axes can anchor on a real pixel line.
  */
 export interface SizeOption {
   cols: number
@@ -13,9 +13,9 @@ export interface SizeOption {
 }
 
 export interface SizeGroup {
-  /** aspect ratio label, e.g. "16:9" */
+  /** Aspect ratio label, e.g. "16:9" */
   ratio: string
-  /** optional friendly reference (console name) */
+  /** Optional friendly reference (console name) */
   name?: string
   sizes: SizeOption[]
 }

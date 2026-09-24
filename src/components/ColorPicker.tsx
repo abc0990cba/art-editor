@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import {
   cmykToHex,
   cmykToRgb,
@@ -13,8 +14,8 @@ import {
   type RGB,
 } from '../engine/color'
 import { useI18n } from '../i18n'
-import { Chip } from './ui'
 import { Tooltip } from './Tooltip'
+import { Chip } from './ui'
 
 const SIZE = 148 // wheel canvas size
 const RADIUS = SIZE / 2
@@ -41,7 +42,7 @@ function ChannelRow({
   return (
     <Tooltip label={title}>
       <label className="flex items-center gap-2">
-        <span className="w-3.5 text-xs text-muted">{label}</span>
+        <span className="text-muted w-3.5 text-xs">{label}</span>
         <input
           type="range"
           min={0}
@@ -51,17 +52,17 @@ function ChannelRow({
           style={{ background: track }}
           className="h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full accent-indigo-400"
         />
-        <span className="w-9 text-right text-xs text-body">{display(value)}</span>
+        <span className="text-body w-9 text-right text-xs">{display(value)}</span>
       </label>
     </Tooltip>
   )
 }
 
 /**
- * Color picker with HSV, RGB and CMYK editing modes. The HSV wheel (hue = angle,
- * saturation = radius, brightness slider) is the classic view; RGB and CMYK offer
- * per-channel sliders. HSV is the interaction source of truth, hex entry is always
- * available, and changes apply live through onChange.
+ * Color picker with HSV, RGB and CMYK editing modes. The HSV wheel (hue = angle, saturation =
+ * radius, brightness slider) is the classic view; RGB and CMYK offer per-channel sliders. HSV is
+ * the interaction source of truth, hex entry is always available, and changes apply live through
+ * onChange.
  */
 export function ColorPicker({
   color,
@@ -213,7 +214,7 @@ export function ColorPicker({
   }
 
   return (
-    <div className="flex w-[164px] flex-col gap-2 rounded-lg border border-line bg-raised p-2">
+    <div className="border-line bg-raised flex w-[164px] flex-col gap-2 rounded-lg border p-2">
       <div className="grid grid-cols-3 gap-1">
         {(['hsv', 'rgb', 'cmyk'] as const).map((m) => (
           <Chip
@@ -331,7 +332,7 @@ export function ColorPicker({
 
       <div className="flex items-center gap-2">
         <div
-          className="h-6 w-6 shrink-0 rounded border border-chip-line"
+          className="border-chip-line h-6 w-6 shrink-0 rounded border"
           style={{ background: hsvToHex(hsv.h, hsv.s, hsv.v) }}
         />
         <Tooltip label={t('picker.hex.desc')}>
@@ -349,7 +350,7 @@ export function ColorPicker({
                 setHexInvalid(e.target.value.trim() !== '')
               }
             }}
-            className={`w-24 rounded border bg-chip px-2 py-1 font-mono text-xs text-body outline-none ${
+            className={`bg-chip text-body w-24 rounded border px-2 py-1 font-mono text-xs outline-none ${
               hexInvalid ? 'border-red-500' : 'border-line'
             }`}
           />

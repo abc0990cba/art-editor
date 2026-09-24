@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { defaultDoc } from './doc'
 import {
   BUILTIN_PRESETS,

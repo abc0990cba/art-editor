@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
-import { buildSvg } from '../engine/svg'
-import { autoPngSize, clampPngSide, renderPng } from '../engine/png'
+
 import { docExtent } from '../engine/doc'
+import { autoPngSize, clampPngSide, renderPng } from '../engine/png'
 import { deserialize, serialize } from '../engine/project'
-import { CheckRow, Chip } from './ui'
-import { Tooltip } from './Tooltip'
-import { FloatingPanel } from './FloatingPanel'
+import { buildSvg } from '../engine/svg'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 import { download, stamp } from './fileDownload'
+import { FloatingPanel } from './FloatingPanel'
+import { Tooltip } from './Tooltip'
+import { CheckRow, Chip } from './ui'
 
 /**
- * Small popover anchored under the top bar's export button: SVG/PNG export with the
- * size knobs, plus project save/load. Closes on Escape, on the backdrop or on the X.
+ * Small popover anchored under the top bar's export button: SVG/PNG export with the size knobs,
+ * plus project save/load. Closes on Escape, on the backdrop or on the X.
  */
 export function ExportPopover({ onClose }: { onClose: () => void }) {
   const { t } = useI18n()
@@ -108,11 +109,11 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
       <FloatingPanel
         x={window.innerWidth - 288 - 12}
         y={56}
-        className="fixed z-50 flex flex-col gap-2.5 rounded-xl border border-line bg-raised p-3 shadow-xl"
+        className="border-line bg-raised fixed z-50 flex flex-col gap-2.5 rounded-xl border p-3 shadow-xl"
         style={{ width: 288 }}
       >
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold tracking-widest text-muted uppercase">
+          <span className="text-muted text-[11px] font-semibold tracking-widest uppercase">
             {t('panel.export')}
           </span>
           <Tooltip label={t('dialog.close')}>
@@ -120,7 +121,7 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
               type="button"
               onClick={onClose}
               aria-label={t('dialog.close')}
-              className="rounded p-0.5 text-muted transition hover:text-body"
+              className="text-muted hover:text-body rounded p-0.5 transition"
             >
               <svg
                 viewBox="0 0 16 16"
@@ -141,9 +142,9 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
           checked={exportBg}
           onChange={setExportBg}
         />
-        <div className="flex items-center gap-1.5 text-xs text-body">
+        <div className="text-body flex items-center gap-1.5 text-xs">
           <Tooltip label={t('export.pngWidth.desc')}>
-            <label className="flex min-w-0 flex-1 items-center gap-1 rounded-md border border-line bg-chip px-1.5 py-1">
+            <label className="border-line bg-chip flex min-w-0 flex-1 items-center gap-1 rounded-md border px-1.5 py-1">
               <span className="text-muted">W</span>
               <input
                 type="number"
@@ -152,13 +153,13 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
                 value={wText ?? pngW}
                 onChange={(e) => commitPngW(e.target.value)}
                 onBlur={() => setWText(null)}
-                className="w-full min-w-0 bg-transparent text-right text-xs text-body outline-none"
+                className="text-body w-full min-w-0 bg-transparent text-right text-xs outline-none"
               />
             </label>
           </Tooltip>
           <span className="text-muted">×</span>
           <Tooltip label={t('export.pngHeight.desc')}>
-            <label className="flex min-w-0 flex-1 items-center gap-1 rounded-md border border-line bg-chip px-1.5 py-1">
+            <label className="border-line bg-chip flex min-w-0 flex-1 items-center gap-1 rounded-md border px-1.5 py-1">
               <span className="text-muted">H</span>
               <input
                 type="number"
@@ -167,7 +168,7 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
                 value={hText ?? pngH}
                 onChange={(e) => commitPngH(e.target.value)}
                 onBlur={() => setHText(null)}
-                className="w-full min-w-0 bg-transparent text-right text-xs text-body outline-none"
+                className="text-body w-full min-w-0 bg-transparent text-right text-xs outline-none"
               />
             </label>
           </Tooltip>
@@ -190,7 +191,7 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
             </svg>
           </Chip>
         </div>
-        <p className="text-[10px] text-muted">
+        <p className="text-muted text-[10px]">
           {pngW}×{pngH} px · {t('export.maxSide')}
         </p>
         <Tooltip label={t('export.svg.desc')}>
@@ -206,18 +207,18 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onExportPng}
-            className="w-full rounded-md border border-line bg-chip px-3 py-1.5 transition hover:border-chip-line hover:text-body"
+            className="border-line bg-chip hover:border-chip-line hover:text-body w-full rounded-md border px-3 py-1.5 transition"
           >
             {t('export.png')}
           </button>
         </Tooltip>
-        <div className="h-px bg-line" />
+        <div className="bg-line h-px" />
         <div className="flex gap-2">
           <Tooltip label={t('export.save.desc')}>
             <button
               type="button"
               onClick={onSave}
-              className="w-full rounded-md border border-line bg-chip px-3 py-1.5 transition hover:border-chip-line hover:text-body"
+              className="border-line bg-chip hover:border-chip-line hover:text-body w-full rounded-md border px-3 py-1.5 transition"
             >
               {t('export.save')}
             </button>
@@ -226,7 +227,7 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="w-full rounded-md border border-line bg-chip px-3 py-1.5 transition hover:border-chip-line hover:text-body"
+              className="border-line bg-chip hover:border-chip-line hover:text-body w-full rounded-md border px-3 py-1.5 transition"
             >
               {t('export.load')}
             </button>

@@ -1,11 +1,6 @@
 /** Source nodes: paint colored pixels onto the accumulated map (add/subtract/intersect). */
 
-import { defineNode, Resolved, type Cells, type NodeParamSpec } from '../types'
-import { combineCells } from '../context'
-import {
-  fillCellsEvenOdd,
-  regionCells,
-} from '../../shapefill'
+import { fillCellsEvenOdd, regionCells } from '../../shapefill'
 import {
   linePoints,
   shapeHasHoles,
@@ -14,6 +9,8 @@ import {
   type ShapeOpts,
   type ShapeToolId,
 } from '../../shapes'
+import { combineCells } from '../context'
+import { defineNode, Resolved, type Cells, type NodeParamSpec } from '../types'
 
 const MODE = {
   kind: 'select',
@@ -90,14 +87,29 @@ const SHAPE_TOOL_PARAMS: Record<string, NodeParamSpec> = Object.fromEntries(
       ['skullTeethGap', 'number', 0, 1, 0.35],
       ['skullMouthY', 'number', 0.68, 0.9, 0.82],
     ] as Array<[string, 'int' | 'number', number, number, number]>
-  ).map(([key, kind, min, max, def]) => [key, { kind, min, max, default: def } satisfies NodeParamSpec]),
+  ).map(([key, kind, min, max, def]) => [
+    key,
+    { kind, min, max, default: def } satisfies NodeParamSpec,
+  ]),
 )
 Object.assign(SHAPE_TOOL_PARAMS, {
   skullCrown: { kind: 'select', options: ['round', 'flat'], default: 'round' },
   skullMandible: { kind: 'bool', default: true },
-  skullEyeShape: { kind: 'select', options: ['round', 'oval', 'square', 'angled'], default: 'round' },
-  skullNoseShape: { kind: 'select', options: ['triangle', 'heart', 'teardrop', 'slit'], default: 'triangle' },
-  skullTeethShape: { kind: 'select', options: ['rect', 'rounded', 'pointed', 'fangs'], default: 'rect' },
+  skullEyeShape: {
+    kind: 'select',
+    options: ['round', 'oval', 'square', 'angled'],
+    default: 'round',
+  },
+  skullNoseShape: {
+    kind: 'select',
+    options: ['triangle', 'heart', 'teardrop', 'slit'],
+    default: 'triangle',
+  },
+  skullTeethShape: {
+    kind: 'select',
+    options: ['rect', 'rounded', 'pointed', 'fangs'],
+    default: 'rect',
+  },
 } satisfies Record<string, NodeParamSpec>)
 
 function shapeOptsFrom(p: Resolved): ShapeOpts {
@@ -247,8 +259,16 @@ export const SOURCE_NODES = [
       const cy = p.num('cy')
       const rx = p.num('rx')
       const ry = p.num('ry')
-      for (let y = Math.max(0, Math.floor(cy - ry)); y <= Math.min(ctx.bh - 1, Math.ceil(cy + ry)); y++) {
-        for (let x = Math.max(0, Math.floor(cx - rx)); x <= Math.min(ctx.bw - 1, Math.ceil(cx + rx)); x++) {
+      for (
+        let y = Math.max(0, Math.floor(cy - ry));
+        y <= Math.min(ctx.bh - 1, Math.ceil(cy + ry));
+        y++
+      ) {
+        for (
+          let x = Math.max(0, Math.floor(cx - rx));
+          x <= Math.min(ctx.bw - 1, Math.ceil(cx + rx));
+          x++
+        ) {
           const nx = (x + 0.5 - cx) / rx
           const ny = (y + 0.5 - cy) / ry
           if (nx * nx + ny * ny <= 1) cells.set(y * ctx.bw + x, v)
@@ -263,14 +283,51 @@ export const SOURCE_NODES = [
     domain: { in: 'none', out: 'raster' },
     label: 'Shape',
     category: 'sources',
-    tags: ['star', 'heart', 'gear', 'flower', 'moon', 'drop', 'lightning', 'zigzag', 'polygon', 'spiral', 'arrow', 'cross', 'sun', 'bento', 'ring', 'arc', 'chevron'],
+    tags: [
+      'star',
+      'heart',
+      'gear',
+      'flower',
+      'moon',
+      'drop',
+      'lightning',
+      'zigzag',
+      'polygon',
+      'spiral',
+      'arrow',
+      'cross',
+      'sun',
+      'bento',
+      'ring',
+      'arc',
+      'chevron',
+    ],
     params: {
       shape: {
         kind: 'select',
         options: [
-          'star', 'polygon', 'diamond', 'heart', 'spiral', 'arrow', 'lightning', 'moon',
-          'wave', 'zigzag', 'cross', 'flower', 'gear', 'sun', 'bento', 'ring', 'arc',
-          'drop', 'chevron', 'concentric', 'concentricRect', 'skull',
+          'star',
+          'polygon',
+          'diamond',
+          'heart',
+          'spiral',
+          'arrow',
+          'lightning',
+          'moon',
+          'wave',
+          'zigzag',
+          'cross',
+          'flower',
+          'gear',
+          'sun',
+          'bento',
+          'ring',
+          'arc',
+          'drop',
+          'chevron',
+          'concentric',
+          'concentricRect',
+          'skull',
         ] as const,
         default: 'star',
       },

@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+
+import { useStore } from '../../state/store'
 import { defaultDoc, elementFromDoc, type Doc } from '../doc'
 import { buildGeometry } from '../geometry'
 import { ensureScene, type SceneObj } from '../scene'
-import { useStore } from '../../state/store'
 import {
   allNodes,
   evalGraph,
@@ -21,13 +22,16 @@ const ctx = (over?: Partial<EvalInput>): EvalInput => ({
   bw: 16,
   bh: 16,
   paletteLen: 12,
-  hexValue: (hex) => ({ '#e63946': 1, '#2a9d8f': 2, '#e9c46a': 3 } as Record<string, number>)[hex] ?? 1,
+  hexValue: (hex) =>
+    (({ '#e63946': 1, '#2a9d8f': 2, '#e9c46a': 3 }) as Record<string, number>)[hex] ?? 1,
   baseStyle: elementFromDoc(defaultDoc()),
   ...over,
 })
 
-const run = (nodes: Array<{ op: string; params?: Record<string, unknown> }>, over?: Partial<EvalInput>) =>
-  evalGraph({ graphVersion: 1, nodes: nodes as GraphNode[] }, { ...ctx(), ...over }).cells
+const run = (
+  nodes: Array<{ op: string; params?: Record<string, unknown> }>,
+  over?: Partial<EvalInput>,
+) => evalGraph({ graphVersion: 1, nodes: nodes as GraphNode[] }, { ...ctx(), ...over }).cells
 
 describe('node registry', () => {
   it('registers a unique, non-empty catalog', () => {
@@ -44,8 +48,14 @@ describe('node registry', () => {
   })
 
   it('registryJSON carries every node with its parameter schema', () => {
-    const parsed = JSON.parse(registryJSON()) as { nodes: Array<{ id: string; params: Record<string, { kind: string; default: unknown }> }> }
-    expect(parsed.nodes.map((n) => n.id).sort()).toEqual(allNodes().map((d) => d.id).sort())
+    const parsed = JSON.parse(registryJSON()) as {
+      nodes: Array<{ id: string; params: Record<string, { kind: string; default: unknown }> }>
+    }
+    expect(parsed.nodes.map((n) => n.id).sort()).toEqual(
+      allNodes()
+        .map((d) => d.id)
+        .sort(),
+    )
     const rect = parsed.nodes.find((n) => n.id === 'source.rect')!
     expect(rect.params.w).toMatchObject({ kind: 'int', default: 8 })
   })
@@ -151,7 +161,11 @@ describe('style evaluation', () => {
       {
         graphVersion: 1,
         nodes: [
-          { id: 'a', op: 'style.render', params: { renderMode: 'metaball', connectivity: 'corner' } },
+          {
+            id: 'a',
+            op: 'style.render',
+            params: { renderMode: 'metaball', connectivity: 'corner' },
+          },
           { id: 'b', op: 'style.pixel', params: { radius: 0.5, sizeX: 1, sizeY: 1 } },
         ],
       },
@@ -295,13 +309,14 @@ describe('graph presets', () => {
 
 describe('style-only graphs dress the stored ink', () => {
   it('style.texture keeps the stored ink and adds texture fragments', () => {
-    const cells = run([
-      { op: 'source.rect', params: { x: 0, y: 0, w: 8, h: 8, color: '#e63946' } },
-    ])
+    const cells = run([{ op: 'source.rect', params: { x: 0, y: 0, w: 8, h: 8, color: '#e63946' } }])
     // same graph + a texture node appended: the ink survives, the path grows fragments
     const withTex = run([
       { op: 'source.rect', params: { x: 0, y: 0, w: 8, h: 8, color: '#e63946' } },
-      { op: 'style.texture', params: { effect: 'grain', amount: 90, scale: 1, angle: 45, seed: 3 } },
+      {
+        op: 'style.texture',
+        params: { effect: 'grain', amount: 90, scale: 1, angle: 45, seed: 3 },
+      },
     ])
     expect(cells.size).toBe(64)
     expect(withTex.size).toBe(64)
@@ -309,7 +324,15 @@ describe('style-only graphs dress the stored ink', () => {
 
   it('a style-only graph still renders the stored ink with the texture applied', () => {
     useStore.setState({ doc: ensureScene(defaultDoc()), selection: [], activeLayerId: null })
-    useStore.getState().paintCells(new Map([[0, 1], [1, 1], [2, 1], [3, 1]]), '#ff0000')
+    useStore.getState().paintCells(
+      new Map([
+        [0, 1],
+        [1, 1],
+        [2, 1],
+        [3, 1],
+      ]),
+      '#ff0000',
+    )
     const docAfter = useStore.getState().doc
     const id = docAfter.cellObj![0]
     const plainPaths = buildGeometry(docAfter).paths
@@ -318,7 +341,13 @@ describe('style-only graphs dress the stored ink', () => {
 
     useStore.getState().setObjectGraph(id, {
       graphVersion: 1,
-      nodes: [{ id: 't1', op: 'style.texture', params: { effect: 'grain', amount: 90, scale: 1, angle: 45, seed: 3 } }],
+      nodes: [
+        {
+          id: 't1',
+          op: 'style.texture',
+          params: { effect: 'grain', amount: 90, scale: 1, angle: 45, seed: 3 },
+        },
+      ],
     })
     const textured = buildGeometry(useStore.getState().doc).paths
     expect(textured.length).toBe(plainPaths.length)
@@ -328,7 +357,10 @@ describe('style-only graphs dress the stored ink', () => {
   })
 })
 
-const pathSig = (doc: Doc) => buildGeometry(doc).paths.map((p) => `${p.fill}|${p.d}`).sort()
+const pathSig = (doc: Doc) =>
+  buildGeometry(doc)
+    .paths.map((p) => `${p.fill}|${p.d}`)
+    .sort()
 
 describe('every node has a visible effect', () => {
   it('source nodes paint, subtract cuts, intersect clips', () => {
@@ -341,7 +373,13 @@ describe('every node has a visible effect', () => {
 
   it('style.pixel: rounding changes the path data', () => {
     useStore.setState({ doc: ensureScene(defaultDoc()), selection: [], activeLayerId: null })
-    useStore.getState().paintCells(new Map([[0, 1], [1, 1]]), '#ff0000')
+    useStore.getState().paintCells(
+      new Map([
+        [0, 1],
+        [1, 1],
+      ]),
+      '#ff0000',
+    )
     const flat = pathSig(useStore.getState().doc)
     const objId = useStore.getState().doc.cellObj![0]
     useStore.getState().setObjectGraph(objId, {
@@ -353,13 +391,31 @@ describe('every node has a visible effect', () => {
   })
 
   it('style.metaball: higher strength merges two blobs (path count drops)', () => {
-    useStore.setState({ doc: ensureScene({ ...defaultDoc(), cols: 16, rows: 16 }), selection: [], activeLayerId: null })
+    useStore.setState({
+      doc: ensureScene({ ...defaultDoc(), cols: 16, rows: 16 }),
+      selection: [],
+      activeLayerId: null,
+    })
     const st = useStore.getState()
     // two nearby blobs as separate objects
-    st.paintCells(new Map([[10, 1], [11, 1], [12, 1]]), '#ff0000')
+    st.paintCells(
+      new Map([
+        [10, 1],
+        [11, 1],
+        [12, 1],
+      ]),
+      '#ff0000',
+    )
     const firstId = useStore.getState().doc.cellObj![10]
     st.patchStyle({ radius: 0 })
-    st.paintCells(new Map([[30, 1], [31, 1], [32, 1]]), '#ff0000')
+    st.paintCells(
+      new Map([
+        [30, 1],
+        [31, 1],
+        [32, 1],
+      ]),
+      '#ff0000',
+    )
     const secondId = useStore.getState().doc.cellObj![30]
     const graph = (strength: number): Graph => ({
       graphVersion: 1,
@@ -381,12 +437,22 @@ describe('every node has a visible effect', () => {
   it('style.render: outline mode yields different paths than pixels', () => {
     useStore.setState({ doc: ensureScene(defaultDoc()), selection: [], activeLayerId: null })
     const st = useStore.getState()
-    st.paintCells(new Map([[0, 1], [1, 1], [2, 1], [1, 1]]), '#ff0000')
+    st.paintCells(
+      new Map([
+        [0, 1],
+        [1, 1],
+        [2, 1],
+        [1, 1],
+      ]),
+      '#ff0000',
+    )
     const id = useStore.getState().doc.cellObj![0]
     const pixels = pathSig(useStore.getState().doc)
     st.setObjectGraph(id, {
       graphVersion: 1,
-      nodes: [{ id: 'r', op: 'style.render', params: { renderMode: 'outline', connectivity: 'edge' } }],
+      nodes: [
+        { id: 'r', op: 'style.render', params: { renderMode: 'outline', connectivity: 'edge' } },
+      ],
     })
     const outline = pathSig(useStore.getState().doc)
     expect(outline).not.toEqual(pixels)
@@ -395,12 +461,26 @@ describe('every node has a visible effect', () => {
   it('style.texture: grain adds fragment content to the paths', () => {
     useStore.setState({ doc: ensureScene(defaultDoc()), selection: [], activeLayerId: null })
     const st = useStore.getState()
-    st.paintCells(new Map([[0, 1], [1, 1], [2, 1], [3, 1]]), '#ff0000')
+    st.paintCells(
+      new Map([
+        [0, 1],
+        [1, 1],
+        [2, 1],
+        [3, 1],
+      ]),
+      '#ff0000',
+    )
     const id = useStore.getState().doc.cellObj![0]
     const plainLen = pathSig(useStore.getState().doc).join('').length
     st.setObjectGraph(id, {
       graphVersion: 1,
-      nodes: [{ id: 't', op: 'style.texture', params: { effect: 'grain', amount: 90, scale: 1, angle: 45, seed: 3 } }],
+      nodes: [
+        {
+          id: 't',
+          op: 'style.texture',
+          params: { effect: 'grain', amount: 90, scale: 1, angle: 45, seed: 3 },
+        },
+      ],
     })
     const texLen = pathSig(useStore.getState().doc).join('').length
     expect(texLen).toBeGreaterThan(plainLen)
@@ -409,7 +489,12 @@ describe('every node has a visible effect', () => {
 
 describe('applyGraphPreset (always-visible node presets)', () => {
   beforeEach(() => {
-    useStore.setState({ doc: ensureScene(defaultDoc()), selection: [], activeLayerId: null, projectDirty: false })
+    useStore.setState({
+      doc: ensureScene(defaultDoc()),
+      selection: [],
+      activeLayerId: null,
+      projectDirty: false,
+    })
   })
   const state = () => useStore.getState()
 
@@ -446,7 +531,9 @@ describe('applyGraphPreset (always-visible node presets)', () => {
     const firstSel = state().selection
     state().applyGraphPreset('star-grain-outline')
     const doc = state().doc
-    const obj = doc.layers![0].children.find((c) => c.kind === 'obj' && c.id === firstSel[0]) as SceneObj | undefined
+    const obj = doc.layers![0].children.find((c) => c.kind === 'obj' && c.id === firstSel[0]) as
+      | SceneObj
+      | undefined
     expect(obj?.graph?.nodes.map((nd) => nd.op)).toContain('style.texture')
     // the flower was replaced: only the new graph's nodes remain on this object
     expect(obj?.graph?.nodes.length).toBe(3)
@@ -460,9 +547,17 @@ describe('draw → auto node graph (live sync)', () => {
   const state = () => useStore.getState()
 
   it('a pencil stroke gets an auto Offset node; editing dx moves the rendered ink', () => {
-    state().paintCells(new Map([[0, 1], [1, 1]]), '#ff0000')
+    state().paintCells(
+      new Map([
+        [0, 1],
+        [1, 1],
+      ]),
+      '#ff0000',
+    )
     const id = state().selection[0] || state().doc.cellObj![0]
-    const obj = state().doc.layers![0].children.find((c) => c.kind === 'obj' && c.id === id) as SceneObj
+    const obj = state().doc.layers![0].children.find(
+      (c) => c.kind === 'obj' && c.id === id,
+    ) as SceneObj
     expect(obj.graph?.nodes.map((n) => n.op)).toEqual(['mod.offset'])
 
     // edit the Offset node dx in the node editor → the ink moves on canvas
@@ -480,7 +575,11 @@ describe('draw → auto node graph (live sync)', () => {
   it('moveSelection on a procedural object writes dx/dy into the Offset node', () => {
     const cur = useStore.getState().doc
     useStore.getState().paintCellsValues(
-      new Map([[0, 1], [1, 1], [2, 1]]),
+      new Map([
+        [0, 1],
+        [1, 1],
+        [2, 1],
+      ]),
       { ...cur, palette: [...cur.palette] },
       { op: 'source.rect', params: { x: 0, y: 0, w: 3, h: 1, color: '#ff0000' } },
     )
@@ -492,9 +591,9 @@ describe('draw → auto node graph (live sync)', () => {
       | SceneObj
       | undefined
     if (!obj) throw new Error('moved object not found')
-    const offset = obj.graph?.nodes.find((nd) => nd.op === 'mod.offset')!
-    expect(offset.params.dx).toBe(2)
-    expect(offset.params.dy).toBe(1)
+    const offset = obj.graph?.nodes.find((nd) => nd.op === 'mod.offset')
+    expect(offset?.params.dx).toBe(2)
+    expect(offset?.params.dy).toBe(1)
     // the procedural ink follows the offset on canvas
     expect(state().doc.cells[1 * state().doc.cols + 2]).toBeGreaterThan(0)
   })
@@ -502,12 +601,21 @@ describe('draw → auto node graph (live sync)', () => {
   it('the eraser cannot erase procedural ink (the graph wins)', () => {
     const cur = useStore.getState().doc
     state().paintCellsValues(
-      new Map([[0, 1], [1, 1]]),
+      new Map([
+        [0, 1],
+        [1, 1],
+      ]),
       { ...cur, palette: [...cur.palette] },
       { op: 'source.ellipse', params: { cx: 8, cy: 8, rx: 5, ry: 5, color: '#ff0000' } },
     )
     const before = pathSig(useStore.getState().doc)
-    state().paintCells(new Map([[0, null], [1, null]]), '')
+    state().paintCells(
+      new Map([
+        [0, null],
+        [1, null],
+      ]),
+      '',
+    )
     expect(pathSig(useStore.getState().doc)).toEqual(before)
   })
 
@@ -526,4 +634,3 @@ describe('draw → auto node graph (live sync)', () => {
     for (const i of cells.keys()) expect(Math.floor(i / 16)).toBe(0)
   })
 })
-

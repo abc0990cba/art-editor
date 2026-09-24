@@ -1,7 +1,7 @@
 /**
- * Marching squares over a scalar field given as Float32Array of fw*fh node values.
- * Returns closed loops (arrays of {x, y} points in node coordinates).
- * Contour follows nodes where value crosses `iso` (inside = value > iso).
+ * Marching squares over a scalar field given as Float32Array of fw*fh node values. Returns closed
+ * loops (arrays of {x, y} points in node coordinates). Contour follows nodes where value crosses
+ * `iso` (inside = value > iso).
  */
 export interface Pt {
   x: number

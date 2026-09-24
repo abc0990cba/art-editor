@@ -1,13 +1,13 @@
 import type { Doc, Link, TextureSettings } from './doc'
 import { bufferHeight, bufferWidth, cellColor } from './doc'
+import type { StyledPath } from './geometry'
 import { marchingSquares, type Pt } from './marchingSquares'
 import { regionTextureFragments, type TextureCell } from './texture'
-import type { StyledPath } from './geometry'
 
 /**
- * Outline render mode: same-color cells connected by an edge form one silhouette traced
- * exactly along cell edges; every 90° corner of the outline (convex and concave) receives a
- * circular fillet sized by the corner-radius setting. Shared edges stay straight.
+ * Outline render mode: same-color cells connected by an edge form one silhouette traced exactly
+ * along cell edges; every 90° corner of the outline (convex and concave) receives a circular fillet
+ * sized by the corner-radius setting. Shared edges stay straight.
  */
 export function outlineGeometry(
   doc: Doc,
@@ -96,12 +96,11 @@ function appendLinkStrokes(doc: Doc, links: readonly Link[], paths: StyledPath[]
 const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
 
 /**
- * Texture hole fragments for one color group, appended into the silhouette's own
- * path. The silhouette covers full cells; the gap margin applies only where a
- * side faces another color or empty space, so same-color regions stay continuous.
- * A cell corner whose two orthogonal neighbors are outside the group is a convex
- * region corner — filleted with the convex radius, so specks get the corner test.
- * Concave fillets arc on the far side of the corner point and never enter this
+ * Texture hole fragments for one color group, appended into the silhouette's own path. The
+ * silhouette covers full cells; the gap margin applies only where a side faces another color or
+ * empty space, so same-color regions stay continuous. A cell corner whose two orthogonal neighbors
+ * are outside the group is a convex region corner — filleted with the convex radius, so specks get
+ * the corner test. Concave fillets arc on the far side of the corner point and never enter this
  * cell's tile, so they need no guard.
  */
 function cellTextureFragments(
@@ -149,10 +148,10 @@ function cellTextureFragments(
 }
 
 /**
- * Junction-aligned bridge overlays for corner-bridge connectivity: one diamond per junction
- * where two same-value cells touch diagonally and both orthogonal neighbors are empty. The
- * diamond's vertices sit at the midpoints of the four cell edges meeting at the shared corner,
- * so the joint stays inside the cell envelope and is symmetric in every diagonal direction.
+ * Junction-aligned bridge overlays for corner-bridge connectivity: one diamond per junction where
+ * two same-value cells touch diagonally and both orthogonal neighbors are empty. The diamond's
+ * vertices sit at the midpoints of the four cell edges meeting at the shared corner, so the joint
+ * stays inside the cell envelope and is symmetric in every diagonal direction.
  */
 function bridgeOverlays(doc: Doc, cells: Uint16Array, v: number): string {
   const bw = bufferWidth(doc)
@@ -207,10 +206,10 @@ function bridgeOverlays(doc: Doc, cells: Uint16Array, v: number): string {
 }
 
 /**
- * Shared corner-rounding emitter: converts closed doc-unit loops into one compound path,
- * rounding each corner — outer corners with the convex radius, inner corners with the concave
- * radius — using circular arcs, or straight 45° cuts in chamfer style. Convexity is decided per
- * loop by majority turn sign; fillets clamp to half of the adjacent edge lengths.
+ * Shared corner-rounding emitter: converts closed doc-unit loops into one compound path, rounding
+ * each corner — outer corners with the convex radius, inner corners with the concave radius — using
+ * circular arcs, or straight 45° cuts in chamfer style. Convexity is decided per loop by majority
+ * turn sign; fillets clamp to half of the adjacent edge lengths.
  */
 export function emitFilletPath(
   loops: Pt[][],
@@ -277,8 +276,8 @@ export function emitFilletPath(
 }
 
 /**
- * Build the square-grid outline path: restore true 90° corners from the marching-squares
- * staircase (binary crossings cut corners diagonally), then round via the shared emitter.
+ * Build the square-grid outline path: restore true 90° corners from the marching-squares staircase
+ * (binary crossings cut corners diagonally), then round via the shared emitter.
  */
 function roundedOutlinePath(
   loops: Pt[][],
@@ -293,9 +292,9 @@ function roundedOutlinePath(
 }
 
 /**
- * Convert marching-squares loop points to doc units and rebuild the true cell-corner vertices:
- * on a binary field every painted-cell corner is cut by a diagonal segment, so each diagonal
- * is split into two half-cell legs through the corner point.
+ * Convert marching-squares loop points to doc units and rebuild the true cell-corner vertices: on a
+ * binary field every painted-cell corner is cut by a diagonal segment, so each diagonal is split
+ * into two half-cell legs through the corner point.
  */
 function simplifyLoop(raw: Pt[], sub: number): Pt[] {
   const expanded: Pt[] = []

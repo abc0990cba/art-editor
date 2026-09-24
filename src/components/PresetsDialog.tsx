@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
+
+import { presetPreviewDataURL } from '../engine/presetPreview'
 import {
   BUILTIN_PRESETS,
   configMatchesState,
   isBuiltinPreset,
   type EditorPreset,
 } from '../engine/presets'
-import { presetPreviewDataURL } from '../engine/presetPreview'
-import { Tooltip } from './Tooltip'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 import type { PresetEntry } from '../storage/presets'
+import { Tooltip } from './Tooltip'
 
 export function PresetsDialog({ onClose }: { onClose: () => void }) {
   const { t, lang } = useI18n()
@@ -73,16 +74,16 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl border border-line bg-app p-4 shadow-2xl"
+        className="border-line bg-app flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl border p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold tracking-wide text-body">{t('presets.title')}</h2>
+          <h2 className="text-body text-sm font-semibold tracking-wide">{t('presets.title')}</h2>
           <Tooltip label={t('dialog.close')}>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md px-2 py-1 text-xs text-muted transition hover:bg-chip-active hover:text-body"
+              className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
             >
               ✕
             </button>
@@ -98,7 +99,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') saveCurrent()
             }}
-            className="flex-1 rounded-md border border-line bg-chip px-2 py-1.5 text-xs text-body outline-none focus:border-accent-line"
+            className="border-line bg-chip text-body focus:border-accent-line flex-1 rounded-md border px-2 py-1.5 text-xs outline-none"
           />
           <button
             type="button"
@@ -111,7 +112,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {!presetsReady && (
-            <p className="p-4 text-center text-xs text-muted">{t('projects.loading')}</p>
+            <p className="text-muted p-4 text-center text-xs">{t('projects.loading')}</p>
           )}
           {presetsReady && (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -121,7 +122,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
                 return (
                   <div
                     key={p.id}
-                    className={`overflow-hidden rounded-lg border bg-panel ${
+                    className={`bg-panel overflow-hidden rounded-lg border ${
                       active ? 'border-accent-line' : 'border-line'
                     }`}
                   >
@@ -152,7 +153,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
                             }
                             if (e.key === 'Escape') setRenaming(null)
                           }}
-                          className="w-full rounded border border-accent-line bg-chip px-1.5 py-0.5 text-xs text-body outline-none"
+                          className="border-accent-line bg-chip text-body w-full rounded border px-1.5 py-0.5 text-xs outline-none"
                         />
                       ) : (
                         <Tooltip label={builtin ? displayName(p) : t('presets.rename')}>
@@ -161,18 +162,18 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
                             onClick={() => {
                               if (!builtin) setRenaming({ id: p.id, value: p.name })
                             }}
-                            className="flex items-center gap-1 truncate rounded px-0.5 text-left text-xs font-medium text-body transition enabled:hover:bg-chip-active"
+                            className="text-body enabled:hover:bg-chip-active flex items-center gap-1 truncate rounded px-0.5 text-left text-xs font-medium transition"
                           >
                             <span className="truncate">{displayName(p)}</span>
                           </button>
                         </Tooltip>
                       )}
-                      <span className="truncate text-[10px] text-muted">
+                      <span className="text-muted truncate text-[10px]">
                         {builtin ? `${t('presets.builtin')} · ` : ''}
                         {summary(p)}
                       </span>
                       {!builtin && (
-                        <span className="text-[10px] text-muted">
+                        <span className="text-muted text-[10px]">
                           {fmtDate((p as PresetEntry).updatedAt)}
                         </span>
                       )}
@@ -181,7 +182,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
                           <button
                             type="button"
                             onClick={() => apply(p)}
-                            className="rounded border border-accent-line py-0.5 text-accent-text transition hover:bg-accent-soft"
+                            className="border-accent-line text-accent-text hover:bg-accent-soft rounded border py-0.5 transition"
                           >
                             {t('presets.apply')}
                           </button>
@@ -196,7 +197,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
                                 config: p.config,
                               })
                             }
-                            className="rounded border border-line py-0.5 transition hover:border-chip-line"
+                            className="border-line hover:border-chip-line rounded border py-0.5 transition"
                           >
                             {t('presets.duplicate')}
                           </button>
@@ -207,7 +208,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
                               <button
                                 type="button"
                                 onClick={() => void overwritePreset(p.id)}
-                                className="rounded border border-line py-0.5 transition hover:border-chip-line"
+                                className="border-line hover:border-chip-line rounded border py-0.5 transition"
                               >
                                 {t('presets.overwrite')}
                               </button>
@@ -230,7 +231,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
                                 <button
                                   type="button"
                                   onClick={() => setDeleting(p.id)}
-                                  className="rounded border border-line py-0.5 transition hover:border-red-500/60 hover:text-red-400"
+                                  className="border-line rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400"
                                 >
                                   {t('presets.delete')}
                                 </button>

@@ -1,22 +1,21 @@
 /**
  * Interior/exterior classification for shape fills and stroke alignment. The square grid
- * flood-fills the outside around the outline inside its bounding window (cells the flood
- * never reaches are inside); other grids test cell centers against the outline polylines
- * with the even-odd rule.
+ * flood-fills the outside around the outline inside its bounding window (cells the flood never
+ * reaches are inside); other grids test cell centers against the outline polylines with the
+ * even-odd rule.
  */
 
 export interface ShapeRegion {
-  /** cells strictly enclosed by the outline (outline cells excluded) */
+  /** Cells strictly enclosed by the outline (outline cells excluded) */
   inside: Set<number>
-  /** window cells reachable from the boundary without crossing the outline */
+  /** Window cells reachable from the boundary without crossing the outline */
   outside: Set<number>
 }
 
 /**
- * Split the square buffer around an outline into interior and exterior. The flood runs
- * inside the outline's bounding box inflated by one cell, so shapes touching the canvas
- * border still classify correctly and the cost stays proportional to the shape, not the
- * canvas.
+ * Split the square buffer around an outline into interior and exterior. The flood runs inside the
+ * outline's bounding box inflated by one cell, so shapes touching the canvas border still classify
+ * correctly and the cost stays proportional to the shape, not the canvas.
  */
 export function regionCells(outline: ReadonlySet<number>, bw: number, bh: number): ShapeRegion {
   const inside = new Set<number>()
@@ -81,9 +80,9 @@ export function regionCells(outline: ReadonlySet<number>, bw: number, bh: number
 }
 
 /**
- * Even-odd filled cell set of traced integer loops — the fill for shapes whose
- * loops punch holes (e.g. the skull's eye sockets). Half-integer test points keep
- * boundary cells out; callers stamp the outline cells separately as material.
+ * Even-odd filled cell set of traced integer loops — the fill for shapes whose loops punch holes
+ * (e.g. the skull's eye sockets). Half-integer test points keep boundary cells out; callers stamp
+ * the outline cells separately as material.
  */
 export function fillCellsEvenOdd(
   loops: ReadonlyArray<ReadonlyArray<readonly [number, number]>>,

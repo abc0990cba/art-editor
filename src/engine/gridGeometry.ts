@@ -1,17 +1,17 @@
 import type { Doc, Link } from './doc'
 import { cellColor } from './doc'
+import type { StyledPath } from './geometry'
 import { makeGrid, type Grid } from './grids'
 import { marchingSquares, type Pt } from './marchingSquares'
 import { emitFilletPath } from './outline'
-import type { StyledPath } from './geometry'
 
 const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
 const q6 = (v: number) => Math.round(v * 1e6) / 1e6
 
 /**
- * Rendering for non-square grids (hex / triangle / radial). All three pixel styles are
- * supported: rounded cell polygons, generic union-silhouette outline tracing, and center-kernel
- * metaball fields. Corner connectivity and sub-cells are square-grid features.
+ * Rendering for non-square grids (hex / triangle / radial). All three pixel styles are supported:
+ * rounded cell polygons, generic union-silhouette outline tracing, and center-kernel metaball
+ * fields. Corner connectivity and sub-cells are square-grid features.
  */
 export function gridBuildGeometry(
   doc: Doc,

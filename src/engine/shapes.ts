@@ -156,130 +156,130 @@ export function isShapeTool(tool: string): tool is ShapeToolId {
 /** Per-tool geometry knobs; every field is optional and falls back to its default. */
 export interface ShapeOpts {
   starRays?: number
-  /** inner/outer radius ratio of the star */
+  /** Inner/outer radius ratio of the star */
   starInner?: number
-  /** rotation in degrees, around the box center */
+  /** Rotation in degrees, around the box center */
   starRotation?: number
   polygonSides?: number
   polygonRotation?: number
   diamondRotation?: number
   heartRotation?: number
-  /** full revolutions of the spiral */
+  /** Full revolutions of the spiral */
   spiralTurns?: number
   /** 1 = clockwise winding, -1 = counter-clockwise */
   spiralDir?: number
   spiralRotation?: number
-  /** head length as a fraction of the drag length */
+  /** Head length as a fraction of the drag length */
   arrowHead?: number
-  /** barb half-width as a fraction of the head length */
+  /** Barb half-width as a fraction of the head length */
   arrowSpread?: number
   lightningRotation?: number
   /** 0.05 = thin sliver … 0.45 = almost a full circle */
   moonThickness?: number
   moonRotation?: number
-  /** full sine periods along the drag */
+  /** Full sine periods along the drag */
   wavePeriods?: number
-  /** amplitude as a fraction of the drag length */
+  /** Amplitude as a fraction of the drag length */
   waveAmplitude?: number
-  /** arm width as a fraction of the box side */
+  /** Arm width as a fraction of the box side */
   crossThickness?: number
   crossRotation?: number
   flowerPetals?: number
   flowerRotation?: number
   gearTeeth?: number
-  /** tooth height as a fraction of the radius */
+  /** Tooth height as a fraction of the radius */
   gearDepth?: number
   gearRotation?: number
   sunRays?: number
-  /** radius of the sun's core disc as a fraction of the outer radius */
+  /** Radius of the sun's core disc as a fraction of the outer radius */
   sunCore?: number
-  /** radius where the rays start */
+  /** Radius where the rays start */
   sunRayBase?: number
-  /** ray tip radius as a fraction of the outer radius */
+  /** Ray tip radius as a fraction of the outer radius */
   sunRayLength?: number
-  /** length factor applied to every second ray (1 = all rays equal) */
+  /** Length factor applied to every second ray (1 = all rays equal) */
   sunAlternate?: number
-  /** ray narrowing toward the tip: 1 = rectangular, 0 = triangular */
+  /** Ray narrowing toward the tip: 1 = rectangular, 0 = triangular */
   sunTaper?: number
-  /** angular width of a ray as a fraction of its sector */
+  /** Angular width of a ray as a fraction of its sector */
   sunWidth?: number
-  /** sine bending along the ray (0 = straight) */
+  /** Sine bending along the ray (0 = straight) */
   sunWave?: number
-  /** full sine periods along a ray */
+  /** Full sine periods along a ray */
   sunWavePeriods?: number
-  /** progressive angular bend of the ray, -1..1 */
+  /** Progressive angular bend of the ray, -1..1 */
   sunTwist?: number
   sunRotation?: number
   bentoCols?: number
   bentoRows?: number
-  /** width of the gap stripes between cells, fraction of the box side */
+  /** Width of the gap stripes between cells, fraction of the box side */
   bentoGap?: number
-  /** corner rounding of the bento cells, 0..0.5 of the cell size */
+  /** Corner rounding of the bento cells, 0..0.5 of the cell size */
   bentoRadius?: number
-  /** margin between the drag box and the outer cells */
+  /** Margin between the drag box and the outer cells */
   bentoInset?: number
-  /** deterministic jitter of the dividing lines (seeded) */
+  /** Deterministic jitter of the dividing lines (seeded) */
   bentoChaos?: number
-  /** probability of merging neighboring slots into spans (seeded) */
+  /** Probability of merging neighboring slots into spans (seeded) */
   bentoMerge?: number
-  /** layout seed; reroll for a different split */
+  /** Layout seed; reroll for a different split */
   bentoSeed?: number
-  /** corner rounding shared by rect/diamond/polygon/star, 0..0.5 */
+  /** Corner rounding shared by rect/diamond/polygon/star, 0..0.5 */
   shapeCorner?: number
-  /** side curvature shared by rect/diamond: negative = pinched in, positive = bowed out */
+  /** Side curvature shared by rect/diamond: negative = pinched in, positive = bowed out */
   shapeBulge?: number
-  /** superellipse exponent for the ellipse tool: <1 pinched, 1 = ellipse, >1 squircle */
+  /** Superellipse exponent for the ellipse tool: <1 pinched, 1 = ellipse, >1 squircle */
   ellipsePower?: number
-  /** hole radius of the ring tool as a fraction of the outer radius */
+  /** Hole radius of the ring tool as a fraction of the outer radius */
   ringThickness?: number
-  /** normalized radii (0..1, roughly descending) of the concentric tools' loops */
+  /** Normalized radii (0..1, roughly descending) of the concentric tools' loops */
   circles?: number[]
   /* --- skull: cranium --- */
-  /** dome width as a fraction of the drag box width */
+  /** Dome width as a fraction of the drag box width */
   skullCraniumWidth?: number
-  /** dome height as a fraction of the drag box height */
+  /** Dome height as a fraction of the drag box height */
   skullCraniumHeight?: number
   /** 'round' = spherical vault, 'flat' = boxy (superellipse) crown */
   skullCrown?: 'round' | 'flat'
-  /** brow ridge bulge below the temples, fraction of the box width */
+  /** Brow ridge bulge below the temples, fraction of the box width */
   skullBrowRidge?: number
-  /** width at the cheekbones, fraction of the box width */
+  /** Width at the cheekbones, fraction of the box width */
   skullCheekWidth?: number
   /* --- skull: jaw --- */
-  /** width of the lower face, fraction of the box width */
+  /** Width of the lower face, fraction of the box width */
   skullJawWidth?: number
-  /** lower-face depth: how far the chin section rises, fraction of the box height */
+  /** Lower-face depth: how far the chin section rises, fraction of the box height */
   skullJawHeight?: number
-  /** mandible visible: false closes the silhouette just under the mouth */
+  /** Mandible visible: false closes the silhouette just under the mouth */
   skullMandible?: boolean
   /* --- skull: eyes --- */
-  /** eye socket radius, fraction of the box width */
+  /** Eye socket radius, fraction of the box width */
   skullEyeSize?: number
-  /** distance between the socket centers, fraction of the box width */
+  /** Distance between the socket centers, fraction of the box width */
   skullEyeSpacing?: number
-  /** socket line height, fraction of the box height from the top */
+  /** Socket line height, fraction of the box height from the top */
   skullEyeY?: number
-  /** socket silhouette */
+  /** Socket silhouette */
   skullEyeShape?: 'round' | 'oval' | 'square' | 'angled'
-  /** socket slant, -1 = sad (outer corners down) … 1 = angry (outer corners up) */
+  /** Socket slant, -1 = sad (outer corners down) … 1 = angry (outer corners up) */
   skullEyeTilt?: number
-  /** left socket smaller and lower (0 = symmetric) */
+  /** Left socket smaller and lower (0 = symmetric) */
   skullEyeAsym?: number
   /* --- skull: nose --- */
   skullNoseWidth?: number
   skullNoseHeight?: number
-  /** nasal aperture center height, fraction of the box height */
+  /** Nasal aperture center height, fraction of the box height */
   skullNoseY?: number
   skullNoseShape?: 'triangle' | 'heart' | 'teardrop' | 'slit'
   /* --- skull: mouth / teeth --- */
-  /** number of upper teeth (0 = a plain dark opening) */
+  /** Number of upper teeth (0 = a plain dark opening) */
   skullTeethCount?: number
-  /** tooth length, fraction of the box height */
+  /** Tooth length, fraction of the box height */
   skullTeethLen?: number
-  /** how deep the gaps between teeth cut in, 0..1 */
+  /** How deep the gaps between teeth cut in, 0..1 */
   skullTeethGap?: number
   skullTeethShape?: 'rect' | 'rounded' | 'pointed' | 'fangs'
-  /** mouth line height, fraction of the box height */
+  /** Mouth line height, fraction of the box height */
   skullMouthY?: number
 }
 
@@ -648,12 +648,20 @@ function boxShapePolylines(tool: BoxShapeId, opts: ShapeOpts, steps: number): Po
 // must be even-odd (see shapeHasHoles / fillCellsEvenOdd).
 
 /** Quadratic Bézier sampler: from a through control c to b. */
-function quadSeg(a: [number, number], c: [number, number], b: [number, number], n: number): Polyline {
+function quadSeg(
+  a: [number, number],
+  c: [number, number],
+  b: [number, number],
+  n: number,
+): Polyline {
   const pts: Polyline = []
   for (let i = 0; i <= n; i++) {
     const t = i / n
     const u = 1 - t
-    pts.push([u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1]])
+    pts.push([
+      u * u * a[0] + 2 * u * t * c[0] + t * t * b[0],
+      u * u * a[1] + 2 * u * t * c[1] + t * t * b[1],
+    ])
   }
   return pts
 }
@@ -765,7 +773,13 @@ function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
     const rot = eyeTilt * 0.32 * side
     const n = 24
     if (eyeShape === 'square') {
-      return roundedRectPolyline(cx - r * 0.95, cy - r * 0.72, cx + r * 0.95, cy + r * 0.72, r * 0.35)
+      return roundedRectPolyline(
+        cx - r * 0.95,
+        cy - r * 0.72,
+        cx + r * 0.95,
+        cy + r * 0.72,
+        r * 0.35,
+      )
     }
     const ry = eyeShape === 'oval' ? r * 1.4 : eyeShape === 'angled' ? r * 0.62 : r
     const rx = eyeShape === 'angled' ? r * 1.18 : r
@@ -796,11 +810,36 @@ function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
     } else if (noseShape === 'heart') {
       // two lobes on top, tapering to a point — the classic nasal aperture
       const pts: Polyline = []
-      pts.push(...quadSeg([cx - w2, top + noseH * 0.3], [cx - w2 * 0.8, bot - noseH * 0.2], [cx, bot], 8))
-      pts.push(...quadSeg([cx, bot], [cx + w2 * 0.8, bot - noseH * 0.2], [cx + w2, top + noseH * 0.3], 8))
-      pts.push(...quadSeg([cx + w2, top + noseH * 0.3], [cx + w2 * 0.5, top - noseH * 0.08], [cx + w2 * 0.12, top + noseH * 0.16], 6))
-      pts.push(...quadSeg([cx + w2 * 0.12, top + noseH * 0.16], [cx, top + noseH * 0.26], [cx - w2 * 0.12, top + noseH * 0.16], 5))
-      pts.push(...quadSeg([cx - w2 * 0.12, top + noseH * 0.16], [cx - w2 * 0.5, top - noseH * 0.08], [cx - w2, top + noseH * 0.3], 6))
+      pts.push(
+        ...quadSeg([cx - w2, top + noseH * 0.3], [cx - w2 * 0.8, bot - noseH * 0.2], [cx, bot], 8),
+      )
+      pts.push(
+        ...quadSeg([cx, bot], [cx + w2 * 0.8, bot - noseH * 0.2], [cx + w2, top + noseH * 0.3], 8),
+      )
+      pts.push(
+        ...quadSeg(
+          [cx + w2, top + noseH * 0.3],
+          [cx + w2 * 0.5, top - noseH * 0.08],
+          [cx + w2 * 0.12, top + noseH * 0.16],
+          6,
+        ),
+      )
+      pts.push(
+        ...quadSeg(
+          [cx + w2 * 0.12, top + noseH * 0.16],
+          [cx, top + noseH * 0.26],
+          [cx - w2 * 0.12, top + noseH * 0.16],
+          5,
+        ),
+      )
+      pts.push(
+        ...quadSeg(
+          [cx - w2 * 0.12, top + noseH * 0.16],
+          [cx - w2 * 0.5, top - noseH * 0.08],
+          [cx - w2, top + noseH * 0.3],
+          6,
+        ),
+      )
       pts.push(pts[0])
       polys.push(pts)
     } else {
@@ -809,8 +848,22 @@ function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
       const cyc = top + r
       const pts: Polyline = []
       pts.push(...ellipseArc(cx, cyc, r, r, Math.PI * 0.95, Math.PI * 2.05, 14))
-      pts.push(...quadSeg([cx + r * 0.95, cyc + r * 0.3], [cx + w2 * 0.4, bot - noseH * 0.18], [cx, bot], 6))
-      pts.push(...quadSeg([cx, bot], [cx - w2 * 0.4, bot - noseH * 0.18], [cx - r * 0.95, cyc + r * 0.3], 6))
+      pts.push(
+        ...quadSeg(
+          [cx + r * 0.95, cyc + r * 0.3],
+          [cx + w2 * 0.4, bot - noseH * 0.18],
+          [cx, bot],
+          6,
+        ),
+      )
+      pts.push(
+        ...quadSeg(
+          [cx, bot],
+          [cx - w2 * 0.4, bot - noseH * 0.18],
+          [cx - r * 0.95, cyc + r * 0.3],
+          6,
+        ),
+      )
       pts.push(pts[0])
       polys.push(pts)
     }
@@ -859,7 +912,6 @@ function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
   return polys
 }
 
-
 /** Normalized radii of the concentric tools, sorted descending and clamped. */
 function concentricRadii(opts: ShapeOpts): number[] {
   const list = opts.circles?.length ? opts.circles : [1, 0.66, 0.33]
@@ -879,13 +931,7 @@ function seededRandom(seed: number): () => number {
 }
 
 /** Axis-aligned rounded rectangle as a closed polyline (r in the same units as the box). */
-function roundedRectPolyline(
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-  r: number,
-): Polyline {
+function roundedRectPolyline(x0: number, y0: number, x1: number, y1: number, r: number): Polyline {
   const w = Math.abs(x1 - x0)
   const h = Math.abs(y1 - y0)
   const rr = Math.min(r, w / 2, h / 2)
@@ -915,14 +961,13 @@ function roundedRectPolyline(
 }
 
 /**
- * Round every vertex of a polyline by replacing it with a quadratic arc through the
- * vertex (r in the same units as the points). Closed loops repeat their first vertex,
- * matching the shape-tool convention.
+ * Round every vertex of a polyline by replacing it with a quadratic arc through the vertex (r in
+ * the same units as the points). Closed loops repeat their first vertex, matching the shape-tool
+ * convention.
  */
 function roundedPolyline(pts: Polyline, r: number): Polyline {
   if (r <= 1e-9 || pts.length < 3) return pts
-  const closed =
-    pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]
+  const closed = pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]
   const vs = closed ? pts.slice(0, -1) : pts
   if (vs.length < 3) return pts
   const out: Polyline = []
@@ -958,13 +1003,12 @@ function roundedPolyline(pts: Polyline, r: number): Polyline {
 }
 
 /**
- * Bow every edge of a closed polyline away from the centroid (positive) or pinch it
- * toward the centroid (negative); amount is a fraction of the edge length.
+ * Bow every edge of a closed polyline away from the centroid (positive) or pinch it toward the
+ * centroid (negative); amount is a fraction of the edge length.
  */
 function bulgePolyline(pts: Polyline, amount: number): Polyline {
   if (Math.abs(amount) < 1e-9 || pts.length < 3) return pts
-  const closed =
-    pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]
+  const closed = pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]
   const vs = closed ? pts.slice(0, -1) : pts
   const m = vs.length
   if (m < 3) return pts
@@ -1022,9 +1066,9 @@ interface BentoRect {
 }
 
 /**
- * Bento layout: the unit square split into cols×rows slots with seeded divider
- * jitter (chaos) and seeded slot merging (spans); cells are inset by half the gap
- * stripe on interior boundaries. Returns unit-square rects.
+ * Bento layout: the unit square split into cols×rows slots with seeded divider jitter (chaos) and
+ * seeded slot merging (spans); cells are inset by half the gap stripe on interior boundaries.
+ * Returns unit-square rects.
  */
 function bentoSlots(opts: ShapeOpts): BentoRect[] {
   const cols = clampInt(opts.bentoCols ?? 3, 1, 8)
@@ -1211,9 +1255,8 @@ function zigzagPolylines(
 }
 
 /**
- * Outline pieces of a shape in the coordinates of its defining drag
- * (start a → end b). Parametric shapes sample at `steps` vertices; when
- * omitted the count adapts to the shape size.
+ * Outline pieces of a shape in the coordinates of its defining drag (start a → end b). Parametric
+ * shapes sample at `steps` vertices; when omitted the count adapts to the shape size.
  */
 export function shapePathSegments(
   tool: ShapeToolId,
@@ -1257,9 +1300,9 @@ export function shapeHasHoles(tool: ShapeToolId): boolean {
 }
 
 /**
- * Integer-cell outline loops of a shape, one entry per polyline (holes included as
- * their own loops). Union over the entries equals shapePathPoints; hole-aware fills
- * run even-odd across the entries instead.
+ * Integer-cell outline loops of a shape, one entry per polyline (holes included as their own
+ * loops). Union over the entries equals shapePathPoints; hole-aware fills run even-odd across the
+ * entries instead.
  */
 export function shapePathLoops(
   tool: ShapeToolId,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   convertImage,
   DEFAULT_IMPORT_OPTIONS,

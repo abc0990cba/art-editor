@@ -4,13 +4,12 @@ import { createPortal } from 'react-dom'
 const MARGIN = 8
 
 /**
- * Fixed-position floating panel that always stays fully inside the viewport: the
- * requested (x, y) anchor is clamped after every layout change — mount, anchor move,
- * content growth (e.g. more sliders appearing) and window resizes — so even a tall
- * popover opened next to a bottom rail row never runs past the screen edge. Rendered
- * through a body portal: a sticky/transformed ancestor would otherwise become the
- * containing block for position:fixed and silently shift the panel (this is spec
- * behavior for sticky, see css-position-3).
+ * Fixed-position floating panel that always stays fully inside the viewport: the requested (x, y)
+ * anchor is clamped after every layout change — mount, anchor move, content growth (e.g. more
+ * sliders appearing) and window resizes — so even a tall popover opened next to a bottom rail row
+ * never runs past the screen edge. Rendered through a body portal: a sticky/transformed ancestor
+ * would otherwise become the containing block for position:fixed and silently shift the panel (this
+ * is spec behavior for sticky, see css-position-3).
  */
 export function FloatingPanel({
   x,
@@ -20,7 +19,7 @@ export function FloatingPanel({
   style,
   children,
 }: {
-  /** requested top-left corner in viewport coordinates (clamped into the viewport) */
+  /** Requested top-left corner in viewport coordinates (clamped into the viewport) */
   x: number
   y: number
   /** CSS width; the clamping measures the real rendered box */
@@ -61,11 +60,7 @@ export function FloatingPanel({
   }, [x, y])
 
   const panel = (
-    <div
-      ref={ref}
-      className={className}
-      style={{ ...style, left: pos.x, top: pos.y, width }}
-    >
+    <div ref={ref} className={className} style={{ ...style, left: pos.x, top: pos.y, width }}>
       {children}
     </div>
   )

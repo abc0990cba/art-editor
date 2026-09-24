@@ -1,16 +1,16 @@
 /**
- * Brush model: a pixel size (the tip grid dimension, in buffer cells) plus an on/off tip
- * pattern. A full square pattern of size N paints exactly an N×N block of cells, so the
- * brush size *is* the pixel size the user draws with (5 = "5-cell pixel"). Pure data, no React.
+ * Brush model: a pixel size (the tip grid dimension, in buffer cells) plus an on/off tip pattern. A
+ * full square pattern of size N paints exactly an N×N block of cells, so the brush size _is_ the
+ * pixel size the user draws with (5 = "5-cell pixel"). Pure data, no React.
  */
 
 export const MIN_BRUSH = 1
 export const MAX_BRUSH = 16
 
 export interface Brush {
-  /** tip grid dimension in cells: a full pattern paints size×size cells */
+  /** Tip grid dimension in cells: a full pattern paints size×size cells */
   size: number
-  /** row-major, length size*size; true = this tip cell paints */
+  /** Row-major, length size*size; true = this tip cell paints */
   pattern: boolean[]
 }
 
@@ -85,9 +85,9 @@ export function brushOffsets(brush: Brush): Array<[number, number]> {
 }
 
 /**
- * Top-left cell of the tip for a hovered cell.
- * Snapped: the containing block of the size grid anchored at the canvas origin, so size-N
- * pixels tile perfectly (draw at 1/N scale). Free: the tip is centered under the cursor.
+ * Top-left cell of the tip for a hovered cell. Snapped: the containing block of the size grid
+ * anchored at the canvas origin, so size-N pixels tile perfectly (draw at 1/N scale). Free: the tip
+ * is centered under the cursor.
  */
 export function brushAnchor(
   cellX: number,

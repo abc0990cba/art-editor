@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+
 import type { Doc, ElementStyle } from '../engine/doc'
 import { buildGeometry } from '../engine/geometry'
 import type { Cells } from '../engine/nodes'
@@ -6,10 +7,11 @@ import { drawGeometry } from '../engine/png'
 
 /**
  * Mini renderers for per-node previews in the node editor:
- *  - CellsPreview draws a cell map (the stage output of a raster node);
- *  - StyleSamplePreview renders a small sample scene through the full geometry
- *    pipeline with the node's style applied (texture, metaball, render mode…).
- * Both auto-fit their content and re-render on any change — previews can't lie.
+ *
+ * - CellsPreview draws a cell map (the stage output of a raster node);
+ * - StyleSamplePreview renders a small sample scene through the full geometry pipeline with the
+ *   node's style applied (texture, metaball, render mode…). Both auto-fit their content and
+ *   re-render on any change — previews can't lie.
  */
 
 const BG = '#141419'
@@ -63,7 +65,7 @@ export function CellsPreview({
       g.fillRect(ox + (x - minX) * s, oy + (y - minY) * s, Math.ceil(s), Math.ceil(s))
     }
   }, [cells, palette, bw, w, h])
-  return <canvas ref={ref} style={{ width: w, height: h }} className="rounded border border-line" />
+  return <canvas ref={ref} style={{ width: w, height: h }} className="border-line rounded border" />
 }
 
 export function StyleSamplePreview({
@@ -93,10 +95,8 @@ export function StyleSamplePreview({
     const rows = 6
     const cells = new Uint16Array(cols * rows)
     // two blobs: metaball/texture/render-mode samples read best on a two-blob scene
-    for (let y = 1; y <= 3; y++)
-      for (let x = 1; x <= 3; x++) cells[y * cols + x] = 1
-    for (let y = 1; y <= 3; y++)
-      for (let x = 7; x <= 9; x++) cells[y * cols + x] = 1
+    for (let y = 1; y <= 3; y++) for (let x = 1; x <= 3; x++) cells[y * cols + x] = 1
+    for (let y = 1; y <= 3; y++) for (let x = 7; x <= 9; x++) cells[y * cols + x] = 1
     const mini: Doc = {
       ...baseDoc,
       cols,
@@ -120,5 +120,5 @@ export function StyleSamplePreview({
     drawGeometry(g, buildGeometry(mini).paths)
     g.restore()
   }, [key, w, h])
-  return <canvas ref={ref} style={{ width: w, height: h }} className="rounded border border-line" />
+  return <canvas ref={ref} style={{ width: w, height: h }} className="border-line rounded border" />
 }

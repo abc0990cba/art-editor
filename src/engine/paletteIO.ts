@@ -1,7 +1,7 @@
 /**
- * Palette file formats for import/export, parsed and serialized as plain strings
- * and arrays — no DOM. Supported: .hex (one #rrggbb per line, the Lospec format),
- * GIMP .gpl (RGB triplets with optional names), and loose text with hex codes.
+ * Palette file formats for import/export, parsed and serialized as plain strings and arrays — no
+ * DOM. Supported: .hex (one #rrggbb per line, the Lospec format), GIMP .gpl (RGB triplets with
+ * optional names), and loose text with hex codes.
  */
 
 import { hexToRgb, rgbToHex } from './color'
@@ -10,8 +10,8 @@ import { normalizePalette } from './importImage'
 const HEX_RE = /#?\b([0-9a-fA-F]{6})\b/g
 
 /**
- * Parse any supported palette text: GIMP palette headers route to the GPL parser,
- * anything else is scanned for 6-digit hex codes. Returns null when nothing parses.
+ * Parse any supported palette text: GIMP palette headers route to the GPL parser, anything else is
+ * scanned for 6-digit hex codes. Returns null when nothing parses.
  */
 export function parsePaletteText(text: string): string[] | null {
   const trimmed = text.trim()

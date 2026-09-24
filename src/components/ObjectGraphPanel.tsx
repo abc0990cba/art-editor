@@ -1,7 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
-import { findNode, type SceneObj } from '../engine/scene'
+
 import {
   allNodes,
   emptyGraph,
@@ -14,10 +12,13 @@ import {
   type NodeKind,
   type NodeParamSpec,
 } from '../engine/nodes'
-import { CheckRow, Chip, ColorInput, Section, Slider } from './ui'
 import { boundsWithValue, paramBounds } from '../engine/nodes'
-import { Tooltip } from './Tooltip'
+import { findNode, type SceneObj } from '../engine/scene'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 import { download } from './fileDownload'
+import { Tooltip } from './Tooltip'
+import { CheckRow, Chip, ColorInput, Section, Slider } from './ui'
 
 const KIND_DOT: Record<NodeKind, string> = {
   source: 'bg-sky-400',
@@ -62,12 +63,12 @@ function ParamControl({
   }
   if (spec.kind === 'select') {
     return (
-      <label className="flex items-center justify-between gap-2 text-xs text-body">
+      <label className="text-body flex items-center justify-between gap-2 text-xs">
         <span className="text-muted">{pkey}</span>
         <select
           value={String(value)}
           onChange={(e) => onChange(e.target.value)}
-          className="w-32 cursor-pointer rounded-md border border-line bg-chip px-1.5 py-1 text-xs outline-none focus:border-accent-line"
+          className="border-line bg-chip focus:border-accent-line w-32 cursor-pointer rounded-md border px-1.5 py-1 text-xs outline-none"
         >
           {spec.options.map((o) => (
             <option key={o} value={o}>
@@ -81,7 +82,7 @@ function ParamControl({
   if (spec.kind === 'hex') {
     return (
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-muted">{pkey}</span>
+        <span className="text-muted text-xs">{pkey}</span>
         <ColorInput value={String(value)} onChange={onChange} title={pkey} />
       </div>
     )
@@ -90,28 +91,33 @@ function ParamControl({
 }
 
 /**
- * Always-visible node graph presets: clicking applies the recipe to the selected object,
- * or creates a fresh object for it when nothing is selected.
+ * Always-visible node graph presets: clicking applies the recipe to the selected object, or creates
+ * a fresh object for it when nothing is selected.
  */
 export function NodePresetsPanel() {
   const { t } = useI18n()
   const applyGraphPreset = useStore((s) => s.applyGraphPreset)
   return (
-    <Section title={t('graph.presets')} icon="nodes" defaultOpen contentClassName="max-h-64 overflow-y-auto">
+    <Section
+      title={t('graph.presets')}
+      icon="nodes"
+      defaultOpen
+      contentClassName="max-h-64 overflow-y-auto"
+    >
       <div className="grid grid-cols-2 gap-1">
         {GRAPH_PRESETS.map((p) => (
           <Tooltip key={p.id} label={p.description}>
             <button
               type="button"
               onClick={() => applyGraphPreset(p.id)}
-              className="w-full truncate rounded-md border border-line bg-chip px-1.5 py-1 text-xs text-body transition hover:border-chip-line hover:bg-chip-active"
+              className="border-line bg-chip text-body hover:border-chip-line hover:bg-chip-active w-full truncate rounded-md border px-1.5 py-1 text-xs transition"
             >
               {p.label}
             </button>
           </Tooltip>
         ))}
       </div>
-      <p className="text-[10px] leading-snug text-muted">{t('graph.presets.hint')}</p>
+      <p className="text-muted text-[10px] leading-snug">{t('graph.presets.hint')}</p>
     </Section>
   )
 }
@@ -122,7 +128,9 @@ export function ObjectGraphPanel() {
   const selection = useStore((s) => s.selection)
   const setObjectGraph = useStore((s) => s.setObjectGraph)
   const [addOp, setAddOp] = useState<string>('')
-  const [importState, setImportState] = useState<{ error?: boolean; warnings?: string[] } | null>(null)
+  const [importState, setImportState] = useState<{ error?: boolean; warnings?: string[] } | null>(
+    null,
+  )
   const fileRef = useRef<HTMLInputElement>(null)
 
   const groups = useMemo(() => {
@@ -148,7 +156,11 @@ export function ObjectGraphPanel() {
   const graph = obj.graph
   const update = (nodes: GraphNode[]) => setObjectGraph(obj.id, { graphVersion: 1, nodes })
   const updateParam = (nodeId: string, key: string, value: number | string | boolean) =>
-    update(graph!.nodes.map((n) => (n.id === nodeId ? { ...n, params: { ...n.params, [key]: value } } : n)))
+    update(
+      graph!.nodes.map((n) =>
+        n.id === nodeId ? { ...n, params: { ...n.params, [key]: value } } : n,
+      ),
+    )
   const moveNode = (nodeId: string, dir: -1 | 1) => {
     const at = graph!.nodes.findIndex((n) => n.id === nodeId)
     const to = at + dir
@@ -159,7 +171,10 @@ export function ObjectGraphPanel() {
   }
   const removeNode = (nodeId: string) => update(graph!.nodes.filter((n) => n.id !== nodeId))
   const addNode = (op: string) =>
-    update([...graph!.nodes, { id: `n${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`, op, params: {} }])
+    update([
+      ...graph!.nodes,
+      { id: `n${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`, op, params: {} },
+    ])
 
   const exportGraph = () =>
     download(
@@ -182,7 +197,7 @@ export function ObjectGraphPanel() {
   return (
     <Section title={t('graph.section')} icon="nodes">
       <Tooltip label={t('graph.create.desc')}>
-        <span className="text-xs text-muted">
+        <span className="text-muted text-xs">
           {obj.name || `${t('layers.defaultObject')} ${obj.id}`}
         </span>
       </Tooltip>
@@ -195,24 +210,24 @@ export function ObjectGraphPanel() {
             {graph.nodes.length > 0 && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute bottom-2 left-[5px] top-2 w-px bg-line"
+                className="bg-line pointer-events-none absolute top-2 bottom-2 left-[5px] w-px"
               />
             )}
             {graph.nodes.length === 0 && (
-              <p className="text-[11px] leading-snug text-muted">{t('graph.empty')}</p>
+              <p className="text-muted text-[11px] leading-snug">{t('graph.empty')}</p>
             )}
             {graph.nodes.map((node) => {
               const def = nodeDef(node.op)
               return (
                 <div
                   key={node.id}
-                  className={`relative rounded-md border border-line bg-chip p-2 ${
+                  className={`border-line bg-chip relative rounded-md border p-2 ${
                     node.unknown ? 'opacity-50' : ''
                   }`}
                 >
                   <span
                     aria-hidden
-                    className={`absolute -left-[11px] top-3 h-2 w-2 rounded-full border border-line bg-panel ${
+                    className={`border-line bg-panel absolute top-3 -left-[11px] h-2 w-2 rounded-full border ${
                       def ? KIND_DOT[def.kind] : ''
                     }`}
                   />
@@ -234,7 +249,7 @@ export function ObjectGraphPanel() {
                       <button
                         type="button"
                         aria-label={t('graph.up')}
-                        className="rounded px-1 text-xs text-muted transition hover:text-body"
+                        className="text-muted hover:text-body rounded px-1 text-xs transition"
                         onClick={() => moveNode(node.id, -1)}
                       >
                         ↑
@@ -244,7 +259,7 @@ export function ObjectGraphPanel() {
                       <button
                         type="button"
                         aria-label={t('graph.down')}
-                        className="rounded px-1 text-xs text-muted transition hover:text-body"
+                        className="text-muted hover:text-body rounded px-1 text-xs transition"
                         onClick={() => moveNode(node.id, 1)}
                       >
                         ↓
@@ -254,7 +269,7 @@ export function ObjectGraphPanel() {
                       <button
                         type="button"
                         aria-label={t('graph.remove')}
-                        className="rounded px-1 text-xs text-muted transition hover:text-red-400"
+                        className="text-muted rounded px-1 text-xs transition hover:text-red-400"
                         onClick={() => removeNode(node.id)}
                       >
                         ✕
@@ -284,7 +299,7 @@ export function ObjectGraphPanel() {
               value={addOp}
               onChange={(e) => setAddOp(e.target.value)}
               aria-label={t('graph.addNode')}
-              className="min-w-0 flex-1 cursor-pointer rounded-md border border-line bg-chip px-1.5 py-1 text-xs text-body outline-none focus:border-accent-line"
+              className="border-line bg-chip text-body focus:border-accent-line min-w-0 flex-1 cursor-pointer rounded-md border px-1.5 py-1 text-xs outline-none"
             >
               <option value="">{t('graph.addNode')}…</option>
               {groups.map(([category, defs]) => (
@@ -327,7 +342,9 @@ export function ObjectGraphPanel() {
           </div>
           {importState?.error && <p className="text-xs text-red-400">{t('graph.import.bad')}</p>}
           {importState?.warnings && importState.warnings.length > 0 && (
-            <p className="text-[10px] leading-snug text-muted">{importState.warnings.join(' · ')}</p>
+            <p className="text-muted text-[10px] leading-snug">
+              {importState.warnings.join(' · ')}
+            </p>
           )}
         </>
       )}

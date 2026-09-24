@@ -1,9 +1,9 @@
 import type { Doc, ElementStyle, Link, PixelStyle, SubDetail } from './doc'
 import { defaultDoc, makeCells, MAX_SIZE, MIN_SIZE } from './doc'
-import type { SceneGroup, SceneItem, SceneLayer, SceneObj } from './scene'
 import type { Graph } from './nodes'
-import { decodeObjCells, encodeObjCells, sceneFromLegacy, syncDoc } from './scene'
 import { validateGraph } from './nodes'
+import type { SceneGroup, SceneItem, SceneLayer, SceneObj } from './scene'
+import { decodeObjCells, encodeObjCells, sceneFromLegacy, syncDoc } from './scene'
 
 /** The object's node graph as stored: already plain JSON-safe data. */
 export type GraphJSON = Graph
@@ -15,10 +15,10 @@ export interface SceneObjJSON {
   visible: boolean
   locked: boolean
   style: ElementStyle
-  /** sparse ink as [index, value, …] pairs */
+  /** Sparse ink as [index, value, …] pairs */
   cells: number[]
   links: Link[]
-  /** live node graph (JSON-safe by construction) */
+  /** Live node graph (JSON-safe by construction) */
   graph?: Graph
 }
 
@@ -48,7 +48,7 @@ export interface ProjectJSON {
   rows: number
   sub: SubDetail
   radialEven: boolean
-  /** legacy flat ink; absent on scene docs (the tree is the source of truth) */
+  /** Legacy flat ink; absent on scene docs (the tree is the source of truth) */
   cells?: number[]
   links: Link[]
   palette: string[]
@@ -59,15 +59,15 @@ export interface ProjectJSON {
   metaball: Omit<Doc['metaball'], 'enabled'> & { enabled?: boolean }
   texture: Doc['texture']
   styleScope?: Doc['styleScope']
-  /** legacy flat element table; absent on scene docs */
+  /** Legacy flat element table; absent on scene docs */
   elements?: ElementStyle[]
-  /** run-length-encoded per-cell element ids: [id, runLength, ...] */
+  /** Run-length-encoded per-cell element ids: [id, runLength, ...] */
   cellObj?: number[]
-  /** scene tree (v3); null/absent = legacy flat document */
+  /** Scene tree (v3); null/absent = legacy flat document */
   layers?: SceneLayerJSON[] | null
-  /** monotonic scene-node id counter (v3) */
+  /** Monotonic scene-node id counter (v3) */
   nextNodeId?: number
-  /** same-style objects on one layer merge into shared fields/silhouettes (v3) */
+  /** Same-style objects on one layer merge into shared fields/silhouettes (v3) */
   fuseObjects?: boolean
   bg: string
   connectorWidth: number

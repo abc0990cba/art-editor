@@ -1,28 +1,29 @@
 import { useRef, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
+
 import { type PixelStyle } from '../engine/doc'
-import { PALETTES, matchedPresetId } from '../engine/palettes'
 import { serializeGpl, serializeHex } from '../engine/paletteIO'
+import { PALETTES, matchedPresetId } from '../engine/palettes'
+import { presetPreviewDataURL } from '../engine/presetPreview'
 import {
   BUILTIN_PRESETS,
   configMatchesState,
   isBuiltinPreset,
   type EditorPreset,
 } from '../engine/presets'
-import { presetPreviewDataURL } from '../engine/presetPreview'
 import { MAX_CELL, MIN_CELL, TILING_MODES, WALLPAPER_MODES, isRepeat } from '../engine/symmetry'
-import { ColorPicker } from './ColorPicker'
-import { PresetsDialog } from './PresetsDialog'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 import { BrushSection } from './BrushSection'
+import { ColorPicker } from './ColorPicker'
+import { download, stamp } from './fileDownload'
+import { FillStyleControls } from './FillStyleControls'
 import { LayersPanel } from './LayersPanel'
 import { NodePresetsPanel, ObjectGraphPanel } from './ObjectGraphPanel'
-import { FillStyleControls } from './FillStyleControls'
-import { PixelStylePreview, TexturePreview } from './StylePreviews'
-import { CheckRow, Chip, ColorInput, ColorSwatch, hexLuminance, Section, Slider } from './ui'
 import { readPaletteFile, palettePngBlob } from './paletteFiles'
+import { PresetsDialog } from './PresetsDialog'
+import { PixelStylePreview, TexturePreview } from './StylePreviews'
 import { Tooltip } from './Tooltip'
-import { download, stamp } from './fileDownload'
+import { CheckRow, Chip, ColorInput, ColorSwatch, hexLuminance, Section, Slider } from './ui'
 
 const QUICK_COLORS = [
   '#f5f5f0',
@@ -39,7 +40,11 @@ const QUICK_COLORS = [
   '#ff9f1c',
 ]
 
-export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-l border-line bg-panel' }: { className?: string }) {
+export function SettingsPanel({
+  className = 'flex w-64 shrink-0 flex-col border-l border-line bg-panel',
+}: {
+  className?: string
+}) {
   const { t } = useI18n()
   const doc = useStore((s) => s.doc)
   const tool = useStore((s) => s.tool)
@@ -168,8 +173,8 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                   aria-pressed={tool === 'eraser'}
                   className={`absolute right-0 bottom-0 h-7 w-7 rounded-md border transition ${
                     tool === 'eraser'
-                      ? 'z-20 border-transparent ring-2 ring-accent-text ring-offset-1 ring-offset-panel'
-                      : 'z-0 border-chip-line opacity-80 hover:opacity-100'
+                      ? 'ring-accent-text ring-offset-panel z-20 border-transparent ring-2 ring-offset-1'
+                      : 'border-chip-line z-0 opacity-80 hover:opacity-100'
                   }`}
                   style={eraserSwatchStyle}
                 />
@@ -187,7 +192,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                   aria-pressed={tool !== 'eraser'}
                   className={`absolute top-0 left-0 h-7 w-7 rounded-md transition ${
                     tool !== 'eraser'
-                      ? 'z-20 ring-2 ring-accent-text ring-offset-1 ring-offset-panel'
+                      ? 'ring-accent-text ring-offset-panel z-20 ring-2 ring-offset-1'
                       : 'z-0 opacity-80 hover:opacity-100'
                   }`}
                   style={{
@@ -200,8 +205,8 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
               </Tooltip>
             </div>
             <div className="flex min-w-0 flex-col">
-              <span className="truncate font-mono text-xs text-body">{color}</span>
-              <span className="text-[10px] text-muted">
+              <span className="text-body truncate font-mono text-xs">{color}</span>
+              <span className="text-muted text-[10px]">
                 {tool === 'eraser' ? t('tool.eraser') : t('picker.brush')}
               </span>
             </div>
@@ -209,7 +214,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
           {pickerOpen && <ColorPicker color={color} onChange={applyColor} />}
           {recent.length > 0 && (
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-muted">{t('picker.recent')}</span>
+              <span className="text-muted text-xs">{t('picker.recent')}</span>
               <div className="grid grid-cols-6 gap-1">
                 {recent.map((h) => (
                   <ColorSwatch
@@ -225,8 +230,8 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
           )}
           {/* palette library: collapsed by default — the full list pushed everything
               else out of view; the header strip keeps the active palette visible */}
-          <details className="group/pal flex flex-col rounded-md border border-line">
-            <summary className="flex cursor-pointer list-none items-center gap-2 px-2 py-1.5 text-xs text-muted hover:text-body [&::-webkit-details-marker]:hidden">
+          <details className="group/pal border-line flex flex-col rounded-md border">
+            <summary className="text-muted hover:text-body flex cursor-pointer list-none items-center gap-2 px-2 py-1.5 text-xs [&::-webkit-details-marker]:hidden">
               <span className="shrink-0">{t('palette.presets')}</span>
               {activePalette && (
                 <span className="flex h-2 min-w-0 flex-1 overflow-hidden rounded-sm">
@@ -264,7 +269,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                           <span key={c} className="flex-1" style={{ background: c }} />
                         ))}
                       </span>
-                      <span className="w-28 text-left text-xs text-body">
+                      <span className="text-body w-28 text-left text-xs">
                         {t(`palette.${p.id}` as 'palette.classic12')}
                       </span>
                     </button>
@@ -331,7 +336,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                 checked={doc.radialEven}
                 onChange={(v) => setRadialEven(v)}
               />
-              <div className="flex items-center justify-between text-xs text-body">
+              <div className="text-body flex items-center justify-between text-xs">
                 <span>{t('fill.scope')}</span>
                 <div className="flex gap-1">
                   {(['cell', 'sector', 'ring'] as const).map((sc) => (
@@ -372,12 +377,12 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                     <img
                       src={presetPreviewDataURL(p, 48)}
                       alt=""
-                      className="h-6 w-6 shrink-0 rounded-sm border border-line object-contain"
+                      className="border-line h-6 w-6 shrink-0 rounded-sm border object-contain"
                     />
-                    <span className="flex-1 truncate text-left text-xs text-body">
+                    <span className="text-body flex-1 truncate text-left text-xs">
                       {presetName(p)}
                     </span>
-                    {builtin && <span className="text-[10px] text-muted">★</span>}
+                    {builtin && <span className="text-muted text-[10px]">★</span>}
                   </button>
                 </Tooltip>
               )
@@ -386,7 +391,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
           <button
             type="button"
             onClick={() => setPresetsOpen(true)}
-            className="w-full rounded-md border border-line bg-chip px-3 py-1.5 text-xs text-body transition hover:border-chip-line"
+            className="border-line bg-chip text-body hover:border-chip-line w-full rounded-md border px-3 py-1.5 text-xs transition"
           >
             {t('presets.manage')}
           </button>
@@ -400,7 +405,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                 fillSelection()
               }}
             />
-            <p className="text-[10px] text-muted">{t('fill.selection.hint')}</p>
+            <p className="text-muted text-[10px]">{t('fill.selection.hint')}</p>
           </Section>
         )}
 
@@ -411,7 +416,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
             connectivity={connView}
             metaball={mbView}
           />
-          <div className="flex items-center justify-between text-xs text-body">
+          <div className="text-body flex items-center justify-between text-xs">
             <span title={t('style.scope.element.desc')}>{t('style.scope')}</span>
             <div className="flex gap-1">
               <Chip
@@ -430,24 +435,22 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
               </Chip>
             </div>
           </div>
-          {!elementMode && (
-            <p className="text-[10px] text-muted">{t('style.scope.global.hint')}</p>
-          )}
+          {!elementMode && <p className="text-muted text-[10px]">{t('style.scope.global.hint')}</p>}
           {targetSelection && (
-            <div className="flex items-center justify-between rounded-md border border-accent-line bg-accent-soft px-2 py-1 text-xs text-accent-text">
+            <div className="border-accent-line bg-accent-soft text-accent-text flex items-center justify-between rounded-md border px-2 py-1 text-xs">
               <span>
                 {t('style.target.selection')} · {selection.length}
               </span>
               <button
                 type="button"
                 onClick={clearSelection}
-                className="rounded px-1.5 py-0.5 transition hover:bg-chip-active"
+                className="hover:bg-chip-active rounded px-1.5 py-0.5 transition"
               >
                 {t('selection.clear')}
               </button>
             </div>
           )}
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+          <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
             {t('style.group.mode')}
           </div>
           <div className="flex gap-1.5">
@@ -470,7 +473,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
           </div>
           {modeView !== 'pixels' && doc.gridType === 'square' && (
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-muted">{t('connectivity.label')}</span>
+              <span className="text-muted text-xs">{t('connectivity.label')}</span>
               <div className="flex gap-1.5">
                 {(
                   [
@@ -528,7 +531,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                   onChange={(v) => applyStyle({ radius: v })}
                 />
               )}
-              <div className="flex items-center justify-between text-xs text-muted">
+              <div className="text-muted flex items-center justify-between text-xs">
                 <span>{t('style.cornerStyle')}</span>
                 <div className="flex gap-1">
                   {(
@@ -560,7 +563,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
           )}
           {modeView === 'pixels' && (
             <>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+              <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
                 {t('style.group.size')}
               </div>
               <Slider
@@ -583,7 +586,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                 display={pct}
                 onChange={(v) => applyStyle({ sizeY: v })}
               />
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+              <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
                 {t('style.group.rounding')}
               </div>
               <div className="flex gap-1.5">
@@ -636,7 +639,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                     }
                   />
                   {c.tl !== null && (
-                    <div className="flex flex-col gap-2 rounded-lg border border-line bg-chip p-2">
+                    <div className="border-line bg-chip flex flex-col gap-2 rounded-lg border p-2">
                       <Slider
                         label="↖"
                         value={c.tl}
@@ -681,7 +684,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
           )}
           {modeView === 'metaball' && (
             <>
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+              <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
                 {t('style.group.metaball')}
               </div>
               <Slider
@@ -698,7 +701,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                 checked={mbView.perColor}
                 onChange={(v) => applyMetaball({ perColor: v })}
               />
-              <div className="flex items-center justify-between text-xs text-body">
+              <div className="text-body flex items-center justify-between text-xs">
                 <span>{t('metaball.quality')}</span>
                 <div className="flex gap-1">
                   {([2, 4, 6] as const).map((q, i) => (
@@ -776,7 +779,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                   />
                 ) : (
                   <>
-                    <div className="flex flex-col gap-1 text-xs text-body">
+                    <div className="text-body flex flex-col gap-1 text-xs">
                       <span title={t('texture.dist.desc')}>{t('texture.dist')}</span>
                       <div className="flex flex-wrap gap-1">
                         {(
@@ -799,7 +802,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                         ))}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1 text-xs text-body">
+                    <div className="text-body flex flex-col gap-1 text-xs">
                       <span title={t('texture.shape.desc')}>{t('texture.shape')}</span>
                       <div className="flex flex-wrap gap-1">
                         {(
@@ -854,7 +857,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                       max={100}
                       onChange={(v) => applyTexture({ ramp: v })}
                     />
-                    <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
+                    <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
                       {t('texture.distress')}
                     </div>
                     <Slider
@@ -951,10 +954,10 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
                   display={(v) => `${Math.round(v)}%`}
                   onChange={(v) => applyTexture({ gap: v / 100 })}
                 />
-                <div className="flex items-center justify-between text-xs text-body">
+                <div className="text-body flex items-center justify-between text-xs">
                   <span title={t('texture.seed.desc')}>{t('texture.seed')}</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="tabular-nums text-muted">{texView.seed}</span>
+                    <span className="text-muted tabular-nums">{texView.seed}</span>
                     <Chip
                       title={t('texture.randomize.desc')}
                       onClick={() => applyTexture({ seed: 1 + Math.floor(Math.random() * 9999) })}
@@ -969,7 +972,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
         )}
 
         <Section title={t('panel.symmetry')} icon="symmetry">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
+          <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
             {t('sym.basic')}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
@@ -985,7 +988,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
             ))}
           </div>
 
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
+          <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
             {t('sym.rosette')}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
@@ -1037,9 +1040,9 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
             </>
           )}
 
-          {!isSquare && <p className="text-[11px] text-muted">{t('sym.squareOnlyHint')}</p>}
+          {!isSquare && <p className="text-muted text-[11px]">{t('sym.squareOnlyHint')}</p>}
 
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
+          <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
             {t('sym.wallpaper')}
           </div>
           <div className="grid grid-cols-4 gap-1.5">
@@ -1056,7 +1059,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
             ))}
           </div>
 
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted">
+          <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
             {t('sym.repeat')}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
@@ -1120,7 +1123,7 @@ export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-
             display={pct}
             onChange={setConnectorWidth}
           />
-          <div className="flex items-center justify-between text-xs text-body">
+          <div className="text-body flex items-center justify-between text-xs">
             <Tooltip label={t('canvas.bg.desc')}>
               <span>{t('canvas.bg')}</span>
             </Tooltip>

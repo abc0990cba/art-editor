@@ -1,18 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useCanUndoRedo, useStore, undo, redo, type Tool } from './state/store'
-import { I18nProvider, useI18n } from './i18n'
-import { TopBar } from './components/TopBar'
-import { allOrder, ToolIcon, ToolRail, ToolSettings, type SettingsAnchor } from './components/ToolRail'
-import { IconButton } from './components/ui'
-import { Tooltip } from './components/Tooltip'
-import { SettingsPanel } from './components/SettingsPanel'
+
 import { CanvasStage } from './components/CanvasStage'
 import { ImportDialog } from './components/ImportDialog'
 import { NodeEditorCanvas } from './components/NodeEditorCanvas'
 import { ProjectDialog } from './components/ProjectDialog'
-import { hasAutosave } from './state/store'
-import { shiftTarget } from './engine/scene'
+import { SettingsPanel } from './components/SettingsPanel'
+import {
+  allOrder,
+  ToolIcon,
+  ToolRail,
+  ToolSettings,
+  type SettingsAnchor,
+} from './components/ToolRail'
+import { Tooltip } from './components/Tooltip'
+import { TopBar } from './components/TopBar'
+import { IconButton } from './components/ui'
 import type { ImportBitmap } from './engine/importImage'
+import { shiftTarget } from './engine/scene'
+import { I18nProvider, useI18n } from './i18n'
+import { useCanUndoRedo, useStore, undo, redo, type Tool } from './state/store'
+import { hasAutosave } from './state/store'
 
 const toolKeys: Record<string, Tool> = {
   v: 'select',
@@ -106,7 +113,8 @@ function useHotkeys(): void {
         // stack order: ] brings the node one slot up, [ sends it down (tree order)
         const s = useStore.getState()
         if (!s.doc.layers) return
-        const ids = s.selection.length > 0 ? s.selection : s.activeLayerId != null ? [s.activeLayerId] : []
+        const ids =
+          s.selection.length > 0 ? s.selection : s.activeLayerId != null ? [s.activeLayerId] : []
         const dir = key === ']' ? 'after' : 'before'
         for (const id of ids) {
           const st = useStore.getState()
@@ -246,15 +254,13 @@ function Editor() {
   }, [openImportFile])
 
   return (
-    <div className="flex h-dvh flex-col overscroll-none bg-app text-body select-none">
+    <div className="bg-app text-body flex h-dvh flex-col overscroll-none select-none">
       <TopBar onImportFile={openImportFile} onTogglePanel={() => setPanelOpen((v) => !v)} />
       <div className="relative flex min-h-0 flex-1">
         <ToolRail />
         <div ref={editorPaneRef} className="relative flex min-w-0 flex-1">
           <CanvasStage onDropFile={openImportFile} />
-          {setupOpen && (
-            <ProjectDialog mode="create" onClose={() => setSetupOpen(false)} />
-          )}
+          {setupOpen && <ProjectDialog mode="create" onClose={() => setSetupOpen(false)} />}
           {nodeEditorOpen && (
             <>
               {nodeEditorMode === 'split' && (
@@ -262,7 +268,7 @@ function Editor() {
                   role="separator"
                   aria-orientation="vertical"
                   onPointerDown={startEditorResize}
-                  className="hidden w-1 shrink-0 cursor-col-resize bg-line transition-colors hover:bg-accent-line lg:block"
+                  className="bg-line hover:bg-accent-line hidden w-1 shrink-0 cursor-col-resize transition-colors lg:block"
                 />
               )}
               <div
@@ -288,10 +294,10 @@ function Editor() {
       </div>
       {/* mobile: tools in the thumb zone — a horizontally scrollable strip under the
           canvas, plus a settings shortcut for the active tool (Photoshop iOS layout) */}
-      <div className="flex h-14 shrink-0 items-center gap-1.5 border-t border-line bg-app px-2 lg:hidden">
+      <div className="border-line bg-app flex h-14 shrink-0 items-center gap-1.5 border-t px-2 lg:hidden">
         <div
           ref={stripRef}
-          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-1 overflow-x-auto py-1.5 [&::-webkit-scrollbar]:hidden"
         >
           {allOrder.map((id) => (
             <button
@@ -304,21 +310,28 @@ function Editor() {
               className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition ${
                 tool === id
                   ? 'border-accent-line bg-accent-soft text-accent-text'
-                  : 'border-transparent text-muted hover:bg-chip hover:text-body'
+                  : 'text-muted hover:bg-chip hover:text-body border-transparent'
               }`}
             >
               <ToolIcon id={id} className="h-5 w-5" />
             </button>
           ))}
         </div>
-        <div className="h-8 w-px shrink-0 bg-line" />
+        <div className="bg-line h-8 w-px shrink-0" />
         <IconButton
           big
           plate
           title={t('tool.settings')}
           onClick={() => setMobileSettings({ tool, x: 0, y: 0 })}
         >
-          <svg viewBox="0 0 16 16" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+          <svg
+            viewBox="0 0 16 16"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          >
             <path d="M3 4.5h6M12 4.5h1M3 11.5h1M7 11.5h6" />
             <circle cx="10.5" cy="4.5" r="1.6" />
             <circle cx="5.5" cy="11.5" r="1.6" />
@@ -336,9 +349,15 @@ function Editor() {
             onClick={() => undo()}
             disabled={!canUndo}
             aria-label={t('top.undo')}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-chip/90 text-body shadow-lg backdrop-blur transition hover:border-chip-line disabled:opacity-30"
+            className="border-line bg-chip/90 text-body hover:border-chip-line flex h-11 w-11 items-center justify-center rounded-full border shadow-lg backdrop-blur transition disabled:opacity-30"
           >
-            <svg viewBox="0 0 16 16" className="h-5 w-5 -scale-x-100" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-5 w-5 -scale-x-100"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            >
               <path d="M6.5 4L3 7.5 6.5 11" />
               <path d="M3 7.5h6a4 4 0 010 8H6" />
             </svg>
@@ -350,9 +369,15 @@ function Editor() {
             onClick={() => redo()}
             disabled={!canRedo}
             aria-label={t('top.redo')}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-chip/90 text-body shadow-lg backdrop-blur transition hover:border-chip-line disabled:opacity-30"
+            className="border-line bg-chip/90 text-body hover:border-chip-line flex h-11 w-11 items-center justify-center rounded-full border shadow-lg backdrop-blur transition disabled:opacity-30"
           >
-            <svg viewBox="0 0 16 16" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            >
               <path d="M9.5 4L13 7.5 9.5 11" />
               <path d="M13 7.5H7a4 4 0 000 8h1" />
             </svg>
@@ -360,34 +385,41 @@ function Editor() {
         </Tooltip>
       </div>
 
-        {panelOpen && (
-          <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setPanelOpen(false)}>
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-            <aside
-              className="absolute inset-y-0 right-0 flex w-72 max-w-[88vw] flex-col border-l border-line bg-panel shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between border-b border-line px-3 py-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  {t('top.panel')}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPanelOpen(false)}
-                  aria-label={t('preview.close')}
-                  className="text-muted transition hover:text-body"
+      {panelOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setPanelOpen(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <aside
+            className="border-line bg-panel absolute inset-y-0 right-0 flex w-72 max-w-[88vw] flex-col border-l shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-line flex items-center justify-between border-b px-3 py-2">
+              <span className="text-muted text-xs font-semibold tracking-wider uppercase">
+                {t('top.panel')}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPanelOpen(false)}
+                aria-label={t('preview.close')}
+                className="text-muted hover:text-body transition"
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
                 >
-                  <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                    <path d="M4 4l8 8M12 4l-8 8" />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex min-h-0 flex-1">
-                <SettingsPanel className="flex min-h-0 flex-1 flex-col" />
-              </div>
-            </aside>
-          </div>
-        )}
+                  <path d="M4 4l8 8M12 4l-8 8" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex min-h-0 flex-1">
+              <SettingsPanel className="flex min-h-0 flex-1 flex-col" />
+            </div>
+          </aside>
+        </div>
+      )}
       {importBitmap && (
         <ImportDialog
           bitmap={importBitmap}

@@ -32,10 +32,10 @@ type TriggerProps = {
 }
 
 /**
- * Custom hover/focus tooltip (the app does not use native `title` attributes).
- * Wraps a single trigger element — the bubble renders in a body portal so panel
- * overflow never clips it, floats above or below by available space, and is
- * clamped to the viewport. Passing no label renders the trigger untouched.
+ * Custom hover/focus tooltip (the app does not use native `title` attributes). Wraps a single
+ * trigger element — the bubble renders in a body portal so panel overflow never clips it, floats
+ * above or below by available space, and is clamped to the viewport. Passing no label renders the
+ * trigger untouched.
  */
 export function Tooltip({ label, children }: { label?: ReactNode; children: ReactElement }) {
   const [pos, setPos] = useState<TipPos | null>(null)

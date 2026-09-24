@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { defaultDoc, type Doc } from './doc'
 import { buildGeometry } from './geometry'
 import { deserialize } from './project'

@@ -1,11 +1,11 @@
-import { useStore } from '../state/store'
 import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 import { Chip, ColorInput } from './ui'
 
 /**
- * Illustrator-style fill + stroke group shown atop every shape tool's settings: the
- * shape paints its interior (solid or the fill tool's current pattern) and its brush
- * outline as one object, with the outline placed inside, on, or outside the edge.
+ * Illustrator-style fill + stroke group shown atop every shape tool's settings: the shape paints
+ * its interior (solid or the fill tool's current pattern) and its brush outline as one object, with
+ * the outline placed inside, on, or outside the edge.
  */
 export function ShapePaintControls({ fillable }: { fillable: boolean }) {
   const { t } = useI18n()
@@ -14,30 +14,50 @@ export function ShapePaintControls({ fillable }: { fillable: boolean }) {
   const patch = useStore((s) => s.patchShapePaint)
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-line p-2">
+    <div className="border-line flex flex-col gap-2 rounded-lg border p-2">
       {fillable && (
-        <div className="flex items-center justify-between text-xs text-body">
+        <div className="text-body flex items-center justify-between text-xs">
           <span title={t('paint.fill.desc')}>{t('paint.fill')}</span>
           <div className="flex gap-1">
-            <Chip active={paint.fill === 'none'} title={t('paint.fill.none.desc')} onClick={() => patch({ fill: 'none' })}>
+            <Chip
+              active={paint.fill === 'none'}
+              title={t('paint.fill.none.desc')}
+              onClick={() => patch({ fill: 'none' })}
+            >
               {t('paint.fill.none')}
             </Chip>
-            <Chip active={paint.fill === 'solid'} title={t('paint.fill.solid.desc')} onClick={() => patch({ fill: 'solid' })}>
+            <Chip
+              active={paint.fill === 'solid'}
+              title={t('paint.fill.solid.desc')}
+              onClick={() => patch({ fill: 'solid' })}
+            >
               {t('paint.fill.solid')}
             </Chip>
-            <Chip active={paint.fill === 'pattern'} title={t('paint.fill.pattern.desc')} onClick={() => patch({ fill: 'pattern' })}>
+            <Chip
+              active={paint.fill === 'pattern'}
+              title={t('paint.fill.pattern.desc')}
+              onClick={() => patch({ fill: 'pattern' })}
+            >
               {t('paint.fill.pattern')}
             </Chip>
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between text-xs text-body">
+      <div className="text-body flex items-center justify-between text-xs">
         <span title={t('paint.stroke.desc')}>{t('paint.stroke')}</span>
         <div className="flex gap-1">
-          <Chip active={paint.stroke} title={t('paint.stroke.on.desc')} onClick={() => patch({ stroke: true })}>
+          <Chip
+            active={paint.stroke}
+            title={t('paint.stroke.on.desc')}
+            onClick={() => patch({ stroke: true })}
+          >
             {t('paint.stroke.on')}
           </Chip>
-          <Chip active={!paint.stroke} title={t('paint.stroke.off.desc')} onClick={() => patch({ stroke: false })}>
+          <Chip
+            active={!paint.stroke}
+            title={t('paint.stroke.off.desc')}
+            onClick={() => patch({ stroke: false })}
+          >
             {t('paint.stroke.off')}
           </Chip>
         </div>
@@ -45,22 +65,34 @@ export function ShapePaintControls({ fillable }: { fillable: boolean }) {
       {paint.stroke && (
         <>
           {fillable && (
-            <div className="flex items-center justify-between text-xs text-body">
+            <div className="text-body flex items-center justify-between text-xs">
               <span title={t('paint.align.desc')}>{t('paint.align')}</span>
               <div className="flex gap-1">
-                <Chip active={paint.align === 'inner'} title={t('paint.align.inner.desc')} onClick={() => patch({ align: 'inner' })}>
+                <Chip
+                  active={paint.align === 'inner'}
+                  title={t('paint.align.inner.desc')}
+                  onClick={() => patch({ align: 'inner' })}
+                >
                   {t('paint.align.inner')}
                 </Chip>
-                <Chip active={paint.align === 'center'} title={t('paint.align.center.desc')} onClick={() => patch({ align: 'center' })}>
+                <Chip
+                  active={paint.align === 'center'}
+                  title={t('paint.align.center.desc')}
+                  onClick={() => patch({ align: 'center' })}
+                >
                   {t('paint.align.center')}
                 </Chip>
-                <Chip active={paint.align === 'outer'} title={t('paint.align.outer.desc')} onClick={() => patch({ align: 'outer' })}>
+                <Chip
+                  active={paint.align === 'outer'}
+                  title={t('paint.align.outer.desc')}
+                  onClick={() => patch({ align: 'outer' })}
+                >
                   {t('paint.align.outer')}
                 </Chip>
               </div>
             </div>
           )}
-          <div className="flex items-center justify-between text-xs text-body">
+          <div className="text-body flex items-center justify-between text-xs">
             <span title={t('paint.strokeColor.desc')}>{t('paint.strokeColor')}</span>
             <div className="flex items-center gap-1.5">
               <ColorInput
@@ -74,7 +106,7 @@ export function ShapePaintControls({ fillable }: { fillable: boolean }) {
                   title={t('paint.strokeColor.reset')}
                   aria-label={t('paint.strokeColor.reset')}
                   onClick={() => patch({ strokeColor: '' })}
-                  className="text-muted transition hover:text-body"
+                  className="text-muted hover:text-body transition"
                 >
                   <svg
                     viewBox="0 0 16 16"
@@ -94,7 +126,7 @@ export function ShapePaintControls({ fillable }: { fillable: boolean }) {
         </>
       )}
       {paint.fill === 'pattern' && (
-        <p className="text-[10px] text-muted">{t('paint.patternHint')}</p>
+        <p className="text-muted text-[10px]">{t('paint.patternHint')}</p>
       )}
     </div>
   )

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
+
+import { elementFromDoc } from '../engine/doc'
 import {
   GRAPH_PRESETS,
   fitGraphToCanvas,
@@ -16,18 +16,18 @@ import {
   type GraphNode,
   type NodeKind,
   type Cells,
-
   type NodeParamSpec,
   DOMAIN_STYLE,
 } from '../engine/nodes'
-import { elementFromDoc } from '../engine/doc'
-import type { SceneObj } from '../engine/scene'
-import { CellsPreview, StyleSamplePreview } from './NodePreview'
-import { DragNumber } from './DragNumber'
 import { boundsWithValue, paramBounds } from '../engine/nodes'
-import { Chip } from './ui'
-import { Tooltip } from './Tooltip'
+import type { SceneObj } from '../engine/scene'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
+import { DragNumber } from './DragNumber'
 import { download } from './fileDownload'
+import { CellsPreview, StyleSamplePreview } from './NodePreview'
+import { Tooltip } from './Tooltip'
+import { Chip } from './ui'
 
 /** Card metrics in editor-world px (the canvas transform scales them). */
 const CARD_W = 190
@@ -47,9 +47,9 @@ interface WireDrag {
 }
 
 /**
- * The dedicated node-editor space (Blender-style): a full-area overlay with a pannable,
- * zoomable canvas of node cards linked by wires. Edits write through `setObjectGraph`,
- * so undo, autosave and serialization all behave like any other document edit.
+ * The dedicated node-editor space (Blender-style): a full-area overlay with a pannable, zoomable
+ * canvas of node cards linked by wires. Edits write through `setObjectGraph`, so undo, autosave and
+ * serialization all behave like any other document edit.
  */
 export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
   const { t } = useI18n()
@@ -73,7 +73,9 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
   const [addOp, setAddOp] = useState('')
   const [panMode, setPanMode] = useState(false)
   const [presetId, setPresetId] = useState('')
-  const [importState, setImportState] = useState<{ error?: boolean; warnings?: string[] } | null>(null)
+  const [importState, setImportState] = useState<{ error?: boolean; warnings?: string[] } | null>(
+    null,
+  )
   const fileRef = useRef<HTMLInputElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
 
@@ -123,7 +125,8 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA')) return
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA'))
+        return
       if (e.key === 'Escape') {
         onClose()
         return
@@ -226,7 +229,11 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
     const move = (ev: PointerEvent) => {
       const dx = ev.clientX - startX
       const dy = ev.clientY - startY
-      setPan(axis === 'x' ? { x: startPan.x - dx * factor, y: startPan.y } : { x: startPan.x, y: startPan.y - dy * factor })
+      setPan(
+        axis === 'x'
+          ? { x: startPan.x - dx * factor, y: startPan.y }
+          : { x: startPan.x, y: startPan.y - dy * factor },
+      )
     }
     const up = () => {
       window.removeEventListener('pointermove', move)
@@ -244,14 +251,17 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
       ...(edges && edges.length > 0 ? { edges } : {}),
     })
 
-  /** world → screen */
+  /** World → screen */
   const toScreen = (x: number, y: number) => ({ x: pan.x + x * zoom, y: pan.y + y * zoom })
 
   const outSocket = (node: GraphNode, index: number) =>
     toScreen((node.pos?.x ?? 0) + CARD_W, (node.pos?.y ?? 40 + index * 130) + SOCKET_Y)
   const inSocket = (node: GraphNode, index: number) =>
     toScreen(node.pos?.x ?? 0, (node.pos?.y ?? 40 + index * 130) + SOCKET_Y)
-  const domainOf = (node: GraphNode | undefined, which: 'in' | 'out'): keyof typeof DOMAIN_STYLE => {
+  const domainOf = (
+    node: GraphNode | undefined,
+    which: 'in' | 'out',
+  ): keyof typeof DOMAIN_STYLE => {
     const def = node ? nodeDef(node.op) : undefined
     if (!def) return 'raster'
     const d = def.domain[which]
@@ -270,12 +280,18 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
     if (!obj) return
     const el = viewportRef.current
     const world = el
-      ? { x: (el.clientWidth / 2 - pan.x) / zoom - CARD_W / 2, y: (el.clientHeight / 2 - pan.y) / zoom }
+      ? {
+          x: (el.clientWidth / 2 - pan.x) / zoom - CARD_W / 2,
+          y: (el.clientHeight / 2 - pan.y) / zoom,
+        }
       : { x: 40, y: 40 }
     const id = `n${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`
     const base: Graph = graph ?? { graphVersion: 1, nodes: [] }
     update(
-      [...base.nodes, { id, op, params: {}, pos: { x: Math.max(0, world.x), y: Math.max(0, world.y) } }],
+      [
+        ...base.nodes,
+        { id, op, params: {}, pos: { x: Math.max(0, world.x), y: Math.max(0, world.y) } },
+      ],
       base.edges,
     )
   }
@@ -330,9 +346,15 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
       maxY = Math.max(maxY, y + h)
     }
     const pad = 40
-    const z = Math.max(0.25, Math.min(2, Math.min(vw / (maxX - minX + pad * 2), vh / (maxY - minY + pad * 2))))
+    const z = Math.max(
+      0.25,
+      Math.min(2, Math.min(vw / (maxX - minX + pad * 2), vh / (maxY - minY + pad * 2))),
+    )
     setZoom(z)
-    setPan({ x: (vw - (maxX - minX) * z) / 2 - minX * z, y: (vh - (maxY - minY) * z) / 2 - minY * z })
+    setPan({
+      x: (vw - (maxX - minX) * z) / 2 - minX * z,
+      y: (vh - (maxY - minY) * z) / 2 - minY * z,
+    })
   }
 
   // refit when switching objects (and once when the editor opens)
@@ -344,7 +366,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
     }
   })
 
-  /** pan drag starter shared by the hand mode and the background */
+  /** Pan drag starter shared by the hand mode and the background */
   const startPan = (e: React.PointerEvent) => {
     dragRef.current = { kind: 'pan', sx: e.clientX, sy: e.clientY, px: pan.x, py: pan.y }
     try {
@@ -451,13 +473,12 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
   const startWire = (e: React.PointerEvent, fromId: string) => {
     e.stopPropagation()
     setWireDrag({ fromId, x: e.clientX, y: e.clientY })
-    const move = (ev: PointerEvent) => setWireDrag((w) => (w ? { ...w, x: ev.clientX, y: ev.clientY } : w))
+    const move = (ev: PointerEvent) =>
+      setWireDrag((w) => (w ? { ...w, x: ev.clientX, y: ev.clientY } : w))
     const up = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
-      const target = document
-        .elementFromPoint(ev.clientX, ev.clientY)
-        ?.closest('[data-in-node]')
+      const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-in-node]')
       const toId = target?.getAttribute('data-in-node')
       setWireDrag(null)
       if (!toId || !graph || toId === fromId) return
@@ -489,11 +510,17 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
   /* --------------------------------- rendering --------------------------------- */
 
   return (
-    <div className="flex h-full w-full min-w-0 flex-col overflow-hidden border-line bg-app">
+    <div className="border-line bg-app flex h-full w-full min-w-0 flex-col overflow-hidden">
       {/* header: object selector + tools */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-line bg-panel px-3 py-2">
-        <span className="flex items-center gap-1.5 text-xs font-semibold tracking-widest text-muted uppercase">
-          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <div className="border-line bg-panel flex flex-wrap items-center gap-2 border-b px-3 py-2">
+        <span className="text-muted flex items-center gap-1.5 text-xs font-semibold tracking-widest uppercase">
+          <svg
+            viewBox="0 0 16 16"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+          >
             <circle cx="3.4" cy="3.4" r="1.7" />
             <circle cx="11.6" cy="7" r="1.7" />
             <circle cx="4.6" cy="11.4" r="1.7" />
@@ -504,7 +531,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
         <select
           value={obj?.id ?? ''}
           onChange={(e) => setObjId(Number(e.target.value))}
-          className="max-w-44 cursor-pointer rounded-md border border-line bg-chip px-1.5 py-1 text-xs text-body outline-none focus:border-accent-line"
+          className="border-line bg-chip text-body focus:border-accent-line max-w-44 cursor-pointer rounded-md border px-1.5 py-1 text-xs outline-none"
         >
           {objects.length === 0 && <option value="">{t('editor.noObjects')}</option>}
           {objects.map((o) => (
@@ -519,7 +546,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
             <select
               value={addOp}
               onChange={(e) => setAddOp(e.target.value)}
-              className="max-w-40 cursor-pointer rounded-md border border-line bg-chip px-1.5 py-1 text-xs text-body outline-none focus:border-accent-line"
+              className="border-line bg-chip text-body focus:border-accent-line max-w-40 cursor-pointer rounded-md border px-1.5 py-1 text-xs outline-none"
             >
               <option value="">{t('graph.addNode')}…</option>
               {groups.map(([category, defs]) => (
@@ -550,9 +577,16 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => fitView()}
                 title={t('editor.fit.desc')}
-                className="flex items-center gap-1 rounded-md border border-line bg-chip px-1.5 py-1 text-xs text-body transition hover:border-chip-line"
+                className="border-line bg-chip text-body hover:border-chip-line flex items-center gap-1 rounded-md border px-1.5 py-1 text-xs transition"
               >
-                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+                <svg
+                  viewBox="0 0 16 16"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                >
                   <path d="M2 5.5v-2A1.5 1.5 0 013.5 2h2M10.5 2h2A1.5 1.5 0 0114 3.5v2M14 10.5v2a1.5 1.5 0 01-1.5 1.5h-2M5.5 14h-2A1.5 1.5 0 012 12.5v-2" />
                 </svg>
                 {t('editor.fit')}
@@ -565,10 +599,20 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                 aria-pressed={panMode}
                 title={t('editor.hand.desc')}
                 className={`flex items-center gap-1 rounded-md border px-1.5 py-1 text-xs transition ${
-                  panMode ? 'border-accent-line bg-accent-soft text-accent-text' : 'border-line bg-chip text-body hover:border-chip-line'
+                  panMode
+                    ? 'border-accent-line bg-accent-soft text-accent-text'
+                    : 'border-line bg-chip text-body hover:border-chip-line'
                 }`}
               >
-                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  viewBox="0 0 16 16"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M7.5 1.8c-.8 0-1.2.7-1.2 1.4v4.4M6.3 6.2V3.4c0-.8.6-1.4 1.3-1.4.7 0 1.2.6 1.2 1.4v4.2M8.8 6.6V4.4c0-.7.5-1.3 1.2-1.3s1.2.6 1.2 1.3v3.9M11.2 6.2V5.1c0-.7.5-1.2 1.2-1.2s1.1.5 1.1 1.2v4.4c0 3-2.4 5.4-5.4 5.4-2.2 0-4.1-1.4-4.9-3.4L2 8.6c-.3-.7.1-1.5.9-1.7.6-.2 1.3.1 1.7.7l.7 1.1" />
                 </svg>
                 {t('editor.hand')}
@@ -582,13 +626,17 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                   setPresetId(id)
                   const preset = GRAPH_PRESETS.find((p) => p.id === id)
                   if (preset && obj) {
-                    const fitted = fitGraphToCanvas(preset.graph, doc.cols * doc.sub, doc.rows * doc.sub)
+                    const fitted = fitGraphToCanvas(
+                      preset.graph,
+                      doc.cols * doc.sub,
+                      doc.rows * doc.sub,
+                    )
                     setObjectGraph(obj.id, fitted)
                     setImportState({ warnings: [preset.description] })
                     setTimeout(() => fitView(fitted), 0)
                   }
                 }}
-                className="max-w-48 cursor-pointer rounded-md border border-line bg-chip px-1.5 py-1 text-xs text-body outline-none focus:border-accent-line"
+                className="border-line bg-chip text-body focus:border-accent-line max-w-48 cursor-pointer rounded-md border px-1.5 py-1 text-xs outline-none"
               >
                 <option value="">{t('editor.preset')}</option>
                 {GRAPH_PRESETS.map((p) => (
@@ -602,11 +650,25 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
         )}
         {graph && (
           <div className="flex items-center gap-1">
-            <Chip onClick={() => download(new Blob([JSON.stringify(graph, null, 2)], { type: 'application/json' }), 'graph.json')}>
+            <Chip
+              onClick={() =>
+                download(
+                  new Blob([JSON.stringify(graph, null, 2)], { type: 'application/json' }),
+                  'graph.json',
+                )
+              }
+            >
               {t('graph.export')}
             </Chip>
             <Tooltip label={t('graph.registry.desc')}>
-              <Chip onClick={() => download(new Blob([registryJSON()], { type: 'application/json' }), 'node-registry.json')}>
+              <Chip
+                onClick={() =>
+                  download(
+                    new Blob([registryJSON()], { type: 'application/json' }),
+                    'node-registry.json',
+                  )
+                }
+              >
                 {t('graph.registry')}
               </Chip>
             </Tooltip>
@@ -635,23 +697,39 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
           </div>
         )}
         <div className="ml-auto flex items-center gap-2">
-          {importState?.error && <span className="text-xs text-red-400">{t('graph.import.bad')}</span>}
-          <Tooltip label={nodeEditorMode === 'overlay' ? t('editor.restore') : t('editor.maximize')}>
+          {importState?.error && (
+            <span className="text-xs text-red-400">{t('graph.import.bad')}</span>
+          )}
+          <Tooltip
+            label={nodeEditorMode === 'overlay' ? t('editor.restore') : t('editor.maximize')}
+          >
             <button
               type="button"
               onClick={() => setNodeEditorMode(nodeEditorMode === 'overlay' ? 'split' : 'overlay')}
               aria-label={nodeEditorMode === 'overlay' ? t('editor.restore') : t('editor.maximize')}
-              className="rounded-md p-1 text-muted transition hover:bg-chip-active hover:text-body"
+              className="text-muted hover:bg-chip-active hover:text-body rounded-md p-1 transition"
             >
               {nodeEditorMode === 'overlay' ? (
                 // restore: canvas returns alongside the editor
-                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4">
+                <svg
+                  viewBox="0 0 16 16"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                >
                   <rect x="2" y="2.5" width="12" height="11" rx="1.2" />
                   <path d="M9.5 2.5v11" />
                 </svg>
               ) : (
                 // maximize: editor covers the canvas
-                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4">
+                <svg
+                  viewBox="0 0 16 16"
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                >
                   <rect x="2" y="2.5" width="12" height="11" rx="1.2" />
                   <path d="M2 6h12" />
                 </svg>
@@ -661,14 +739,14 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-2 py-1 text-xs text-muted transition hover:bg-chip-active hover:text-body"
+            className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
           >
             ✕
           </button>
         </div>
       </div>
       {importState?.warnings && importState.warnings.length > 0 && (
-        <div className="border-b border-line bg-panel px-3 py-1 text-[10px] text-muted">
+        <div className="border-line bg-panel text-muted border-b px-3 py-1 text-[10px]">
           {importState.warnings.join(' · ')}
         </div>
       )}
@@ -681,7 +759,13 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
           backgroundImage: 'radial-gradient(circle, rgba(127,127,127,0.22) 1px, transparent 1px)',
           backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
           backgroundPosition: `${pan.x}px ${pan.y}px`,
-          cursor: panMode ? (dragRef.current?.kind === 'pan' ? 'grabbing' : 'grab') : dragRef.current?.kind === 'pan' ? 'grabbing' : 'default',
+          cursor: panMode
+            ? dragRef.current?.kind === 'pan'
+              ? 'grabbing'
+              : 'grab'
+            : dragRef.current?.kind === 'pan'
+              ? 'grabbing'
+              : 'default',
         }}
         onPointerDown={onBackgroundDown}
         onPointerMove={onBackgroundMove}
@@ -690,33 +774,42 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
       >
         {objects.length === 0 && (
           <div className="flex h-full items-center justify-center">
-            <p className="max-w-xs text-center text-xs leading-snug text-muted">{t('editor.noObjects')}</p>
+            <p className="text-muted max-w-xs text-center text-xs leading-snug">
+              {t('editor.noObjects')}
+            </p>
           </div>
         )}
         {objects.length > 0 && !graph && obj && (
           <div className="flex h-full flex-col items-center justify-center gap-2">
-            <p className="max-w-xs text-center text-xs leading-snug text-muted">{t('editor.noGraph')}</p>
+            <p className="text-muted max-w-xs text-center text-xs leading-snug">
+              {t('editor.noGraph')}
+            </p>
             <Chip onClick={() => setObjectGraph(obj.id, emptyGraph())}>{t('graph.create')}</Chip>
           </div>
         )}
         {graph && (
           <>
             <svg className="pointer-events-none absolute inset-0 h-full w-full">
-              {!procedural && graph.nodes.length > 0 && (() => {
-                const first = graph.nodes[0]
-                const a = toScreen((first.pos?.x ?? 0) - 230 + CARD_W, (first.pos?.y ?? 40) + SOCKET_Y)
-                const b = inSocket(first, 0)
-                const dx = Math.max(30, Math.abs(b.x - a.x) / 2)
-                return (
-                  <path
-                    d={`M${a.x} ${a.y} C${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`}
-                    fill="none"
-                    stroke={DOMAIN_STYLE.raster.wire}
-                    strokeWidth={1.8}
-                    opacity={0.7}
-                  />
-                )
-              })()}
+              {!procedural &&
+                graph.nodes.length > 0 &&
+                (() => {
+                  const first = graph.nodes[0]
+                  const a = toScreen(
+                    (first.pos?.x ?? 0) - 230 + CARD_W,
+                    (first.pos?.y ?? 40) + SOCKET_Y,
+                  )
+                  const b = inSocket(first, 0)
+                  const dx = Math.max(30, Math.abs(b.x - a.x) / 2)
+                  return (
+                    <path
+                      d={`M${a.x} ${a.y} C${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`}
+                      fill="none"
+                      stroke={DOMAIN_STYLE.raster.wire}
+                      strokeWidth={1.8}
+                      opacity={0.7}
+                    />
+                  )
+                })()}
               <defs>
                 {graph.edges?.map((e, i) => {
                   const fromIdx = graph.nodes.findIndex((n) => n.id === e.from)
@@ -728,7 +821,15 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                   const b = inSocket(to, toIdx)
                   // wire color flows output (emerald) → input (amber), matching sockets
                   return (
-                    <linearGradient key={`g-${i}`} id={`wire-grad-${i}`} gradientUnits="userSpaceOnUse" x1={a.x} y1={a.y} x2={b.x} y2={b.y}>
+                    <linearGradient
+                      key={`g-${i}`}
+                      id={`wire-grad-${i}`}
+                      gradientUnits="userSpaceOnUse"
+                      x1={a.x}
+                      y1={a.y}
+                      x2={b.x}
+                      y2={b.y}
+                    >
                       <stop offset="0" stopColor={DOMAIN_STYLE[domainOf(from, 'out')].wire} />
                       <stop offset="1" stopColor={DOMAIN_STYLE[domainOf(to, 'in')].wire} />
                     </linearGradient>
@@ -775,24 +876,33 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
               )}
             </svg>
             {/* implicit base-ink card: graphs without source nodes consume it */}
-            {!procedural && graph.nodes.length > 0 && (() => {
-              const first = graph.nodes[0]
-              const basePos = toScreen((first.pos?.x ?? 0) - 230, first.pos?.y ?? 40)
-              return (
-                <div
-                  className="absolute w-[190px] rounded-md border border-dashed border-line bg-chip/60"
-                  style={{ transform: `translate(${basePos.x}px, ${basePos.y}px) scale(${zoom})`, transformOrigin: 'top left' }}
-                >
-                  <Tooltip label={t('editor.baseNode.desc')}>
-                    <div className="flex items-center gap-1.5 px-2 py-1.5">
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-muted" />
-                      <span className="min-w-0 flex-1 truncate text-[11px] text-muted">{t('editor.baseNode')}</span>
-                      <span className="text-[8px] font-semibold uppercase text-indigo-300">{t('editor.legend.out')}</span>
-                    </div>
-                  </Tooltip>
-                </div>
-              )
-            })()}
+            {!procedural &&
+              graph.nodes.length > 0 &&
+              (() => {
+                const first = graph.nodes[0]
+                const basePos = toScreen((first.pos?.x ?? 0) - 230, first.pos?.y ?? 40)
+                return (
+                  <div
+                    className="border-line bg-chip/60 absolute w-[190px] rounded-md border border-dashed"
+                    style={{
+                      transform: `translate(${basePos.x}px, ${basePos.y}px) scale(${zoom})`,
+                      transformOrigin: 'top left',
+                    }}
+                  >
+                    <Tooltip label={t('editor.baseNode.desc')}>
+                      <div className="flex items-center gap-1.5 px-2 py-1.5">
+                        <span className="bg-muted h-2 w-2 shrink-0 rounded-full" />
+                        <span className="text-muted min-w-0 flex-1 truncate text-[11px]">
+                          {t('editor.baseNode')}
+                        </span>
+                        <span className="text-[8px] font-semibold text-indigo-300 uppercase">
+                          {t('editor.legend.out')}
+                        </span>
+                      </div>
+                    </Tooltip>
+                  </div>
+                )
+              })()}
             {graph.nodes.map((node, index) => {
               const def = nodeDef(node.op)
               // nodes without a saved position (legacy graph, fresh add) stagger down
@@ -803,10 +913,13 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
               return (
                 <div
                   key={node.id}
-                  className={`absolute w-[190px] rounded-md border bg-panel shadow-md ${
+                  className={`bg-panel absolute w-[190px] rounded-md border shadow-md ${
                     selectedNodeId === node.id ? 'border-accent-line' : 'border-line'
                   } ${node.unknown ? 'opacity-50' : ''}`}
-                  style={{ transform: `translate(${pos.x}px, ${pos.y}px) scale(${zoom})`, transformOrigin: 'top left' }}
+                  style={{
+                    transform: `translate(${pos.x}px, ${pos.y}px) scale(${zoom})`,
+                    transformOrigin: 'top left',
+                  }}
                   onPointerDown={(e) => {
                     e.stopPropagation()
                     setSelectedNodeId(node.id)
@@ -827,7 +940,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                     <Tooltip label={t('editor.socket.in.desc')}>
                       <span
                         data-in-node={node.id}
-                        className={`absolute -left-[7px] top-[15px] h-3.5 w-3.5 rounded-full border-2 ${DOMAIN_STYLE[def.domain.in].socketRing}`}
+                        className={`absolute top-[15px] -left-[7px] h-3.5 w-3.5 rounded-full border-2 ${DOMAIN_STYLE[def.domain.in].socketRing}`}
                         title={t('editor.socket.in.desc')}
                       />
                     </Tooltip>
@@ -841,14 +954,14 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                           e.stopPropagation()
                           startWire(e, node.id)
                         }}
-                        className={`absolute -right-[7px] top-[15px] h-3.5 w-3.5 cursor-crosshair rounded-full border-2 ${DOMAIN_STYLE[def.domain.out].socketRing} hover:brightness-125`}
+                        className={`absolute top-[15px] -right-[7px] h-3.5 w-3.5 cursor-crosshair rounded-full border-2 ${DOMAIN_STYLE[def.domain.out].socketRing} hover:brightness-125`}
                         title={t('editor.socket.out.desc')}
                       />
                     </Tooltip>
                   )}
                   {/* header doubles as the drag handle */}
                   <div
-                    className="flex cursor-move items-center gap-1.5 rounded-t-md border-b border-line bg-raised px-2 py-1.5"
+                    className="border-line bg-raised flex cursor-move items-center gap-1.5 rounded-t-md border-b px-2 py-1.5"
                     onPointerDown={(e) => {
                       if (panMode) return
                       e.stopPropagation()
@@ -867,12 +980,17 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                     {def && def.kind !== 'source' && (
                       <span
                         className="shrink-0 text-[8px] font-semibold uppercase"
-                        style={{ color: DOMAIN_STYLE[def.domain.in === 'none' ? 'raster' : def.domain.in].wire }}
+                        style={{
+                          color:
+                            DOMAIN_STYLE[def.domain.in === 'none' ? 'raster' : def.domain.in].wire,
+                        }}
                       >
                         {t('editor.legend.in')}
                       </span>
                     )}
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${kind ? KIND_DOT[kind] : 'bg-muted'}`} />
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${kind ? KIND_DOT[kind] : 'bg-muted'}`}
+                    />
                     <span
                       className={`min-w-0 flex-1 truncate text-[11px] font-medium ${
                         node.unknown ? 'text-muted line-through' : 'text-body'
@@ -891,7 +1009,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                     <button
                       type="button"
                       aria-label={t('graph.remove')}
-                      className="rounded px-1 text-[11px] text-muted transition hover:text-red-400"
+                      className="text-muted rounded px-1 text-[11px] transition hover:text-red-400"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -910,7 +1028,13 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                     if (stage && stage.size > 0)
                       return (
                         <div className="flex justify-center px-2 pt-1.5">
-                          <CellsPreview cells={stage} palette={doc.palette} bw={doc.cols * doc.sub} w={166} h={44} />
+                          <CellsPreview
+                            cells={stage}
+                            palette={doc.palette}
+                            bw={doc.cols * doc.sub}
+                            w={166}
+                            h={44}
+                          />
                         </div>
                       )
                     if (def?.kind === 'style')
@@ -927,14 +1051,24 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                     return null
                   })()}
                   <div className="flex flex-col gap-1 px-2 py-1.5">
-                    {def
-                      ? Object.entries(def.params).map(([pkey, spec]) => (
-                          <div key={pkey} className="flex items-center justify-between gap-1.5 text-[10px] text-muted">
-                            <span className="shrink-0">{pkey}</span>
-                            <ParamInput pkey={pkey} spec={spec} value={node.params[pkey]} onChange={(v) => updateParam(obj.id, node.id, pkey, v)} />
-                          </div>
-                        ))
-                      : <span className="text-[10px]">{t('graph.unknown')}</span>}
+                    {def ? (
+                      Object.entries(def.params).map(([pkey, spec]) => (
+                        <div
+                          key={pkey}
+                          className="text-muted flex items-center justify-between gap-1.5 text-[10px]"
+                        >
+                          <span className="shrink-0">{pkey}</span>
+                          <ParamInput
+                            pkey={pkey}
+                            spec={spec}
+                            value={node.params[pkey]}
+                            onChange={(v) => updateParam(obj.id, node.id, pkey, v)}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-[10px]">{t('graph.unknown')}</span>
+                    )}
                   </div>
                 </div>
               )
@@ -942,50 +1076,52 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
           </>
         )}
         {/* navigation scrollbars (pan indicators) */}
-        {bounds && vpSize.w > 0 && (() => {
-          const spanX = Math.max(1, bounds.maxX - bounds.minX)
-          const spanY = Math.max(1, bounds.maxY - bounds.minY)
-          const visW = vpSize.w / zoom
-          const visH = vpSize.h / zoom
-          const fracW = Math.max(0.08, Math.min(1, visW / spanX))
-          const fracH = Math.max(0.08, Math.min(1, visH / spanY))
-          const aX = -pan.x / zoom
-          const aY = -pan.y / zoom
-          const leftFX = Math.max(0, Math.min(1 - fracW, (aX - bounds.minX) / spanX))
-          const topFY = Math.max(0, Math.min(1 - fracH, (aY - bounds.minY) / spanY))
-          return (
-            <>
-              <div
-                className="pointer-events-auto absolute bottom-0 left-0 right-0 h-2 bg-black/30"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
+        {bounds &&
+          vpSize.w > 0 &&
+          (() => {
+            const spanX = Math.max(1, bounds.maxX - bounds.minX)
+            const spanY = Math.max(1, bounds.maxY - bounds.minY)
+            const visW = vpSize.w / zoom
+            const visH = vpSize.h / zoom
+            const fracW = Math.max(0.08, Math.min(1, visW / spanX))
+            const fracH = Math.max(0.08, Math.min(1, visH / spanY))
+            const aX = -pan.x / zoom
+            const aY = -pan.y / zoom
+            const leftFX = Math.max(0, Math.min(1 - fracW, (aX - bounds.minX) / spanX))
+            const topFY = Math.max(0, Math.min(1 - fracH, (aY - bounds.minY) / spanY))
+            return (
+              <>
                 <div
-                  className="h-full rounded-full bg-line/80 transition-colors hover:bg-accent-line"
-                  style={{ marginLeft: `${leftFX * 100}%`, width: `${fracW * 100}%` }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation()
-                    startThumbDrag(e, 'x', spanX, vpSize.w)
-                  }}
-                />
-              </div>
-              <div
-                className="pointer-events-auto absolute bottom-2 right-0 top-0 w-2 bg-black/30"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
+                  className="pointer-events-auto absolute right-0 bottom-0 left-0 h-2 bg-black/30"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <div
+                    className="bg-line/80 hover:bg-accent-line h-full rounded-full transition-colors"
+                    style={{ marginLeft: `${leftFX * 100}%`, width: `${fracW * 100}%` }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation()
+                      startThumbDrag(e, 'x', spanX, vpSize.w)
+                    }}
+                  />
+                </div>
                 <div
-                  className="w-full rounded-full bg-line/80 transition-colors hover:bg-accent-line"
-                  style={{ marginTop: `${topFY * 100}%`, height: `${fracH * 100}%` }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation()
-                    startThumbDrag(e, 'y', spanY, vpSize.h)
-                  }}
-                />
-              </div>
-            </>
-          )
-        })()}
+                  className="pointer-events-auto absolute top-0 right-0 bottom-2 w-2 bg-black/30"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <div
+                    className="bg-line/80 hover:bg-accent-line w-full rounded-full transition-colors"
+                    style={{ marginTop: `${topFY * 100}%`, height: `${fracH * 100}%` }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation()
+                      startThumbDrag(e, 'y', spanY, vpSize.h)
+                    }}
+                  />
+                </div>
+              </>
+            )
+          })()}
         {/* hint bar with the socket color legend */}
-        <div className="pointer-events-none absolute bottom-2 left-1/2 flex max-w-full -translate-x-1/2 items-center gap-2 overflow-hidden whitespace-nowrap rounded-md bg-black/50 px-2.5 py-1 text-[10px] text-white/80 backdrop-blur-sm">
+        <div className="pointer-events-none absolute bottom-2 left-1/2 flex max-w-full -translate-x-1/2 items-center gap-2 overflow-hidden rounded-md bg-black/50 px-2.5 py-1 text-[10px] whitespace-nowrap text-white/80 backdrop-blur-sm">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full border border-amber-300 bg-amber-400/60" />
             {t('editor.legend.in')}
@@ -1001,16 +1137,20 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
     </div>
   )
 
-  function updateParam(objId: number, nodeId: string, key: string, value: number | string | boolean) {
+  function updateParam(
+    objId: number,
+    nodeId: string,
+    key: string,
+    value: number | string | boolean,
+  ) {
     if (!graph) return
-    setObjectGraph(
-      objId,
-      {
-        graphVersion: 1,
-        nodes: graph.nodes.map((n) => (n.id === nodeId ? { ...n, params: { ...n.params, [key]: value } } : n)),
-        edges: graph.edges,
-      },
-    )
+    setObjectGraph(objId, {
+      graphVersion: 1,
+      nodes: graph.nodes.map((n) =>
+        n.id === nodeId ? { ...n, params: { ...n.params, [key]: value } } : n,
+      ),
+      edges: graph.edges,
+    })
   }
 }
 
@@ -1031,7 +1171,10 @@ function ParamInput({
   if (spec.kind === 'number' || spec.kind === 'int') {
     const current = typeof value === 'number' ? value : spec.default
     // drag stops at the canvas-derived range; typing may reach the schema bounds
-    const soft = boundsWithValue(paramBounds(spec, doc) ?? { min: spec.min, max: spec.max }, current)
+    const soft = boundsWithValue(
+      paramBounds(spec, doc) ?? { min: spec.min, max: spec.max },
+      current,
+    )
     return (
       <DragNumber
         value={current}
@@ -1053,7 +1196,7 @@ function ParamInput({
       <select
         value={String(value)}
         onChange={(e) => onChange(e.target.value)}
-        className="w-24 cursor-pointer rounded border border-line bg-chip px-1 py-0.5 text-[10px] text-body outline-none focus:border-accent-line"
+        className="border-line bg-chip text-body focus:border-accent-line w-24 cursor-pointer rounded border px-1 py-0.5 text-[10px] outline-none"
       >
         {spec.options.map((o) => (
           <option key={o} value={o}>
@@ -1071,7 +1214,7 @@ function ParamInput({
           type="color"
           value={typeof value === 'string' ? value : spec.default}
           onChange={(e) => onChange(e.target.value)}
-          className="h-4 w-6 cursor-pointer rounded border border-line bg-transparent"
+          className="border-line h-4 w-6 cursor-pointer rounded border bg-transparent"
         />
       </span>
     )

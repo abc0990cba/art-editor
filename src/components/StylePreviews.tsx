@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useStore } from '../state/store'
+
 import {
   STAGE_THEMES,
   defaultDoc,
@@ -11,9 +11,10 @@ import {
 } from '../engine/doc'
 import { buildGeometry } from '../engine/geometry'
 import { drawGeometry } from '../engine/png'
-import { useI18n } from '../i18n'
-import { ExpandablePreview } from './PreviewExpander'
 import { regionTextureFragments, type TextureCell } from '../engine/texture'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
+import { ExpandablePreview } from './PreviewExpander'
 
 interface Grid {
   cols: number
@@ -89,12 +90,12 @@ function PreviewFrame({
   grid: Grid
 }) {
   return (
-    <div className="sticky top-0 z-10 -mx-3 bg-panel px-3 pb-2">
+    <div className="bg-panel sticky top-0 z-10 -mx-3 px-3 pb-2">
       <canvas
         ref={canvasRef}
         width={grid.w}
         height={grid.h}
-        className="w-full self-center rounded-md border border-line"
+        className="border-line w-full self-center rounded-md border"
         style={{ imageRendering: 'pixelated' }}
         aria-hidden
       />
@@ -159,7 +160,7 @@ function PixelStyleSample({
   cell,
 }: {
   view: StyleView
-  /** cell size in CSS px; the backing store is scaled by devicePixelRatio */
+  /** Cell size in CSS px; the backing store is scaled by devicePixelRatio */
   cell: number
 }) {
   const color = useStore((s) => s.color)
@@ -195,7 +196,7 @@ function PixelStyleSample({
   return (
     <canvas
       ref={ref}
-      className="w-full self-center rounded-md border border-line"
+      className="border-line w-full self-center rounded-md border"
       style={{ imageRendering: 'pixelated' }}
       aria-hidden
     />
@@ -203,15 +204,15 @@ function PixelStyleSample({
 }
 
 /**
- * Sticky live sample of the current pixel style, drawn by the same engine as the canvas:
- * a few pixels placed diagonally and edge-to-edge, so how neighbors connect — gaps,
- * rounding, outline pinches, corner bridges, metaball merges — reads clearly at this
- * size and stays truthful in every render mode.
+ * Sticky live sample of the current pixel style, drawn by the same engine as the canvas: a few
+ * pixels placed diagonally and edge-to-edge, so how neighbors connect — gaps, rounding, outline
+ * pinches, corner bridges, metaball merges — reads clearly at this size and stays truthful in every
+ * render mode.
  */
 export function PixelStylePreview(view: StyleView) {
   const { t } = useI18n()
   return (
-    <div className="sticky top-0 z-10 -mx-3 bg-panel px-3 pb-2">
+    <div className="bg-panel sticky top-0 z-10 -mx-3 px-3 pb-2">
       <ExpandablePreview
         title={t('preview.large')}
         panelWidth={STYLE_COLS * 64 + 24}
@@ -225,8 +226,8 @@ export function PixelStylePreview(view: StyleView) {
 
 /**
  * Sticky live sample of the current texture, baked into a block of cells. The cells are
- * intentionally few and large — the texture scale is relative to the cell, so this acts
- * as a loupe that makes the specks clearly visible while the sliders move.
+ * intentionally few and large — the texture scale is relative to the cell, so this acts as a loupe
+ * that makes the specks clearly visible while the sliders move.
  */
 export function TexturePreview() {
   const color = useStore((s) => s.color)

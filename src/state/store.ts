@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react'
-import { create } from 'zustand'
 import { temporal, type ZundoOptions } from 'zundo'
+import { create } from 'zustand'
+
+import { normalizeBrush, resizeBrush, squareBrush, type Brush } from '../engine/brush'
 import type {
   Connectivity,
   Doc,
@@ -22,6 +24,23 @@ import {
   sameElementStyle,
   withStyleScope,
 } from '../engine/doc'
+import {
+  applyFillStyle,
+  DEFAULT_FILL_STYLE,
+  fillSelectionCells,
+  patternCoord,
+  type FillStyle,
+} from '../engine/fillpatterns'
+import { floodFillDoc, floodRegion } from '../engine/floodfill'
+import { colorRegions } from '../engine/importImage'
+import type { ImportResult } from '../engine/importImage'
+import { fitGraphToCanvas, nodeDef, type GraphNode } from '../engine/nodes'
+import { GRAPH_PRESETS } from '../engine/nodes/presets'
+import type { PalettePreset } from '../engine/palettes'
+import { clampPngSide, renderThumbnailDataURL } from '../engine/png'
+import type { EditorPreset, PresetConfig } from '../engine/presets'
+import { normalizePresetConfig, presetFromDoc } from '../engine/presets'
+import { deserialize, serialize, type ProjectJSON } from '../engine/project'
 import {
   allObjs,
   appendToLayer,
@@ -48,33 +67,7 @@ import {
   type SceneLayer,
   type SceneObj,
 } from '../engine/scene'
-import { fitGraphToCanvas, nodeDef, type GraphNode } from '../engine/nodes'
-import { normalizeBrush, resizeBrush, squareBrush, type Brush } from '../engine/brush'
-import { deserialize, serialize, type ProjectJSON } from '../engine/project'
-import { floodFillDoc, floodRegion } from '../engine/floodfill'
-import { colorRegions } from '../engine/importImage'
-import {
-  applyFillStyle,
-  DEFAULT_FILL_STYLE,
-  fillSelectionCells,
-  patternCoord,
-  type FillStyle,
-} from '../engine/fillpatterns'
-import type { ImportResult } from '../engine/importImage'
 import { isRepeat } from '../engine/symmetry'
-import type { PalettePreset } from '../engine/palettes'
-import { GRAPH_PRESETS } from '../engine/nodes/presets'
-import type { EditorPreset, PresetConfig } from '../engine/presets'
-import { normalizePresetConfig, presetFromDoc } from '../engine/presets'
-import { clampPngSide, renderThumbnailDataURL } from '../engine/png'
-import {
-  deletePreset as deletePresetRow,
-  listPresets,
-  newPresetId,
-  savePreset,
-  sortPresets,
-  type PresetEntry,
-} from '../storage/presets'
 import {
   deleteBrush as deleteBrushRow,
   listBrushes,
@@ -83,6 +76,14 @@ import {
   sortBrushes,
   type BrushPresetEntry,
 } from '../storage/brushes'
+import {
+  deletePreset as deletePresetRow,
+  listPresets,
+  newPresetId,
+  savePreset,
+  sortPresets,
+  type PresetEntry,
+} from '../storage/presets'
 import {
   duplicateName,
   loadProject,
@@ -127,8 +128,8 @@ export type Tool =
   | 'skull'
 
 /**
- * Partial update applied to every selected element: style parts patch the frozen pixel
- * style, the rest replace whole setting blocks (metaball/texture patch their blocks).
+ * Partial update applied to every selected element: style parts patch the frozen pixel style, the
+ * rest replace whole setting blocks (metaball/texture patch their blocks).
  */
 export interface ElementStylePatch {
   style?: Partial<PixelStyle>
@@ -139,15 +140,15 @@ export interface ElementStylePatch {
 }
 
 /**
- * Fill + stroke semantics of the shape tools (Illustrator-style): a drawn shape is one
- * object whose interior fill and brush outline move together via selection. `fill`
- * 'pattern' reuses the fill tool's current dither/pattern style; `strokeColor` may be
- * any hex (resolved into the palette at draw time).
+ * Fill + stroke semantics of the shape tools (Illustrator-style): a drawn shape is one object whose
+ * interior fill and brush outline move together via selection. `fill` 'pattern' reuses the fill
+ * tool's current dither/pattern style; `strokeColor` may be any hex (resolved into the palette at
+ * draw time).
  */
 export interface ShapePaint {
   fill: 'none' | 'solid' | 'pattern'
   stroke: boolean
-  /** outline placement relative to the shape edge */
+  /** Outline placement relative to the shape edge */
   align: 'inner' | 'center' | 'outer'
   strokeColor: string
 }
@@ -162,11 +163,11 @@ export const DEFAULT_SHAPE_PAINT: ShapePaint = {
 
 /** How importPixels stacks a converted image into the scene tree. */
 export interface ImportLayering {
-  /** one layer per distinct final color; off = everything lands on a single layer */
+  /** One layer per distinct final color; off = everything lands on a single layer */
   splitByColor: boolean
-  /** every connected region of one color becomes its own object inside its layer */
+  /** Every connected region of one color becomes its own object inside its layer */
   splitConnected: boolean
-  /** layer stacking: by covered area (largest at the bottom) or strict palette order */
+  /** Layer stacking: by covered area (largest at the bottom) or strict palette order */
   layerOrder: 'palette' | 'area'
 }
 
@@ -221,13 +222,13 @@ export interface ToolOpts {
   bentoChaos: number
   bentoMerge: number
   bentoSeed: number
-  /** corner rounding shared by rect/diamond/polygon/star, 0..0.5 */
+  /** Corner rounding shared by rect/diamond/polygon/star, 0..0.5 */
   shapeCorner: number
-  /** side curvature shared by rect/diamond: negative = pinched, positive = bowed */
+  /** Side curvature shared by rect/diamond: negative = pinched, positive = bowed */
   shapeBulge: number
-  /** superellipse exponent for the ellipse tool: <2 pinched, 2 = ellipse, >2 squircle */
+  /** Superellipse exponent for the ellipse tool: <2 pinched, 2 = ellipse, >2 squircle */
   ellipsePower: number
-  /** hole radius of the ring tool as a fraction of the outer radius */
+  /** Hole radius of the ring tool as a fraction of the outer radius */
   ringThickness: number
   /* --- skull --- */
   skullCraniumWidth: number
@@ -335,35 +336,35 @@ interface State {
   doc: Doc
   // UI state (outside undo history)
   tool: Tool
-  /** selected element ids (1-based); empty = no selection */
+  /** Selected element ids (1-based); empty = no selection */
   selection: number[]
-  /** id of the layer new ink goes to; null = the topmost layer */
+  /** Id of the layer new ink goes to; null = the topmost layer */
   activeLayerId: number | null
   color: string
-  /** active brush: pixel size (tip grid) + on/off tip pattern */
+  /** Active brush: pixel size (tip grid) + on/off tip pattern */
   brush: Brush
-  /** which brush preset is current (built-in or user id); null = tip edited by hand */
+  /** Which brush preset is current (built-in or user id); null = tip edited by hand */
   brushId: string | null
-  /** snap brush stamps to the pixel-size grid (Alt stamps freely, centered on the cursor) */
+  /** Snap brush stamps to the pixel-size grid (Alt stamps freely, centered on the cursor) */
   brushSnap: boolean
   symmetry: SymmetryState
-  /** radial grid only: what a fill click covers (cell / sector wedge / ring) */
+  /** Radial grid only: what a fill click covers (cell / sector wedge / ring) */
   fillScope: FillScope
-  /** fill tool styling: solid color or a two-color pattern/dither fill */
+  /** Fill tool styling: solid color or a two-color pattern/dither fill */
   fillStyle: FillStyle
-  /** shape tools styling: interior fill + outline with placement, drawn as one object */
+  /** Shape tools styling: interior fill + outline with placement, drawn as one object */
   shapePaint: ShapePaint
   showGrid: boolean
-  /** left tool rail is expanded (names shown); false = collapsed to icon-only strip */
+  /** Left tool rail is expanded (names shown); false = collapsed to icon-only strip */
   railOpen: boolean
-  /** per-tool shape settings (star rays, gear teeth, rotation, …) */
+  /** Per-tool shape settings (star rays, gear teeth, rotation, …) */
   toolOpts: ToolOpts
   /**
-   * Sample grid of the tool-settings preview, in cells; null = the automatic per-context
-   * size. User-adjustable, clamped to the current canvas dimensions.
+   * Sample grid of the tool-settings preview, in cells; null = the automatic per-context size.
+   * User-adjustable, clamped to the current canvas dimensions.
    */
   previewGrid: { cols: number; rows: number } | null
-  /** how an imported image splits into layers/objects at commit time */
+  /** How an imported image splits into layers/objects at commit time */
   importLayering: ImportLayering
   lang: 'en' | 'ru'
   themePref: ThemePref
@@ -373,19 +374,18 @@ interface State {
   pngHeight: number | null
   exportBg: boolean
   recent: string[]
-  /** display name of the current project, shown in the top bar */
+  /** Display name of the current project, shown in the top bar */
   projectName: string
-  /** id of the saved project currently open; null = unsaved work (Untitled) */
+  /** Id of the saved project currently open; null = unsaved work (Untitled) */
   projectId: string | null
   /**
-   * True while the document holds changes not written to the projects library (or no
-   * project is bound at all): the top-bar Save button is enabled exactly when this is
-   * true, Photoshop-style.
+   * True while the document holds changes not written to the projects library (or no project is
+   * bound at all): the top-bar Save button is enabled exactly when this is true, Photoshop-style.
    */
   projectDirty: boolean
-  /** the doc as it was last written to / loaded from the projects library */
+  /** The doc as it was last written to / loaded from the projects library */
   savedDoc: Doc | null
-  /** normalized radii of the concentric-circles / concentric-rects tools */
+  /** Normalized radii of the concentric-circles / concentric-rects tools */
   concentricRadii: number[]
   // preset library (user presets; built-ins come from engine/presets)
   presets: PresetEntry[]
@@ -396,7 +396,7 @@ interface State {
   // actions on the document (undoable)
   setSize: (cols: number, rows: number) => void
   setGridType: (gridType: GridType) => void
-  /** radial grid only: toggle ~equal cells per ring, resampling the artwork */
+  /** Radial grid only: toggle ~equal cells per ring, resampling the artwork */
   setRadialEven: (even: boolean) => void
   setSub: (sub: SubDetail) => void
   paintCells: (
@@ -405,25 +405,25 @@ interface State {
     links?: readonly Link[],
   ) => void
   /**
-   * Shape-tool commit with final per-cell palette values: the caller pre-resolves every
-   * color (fill, pattern second color, stroke color) into `resolved`'s palette, so the
-   * staged preview and the commit share one set of values. One undoable step; in element
-   * scope all written cells join one frozen-style element.
+   * Shape-tool commit with final per-cell palette values: the caller pre-resolves every color
+   * (fill, pattern second color, stroke color) into `resolved`'s palette, so the staged preview and
+   * the commit share one set of values. One undoable step; in element scope all written cells join
+   * one frozen-style element.
    */
   paintCellsValues: (
     cells: ReadonlyMap<number, number>,
     resolved: Doc,
-    /** single-color shape → parametric source node params */
+    /** Single-color shape → parametric source node params */
     parametric?: { op: string; params: Record<string, number | string | boolean> },
   ) => void
-  /** flood-fill from every seed (symmetry copies of the clicked cell) */
+  /** Flood-fill from every seed (symmetry copies of the clicked cell) */
   fillAt: (seeds: readonly number[], color: string) => void
-  /** paint a pre-computed region set (radial sector/ring scope) with the current fill style */
+  /** Paint a pre-computed region set (radial sector/ring scope) with the current fill style */
   paintFillRegion: (seeds: readonly number[], color: string) => void
-  /** re-fill every painted cell of the selected elements with the current fill style (undoable) */
+  /** Re-fill every painted cell of the selected elements with the current fill style (undoable) */
   fillSelection: () => void
   addLink: (link: Link, color: string) => void
-  /** add several links at once (symmetry copies), as a single undoable change */
+  /** Add several links at once (symmetry copies), as a single undoable change */
   addLinks: (links: readonly Link[], color: string) => void
   removeLinksNear: (px: number, py: number, radius: number) => void
   clear: () => void
@@ -432,18 +432,18 @@ interface State {
   setConnectivity: (c: Connectivity) => void
   patchMetaball: (patch: Partial<MetaballSettings>) => void
   patchTexture: (patch: Partial<TextureSettings>) => void
-  /** switch between per-element frozen styles and the global canvas-wide style */
+  /** Switch between per-element frozen styles and the global canvas-wide style */
   setStyleScope: (scope: StyleScope) => void
   // element selection (UI state; the styled edits themselves are undoable doc actions)
   selectElements: (ids: number[]) => void
   toggleSelection: (id: number) => void
   clearSelection: () => void
   selectAllElements: () => void
-  /** restyle every selected element (undoable) */
+  /** Restyle every selected element (undoable) */
   restyleSelection: (patch: ElementStylePatch) => void
-  /** erase all cells of the selected elements (undoable) */
+  /** Erase all cells of the selected elements (undoable) */
   deleteSelection: () => void
-  /** move the selection by dx/dy pixel cells on the square grid (undoable) */
+  /** Move the selection by dx/dy pixel cells on the square grid (undoable) */
   moveSelection: (dx: number, dy: number) => void
   // layers panel — structure actions mutate the doc's scene tree (undoable)
   setActiveLayer: (id: number | null) => void
@@ -452,26 +452,26 @@ interface State {
   renameNode: (id: number, name: string) => void
   toggleNodeVisible: (id: number) => void
   toggleNodeLocked: (id: number) => void
-  /** move a node next to a target in tree order ('before' = below the target) */
+  /** Move a node next to a target in tree order ('before' = below the target) */
   reorderNode: (dragId: number, targetId: number, place: 'before' | 'after') => void
-  /** wrap the selected objects into one group (same parent required) */
+  /** Wrap the selected objects into one group (same parent required) */
   groupSelection: () => void
-  /** dissolve the outermost groups containing the selected objects */
+  /** Dissolve the outermost groups containing the selected objects */
   ungroupSelection: () => void
-  /** same-style objects on one layer merge into shared fields/silhouettes */
+  /** Same-style objects on one layer merge into shared fields/silhouettes */
   setFuseObjects: (v: boolean) => void
-  /** attach, replace or remove the live node graph of one object (undoable) */
+  /** Attach, replace or remove the live node graph of one object (undoable) */
   setObjectGraph: (id: number, graph: import('../engine/nodes').Graph | null) => void
-  /** apply a named node-graph preset: to the selected object, or to a fresh one */
+  /** Apply a named node-graph preset: to the selected object, or to a fresh one */
   applyGraphPreset: (presetId: string) => void
   setBg: (bg: string) => void
   setConnectorWidth: (w: number) => void
   applyPalette: (preset: PalettePreset) => void
-  /** replace the document palette with an arbitrary color list (palette import) */
+  /** Replace the document palette with an arbitrary color list (palette import) */
   replacePalette: (colors: string[]) => void
   loadDoc: (doc: Doc) => void
   newDoc: () => void
-  /** replace the canvas with converted photo pixels (square grid); one undoable step */
+  /** Replace the canvas with converted photo pixels (square grid); one undoable step */
   importPixels: (r: ImportResult) => void
   // preset library actions
   loadPresets: () => Promise<void>
@@ -487,22 +487,24 @@ interface State {
   overwriteBrush: (id: string) => Promise<void>
   renameBrush: (id: string, name: string) => Promise<void>
   deleteBrushPreset: (id: string) => Promise<void>
-  /** make a preset the single current brush */
+  /** Make a preset the single current brush */
   applyBrushPreset: (id: string, brush: Brush) => void
   // UI actions
   setTool: (tool: Tool) => void
-  /** rename the current project (shown in the top bar, used in export file names);
-      renames the open saved project in the library too */
+  /**
+   * Rename the current project (shown in the top bar, used in export file names); renames the open
+   * saved project in the library too
+   */
   setProjectName: (name: string) => void
-  /** bind the editor to a saved project (open/save); null detaches back to unsaved */
+  /** Bind the editor to a saved project (open/save); null detaches back to unsaved */
   setCurrentProject: (id: string | null, name: string) => void
   /** Photoshop-style Save: overwrite the bound project or create + bind a new one */
   saveToLibrary: () => Promise<void>
-  /** mark the current doc as matching the library entry (after open/save) */
+  /** Mark the current doc as matching the library entry (after open/save) */
   markProjectSaved: () => void
-  /** resize the radii list of the concentric tools (1..8 loops) */
+  /** Resize the radii list of the concentric tools (1..8 loops) */
   setConcentricCount: (n: number) => void
-  /** set one loop radius of the concentric tools */
+  /** Set one loop radius of the concentric tools */
   setConcentricRadius: (index: number, r: number) => void
   setColor: (color: string) => void
   patchBrush: (patch: Partial<Brush>) => void
@@ -514,9 +516,9 @@ interface State {
   setShowGrid: (v: boolean) => void
   toggleRail: () => void
   patchToolOpts: (patch: Partial<ToolOpts>) => void
-  /** override the tool-settings preview grid; null returns to the automatic size */
+  /** Override the tool-settings preview grid; null returns to the automatic size */
   setPreviewGrid: (grid: { cols: number; rows: number } | null) => void
-  /** layer/object split and stacking of imported images */
+  /** Layer/object split and stacking of imported images */
   patchImportLayering: (patch: Partial<ImportLayering>) => void
   setLang: (lang: 'en' | 'ru') => void
   setThemePref: (pref: ThemePref) => void
@@ -524,17 +526,17 @@ interface State {
   setPngHeight: (v: number | null) => void
   setExportBg: (v: boolean) => void
   pushRecent: (hex: string) => void
-  /** bumped to ask CanvasStage to zoom so the whole canvas is visible */
+  /** Bumped to ask CanvasStage to zoom so the whole canvas is visible */
   requestFit: () => void
   fitSignal: number
-  /** the dedicated node-editor space over the canvas area */
+  /** The dedicated node-editor space over the canvas area */
   nodeEditorOpen: boolean
   /**
-   * How the node editor shares space with the canvas: `split` puts them side by side
-   * with a draggable divider (live result feedback), `overlay` covers the canvas.
+   * How the node editor shares space with the canvas: `split` puts them side by side with a
+   * draggable divider (live result feedback), `overlay` covers the canvas.
    */
   nodeEditorMode: 'split' | 'overlay'
-  /** editor width as a fraction of the canvas row (split mode, 0.25..0.8) */
+  /** Editor width as a fraction of the canvas row (split mode, 0.25..0.8) */
   nodeEditorSplit: number
   openNodeEditor: () => void
   closeNodeEditor: () => void
@@ -702,16 +704,15 @@ function linkKey(l: Link): string {
 function filterLinks(items: SceneItem[], removedKeys: ReadonlySet<string>): SceneItem[] {
   return items.map((item) => {
     if (item.kind === 'group') return { ...item, children: filterLinks(item.children, removedKeys) }
-    if (item.links.length === 0 || !item.links.some((l) => removedKeys.has(linkKey(l))))
-      return item
+    if (item.links.length === 0 || !item.links.some((l) => removedKeys.has(linkKey(l)))) return item
     return { ...item, links: item.links.filter((l) => !removedKeys.has(linkKey(l))) }
   })
 }
 
 /**
- * Scene-path paint commit shared by paintCells / paintCellsValues / fills: erase entries
- * steal cells back on the active layer, paint entries join a fresh object appended on top
- * (one stroke = one object — interrupted lines stay separately selectable).
+ * Scene-path paint commit shared by paintCells / paintCellsValues / fills: erase entries steal
+ * cells back on the active layer, paint entries join a fresh object appended on top (one stroke =
+ * one object — interrupted lines stay separately selectable).
  */
 function commitStroke(
   doc: Doc,
@@ -740,8 +741,8 @@ function commitStroke(
 }
 
 /**
- * Shape-tool commit as a parametric source graph: the node regenerates the ink from
- * its parameters, so geometry edits in the node editor move the shape on the canvas.
+ * Shape-tool commit as a parametric source graph: the node regenerates the ink from its parameters,
+ * so geometry edits in the node editor move the shape on the canvas.
  */
 function commitStrokeParametric(
   doc: Doc,
@@ -1001,7 +1002,13 @@ export const useStore = create<State>()(
           // leak through pixels that belong to other layers; result joins a fresh object
           if (doc.layers) {
             const layer = activeLayerOf(doc, s.activeLayerId)
-            if (!layer || !layer.visible || nodeProtected(doc.layers, layer.id) || seeds.length === 0) return s
+            if (
+              !layer ||
+              !layer.visible ||
+              nodeProtected(doc.layers, layer.id) ||
+              seeds.length === 0
+            )
+              return s
             const layerCells = new Uint16Array(doc.cells.length)
             for (const o of visibleObjs(layer)) {
               for (const [i, v] of o.cells) layerCells[i] = v
@@ -1027,7 +1034,11 @@ export const useStore = create<State>()(
             }
             if (paint.size === 0) return s
             const erase = new Set<number>()
-            for (const [i, v] of paint) if (v === 0) { erase.add(i); paint.delete(i) }
+            for (const [i, v] of paint)
+              if (v === 0) {
+                erase.add(i)
+                paint.delete(i)
+              }
             const next = commitStroke(doc, s.activeLayerId, erase, paint, [])
             return next ? { doc: next } : s
           }
@@ -1077,7 +1088,11 @@ export const useStore = create<State>()(
               for (const i of seeds) paint.set(i, rA.v)
             }
             const erase = new Set<number>()
-            for (const [i, v] of paint) if (v === 0) { erase.add(i); paint.delete(i) }
+            for (const [i, v] of paint)
+              if (v === 0) {
+                erase.add(i)
+                paint.delete(i)
+              }
             const next = commitStroke(doc, s.activeLayerId, erase, paint, [])
             return next ? { doc: next } : s
           }
@@ -1271,7 +1286,9 @@ export const useStore = create<State>()(
                         : el.style,
                       renderMode: patch.renderMode ?? el.renderMode,
                       connectivity: patch.connectivity ?? el.connectivity,
-                      metaball: patch.metaball ? { ...el.metaball, ...patch.metaball } : el.metaball,
+                      metaball: patch.metaball
+                        ? { ...el.metaball, ...patch.metaball }
+                        : el.metaball,
                       texture: patch.texture ? { ...el.texture, ...patch.texture } : el.texture,
                     },
                   }
@@ -1299,9 +1316,7 @@ export const useStore = create<State>()(
           if (s.selection.length === 0) return s
           // scene path: remove the objects themselves (locked/hidden ones are skipped)
           if (s.doc.layers) {
-            const removable = new Set(
-              s.selection.filter((id) => !nodeProtected(s.doc.layers!, id)),
-            )
+            const removable = new Set(s.selection.filter((id) => !nodeProtected(s.doc.layers!, id)))
             if (removable.size === 0) return s
             const { layers } = removeObjs(s.doc.layers, removable)
             return { doc: syncDoc({ ...s.doc, layers }), selection: [] }
@@ -1346,7 +1361,11 @@ export const useStore = create<State>()(
             // procedural graphs regenerate their ink from params: the move is written
             // into the trailing Offset node instead of the stored cells
             const procedural = new Set(
-              movers.filter((o) => o.graph?.nodes.some((nd) => !nd.unknown && nodeDef(nd.op)?.kind === 'source')).map((o) => o.id),
+              movers
+                .filter((o) =>
+                  o.graph?.nodes.some((nd) => !nd.unknown && nodeDef(nd.op)?.kind === 'source'),
+                )
+                .map((o) => o.id),
             )
             const claims = new Map<number, Set<number>>()
             for (const mover of movers) {
@@ -1379,9 +1398,7 @@ export const useStore = create<State>()(
                 }
                 layers =
                   updateNode(layers, mover.id, (nd) =>
-                    nd.kind === 'obj' && nd.graph
-                      ? { ...nd, graph: { ...nd.graph, nodes } }
-                      : nd,
+                    nd.kind === 'obj' && nd.graph ? { ...nd, graph: { ...nd.graph, nodes } } : nd,
                   ) ?? layers
                 continue
               }
@@ -1400,17 +1417,16 @@ export const useStore = create<State>()(
                     l.by < doc.rows,
                 )
               layers =
-                updateNode(layers, mover.id, (n) => (n.kind === 'obj' ? { ...n, cells, links } : n)) ??
-                layers
+                updateNode(layers, mover.id, (n) =>
+                  n.kind === 'obj' ? { ...n, cells, links } : n,
+                ) ?? layers
             }
             // connectors visually attached to moved pixels follow the move even when
             // their own object stays put (both endpoints must land on moved pixels)
             const movedPixels = new Set<number>()
             for (const mover of movers) {
               for (const [i] of mover.cells) {
-                movedPixels.add(
-                  Math.floor((i % bw) / sub) + Math.floor(i / bw / sub) * doc.cols,
-                )
+                movedPixels.add(Math.floor((i % bw) / sub) + Math.floor(i / bw / sub) * doc.cols)
               }
             }
             const onMoved = (l: Link): boolean =>
@@ -1509,7 +1525,7 @@ export const useStore = create<State>()(
           const layers = s.doc.layers.filter((l) => l.id !== id)
           const activeLayerId =
             s.activeLayerId === id
-              ? layers[Math.min(idx, layers.length - 1)]?.id ?? null
+              ? (layers[Math.min(idx, layers.length - 1)]?.id ?? null)
               : s.activeLayerId
           return { doc: syncDoc({ ...s.doc, layers }), activeLayerId }
         }),
@@ -1604,7 +1620,9 @@ export const useStore = create<State>()(
       setBg: (bg) => set((s) => ({ doc: { ...s.doc, bg } })),
       setConnectorWidth: (w) => set((s) => ({ doc: { ...s.doc, connectorWidth: w } })),
       applyPalette: (preset) =>
-        set((s) => ({ doc: { ...s.doc, palette: [...new Set(preset.colors.map((c) => c.toLowerCase()))] } })),
+        set((s) => ({
+          doc: { ...s.doc, palette: [...new Set(preset.colors.map((c) => c.toLowerCase()))] },
+        })),
       replacePalette: (colors) => set((s) => ({ doc: { ...s.doc, palette: [...colors] } })),
       loadDoc: (doc) => set({ doc: ensureScene(doc) }),
       newDoc: () => set({ doc: freshDoc() }),
@@ -1647,7 +1665,8 @@ export const useStore = create<State>()(
             }
             const layers: SceneLayer[] = []
             let ordered = [...byValue.entries()]
-            if (L.layerOrder === 'area') ordered.sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
+            if (L.layerOrder === 'area')
+              ordered.sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
             else ordered.sort((a, b) => a[0] - b[0])
             if (L.splitByColor) {
               for (const [v, idxs] of ordered) {
@@ -1657,7 +1676,10 @@ export const useStore = create<State>()(
                       .sort((a, b) => b.length - a.length)
                   : [idxs]
                 layers.push(
-                  buildLayer(r.palette[v - 1] ?? '', regions.map((idxs2) => buildObj(v, idxs2))),
+                  buildLayer(
+                    r.palette[v - 1] ?? '',
+                    regions.map((idxs2) => buildObj(v, idxs2)),
+                  ),
                 )
               }
             } else {
@@ -2044,10 +2066,7 @@ function syncHistoryLimit(doc: Doc): void {
   if (doc.layers) {
     for (const o of allObjs(doc.layers)) ink += o.cells.size + o.links.length * 4
   }
-  const bytes = Math.max(
-    1,
-    doc.cells.length * (2 + (doc.cellObj ? 4 : 0)) + ink * 24,
-  )
+  const bytes = Math.max(1, doc.cells.length * (2 + (doc.cellObj ? 4 : 0)) + ink * 24)
   temporalOptions.limit = Math.max(8, Math.min(100, Math.floor(32_000_000 / bytes)))
 }
 syncHistoryLimit(useStore.getState().doc)

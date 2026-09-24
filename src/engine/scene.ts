@@ -1,17 +1,17 @@
 /**
- * Scene tree: Photoshop/Illustrator-style layers of groups and paint objects. Pure data
- * plus the composite that feeds the flat rendering engine.
+ * Scene tree: Photoshop/Illustrator-style layers of groups and paint objects. Pure data plus the
+ * composite that feeds the flat rendering engine.
  *
- * `doc.layers === null` is a legacy flat document: ink lives directly in `cells`/`cellObj`
- * and nothing here ever touches it. A doc with layers treats `cells`, `cellObj`, `links`
- * and `elements` as DERIVED fields recomputed by `syncDoc` from the tree, so the whole
- * rendering engine (geometry, outlines, exports) keeps reading the flat buffers unchanged.
+ * `doc.layers === null` is a legacy flat document: ink lives directly in `cells`/`cellObj` and
+ * nothing here ever touches it. A doc with layers treats `cells`, `cellObj`, `links` and `elements`
+ * as DERIVED fields recomputed by `syncDoc` from the tree, so the whole rendering engine (geometry,
+ * outlines, exports) keeps reading the flat buffers unchanged.
  *
- * Object and group ids are stable for their lifetime (never renumbered): selection, links
- * and `cellObj` reference them directly. `nextNodeId` in the Doc hands out fresh ids.
+ * Object and group ids are stable for their lifetime (never renumbered): selection, links and
+ * `cellObj` reference them directly. `nextNodeId` in the Doc hands out fresh ids.
  *
- * Tree order is bottom → top: `children[0]` renders first (lowest), the last child is the
- * topmost. The layers panel displays the reversed order, like every major editor.
+ * Tree order is bottom → top: `children[0]` renders first (lowest), the last child is the topmost.
+ * The layers panel displays the reversed order, like every major editor.
  */
 
 import type { Doc, ElementStyle, GridType, Link, SubDetail } from './doc'
@@ -22,17 +22,17 @@ import { evalGraph, graphColors, nodeDef, type Graph } from './nodes'
 export interface SceneObj {
   kind: 'obj'
   id: number
-  /** user-visible name; '' = the UI shows a localized default ("Object N") */
+  /** User-visible name; '' = the UI shows a localized default ("Object N") */
   name: string
   visible: boolean
   locked: boolean
   style: ElementStyle
-  /** sparse ink: buffer index → palette value (1-based), always within the current grid */
+  /** Sparse ink: buffer index → palette value (1-based), always within the current grid */
   cells: Map<number, number>
   links: Link[]
   /**
-   * Live node graph: when present, the ink and the appearance are EVALUATED from it at
-   * composite time (the `cells`/`style` above act as fallback only for legacy objects).
+   * Live node graph: when present, the ink and the appearance are EVALUATED from it at composite
+   * time (the `cells`/`style` above act as fallback only for legacy objects).
    */
   graph?: Graph
 }
@@ -77,7 +77,16 @@ export function newLayer(doc: Doc, name = ''): { layer: SceneLayer; doc: Doc } {
 export function newObj(doc: Doc, style: ElementStyle, name = ''): { obj: SceneObj; doc: Doc } {
   const id = doc.nextNodeId
   return {
-    obj: { kind: 'obj', id, name, visible: true, locked: false, style, cells: new Map(), links: [] },
+    obj: {
+      kind: 'obj',
+      id,
+      name,
+      visible: true,
+      locked: false,
+      style,
+      cells: new Map(),
+      links: [],
+    },
     doc: { ...doc, nextNodeId: id + 1 },
   }
 }
@@ -134,7 +143,7 @@ export function visibleObjs(layer: SceneLayer): SceneObj[] {
 
 export interface SceneNodeRef {
   item: SceneNode
-  /** the array holding the item (the layers array, a layer's or a group's children) */
+  /** The array holding the item (the layers array, a layer's or a group's children) */
   siblings: SceneNode[]
   layer: SceneLayer
 }
@@ -169,15 +178,18 @@ export function objLayer(layers: SceneLayer[], objId: number): SceneLayer | null
 }
 
 /**
- * Effective edit protection: the node itself, any ancestor group or the owning layer is
- * locked, or some ancestor/layer is hidden (hidden content is not editable either).
+ * Effective edit protection: the node itself, any ancestor group or the owning layer is locked, or
+ * some ancestor/layer is hidden (hidden content is not editable either).
  */
 export function nodeProtected(layers: SceneLayer[], id: number): boolean {
   let locked = false
   const visit = (items: SceneItem[], layer: SceneLayer, vis: boolean, lock: boolean): boolean => {
     for (const item of items) {
       if (item.id === id) return lock || item.locked || !vis || !layer.visible || layer.locked
-      if (item.kind === 'group' && visit(item.children, layer, vis && item.visible, lock || item.locked))
+      if (
+        item.kind === 'group' &&
+        visit(item.children, layer, vis && item.visible, lock || item.locked)
+      )
         return true
     }
     return false
@@ -198,9 +210,9 @@ interface Composite {
   cells: Uint16Array
   cellObj: Uint32Array | null
   links: Link[]
-  /** style table indexed by object id - 1; holes are filled with the doc-level fallback */
+  /** Style table indexed by object id - 1; holes are filled with the doc-level fallback */
   elements: ElementStyle[]
-  /** doc palette extended with every color referenced by object graphs */
+  /** Doc palette extended with every color referenced by object graphs */
   palette: string[]
   dims: string
 }
@@ -249,13 +261,17 @@ function buildComposite(doc: Doc, dims: string): Composite {
       if (obj.graph) {
         // single eval pass: the raster nodes fill the map, the style nodes write the
         // style clone — the evaluated appearance becomes the object's element style
-        const { cells: ink, style } = evalGraph(obj.graph, {
-          bw: doc.cols * doc.sub,
-          bh: doc.rows * doc.sub,
-          paletteLen: derived.length,
-          hexValue,
-          baseStyle: obj.style,
-        }, obj.cells)
+        const { cells: ink, style } = evalGraph(
+          obj.graph,
+          {
+            bw: doc.cols * doc.sub,
+            bh: doc.rows * doc.sub,
+            paletteLen: derived.length,
+            hexValue,
+            baseStyle: obj.style,
+          },
+          obj.cells,
+        )
         for (const [i, v] of ink) {
           if (i < 0 || i >= length) continue
           cells[i] = v
@@ -276,8 +292,8 @@ function buildComposite(doc: Doc, dims: string): Composite {
 }
 
 /**
- * Recompute the derived flat buffers from the scene tree. Every store action calls this
- * on its result; unchanged trees hit the cache and return the same Doc identity.
+ * Recompute the derived flat buffers from the scene tree. Every store action calls this on its
+ * result; unchanged trees hit the cache and return the same Doc identity.
  */
 export function syncDoc(doc: Doc): Doc {
   const layers = doc.layers
@@ -311,10 +327,9 @@ export function syncDoc(doc: Doc): Doc {
 /* --------------------------- legacy → scene migration --------------------------- */
 
 /**
- * Build a scene from legacy flat element data: one layer, one object per element
- * (its cells read from `cellObj`), unattributed ink as one bottom object with the
- * doc-level frozen style. Used when opening v1/v2 projects and when the user first
- * needs structure on an old document.
+ * Build a scene from legacy flat element data: one layer, one object per element (its cells read
+ * from `cellObj`), unattributed ink as one bottom object with the doc-level frozen style. Used when
+ * opening v1/v2 projects and when the user first needs structure on an old document.
  */
 export function sceneFromLegacy(doc: Doc): Pick<Doc, 'layers' | 'nextNodeId'> {
   const length = doc.cells.length
@@ -340,13 +355,26 @@ export function sceneFromLegacy(doc: Doc): Pick<Doc, 'layers' | 'nextNodeId'> {
   })
   const objs: SceneObj[] = []
   const unattributed = byEl.get(0)
-  if (unattributed) objs.push(mkObj(elementFromDoc(doc), unattributed, doc.links.filter((l) => !l.obj)))
+  if (unattributed)
+    objs.push(
+      mkObj(
+        elementFromDoc(doc),
+        unattributed,
+        doc.links.filter((l) => !l.obj),
+      ),
+    )
   const objLinks = doc.links.filter((l) => l.obj)
   for (let id = 1; id <= doc.elements.length; id++) {
     const cells = byEl.get(id)
     if (!cells && !objLinks.some((l) => l.obj === id)) continue
     const style = doc.elements[id - 1] ?? elementFromDoc(doc)
-    objs.push(mkObj(style, cells ?? new Map(), objLinks.filter((l) => l.obj === id)))
+    objs.push(
+      mkObj(
+        style,
+        cells ?? new Map(),
+        objLinks.filter((l) => l.obj === id),
+      ),
+    )
   }
   // links referencing unknown elements (corrupt data) survive on the last object
   const stray = objLinks.filter((l) => l.obj === undefined || l.obj > doc.elements.length)
@@ -389,10 +417,13 @@ function remapTree1to1(
 }
 
 /**
- * Invert a new→old sampling map into a packed old→[new…] adjacency, so an object's ink can
- * fan out to every target cell that samples it (upsampling duplicates, unlike a 1:1 map).
+ * Invert a new→old sampling map into a packed old→[new…] adjacency, so an object's ink can fan out
+ * to every target cell that samples it (upsampling duplicates, unlike a 1:1 map).
  */
-function invertSampleMap(newToOld: Int32Array, oldLength: number): {
+function invertSampleMap(
+  newToOld: Int32Array,
+  oldLength: number,
+): {
   starts: Int32Array
   targets: Int32Array
 } {
@@ -500,8 +531,8 @@ export function convertedGridDoc(
 }
 
 /**
- * Bring a legacy element-scope document into the scene model (one layer, one object per
- * element). Global-scope documents stay flat — their layers UI shows the scope hint.
+ * Bring a legacy element-scope document into the scene model (one layer, one object per element).
+ * Global-scope documents stay flat — their layers UI shows the scope hint.
  */
 export function ensureScene(doc: Doc): Doc {
   if (doc.layers) return doc
@@ -512,8 +543,8 @@ export function ensureScene(doc: Doc): Doc {
 /* ----------------------------- tree editing (pure) ----------------------------- */
 
 /**
- * Immutably replace one node anywhere in the tree. The root array is always cloned so the
- * composite cache (keyed by its identity) invalidates. Returns null when the id is unknown.
+ * Immutably replace one node anywhere in the tree. The root array is always cloned so the composite
+ * cache (keyed by its identity) invalidates. Returns null when the id is unknown.
  */
 export function updateNode(
   layers: SceneLayer[],
@@ -562,8 +593,8 @@ export function removeObjs(
 }
 
 /**
- * Drop the given buffer indices from every object of one layer (the paint-over rule:
- * within a layer a cell has exactly one owner, and new ink takes it over).
+ * Drop the given buffer indices from every object of one layer (the paint-over rule: within a layer
+ * a cell has exactly one owner, and new ink takes it over).
  */
 export function stealCells(
   layers: SceneLayer[],
@@ -589,9 +620,9 @@ export function stealCells(
 }
 
 /**
- * Drop objects that own no cells and no links (idempotent GC after erasing). Objects
- * with a source node are NEVER dropped: their graph regenerates ink from parameters,
- * so empty stored cells do not mean an empty object.
+ * Drop objects that own no cells and no links (idempotent GC after erasing). Objects with a source
+ * node are NEVER dropped: their graph regenerates ink from parameters, so empty stored cells do not
+ * mean an empty object.
  */
 export function pruneEmptyObjs(
   layers: SceneLayer[],
@@ -601,8 +632,9 @@ export function pruneEmptyObjs(
   const walk = (items: SceneItem[]): SceneItem[] =>
     items.flatMap<SceneItem>((item) => {
       if (item.kind === 'obj') {
-        const regenerates =
-          !!item.graph?.nodes.some((nd) => !nd.unknown && nodeDef(nd.op)?.kind === 'source')
+        const regenerates = !!item.graph?.nodes.some(
+          (nd) => !nd.unknown && nodeDef(nd.op)?.kind === 'source',
+        )
         if (
           item.cells.size === 0 &&
           item.links.length === 0 &&
@@ -620,16 +652,20 @@ export function pruneEmptyObjs(
 }
 
 /** Append an item on top of a layer's children. */
-export function appendToLayer(layers: SceneLayer[], layerId: number, item: SceneItem): SceneLayer[] {
+export function appendToLayer(
+  layers: SceneLayer[],
+  layerId: number,
+  item: SceneItem,
+): SceneLayer[] {
   return layers.map((layer) =>
     layer.id === layerId ? { ...layer, children: [...layer.children, item] } : layer,
   )
 }
 
 /**
- * Group the given objects. v1 rule: all members must be direct children of the same
- * parent (layer or group) — the group is inserted at the slot of the bottommost member,
- * preserving the members' relative order.
+ * Group the given objects. v1 rule: all members must be direct children of the same parent (layer
+ * or group) — the group is inserted at the slot of the bottommost member, preserving the members'
+ * relative order.
  */
 export function groupObjs(
   layers: SceneLayer[],
@@ -659,9 +695,7 @@ export function groupObjs(
   const { group } = newGroup(doc)
   group.children = idxs.map((i) => list[i])
   const next = updateNode(layers, owner.id, (node) => {
-    const children = (node as SceneGroup | SceneLayer).children.filter(
-      (c) => !memberIds.has(c.id),
-    )
+    const children = (node as SceneGroup | SceneLayer).children.filter((c) => !memberIds.has(c.id))
     children.splice(idxs[0], 0, group)
     return { ...node, children } as SceneNode
   })
@@ -669,13 +703,10 @@ export function groupObjs(
 }
 
 /**
- * Dissolve the outermost group containing each selected object: its children are lifted
- * into the group's own parent list at its position. One level per call.
+ * Dissolve the outermost group containing each selected object: its children are lifted into the
+ * group's own parent list at its position. One level per call.
  */
-export function ungroupAround(
-  layers: SceneLayer[],
-  memberIds: ReadonlySet<number>,
-): SceneLayer[] {
+export function ungroupAround(layers: SceneLayer[], memberIds: ReadonlySet<number>): SceneLayer[] {
   const hasSelected = (items: SceneItem[]): boolean =>
     items.some((i) => (i.kind === 'obj' ? memberIds.has(i.id) : hasSelected(i.children)))
   const walk = (items: SceneItem[], dissolved: boolean): SceneItem[] =>
@@ -689,9 +720,9 @@ export function ungroupAround(
 }
 
 /**
- * Move a node next to a target node as its sibling: `place` is expressed in tree order
- * ('before' = below the target, 'after' = above it). The layers panel displays the
- * reversed order, so it translates its drop position before calling this.
+ * Move a node next to a target node as its sibling: `place` is expressed in tree order ('before' =
+ * below the target, 'after' = above it). The layers panel displays the reversed order, so it
+ * translates its drop position before calling this.
  */
 export function reorderNode(
   layers: SceneLayer[],
@@ -723,8 +754,8 @@ export function reorderNode(
 }
 
 /**
- * The sibling to move `id` next to when shifting it one slot in tree order (null at a
- * container edge). Feeds the Ctrl+[ / Ctrl+] stacking shortcuts.
+ * The sibling to move `id` next to when shifting it one slot in tree order (null at a container
+ * edge). Feeds the Ctrl+[ / Ctrl+] stacking shortcuts.
  */
 export function shiftTarget(
   layers: SceneLayer[],
@@ -735,7 +766,8 @@ export function shiftTarget(
   if (!ref) return null
   const list = ref.siblings
   const at = list.indexOf(ref.item)
-  if (dir === 'after') return at + 1 < list.length ? { targetId: list[at + 1].id, place: 'after' } : null
+  if (dir === 'after')
+    return at + 1 < list.length ? { targetId: list[at + 1].id, place: 'after' } : null
   return at - 1 >= 0 ? { targetId: list[at - 1].id, place: 'before' } : null
 }
 

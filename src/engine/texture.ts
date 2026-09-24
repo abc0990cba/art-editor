@@ -1,14 +1,14 @@
 import type { TextureSettings } from './doc'
 
 /**
- * Baked vector texture: extra path fragments that punch tiny holes into a shape's
- * fill. Compound per-color paths are painted with fill-rule evenodd, so inner
- * subpaths become transparent holes — the texture stays pure vector geometry and
- * renders identically on canvas, in PNG and in the exported SVG.
+ * Baked vector texture: extra path fragments that punch tiny holes into a shape's fill. Compound
+ * per-color paths are painted with fill-rule evenodd, so inner subpaths become transparent holes —
+ * the texture stays pure vector geometry and renders identically on canvas, in PNG and in the
+ * exported SVG.
  *
- * Specks are placed on a lattice anchored to the document origin (not per pixel),
- * so the pattern flows continuously across adjacent same-color pixels; only the
- * shape's outer border can carry a clean gap margin.
+ * Specks are placed on a lattice anchored to the document origin (not per pixel), so the pattern
+ * flows continuously across adjacent same-color pixels; only the shape's outer border can carry a
+ * clean gap margin.
  */
 
 /** Max flecks per region / metaball blob — bounds path data size. */
@@ -34,12 +34,12 @@ function hash2(x: number, y: number, seed: number): number {
   return (h ^ (h >>> 16)) >>> 0
 }
 
-/** hash2 folded into a single-key form (cell index → PRNG seed). */
+/** Hash2 folded into a single-key form (cell index → PRNG seed). */
 function hash(key: number, seed: number): number {
   return hash2(key, key >>> 16, seed)
 }
 
-/** mulberry32: tiny, fast, identical output on every platform. */
+/** Mulberry32: tiny, fast, identical output on every platform. */
 function mulberry32(a: number): () => number {
   return () => {
     a = (a + 0x6d2b79f5) | 0
@@ -60,9 +60,9 @@ function circleFleck(cx: number, cy: number, r: number): string {
 }
 
 /**
- * Fleck emission for the configured shape. `a` is the bounding-box side; chips
- * are squares rotated by `rot` radians with their AABB kept equal to `a`, so the
- * non-overlap lattice invariant holds for every rotation.
+ * Fleck emission for the configured shape. `a` is the bounding-box side; chips are squares rotated
+ * by `rot` radians with their AABB kept equal to `a`, so the non-overlap lattice invariant holds
+ * for every rotation.
  */
 function emitFleck(
   shape: TextureSettings['shape'],
@@ -115,10 +115,9 @@ function valueNoise(gx: number, gy: number, seed: number): number {
 }
 
 /**
- * Probability multiplier for a candidate speck at doc-unit position (x, y):
- * scatter = uniform; clumps = single-octave stains; perlin = 3-octave fractal
- * noise for natural multi-scale mottling; voronoi = seeded stain colonies;
- * streaks = directional wear bands along the configured angle.
+ * Probability multiplier for a candidate speck at doc-unit position (x, y): scatter = uniform;
+ * clumps = single-octave stains; perlin = 3-octave fractal noise for natural multi-scale mottling;
+ * voronoi = seeded stain colonies; streaks = directional wear bands along the configured angle.
  */
 function distWeight(t: TextureSettings, x: number, y: number, pitch: number): number {
   if (t.dist === 'clumps') {
@@ -208,11 +207,11 @@ function wobblyCirclePath(cx: number, cy: number, r: number, amp: number, seed: 
 }
 
 /**
- * Star-shaped union of an overlapping dot cluster as one blob outline: for K rays
- * from a pole (area-weighted centroid, falling back to the largest dot's center so
- * every ray hits something) take the farthest circle intersection. Chords cut
- * concave waists inward, so the blob never under-covers the merged dots much and
- * always stays a simple polygon (evenodd-safe as a single subpath).
+ * Star-shaped union of an overlapping dot cluster as one blob outline: for K rays from a pole
+ * (area-weighted centroid, falling back to the largest dot's center so every ray hits something)
+ * take the farthest circle intersection. Chords cut concave waists inward, so the blob never
+ * under-covers the merged dots much and always stays a simple polygon (evenodd-safe as a single
+ * subpath).
  */
 function clusterBlobPath(cluster: HtDot[], amp: number, seed: number): string {
   let w = 0
@@ -259,11 +258,11 @@ function clusterBlobPath(cluster: HtDot[], amp: number, seed: number): string {
 }
 
 /**
- * Emit collected halftone dots. Singletons stay plain circles (or wobbled ones);
- * grid neighbors whose circles touch or overlap — or come within the merge neck —
- * fuse into one star-union blob each, so merged dots are a single evenodd subpath
- * and never XOR against their own halves. `stride` is the placement grid step the
- * caller scanned with; adjacency is checked right/down at that step.
+ * Emit collected halftone dots. Singletons stay plain circles (or wobbled ones); grid neighbors
+ * whose circles touch or overlap — or come within the merge neck — fuse into one star-union blob
+ * each, so merged dots are a single evenodd subpath and never XOR against their own halves.
+ * `stride` is the placement grid step the caller scanned with; adjacency is checked right/down at
+ * that step.
  */
 function emitHalftoneDots(
   dots: HtDot[],
@@ -373,20 +372,20 @@ function filterSpray(
 
 /** One paintable cell of a same-color region, in doc units. */
 export interface TextureCell {
-  /** fill rect (the rounded rect actually painted for this cell) */
+  /** Fill rect (the rounded rect actually painted for this cell) */
   x: number
   y: number
   w: number
   h: number
-  /** fill corner radii tl,tr,br,bl */
+  /** Fill corner radii tl,tr,br,bl */
   radii: number[]
   chamfer: boolean
-  /** grid-tile bounds this cell occupies (fill rect ⊆ tile bounds) */
+  /** Grid-tile bounds this cell occupies (fill rect ⊆ tile bounds) */
   cx0: number
   cy0: number
   cx1: number
   cy1: number
-  /** true when the neighboring tile holds the same value: texture runs across */
+  /** True when the neighboring tile holds the same value: texture runs across */
   connectedL: boolean
   connectedT: boolean
   connectedR: boolean
@@ -394,11 +393,10 @@ export interface TextureCell {
 }
 
 /**
- * Texture hole fragments for a whole same-color region. Specks are placed on a
- * lattice anchored to the document origin, so adjacent connected cells share one
- * continuous pattern with no seams; only sides facing empty space (or another
- * color) carry the gap margin. Candidates are sampled against the actual painted
- * fills (including corner fillets), so holes never land outside the artwork.
+ * Texture hole fragments for a whole same-color region. Specks are placed on a lattice anchored to
+ * the document origin, so adjacent connected cells share one continuous pattern with no seams; only
+ * sides facing empty space (or another color) carry the gap margin. Candidates are sampled against
+ * the actual painted fills (including corner fillets), so holes never land outside the artwork.
  */
 export function regionTextureFragments(
   cells: TextureCell[],
@@ -724,7 +722,7 @@ export interface TextureField {
   f: ArrayLike<number>
   fw: number
   fh: number
-  /** doc units per field node */
+  /** Doc units per field node */
   scale: number
 }
 
@@ -763,13 +761,12 @@ function fieldGradDir(field: TextureField, x: number, y: number): [number, numbe
 }
 
 /**
- * Texture hole fragments for a metaball blob, sampled from its field in doc
- * units. `sub` converts the texture pitch (cell units) into doc units. A
- * candidate survives when its four corners sample above the contour — and when
- * they don't, the speck is nudged along the field gradient (fit, don't reject),
- * so grunge stays dense at blob edges. Halftone uses the same sampling with a
- * regular (optionally rotated) screen grid, distress knobs and seed-driven
- * randomness, shared with the pixels/outline region path.
+ * Texture hole fragments for a metaball blob, sampled from its field in doc units. `sub` converts
+ * the texture pitch (cell units) into doc units. A candidate survives when its four corners sample
+ * above the contour — and when they don't, the speck is nudged along the field gradient (fit, don't
+ * reject), so grunge stays dense at blob edges. Halftone uses the same sampling with a regular
+ * (optionally rotated) screen grid, distress knobs and seed-driven randomness, shared with the
+ * pixels/outline region path.
  */
 export function fieldTextureFragments(
   field: TextureField,

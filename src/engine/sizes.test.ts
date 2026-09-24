@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { MAX_SIZE } from './doc'
 import { SIZE_GROUPS, allSizeOptions } from './sizes'
 

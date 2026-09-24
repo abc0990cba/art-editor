@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
-import { Tooltip } from './Tooltip'
-import { bufferWidth, STAGE_THEMES, docExtent, resolveColor, type Doc, type StageTheme } from '../engine/doc'
+
+import { brushAnchor, brushOffsets } from '../engine/brush'
+import {
+  bufferWidth,
+  STAGE_THEMES,
+  docExtent,
+  resolveColor,
+  type Doc,
+  type StageTheme,
+} from '../engine/doc'
 import type { Link } from '../engine/doc'
-import { makeGrid, type Grid } from '../engine/grids'
-import { marchingSquares, type Pt } from '../engine/marchingSquares'
+import type { SymmetryState } from '../engine/doc'
+import { applyFillStyle, patternCoord } from '../engine/fillpatterns'
 import {
   buildGeometry,
   stagingPreview,
@@ -13,21 +19,12 @@ import {
   type Geometry,
   type Staging,
 } from '../engine/geometry'
-import { regionCells, pointInPolys, fillCellsEvenOdd } from '../engine/shapefill'
-import { nodeProtected, objLayer, type SceneLayer } from '../engine/scene'
-import { applyFillStyle, patternCoord } from '../engine/fillpatterns'
-import { scrollbarMetrics } from '../engine/scrollbars'
+import { makeGrid, type Grid } from '../engine/grids'
+import { marchingSquares, type Pt } from '../engine/marchingSquares'
 import { drawGeometry } from '../engine/png'
-import { brushAnchor, brushOffsets } from '../engine/brush'
-import {
-  angleInFilledWedge,
-  isRepeat,
-  polarAngleMaps,
-  repeatDef,
-  symmetryPairPoints,
-  symmetryPoints,
-  symmetryTransforms,
-} from '../engine/symmetry'
+import { nodeProtected, objLayer, type SceneLayer } from '../engine/scene'
+import { scrollbarMetrics } from '../engine/scrollbars'
+import { regionCells, pointInPolys, fillCellsEvenOdd } from '../engine/shapefill'
 import {
   ellipsePoints,
   isShapeTool,
@@ -38,9 +35,20 @@ import {
   shapeHasHoles,
   shapePathLoops,
 } from '../engine/shapes'
-import type { SymmetryState } from '../engine/doc'
+import {
+  angleInFilledWedge,
+  isRepeat,
+  polarAngleMaps,
+  repeatDef,
+  symmetryPairPoints,
+  symmetryPoints,
+  symmetryTransforms,
+} from '../engine/symmetry'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
+import { Tooltip } from './Tooltip'
 
-/** safety cap: one stamp event writes at most this many buffer cells */
+/** Safety cap: one stamp event writes at most this many buffer cells */
 const MAX_STAMPS = 20_000
 
 /** Overlay scrollbar thickness in px. */
@@ -50,9 +58,9 @@ const SCROLLBAR = 10
 const ANTS_SPEED = 30
 
 /**
- * A compact lattice blob of `count` cells around the anchor: brush tips are square-grid
- * concepts, so on hex/triangle/radial grids a size-N brush paints the N² nearest cells
- * (greedy nearest-frontier growth, deterministic).
+ * A compact lattice blob of `count` cells around the anchor: brush tips are square-grid concepts,
+ * so on hex/triangle/radial grids a size-N brush paints the N² nearest cells (greedy
+ * nearest-frontier growth, deterministic).
  */
 function blobCells(grid: Grid, anchor: number, count: number): number[] {
   const set = new Set<number>([anchor])
@@ -93,7 +101,7 @@ interface DragState {
   start?: [number, number]
   last?: number
   removedLinks?: Set<number>
-  /** move drag: snapshot of the selected cells [index, value, element id] plus last offset */
+  /** Move drag: snapshot of the selected cells [index, value, element id] plus last offset */
   moved?: Array<[number, number, number]>
   dx?: number
   dy?: number
@@ -174,7 +182,7 @@ function drawGuides(
       const s = c / sub
       const A: [number, number] = [def.A[0] * s, def.A[1] * s]
       const B: [number, number] = [def.B[0] * s, def.B[1] * s]
-      /** lines parallel to `dir` through points k·offset, covering the canvas */
+      /** Lines parallel to `dir` through points k·offset, covering the canvas */
       const family = (dir: [number, number], offset: [number, number]) => {
         const n: [number, number] = [-dir[1], dir[0]]
         const step = offset[0] * n[0] + offset[1] * n[1]
@@ -474,7 +482,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     [doc.palette],
   )
 
-  /** doc-space point under the pointer */
+  /** Doc-space point under the pointer */
   const toDoc = useCallback(
     (e: { clientX: number; clientY: number }) => {
       const el = canvasRef.current
@@ -488,7 +496,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     [view],
   )
 
-  /** buffer index under the pointer (-1 outside) */
+  /** Buffer index under the pointer (-1 outside) */
   const toIndex = useCallback(
     (e: { clientX: number; clientY: number }) => {
       const p = toDoc(e)
@@ -525,7 +533,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     return st
   }
 
-  /** symmetry orbit of a single cell index (per-point copies) */
+  /** Symmetry orbit of a single cell index (per-point copies) */
   const expand = useCallback(
     (idx: number): number[] => {
       if (isSquare) {
@@ -558,7 +566,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     [isSquare, bw, bh, symmetry, grid, radialOpts],
   )
 
-  /** symmetry copies of a cell pair under the polar maps (non-square connector/shape pairs) */
+  /** Symmetry copies of a cell pair under the polar maps (non-square connector/shape pairs) */
   const polarPairs = useCallback(
     (aIdx: number, bIdx: number): Array<[number, number]> => {
       const maps = polarAngleMaps(symmetry.mode, symmetry.n, radialOpts)
@@ -580,7 +588,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     [symmetry, grid, radialOpts],
   )
 
-  /** doc-space distance² from point to the connector segment */
+  /** Doc-space distance² from point to the connector segment */
   const linkDistSq = (l: Link, p: DocPoint): number => {
     let ax: number, ay: number, bx: number, by: number
     if (isSquare) {
@@ -606,7 +614,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     return dx * dx + dy * dy
   }
 
-  /** connector links plus their symmetry copies (both endpoints mapped by the same copy) */
+  /** Connector links plus their symmetry copies (both endpoints mapped by the same copy) */
   const connectorCopies = useCallback(
     (a: { ax: number; ay: number }, b: { ax: number; ay: number }): Link[] => {
       const out: Link[] = []
@@ -666,10 +674,10 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   )
 
   /**
-   * Stamp the brush tip under the pointer: the anchor cell comes from the pixel-size grid
-   * (snapped) or sits centered under the cursor (Alt), the tip pattern is stamped at every
-   * symmetry copy of the anchor. Square grids use the tip pattern; other grids paint a
-   * compact lattice blob of size² cells.
+   * Stamp the brush tip under the pointer: the anchor cell comes from the pixel-size grid (snapped)
+   * or sits centered under the cursor (Alt), the tip pattern is stamped at every symmetry copy of
+   * the anchor. Square grids use the tip pattern; other grids paint a compact lattice blob of size²
+   * cells.
    */
   const stampBrush = useCallback(
     (idx: number, erase: boolean, dragState: DragState, pDoc: DocPoint | null, free: boolean) => {
@@ -729,7 +737,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     ],
   )
 
-  /** stamp the tip pattern at one buffer anchor, bounds-checked */
+  /** Stamp the tip pattern at one buffer anchor, bounds-checked */
   const stampTipInto = useCallback(
     (
       st: { cells: Map<number, number | null>; objs: Map<number, number | null> },
@@ -784,17 +792,23 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         st.cells.set(i, val)
         st.objs!.set(i, PENDING_OBJ)
       }
-      /** even-odd fill of a hole-bearing copy (skull); null for regular shapes */
+      /** Even-odd fill of a hole-bearing copy (skull); null for regular shapes */
       const holeFillFor = (a: [number, number], b: [number, number]) =>
         isShapeTool(tool) && shapeHasHoles(tool)
           ? fillCellsEvenOdd(
-              shapePathLoops(tool, a[0], a[1], b[0], b[1], { ...toolOpts, circles: concentricRadii }),
+              shapePathLoops(tool, a[0], a[1], b[0], b[1], {
+                ...toolOpts,
+                circles: concentricRadii,
+              }),
               bw,
               bh,
             )
           : null
-      /** fill + aligned stroke of one rasterized copy (square grid) */
-      const emitSquareCopy = (outlinePts: Array<[number, number]>, holeFill?: Set<number> | null) => {
+      /** Fill + aligned stroke of one rasterized copy (square grid) */
+      const emitSquareCopy = (
+        outlinePts: Array<[number, number]>,
+        holeFill?: Set<number> | null,
+      ) => {
         const outlineSet = new Set(outlinePts.map(([x, y]) => y * bw + x))
         let inside: Set<number> | null = null
         let outside: Set<number> | null = null
@@ -870,7 +884,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
           }
           for (const [ax, ay, bx, by] of copies) {
             if (!shapeLike) {
-              for (const [px, py] of rasterize([ax, ay], [bx, by])) stampTipInto(st, vStroke, px, py)
+              for (const [px, py] of rasterize([ax, ay], [bx, by]))
+                stampTipInto(st, vStroke, px, py)
             } else {
               emitSquareCopy(rasterize([ax, ay], [bx, by]), holeFillFor([ax, ay], [bx, by]))
             }
@@ -917,7 +932,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
                 for (const i of [...region.inside, ...outlineSet]) {
                   const x = i % bw
                   const y = (i - x) / bw
-                  for (const [ox, oy] of orbitOf(x, y).slice(0, cap)) stampCell(oy * bw + ox, vFillMain)
+                  for (const [ox, oy] of orbitOf(x, y).slice(0, cap))
+                    stampCell(oy * bw + ox, vFillMain)
                 }
               }
             }
@@ -935,7 +951,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
                         ? !region.outside.has(i)
                         : !region.inside.has(i)
                   if (!keep) continue
-                  for (const [ox, oy] of orbitOf(x, y).slice(0, cap)) stampCell(oy * bw + ox, vStroke)
+                  for (const [ox, oy] of orbitOf(x, y).slice(0, cap))
+                    stampCell(oy * bw + ox, vStroke)
                 }
               }
             }
@@ -1091,8 +1108,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   )
 
   /**
-   * Fill scope on radial grids: a click can cover the whole sector wedge (every ring) or the
-   * whole ring instead of one cell. Returns null when the plain cell scope applies.
+   * Fill scope on radial grids: a click can cover the whole sector wedge (every ring) or the whole
+   * ring instead of one cell. Returns null when the plain cell scope applies.
    */
   const fillSeeds = useCallback(
     (idx: number): number[] | null => {
@@ -1139,7 +1156,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         // shape stroke: fill + stroke committed as one object with per-cell values;
         // single-color shapes commit as a parametric source node (live geometry)
         useStore.getState().pushRecent(color)
-        let parametric: { op: string; params: Record<string, number | string | boolean> } | undefined
+        let parametric:
+          | { op: string; params: Record<string, number | string | boolean> }
+          | undefined
         const start = shapeStartRef.current
         const last = shapeLastRef.current
         if (start && last) {
@@ -1152,13 +1171,51 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
           if (singleColor) {
             const base = { color: inkColor }
             if (tool === 'rect')
-              parametric = { op: 'source.rect', params: { ...base, x: Math.round(minX), y: Math.round(minY), w: Math.max(1, Math.round(maxX - minX)), h: Math.max(1, Math.round(maxY - minY)) } }
+              parametric = {
+                op: 'source.rect',
+                params: {
+                  ...base,
+                  x: Math.round(minX),
+                  y: Math.round(minY),
+                  w: Math.max(1, Math.round(maxX - minX)),
+                  h: Math.max(1, Math.round(maxY - minY)),
+                },
+              }
             else if (tool === 'ellipse')
-              parametric = { op: 'source.ellipse', params: { ...base, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, rx: Math.max(0.5, (maxX - minX) / 2), ry: Math.max(0.5, (maxY - minY) / 2) } }
+              parametric = {
+                op: 'source.ellipse',
+                params: {
+                  ...base,
+                  cx: (minX + maxX) / 2,
+                  cy: (minY + maxY) / 2,
+                  rx: Math.max(0.5, (maxX - minX) / 2),
+                  ry: Math.max(0.5, (maxY - minY) / 2),
+                },
+              }
             else if (tool === 'line')
-              parametric = { op: 'source.line', params: { ...base, x0: Math.round(start[0]), y0: Math.round(start[1]), x1: Math.round(last[0]), y1: Math.round(last[1]) } }
+              parametric = {
+                op: 'source.line',
+                params: {
+                  ...base,
+                  x0: Math.round(start[0]),
+                  y0: Math.round(start[1]),
+                  x1: Math.round(last[0]),
+                  y1: Math.round(last[1]),
+                },
+              }
             else if (isShapeTool(tool))
-              parametric = { op: 'source.shape', params: { ...base, shape: tool, x: Math.round(minX), y: Math.round(minY), w: Math.max(3, Math.round(maxX - minX)), h: Math.max(3, Math.round(maxY - minY)), ...toolOpts } }
+              parametric = {
+                op: 'source.shape',
+                params: {
+                  ...base,
+                  shape: tool,
+                  x: Math.round(minX),
+                  y: Math.round(minY),
+                  w: Math.max(3, Math.round(maxX - minX)),
+                  h: Math.max(3, Math.round(maxY - minY)),
+                  ...toolOpts,
+                },
+              }
           }
         }
         paintCellsValues(st.cells as Map<number, number>, resolved, parametric)
@@ -1228,8 +1285,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     if (!p) return
     const idx = toIndex(e)
     // painting tools are no-ops while the active layer is locked (or under a locked parent)
-    const drawBlocked =
-      tool !== 'select' && tool !== 'picker' ? activeLayerState().locked : false
+    const drawBlocked = tool !== 'select' && tool !== 'picker' ? activeLayerState().locked : false
     switch (tool) {
       case 'select': {
         // locked or hidden-ancestor objects are not pickable
@@ -1621,7 +1677,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
   interface ElementOutline {
     path: Path2D
-    /** bounding box in doc units, for the selection size badge */
+    /** Bounding box in doc units, for the selection size badge */
     minX: number
     minY: number
     maxX: number
@@ -1885,9 +1941,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     }
 
     /**
-     * Paint strokes onto a scratch canvas and punch the shape interior back out, so only
-     * the OUTER half of every stroke survives: selection/hover outlines never cover the
-     * pixels or edges they mark (the Photoshop/Illustrator practice).
+     * Paint strokes onto a scratch canvas and punch the shape interior back out, so only the OUTER
+     * half of every stroke survives: selection/hover outlines never cover the pixels or edges they
+     * mark (the Photoshop/Illustrator practice).
      */
     const blitOutsideStrokes = (
       build: (s: CanvasRenderingContext2D) => void,
@@ -1959,8 +2015,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
           s.stroke(selOut.path)
           s.globalAlpha = 1
           const dash = 4 / view.zoom
-          const phase =
-            ((antsOffsetRef.current * ANTS_SPEED) / 1000 / view.zoom) % (dash * 2)
+          const phase = ((antsOffsetRef.current * ANTS_SPEED) / 1000 / view.zoom) % (dash * 2)
           s.lineWidth = 1.5 / view.zoom
           s.setLineDash([dash, dash])
           s.strokeStyle = 'rgba(255,255,255,0.8)'
@@ -2226,7 +2281,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   return (
     <div
       ref={wrapRef}
-      className="relative min-w-0 flex-1 overflow-hidden bg-app"
+      className="bg-app relative min-w-0 flex-1 overflow-hidden"
       onDragOver={(e) => {
         if (!onDropFile || !e.dataTransfer?.types.includes('Files')) return
         e.preventDefault()
@@ -2245,7 +2300,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       }}
     >
       {importDragOver && (
-        <div className="pointer-events-none absolute inset-2 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-accent-line bg-accent-soft/40 text-xs font-medium text-accent-text backdrop-blur-sm">
+        <div className="border-accent-line bg-accent-soft/40 text-accent-text pointer-events-none absolute inset-2 z-10 flex items-center justify-center rounded-xl border-2 border-dashed text-xs font-medium backdrop-blur-sm">
           {t('import.pick')}
         </div>
       )}
@@ -2261,12 +2316,12 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       />
       <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 touch-none" />
       {pendingLink && (
-        <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-accent-text backdrop-blur">
+        <div className="text-accent-text pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs backdrop-blur">
           {t('view.linkPending')}
         </div>
       )}
       {scopeHint && (
-        <div className="absolute top-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-line bg-panel px-3 py-1.5 text-xs text-body shadow-lg">
+        <div className="border-line bg-panel text-body absolute top-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs shadow-lg">
           <span>{t('select.scopeHint')}</span>
           <button
             type="button"
@@ -2274,7 +2329,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
               setStyleScope('element')
               setScopeHint(false)
             }}
-            className="rounded border border-accent-line bg-accent-soft px-1.5 py-0.5 text-accent-text transition hover:border-accent-text"
+            className="border-accent-line bg-accent-soft text-accent-text hover:border-accent-text rounded border px-1.5 py-0.5 transition"
           >
             {t('select.scopeHint.action')}
           </button>
@@ -2282,7 +2337,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
             type="button"
             onClick={() => setScopeHint(false)}
             aria-label={t('preview.close')}
-            className="text-muted transition hover:text-body"
+            className="text-muted hover:text-body transition"
           >
             <svg
               viewBox="0 0 16 16"
@@ -2297,9 +2352,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
           </button>
         </div>
       )}
-      <div className="absolute right-3 bottom-3 flex items-center gap-2 rounded-lg bg-black/50 px-2 py-1 text-xs text-body backdrop-blur">
+      <div className="text-body absolute right-3 bottom-3 flex items-center gap-2 rounded-lg bg-black/50 px-2 py-1 text-xs backdrop-blur">
         <Tooltip label={t('view.cursor.desc')}>
-          <span className="font-mono text-muted">
+          <span className="text-muted font-mono">
             {hover
               ? `${
                   isSquare
@@ -2319,7 +2374,14 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         title={`${t('top.fit')} (F)`}
         className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-md bg-black/50 px-2.5 py-1.5 text-[11px] text-white/80 backdrop-blur-sm transition hover:bg-black/70 hover:text-white"
       >
-        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+        <svg
+          viewBox="0 0 16 16"
+          className="h-3.5 w-3.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        >
           <path d="M2 5.5v-2A1.5 1.5 0 013.5 2h2" />
           <path d="M10.5 2h2A1.5 1.5 0 0114 3.5v2" />
           <path d="M14 10.5v2a1.5 1.5 0 01-1.5 1.5h-2" />
@@ -2331,13 +2393,13 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       {hBar.visible && (
         <div
           aria-label={t('view.scrollX')}
-          className="absolute bottom-0 left-0 touch-none rounded-tl-md bg-chip"
+          className="bg-chip absolute bottom-0 left-0 touch-none rounded-tl-md"
           style={{ height: SCROLLBAR, width: wrapSize.w - (vVisible ? SCROLLBAR : 0) }}
           onPointerDown={trackDown('x', hBar.scale, vwDoc)}
         >
           <div
             aria-label={t('view.scrollX')}
-            className="absolute rounded-full bg-muted/40 transition-colors hover:bg-muted/70 active:bg-muted"
+            className="bg-muted/40 hover:bg-muted/70 active:bg-muted absolute rounded-full transition-colors"
             style={{
               left: hBar.thumbPos,
               width: hBar.thumbLen,
@@ -2355,13 +2417,13 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       {vBar.visible && (
         <div
           aria-label={t('view.scrollY')}
-          className="absolute top-0 right-0 touch-none rounded-bl-md bg-chip"
+          className="bg-chip absolute top-0 right-0 touch-none rounded-bl-md"
           style={{ width: SCROLLBAR, height: wrapSize.h - (hVisible ? SCROLLBAR : 0) }}
           onPointerDown={trackDown('y', vBar.scale, vhDoc)}
         >
           <div
             aria-label={t('view.scrollY')}
-            className="absolute rounded-full bg-muted/40 transition-colors hover:bg-muted/70 active:bg-muted"
+            className="bg-muted/40 hover:bg-muted/70 active:bg-muted absolute rounded-full transition-colors"
             style={{
               top: vBar.thumbPos,
               height: vBar.thumbLen,

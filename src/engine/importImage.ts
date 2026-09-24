@@ -1,13 +1,11 @@
 /**
- * Image import: convert an external photo into document cells (palette indices).
- * Pure pipeline — fit sampling, pre-processing, palette quantization and dithering,
- * then post-processing — with no DOM APIs, so it stays unit-testable. The dialog
- * decodes a File into an ImportBitmap (offscreen canvas) and this module turns it
- * into cells + palette.
+ * Image import: convert an external photo into document cells (palette indices). Pure pipeline —
+ * fit sampling, pre-processing, palette quantization and dithering, then post-processing — with no
+ * DOM APIs, so it stays unit-testable. The dialog decodes a File into an ImportBitmap (offscreen
+ * canvas) and this module turns it into cells + palette.
  */
 
 import { hexToRgb, rgbToHex } from './color'
-import { MAX_SIZE, MIN_SIZE, type SubDetail } from './doc'
 import {
   BAYER2,
   BAYER4,
@@ -21,6 +19,7 @@ import {
   thresholdAt,
   crosshatchAt,
 } from './ditherMatrices'
+import { MAX_SIZE, MIN_SIZE, type SubDetail } from './doc'
 import {
   gaussianBlurRGBA,
   sharpenRGBA,
@@ -90,7 +89,9 @@ export const ORDERED_DITHERS: ReadonlySet<ImportDither> = new Set([
 
 /** Color reduction target: the document palette, a fixed set of colors, or auto (median cut). */
 export type ImportPaletteChoice =
-  { kind: 'current' } | { kind: 'preset'; colors: string[] } | { kind: 'auto'; colors: number }
+  | { kind: 'current' }
+  | { kind: 'preset'; colors: string[] }
+  | { kind: 'auto'; colors: number }
 
 export interface ImportOptions {
   fit: ImportFit
@@ -102,33 +103,33 @@ export interface ImportOptions {
   contrast: number
   /** -100..100 */
   saturation: number
-  /** each imported pixel covers pixelScale² cells (1..4) */
+  /** Each imported pixel covers pixelScale² cells (1..4) */
   pixelScale: number
-  /** dither strength 0..100 — 0 leaves plain nearest colors, 100 applies the kernel fully */
+  /** Dither strength 0..100 — 0 leaves plain nearest colors, 100 applies the kernel fully */
   ditherStrength: number
-  /** ordered threshold bias 0..255 (128 = neutral); low = more dark cells */
+  /** Ordered threshold bias 0..255 (128 = neutral); low = more dark cells */
   threshold: number
-  /** pre-blur radius 0..10 */
+  /** Pre-blur radius 0..10 */
   blur: number
-  /** unsharp-mask amount 0..100 */
+  /** Unsharp-mask amount 0..100 */
   sharpen: number
-  /** hue rotation -180..180 degrees */
+  /** Hue rotation -180..180 degrees */
   hue: number
-  /** median denoise 0..5 before dithering */
+  /** Median denoise 0..5 before dithering */
   preDenoise: number
-  /** smoothing 0..5 before dithering */
+  /** Smoothing 0..5 before dithering */
   preSmooth: number
-  /** median denoise 0..5 after glow */
+  /** Median denoise 0..5 after glow */
   postDenoise: number
-  /** smoothing 0..5 after glow */
+  /** Smoothing 0..5 after glow */
   postSmooth: number
-  /** glow (screen-blend bloom) radius 0..24 */
+  /** Glow (screen-blend bloom) radius 0..24 */
   glowRadius: number
-  /** glow intensity 0..100 */
+  /** Glow intensity 0..100 */
   glowIntensity: number
-  /** horizontal chromatic aberration 0..12 px */
+  /** Horizontal chromatic aberration 0..12 px */
   aberration: number
-  /** synthetic midpoints between adjacent palette colors 0..100 (0 = off) */
+  /** Synthetic midpoints between adjacent palette colors 0..100 (0 = off) */
   blend: number
 }
 
@@ -165,22 +166,18 @@ export interface ImportResult {
   cols: number
   rows: number
   palette: string[]
-  /** cols*sub × rows*sub palette values; 0 = empty (transparent) */
+  /** Cols_sub × rows_sub palette values; 0 = empty (transparent) */
   cells: Uint16Array
 }
 
 const clamp255 = (v: number): number => (v < 0 ? 0 : v > 255 ? 255 : v)
 
 /**
- * Connected same-value regions of a converted buffer (4-neighborhood), grouped by
- * palette value. Feeds the "object per connected region" import split: every region
- * becomes its own object, so each island of color can be moved independently.
+ * Connected same-value regions of a converted buffer (4-neighborhood), grouped by palette value.
+ * Feeds the "object per connected region" import split: every region becomes its own object, so
+ * each island of color can be moved independently.
  */
-export function colorRegions(
-  cells: Uint16Array,
-  bw: number,
-  bh: number,
-): Map<number, number[][]> {
+export function colorRegions(cells: Uint16Array, bw: number, bh: number): Map<number, number[][]> {
   const seen = new Uint8Array(cells.length)
   const out = new Map<number, number[][]>()
   const stack: number[] = []
@@ -236,9 +233,9 @@ export function resizeTargetSize(
 const clampSide = (v: number): number => Math.max(MIN_SIZE, Math.min(MAX_SIZE, Math.round(v)))
 
 /**
- * Fit the source into a tw×th sample grid by area-averaged (box) downsampling.
- * Colors are averaged weighted by alpha; the output is straight RGBA floats and
- * fully transparent samples stay at 0. 'resize' samples like 'stretch'.
+ * Fit the source into a tw×th sample grid by area-averaged (box) downsampling. Colors are averaged
+ * weighted by alpha; the output is straight RGBA floats and fully transparent samples stay at 0.
+ * 'resize' samples like 'stretch'.
  */
 function fitToGrid(src: ImportBitmap, tw: number, th: number, fit: ImportFit): Float64Array {
   const { width: W, height: H, data } = src
@@ -326,7 +323,10 @@ function fitToGrid(src: ImportBitmap, tw: number, th: number, fit: ImportFit): F
   return out
 }
 
-/** Brightness / contrast / saturation in place on straight RGBA floats; transparent samples keep alpha 0. */
+/**
+ * Brightness / contrast / saturation in place on straight RGBA floats; transparent samples keep
+ * alpha 0.
+ */
 function adjustImage(
   sample: Float64Array,
   brightness: number,
@@ -374,10 +374,9 @@ export function normalizePalette(hexes: readonly string[]): string[] {
 }
 
 /**
- * Insert synthetic midpoint colors between every adjacent pair of the
- * luminance-sorted palette, so dithered gradients gain intermediate steps
- * (amount 0 = unchanged; higher values add up to three midpoints per pair).
- * The dithering pipeline uses the expanded list; the document palette grows
+ * Insert synthetic midpoint colors between every adjacent pair of the luminance-sorted palette, so
+ * dithered gradients gain intermediate steps (amount 0 = unchanged; higher values add up to three
+ * midpoints per pair). The dithering pipeline uses the expanded list; the document palette grows
  * accordingly, capped at 64 entries.
  */
 export function expandPaletteWithBlend(palette: readonly string[], amount: number): string[] {
@@ -410,9 +409,9 @@ export function expandPaletteWithBlend(palette: readonly string[], amount: numbe
 const MEDIAN_CUT_CAP = 32768
 
 /**
- * Median-cut quantization of the opaque samples into up to maxColors colors.
- * Samples a deterministic stride of the grid so huge photos stay cheap; the result
- * is sorted by luminance so the document palette reads like a ramp.
+ * Median-cut quantization of the opaque samples into up to maxColors colors. Samples a
+ * deterministic stride of the grid so huge photos stay cheap; the result is sorted by luminance so
+ * the document palette reads like a ramp.
  */
 export function medianCut(sample: Float64Array, maxColors: number): string[] {
   const total = sample.length / 4
@@ -494,7 +493,10 @@ function paletteChannels(palette: string[]): PaletteRgb {
   return { r, g, b }
 }
 
-/** Nearest palette color by a perceptually weighted squared RGB distance; -1 when all colors are excluded. */
+/**
+ * Nearest palette color by a perceptually weighted squared RGB distance; -1 when all colors are
+ * excluded.
+ */
 function nearestIndex(pal: PaletteRgb, r: number, g: number, b: number, exclude = -1): number {
   let best = -1
   let bestD = Infinity
@@ -513,10 +515,10 @@ function nearestIndex(pal: PaletteRgb, r: number, g: number, b: number, exclude 
 }
 
 /**
- * Ordered dithering generalized to a palette: for each pixel the two nearest palette
- * colors form an axis; the pixel's tone along it is compared against a threshold
- * field. Strength scales the matrix's influence (0 = a clean 50% split at the
- * threshold bias) and the threshold bias shifts the cutoff.
+ * Ordered dithering generalized to a palette: for each pixel the two nearest palette colors form an
+ * axis; the pixel's tone along it is compared against a threshold field. Strength scales the
+ * matrix's influence (0 = a clean 50% split at the threshold bias) and the threshold bias shifts
+ * the cutoff.
  */
 function mapOrdered(
   sample: Float64Array,
@@ -567,8 +569,8 @@ interface DiffusionKernel {
 }
 
 /**
- * Classic error-diffusion kernels in scan orientation (dx > 0 = the next column);
- * serpentine rows mirror the dx sign. Values follow the canonical published tables.
+ * Classic error-diffusion kernels in scan orientation (dx > 0 = the next column); serpentine rows
+ * mirror the dx sign. Values follow the canonical published tables.
  */
 const DIFFUSION_KERNELS: Partial<Record<ImportDither, DiffusionKernel>> = {
   floyd: {
@@ -760,8 +762,8 @@ function mapErrorDiffusion(
 }
 
 /**
- * Ostromoukhov: simple, error-diffusion weights that vary with the pixel's tone
- * (32 luminance bands), giving even textures without directional worms.
+ * Ostromoukhov: simple, error-diffusion weights that vary with the pixel's tone (32 luminance
+ * bands), giving even textures without directional worms.
  */
 const OSTROMOUKHOV_TABLE: ReadonlyArray<readonly [number, number, number, number]> = [
   [13, 0, 5, 18],
@@ -852,8 +854,8 @@ function mapOstromoukhov(
 }
 
 /**
- * Variable-Error: Floyd–Steinberg geometry whose weights slide with the tone —
- * bright pixels push most error forward, dark pixels downward, for softer ramps.
+ * Variable-Error: Floyd–Steinberg geometry whose weights slide with the tone — bright pixels push
+ * most error forward, dark pixels downward, for softer ramps.
  */
 function mapVariableError(
   sample: Float64Array,
@@ -915,8 +917,8 @@ const DOT_CLASS = [
 ]
 
 /**
- * Dot-Diffusion: error flows from dark classes to bright ones along the scan
- * direction, scaled by the current cell's class — a grainy, evenly textured look.
+ * Dot-Diffusion: error flows from dark classes to bright ones along the scan direction, scaled by
+ * the current cell's class — a grainy, evenly textured look.
  */
 function mapDotDiffusion(
   sample: Float64Array,
@@ -957,8 +959,8 @@ function mapDotDiffusion(
 }
 
 /**
- * Riemersma: a decaying error memory along the (serpentine) scan path — no
- * spatial neighbor spread, so the texture stays quiet and slightly blurred.
+ * Riemersma: a decaying error memory along the (serpentine) scan path — no spatial neighbor spread,
+ * so the texture stays quiet and slightly blurred.
  */
 function mapRiemersma(
   sample: Float64Array,
@@ -1026,10 +1028,9 @@ const ORDERED_FIELDS: Partial<Record<ImportDither, (x: number, y: number) => num
 }
 
 /**
- * Full conversion: fit the bitmap to the grid, pre-process, reduce to a palette,
- * dither, post-process (glow / denoise / smooth with a palette re-snap), and
- * expand (with pixelScale) into document cells. Pure — the store commits the
- * returned snapshot as one undoable step.
+ * Full conversion: fit the bitmap to the grid, pre-process, reduce to a palette, dither,
+ * post-process (glow / denoise / smooth with a palette re-snap), and expand (with pixelScale) into
+ * document cells. Pure — the store commits the returned snapshot as one undoable step.
  */
 export function convertImage(
   src: ImportBitmap,

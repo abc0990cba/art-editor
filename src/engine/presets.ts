@@ -21,7 +21,7 @@ export interface PresetConfig {
   cols: number
   rows: number
   sub: SubDetail
-  /** radial grid only: ~equal cells per ring */
+  /** Radial grid only: ~equal cells per ring */
   radialEven: boolean
   palette: string[]
   style: PixelStyle

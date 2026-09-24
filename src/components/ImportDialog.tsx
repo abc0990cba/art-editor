@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
+
 import { hexToRgb } from '../engine/color'
-import { PALETTES } from '../engine/palettes'
 import {
   convertImage,
   DEFAULT_IMPORT_OPTIONS,
@@ -15,8 +13,11 @@ import {
   type ImportResult,
 } from '../engine/importImage'
 import { IMPORT_PRESETS } from '../engine/importPresets'
-import { Chip, CheckRow, Slider } from './ui'
+import { PALETTES } from '../engine/palettes'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 import { Tooltip } from './Tooltip'
+import { Chip, CheckRow, Slider } from './ui'
 
 const FITS: ImportFit[] = ['cover', 'contain', 'stretch', 'resize']
 const DITHER_GROUPS: Array<{
@@ -186,16 +187,16 @@ export function ImportDialog({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-4xl flex-col gap-3 overflow-hidden rounded-xl border border-line bg-app p-4 shadow-2xl"
+        className="border-line bg-app flex max-h-[85vh] w-full max-w-4xl flex-col gap-3 overflow-hidden rounded-xl border p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold tracking-wide text-body">{t('import.title')}</h2>
+          <h2 className="text-body text-sm font-semibold tracking-wide">{t('import.title')}</h2>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="rounded-md border border-line bg-chip px-2 py-1 text-xs text-body transition hover:border-chip-line"
+              className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-2 py-1 text-xs transition"
             >
               {t('import.change')}
             </button>
@@ -203,7 +204,7 @@ export function ImportDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md px-2 py-1 text-xs text-muted transition hover:bg-chip-active hover:text-body"
+                className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
               >
                 ✕
               </button>
@@ -224,13 +225,13 @@ export function ImportDialog({
         />
 
         {!square ? (
-          <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-body">
+          <p className="text-body rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
             {t('import.squareOnly')}
           </p>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md:flex-row">
             <div className="flex min-h-0 flex-1 flex-col gap-2">
-              <div className="min-h-[240px] flex-1 overflow-hidden rounded-lg border border-line bg-panel p-2">
+              <div className="border-line bg-panel min-h-[240px] flex-1 overflow-hidden rounded-lg border p-2">
                 <canvas
                   ref={canvasRef}
                   className="h-full w-full"
@@ -251,7 +252,7 @@ export function ImportDialog({
                   </Chip>
                 </div>
                 {result && (
-                  <span className="text-[10px] text-muted">
+                  <span className="text-muted text-[10px]">
                     {result.cols}×{result.rows} {t('import.info.cells')} · {colorsUsed}{' '}
                     {t('import.info.colors')}
                   </span>
@@ -261,7 +262,7 @@ export function ImportDialog({
 
             <div className="flex w-full shrink-0 flex-col gap-2.5 md:w-64">
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted">{t('import.presets')}</span>
+                <span className="text-muted text-xs">{t('import.presets')}</span>
                 <div className="flex flex-wrap gap-1">
                   {IMPORT_PRESETS.map((p) => (
                     <Chip
@@ -279,11 +280,11 @@ export function ImportDialog({
               </div>
 
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted">{t('import.fit')}</span>
+                <span className="text-muted text-xs">{t('import.fit')}</span>
                 <select
                   value={opts.fit}
                   onChange={(e) => patch({ fit: e.target.value as ImportFit })}
-                  className="w-full cursor-pointer rounded-md border border-line bg-chip px-2 py-1 text-xs text-body outline-none focus:border-accent-line"
+                  className="border-line bg-chip text-body focus:border-accent-line w-full cursor-pointer rounded-md border px-2 py-1 text-xs outline-none"
                 >
                   {FITS.map((f) => (
                     <option key={f} value={f}>
@@ -294,14 +295,14 @@ export function ImportDialog({
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-muted">{t('import.palette')}</span>
+                <span className="text-muted text-xs">{t('import.palette')}</span>
                 <select
                   value={paletteSel}
                   onChange={(e) => {
                     setPaletteSel(e.target.value)
                     patch({ palette: paletteChoice(e.target.value, autoColors) })
                   }}
-                  className="w-full cursor-pointer rounded-md border border-line bg-chip px-2 py-1 text-xs text-body outline-none focus:border-accent-line"
+                  className="border-line bg-chip text-body focus:border-accent-line w-full cursor-pointer rounded-md border px-2 py-1 text-xs outline-none"
                 >
                   <option value="auto">{t('import.palette.auto')}</option>
                   <option value="current">{t('import.palette.current')}</option>
@@ -330,11 +331,11 @@ export function ImportDialog({
               )}
 
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted">{t('import.dither')}</span>
+                <span className="text-muted text-xs">{t('import.dither')}</span>
                 <select
                   value={opts.dither}
                   onChange={(e) => patch({ dither: e.target.value as ImportDither })}
-                  className="w-full cursor-pointer rounded-md border border-line bg-chip px-2 py-1 text-xs text-body outline-none focus:border-accent-line"
+                  className="border-line bg-chip text-body focus:border-accent-line w-full cursor-pointer rounded-md border px-2 py-1 text-xs outline-none"
                 >
                   {DITHER_GROUPS.map((g) => (
                     <optgroup key={g.label} label={t(g.label)}>
@@ -398,8 +399,8 @@ export function ImportDialog({
                 onChange={(v) => patch({ saturation: v })}
               />
 
-              <details className="rounded-md border border-line px-2 py-1">
-                <summary className="cursor-pointer select-none text-xs text-muted">
+              <details className="border-line rounded-md border px-2 py-1">
+                <summary className="text-muted cursor-pointer text-xs select-none">
                   {t('import.section.pre')}
                 </summary>
                 <div className="mt-1.5 flex flex-col gap-2">
@@ -448,8 +449,8 @@ export function ImportDialog({
                 </div>
               </details>
 
-              <details className="rounded-md border border-line px-2 py-1">
-                <summary className="cursor-pointer select-none text-xs text-muted">
+              <details className="border-line rounded-md border px-2 py-1">
+                <summary className="text-muted cursor-pointer text-xs select-none">
                   {t('import.section.post')}
                 </summary>
                 <div className="mt-1.5 flex flex-col gap-2">
@@ -551,7 +552,7 @@ export function ImportDialog({
               />
             )}
             {layering.splitByColor && (
-              <div className="flex items-center gap-1 text-xs text-muted">
+              <div className="text-muted flex items-center gap-1 text-xs">
                 <span>{t('import.layerOrder')}</span>
                 <Chip
                   active={layering.layerOrder === 'palette'}
@@ -574,7 +575,7 @@ export function ImportDialog({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md border border-line bg-chip px-3 py-1.5 text-xs text-body transition hover:border-chip-line"
+              className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition"
             >
               {t('import.cancel')}
             </button>

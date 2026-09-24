@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { defaultDoc, type Doc } from './doc'
 import { buildGeometry } from './geometry'
 
@@ -11,7 +12,7 @@ function docWith(cells: Array<[number, number]>, cols = 8, rows = 8): Doc {
   return doc
 }
 
-/** end points of every path segment (arc inner params skipped; fillet arcs are inscribed) */
+/** End points of every path segment (arc inner params skipped; fillet arcs are inscribed) */
 function pathPoints(d: string): Array<[number, number]> {
   const pts: Array<[number, number]> = []
   const re = /([MLAZ])([^MLAZ]*)/g

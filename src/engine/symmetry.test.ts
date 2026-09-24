@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+
+import { linePoints } from './shapes'
 import {
   REPEAT_MODES,
   polarAngleMaps,
@@ -8,7 +10,6 @@ import {
   symmetryTransforms,
 } from './symmetry'
 import type { SymMode } from './symmetry'
-import { linePoints } from './shapes'
 
 const CELL = 8
 const BW = 48
@@ -223,7 +224,7 @@ describe('repeat modes (wallpaper / tiling)', () => {
 })
 
 describe('polarAngleMaps (non-square lattices)', () => {
-  /** apply an angle map to a cartesian point about the origin */
+  /** Apply an angle map to a cartesian point about the origin */
   const apply = (f: (a: number, r: number) => number, x: number, y: number): [number, number] => {
     const r = Math.hypot(x, y)
     const a2 = f(Math.atan2(y, x), r)

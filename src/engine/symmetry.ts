@@ -40,11 +40,11 @@ export const MAX_CELL = 64
 
 /** Extra knobs for the radial/kaleido modes (rosette drawing styles). */
 export interface RadialOpts {
-  /** painted fraction of each sector, 0..100 (100 = full sector) */
+  /** Painted fraction of each sector, 0..100 (100 = full sector) */
   fill?: number
-  /** rotation of the sector pattern in degrees, 0..359 */
+  /** Rotation of the sector pattern in degrees, 0..359 */
   phase?: number
-  /** extra rotation per unit radius in degrees (spiral twist), -45..45 */
+  /** Extra rotation per unit radius in degrees (spiral twist), -45..45 */
   twist?: number
 }
 
@@ -87,8 +87,8 @@ export function angleInFilledWedge(a: number, n: number, radial: RadialOpts | un
 const MAX_ORBIT = 4096
 
 /**
- * One symmetry operation in lattice-fractional coordinates:
- * (u, v) → (m0·u + m1·v + f0, m2·u + m3·v + f1)
+ * One symmetry operation in lattice-fractional coordinates: (u, v) → (m0·u + m1·v + f0, m2·u + m3·v +
+ * f1)
  */
 interface Op {
   m: [number, number, number, number]
@@ -96,14 +96,14 @@ interface Op {
 }
 
 interface RepeatDef {
-  /** lattice basis vectors in units of the cell size */
+  /** Lattice basis vectors in units of the cell size */
   A: [number, number]
   B: [number, number]
-  /** point-group operations (identity included) */
+  /** Point-group operations (identity included) */
   ops: Op[]
-  /** extra fractional translation of the lattice (centered cells: cm/cmm) */
+  /** Extra fractional translation of the lattice (centered cells: cm/cmm) */
   centering?: [number, number]
-  /** mirror-axis directions through lattice points, as fractional direction vectors */
+  /** Mirror-axis directions through lattice points, as fractional direction vectors */
   mirrors?: Array<[number, number]>
 }
 
@@ -282,10 +282,10 @@ function repeatPoints(
 }
 
 /**
- * Map one buffer point through the active symmetry mode.
- * Returns unique in-bounds points (the original always included) — or an empty list when the
- * radial sector gate rejects the point (nothing is painted outside the filled wedge).
- * `cell` is the repeat lattice size in buffer cells (repeat modes only).
+ * Map one buffer point through the active symmetry mode. Returns unique in-bounds points (the
+ * original always included) — or an empty list when the radial sector gate rejects the point
+ * (nothing is painted outside the filled wedge). `cell` is the repeat lattice size in buffer cells
+ * (repeat modes only).
  */
 export function symmetryPoints(
   x: number,
@@ -386,13 +386,13 @@ export function clampCell(v: unknown, fallback = 16): number {
 export type SymTransform = (x: number, y: number) => [number, number]
 
 /**
- * Angle maps (about the canvas center) of the non-identity copies of the finite modes, for
- * lattices without buffer-space mirrors (hex/triangle/radial). Angles use canvas coordinates
- * (y grows downward). Each map takes the center-relative angle and radius (the radius matters
- * only for the radial twist). The axes match the square-grid buffer math and the drawn guides:
- * mirrorX reflects across the vertical axis (left↔right, θ → π−θ), mirrorY across the
- * horizontal axis (top↔bottom, θ → −θ); kaleido mirrors across the vertical axis like the
- * square-grid sources [[dx,dy], [−dx,dy]].
+ * Angle maps (about the canvas center) of the non-identity copies of the finite modes, for lattices
+ * without buffer-space mirrors (hex/triangle/radial). Angles use canvas coordinates (y grows
+ * downward). Each map takes the center-relative angle and radius (the radius matters only for the
+ * radial twist). The axes match the square-grid buffer math and the drawn guides: mirrorX reflects
+ * across the vertical axis (left↔right, θ → π−θ), mirrorY across the horizontal axis (top↔bottom, θ
+ * → −θ); kaleido mirrors across the vertical axis like the square-grid sources [[dx,dy],
+ * [−dx,dy]].
  */
 export function polarAngleMaps(
   mode: SymMode,
@@ -431,12 +431,12 @@ export function polarAngleMaps(
 }
 
 /**
- * Point-map for every symmetry copy of the finite modes (mirrors, quad, diag8, radial,
- * kaleido). Shapes map their defining points through each transform and re-rasterize, so
- * every copy is a correctly drawn shape instead of a mirrored raster. Combine with the
- * untransformed shape and dedupe results; radial/kaleido include the k=0 identity map,
- * mirror modes do not. Returns null for `none` and repeat/wallpaper modes — those have no
- * per-copy endpoint map and keep per-point orbit expansion via `symmetryPoints`.
+ * Point-map for every symmetry copy of the finite modes (mirrors, quad, diag8, radial, kaleido).
+ * Shapes map their defining points through each transform and re-rasterize, so every copy is a
+ * correctly drawn shape instead of a mirrored raster. Combine with the untransformed shape and
+ * dedupe results; radial/kaleido include the k=0 identity map, mirror modes do not. Returns null
+ * for `none` and repeat/wallpaper modes — those have no per-copy endpoint map and keep per-point
+ * orbit expansion via `symmetryPoints`.
  */
 export function symmetryTransforms(
   bw: number,
@@ -501,9 +501,9 @@ export function symmetryTransforms(
 }
 
 /**
- * Copies of a directed endpoint pair (a, b) under symmetry: both endpoints are always mapped
- * by the same operation, so mirrored/rotated connectors stay connected. Includes the original
- * pair first; every returned copy is fully in bounds.
+ * Copies of a directed endpoint pair (a, b) under symmetry: both endpoints are always mapped by the
+ * same operation, so mirrored/rotated connectors stay connected. Includes the original pair first;
+ * every returned copy is fully in bounds.
  */
 export function symmetryPairPoints(
   ax: number,

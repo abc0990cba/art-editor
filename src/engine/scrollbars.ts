@@ -1,16 +1,16 @@
 /**
- * Pure metrics for one axis of an overlay scrollbar: the track maps the canvas extent
- * linearly, the thumb mirrors the visible doc-space window. Pointer deltas convert to
- * doc units through `scale` (px per doc unit).
+ * Pure metrics for one axis of an overlay scrollbar: the track maps the canvas extent linearly, the
+ * thumb mirrors the visible doc-space window. Pointer deltas convert to doc units through `scale`
+ * (px per doc unit).
  */
 export interface ScrollbarMetrics {
-  /** the axis scrolls: the canvas is larger than the viewport on it */
+  /** The axis scrolls: the canvas is larger than the viewport on it */
   visible: boolean
-  /** px per doc unit along the track */
+  /** Px per doc unit along the track */
   scale: number
-  /** thumb length in px */
+  /** Thumb length in px */
   thumbLen: number
-  /** thumb offset from the track start in px, clamped to the track */
+  /** Thumb offset from the track start in px, clamped to the track */
   thumbPos: number
 }
 

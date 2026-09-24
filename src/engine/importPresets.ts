@@ -2,14 +2,14 @@ import { DEFAULT_IMPORT_OPTIONS, type ImportOptions, type ImportPaletteChoice } 
 import { PALETTES } from './palettes'
 
 /**
- * One-click recipes for the image-import dialog: each preset pins a complete
- * ImportOptions snapshot (palette + dither + processing) tuned for a look,
- * the same idea as Dither Boy's preset library but for still images.
+ * One-click recipes for the image-import dialog: each preset pins a complete ImportOptions snapshot
+ * (palette + dither + processing) tuned for a look, the same idea as Dither Boy's preset library
+ * but for still images.
  */
 
 export interface ImportPreset {
   id: string
-  /** built-in palette id to sync the palette select with, when applicable */
+  /** Built-in palette id to sync the palette select with, when applicable */
   paletteId?: string
   opts: ImportOptions
 }

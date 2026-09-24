@@ -1,9 +1,8 @@
 /**
- * Ordered-dither threshold matrices shared by the fill-pattern library and the
- * image-import dithering pipeline. Every matrix is stored in the canonical rank
- * convention (0 = the first threshold to flip, so low ranks map to dark tones)
- * and read through thresholdAt() into a 0..1 comparison value: a pixel tone t
- * picks the second palette color when t > thresholdAt(x, y).
+ * Ordered-dither threshold matrices shared by the fill-pattern library and the image-import
+ * dithering pipeline. Every matrix is stored in the canonical rank convention (0 = the first
+ * threshold to flip, so low ranks map to dark tones) and read through thresholdAt() into a 0..1
+ * comparison value: a pixel tone t picks the second palette color when t > thresholdAt(x, y).
  */
 
 export const BAYER2 = [

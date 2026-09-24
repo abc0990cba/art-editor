@@ -2,8 +2,8 @@ import { medianCut } from '../engine/importImage'
 import { parsePaletteText } from '../engine/paletteIO'
 
 /**
- * DOM glue for palette files: read .hex / .gpl / loose text or a palette image
- * (any bitmap — colors are median-cut sampled), and render the strip PNG export.
+ * DOM glue for palette files: read .hex / .gpl / loose text or a palette image (any bitmap — colors
+ * are median-cut sampled), and render the strip PNG export.
  */
 
 /** Parse a palette file into a normalized color list, or null when nothing parses. */

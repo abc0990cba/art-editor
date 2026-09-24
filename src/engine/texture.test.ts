@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
+
 import { defaultDoc, type TextureSettings } from './doc'
 import { buildGeometry } from './geometry'
-import { buildSvg } from './svg'
 import { deserialize, serialize } from './project'
+import { buildSvg } from './svg'
 import { fieldTextureFragments, regionTextureFragments, type TextureCell } from './texture'
 
 const DEFAULTS: Omit<TextureSettings, 'effect'> = {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { STAGE_THEMES } from './doc'
+
 import { resolvedTheme } from '../state/store'
+import { STAGE_THEMES } from './doc'
 
 describe('theming', () => {
   it('provides full stage theme objects for both themes with distinct values', () => {

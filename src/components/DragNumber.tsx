@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+
 import { Tooltip } from './Tooltip'
 
 /**
- * Blender-style numeric field: drag horizontally to scrub, plain click to type an
- * exact value, Shift halves the step, ↑/↓ and the wheel (while focused) step.
- * Typing accepts anything up to the hard `min`/`max`; dragging stops at the softer
- * `softMin`/`softMax` (canvas-derived) bounds so quick scrubs stay in a useful range.
+ * Blender-style numeric field: drag horizontally to scrub, plain click to type an exact value,
+ * Shift halves the step, ↑/↓ and the wheel (while focused) step. Typing accepts anything up to the
+ * hard `min`/`max`; dragging stops at the softer `softMin`/`softMax` (canvas-derived) bounds so
+ * quick scrubs stay in a useful range.
  */
 export function DragNumber({
   value,
@@ -21,10 +22,10 @@ export function DragNumber({
   onChange,
 }: {
   value: number
-  /** hard bounds — typing may reach these */
+  /** Hard bounds — typing may reach these */
   min: number
   max: number
-  /** drag/arrow bounds — softer, canvas-derived; default to min/max */
+  /** Drag/arrow bounds — softer, canvas-derived; default to min/max */
   softMin?: number
   softMax?: number
   step?: number
@@ -123,7 +124,7 @@ export function DragNumber({
           // deferred so the browser's caret placement from the click doesn't win
           if (d && !d.moved) setTimeout(() => inputRef.current?.select(), 0)
         }}
-        className={`cursor-ew-resize select-none rounded border border-line bg-chip px-1 py-0.5 text-right text-[10px] text-body outline-none focus:border-accent-line ${className}`}
+        className={`border-line bg-chip text-body focus:border-accent-line cursor-ew-resize rounded border px-1 py-0.5 text-right text-[10px] outline-none select-none ${className}`}
       />
     </Tooltip>
   )

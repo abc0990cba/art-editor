@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { useStore, undo, redo, useCanUndoRedo } from '../state/store'
+
 import { useI18n } from '../i18n'
-import { IconButton, useMediaQuery } from './ui'
-import { Tooltip } from './Tooltip'
-import { ProjectsDialog } from './ProjectsDialog'
-import { ProjectDialog } from './ProjectDialog'
+import { useStore, undo, redo, useCanUndoRedo } from '../state/store'
 import { ExportPopover } from './ExportPopover'
+import { ProjectDialog } from './ProjectDialog'
+import { ProjectsDialog } from './ProjectsDialog'
+import { Tooltip } from './Tooltip'
+import { IconButton, useMediaQuery } from './ui'
 
 export function TopBar({
   onImportFile,
   onTogglePanel,
 }: {
   onImportFile: (file: File) => void
-  /** phones/tablets: toggles the right-panel drawer (the column is hidden below lg) */
+  /** Phones/tablets: toggles the right-panel drawer (the column is hidden below lg) */
   onTogglePanel?: () => void
 }) {
   const { t } = useI18n()
@@ -54,7 +55,9 @@ export function TopBar({
   if (isNarrow) {
     // mobile: nav + document state only (Photoshop/Procreate pattern) — the tools
     // live in the bottom strip (App), rare actions hide behind the overflow menu
-    const themeLabel = { dark: t('theme.dark'), light: t('theme.light'), auto: t('theme.auto') }[themePref]
+    const themeLabel = { dark: t('theme.dark'), light: t('theme.light'), auto: t('theme.auto') }[
+      themePref
+    ]
     const row = (label: string, action: () => void) => (
       <button
         type="button"
@@ -62,14 +65,14 @@ export function TopBar({
           setMoreOpen(false)
           action()
         }}
-        className="flex h-11 w-full items-center rounded-lg px-3 text-left text-sm text-body transition hover:bg-chip-active"
+        className="text-body hover:bg-chip-active flex h-11 w-full items-center rounded-lg px-3 text-left text-sm transition"
       >
         {label}
       </button>
     )
     return (
       <>
-        <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-line px-2">
+        <header className="border-line flex h-14 shrink-0 items-center gap-1.5 border-b px-2">
           <svg viewBox="0 0 20 20" className="h-6 w-6 shrink-0" aria-hidden>
             <defs>
               <linearGradient id="logo-grad-m" x1="0" y1="0" x2="1" y2="1">
@@ -88,7 +91,7 @@ export function TopBar({
             type="button"
             onClick={() => setSetupOpen(true)}
             aria-label={t('project.name')}
-            className="flex h-10 min-w-0 flex-1 items-center rounded-md border border-line bg-chip px-2.5 text-left text-xs text-body transition hover:border-chip-line"
+            className="border-line bg-chip text-body hover:border-chip-line flex h-10 min-w-0 flex-1 items-center rounded-md border px-2.5 text-left text-xs transition"
           >
             <span className="truncate">{projectName || t('project.untitled')}</span>
           </button>
@@ -100,14 +103,28 @@ export function TopBar({
             className={projectDirty ? 'text-accent-text' : undefined}
             onClick={() => void saveToLibrary()}
           >
-            <svg viewBox="0 0 16 16" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinejoin="round"
+            >
               <path d="M2.5 4A1.5 1.5 0 014 2.5h6.4L13.5 5.6V12a1.5 1.5 0 01-1.5 1.5H4A1.5 1.5 0 012.5 12z" />
               <path d="M5.5 2.5V6h5V2.5" />
               <path d="M5.5 13.5V9.5h5v4" />
             </svg>
           </IconButton>
           <IconButton big plate title={t('top.panel')} onClick={onTogglePanel}>
-            <svg viewBox="0 0 16 16" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            >
               <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
               <path d="M10.5 2.5v3M10.5 9.5v3" />
             </svg>
@@ -123,15 +140,23 @@ export function TopBar({
         {moreOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
-            <div className="fixed right-2 top-15 z-50 w-64 rounded-xl border border-line bg-raised p-1.5 shadow-2xl">
+            <div className="border-line bg-raised fixed top-15 right-2 z-50 w-64 rounded-xl border p-1.5 shadow-2xl">
               {row(t('projects.title'), () => setProjectsOpen(true))}
-              {row(nodeEditorOpen ? t('editor.close') : t('editor.open'), () => (nodeEditorOpen ? closeNodeEditor() : openNodeEditor()))}
+              {row(nodeEditorOpen ? t('editor.close') : t('editor.open'), () =>
+                nodeEditorOpen ? closeNodeEditor() : openNodeEditor(),
+              )}
               {row(t('import.open'), () => importFileRef.current?.click())}
               {row(t('export.open'), () => setExportOpen(true))}
               {row(t('project.settings'), () => setSetupOpen(true))}
-              {row(`${t('top.theme')}: ${themeLabel}`, () => setThemePref(themePref === 'dark' ? 'light' : themePref === 'light' ? 'auto' : 'dark'))}
-              {row(`${t('lang.switch')}: ${lang === 'ru' ? 'RU' : 'EN'}`, () => setLang(lang === 'ru' ? 'en' : 'ru'))}
-              <div className="my-1 h-px bg-line" />
+              {row(`${t('top.theme')}: ${themeLabel}`, () =>
+                setThemePref(
+                  themePref === 'dark' ? 'light' : themePref === 'light' ? 'auto' : 'dark',
+                ),
+              )}
+              {row(`${t('lang.switch')}: ${lang === 'ru' ? 'RU' : 'EN'}`, () =>
+                setLang(lang === 'ru' ? 'en' : 'ru'),
+              )}
+              <div className="bg-line my-1 h-px" />
               {row(t('export.clear'), () => clear())}
             </div>
           </>
@@ -144,7 +169,7 @@ export function TopBar({
   }
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line px-3">
+    <header className="border-line flex h-12 shrink-0 items-center gap-3 border-b px-3">
       <div className="flex shrink-0 items-center gap-2">
         {/* pixel-cluster logo: rounded 2×2 pixels with a dither dot in the middle */}
         <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0" aria-hidden>
@@ -170,7 +195,7 @@ export function TopBar({
           <button
             type="button"
             onClick={() => setSetupOpen(true)}
-            className="flex h-7 max-w-[168px] items-center truncate rounded-md border border-line bg-chip px-2 text-xs text-body transition hover:border-chip-line"
+            className="border-line bg-chip text-body hover:border-chip-line flex h-7 max-w-[168px] items-center truncate rounded-md border px-2 text-xs transition"
           >
             {projectName || t('project.untitled')}
           </button>
@@ -217,7 +242,7 @@ export function TopBar({
 
       <div className="flex shrink-0 items-center gap-1">
         <span
-          className="flex h-7 items-center rounded-md border border-line bg-chip px-2 text-xs text-muted"
+          className="border-line bg-chip text-muted flex h-7 items-center rounded-md border px-2 text-xs"
           title={`${t('top.sizePreset')} — ${t('canvas.size')}`}
         >
           {doc.cols} × {doc.rows}
@@ -241,7 +266,13 @@ export function TopBar({
           title={t('editor.open')}
           onClick={() => (nodeEditorOpen ? closeNodeEditor() : openNodeEditor())}
         >
-          <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <svg
+            viewBox="0 0 16 16"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+          >
             <circle cx="3.4" cy="3.4" r="1.7" />
             <circle cx="11.6" cy="7" r="1.7" />
             <circle cx="4.6" cy="11.4" r="1.7" />
@@ -260,7 +291,12 @@ export function TopBar({
             <path d="M3 7.5h6a4 4 0 010 8H6" />
           </svg>
         </IconButton>
-        <IconButton plate title={`${t('top.redo')} (Ctrl+Shift+Z)`} onClick={redo} disabled={!canRedo}>
+        <IconButton
+          plate
+          title={`${t('top.redo')} (Ctrl+Shift+Z)`}
+          onClick={redo}
+          disabled={!canRedo}
+        >
           <svg
             viewBox="0 0 16 16"
             className="h-4 w-4 -scale-x-100"
@@ -272,7 +308,11 @@ export function TopBar({
             <path d="M3 7.5h6a4 4 0 010 8H6" />
           </svg>
         </IconButton>
-        <IconButton plate title={`${t('export.clear')} — ${t('export.clear.desc')}`} onClick={clear}>
+        <IconButton
+          plate
+          title={`${t('export.clear')} — ${t('export.clear.desc')}`}
+          onClick={clear}
+        >
           <svg
             viewBox="0 0 16 16"
             className="h-4 w-4"
@@ -288,7 +328,14 @@ export function TopBar({
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <Tooltip label={`${t('top.panel')} — ${t('top.panel.desc')}`}>
           <IconButton plate title={t('top.panel')} className="lg:hidden" onClick={onTogglePanel}>
-            <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+            <svg
+              viewBox="0 0 16 16"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            >
               <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
               <path d="M10.5 2.5v3M10.5 9.5v3" />
             </svg>
@@ -298,7 +345,7 @@ export function TopBar({
           <button
             type="button"
             onClick={() => importFileRef.current?.click()}
-            className="flex h-7 items-center gap-1.5 rounded-md border border-line bg-chip px-2 text-xs text-body transition hover:border-chip-line"
+            className="border-line bg-chip text-body hover:border-chip-line flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs transition"
           >
             <svg
               viewBox="0 0 16 16"
@@ -388,7 +435,7 @@ export function TopBar({
           {themeOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setThemeOpen(false)} />
-              <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-md border border-line bg-panel p-1 shadow-lg">
+              <div className="border-line bg-panel absolute top-full right-0 z-50 mt-1 w-40 rounded-md border p-1 shadow-lg">
                 {(
                   [
                     ['dark', 'theme.dark'],
@@ -434,7 +481,13 @@ export function TopBar({
                   : 'border-line bg-chip text-body hover:border-chip-line'
               }`}
             >
-              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <svg
+                viewBox="0 0 16 16"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              >
                 <circle cx="8" cy="8" r="6.2" />
                 <path d="M1.8 8h12.4M8 1.8c-4.4 4-4.4 8.4 0 12.4M8 1.8c4.4 4 4.4 8.4 0 12.4" />
               </svg>
@@ -443,7 +496,7 @@ export function TopBar({
           {langOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setLangOpen(false)} />
-              <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-md border border-line bg-panel p-1 shadow-lg">
+              <div className="border-line bg-panel absolute top-full right-0 z-50 mt-1 w-40 rounded-md border p-1 shadow-lg">
                 {(['en', 'ru'] as const).map((l) => (
                   <button
                     key={l}

@@ -7,8 +7,10 @@ import type { EditorPreset, PresetConfig } from './presets'
 
 const cache = new Map<string, string>()
 
-/** A deterministic blob-flower painted over the whole buffer, colors cycling the palette.
- * Dense enough that adjacent cells merge in metaball and outline render modes. */
+/**
+ * A deterministic blob-flower painted over the whole buffer, colors cycling the palette. Dense
+ * enough that adjacent cells merge in metaball and outline render modes.
+ */
 function sampleCells(config: PresetConfig): Uint16Array {
   const bw = config.cols * config.sub
   const bh = config.rows * config.sub

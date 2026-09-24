@@ -1,15 +1,15 @@
 /**
- * Raster operations for the image-import pipeline, all over straight RGBA
- * Float64Array buffers (row-major, 4 floats per pixel) — the same format
- * fitToGrid produces. Pure and deterministic: no DOM, no random.
+ * Raster operations for the image-import pipeline, all over straight RGBA Float64Array buffers
+ * (row-major, 4 floats per pixel) — the same format fitToGrid produces. Pure and deterministic: no
+ * DOM, no random.
  */
 
 const clamp255 = (v: number): number => (v < 0 ? 0 : v > 255 ? 255 : v)
 
 /**
- * Gaussian blur approximated by three box-blur passes (separable), the standard
- * Kovesi trick: visually indistinguishable from a true gaussian at these radii.
- * Radius is in pixels of the buffer (cell/sample space).
+ * Gaussian blur approximated by three box-blur passes (separable), the standard Kovesi trick:
+ * visually indistinguishable from a true gaussian at these radii. Radius is in pixels of the buffer
+ * (cell/sample space).
  */
 export function gaussianBlurRGBA(buf: Float64Array, w: number, h: number, radius: number): void {
   if (radius <= 0 || w < 2 || h < 2) return
@@ -74,8 +74,8 @@ function boxBlurPass(src: Float64Array, dst: Float64Array, w: number, h: number,
 const clampI = (v: number, lim: number): number => (v < 0 ? 0 : v >= lim ? lim - 1 : v)
 
 /**
- * Unsharp mask: one pass of base + (base − blur) · amount. amount 0..2 covers
- * subtle crisping to an aggressive edge pop; deterministic (blur is gaussian r=1).
+ * Unsharp mask: one pass of base + (base − blur) · amount. amount 0..2 covers subtle crisping to an
+ * aggressive edge pop; deterministic (blur is gaussian r=1).
  */
 export function sharpenRGBA(buf: Float64Array, w: number, h: number, amount: number): void {
   if (amount <= 0 || w < 3 || h < 3) return
@@ -134,8 +134,8 @@ function hsvToRgb(h: number, s: number, v: number): { r: number; g: number; b: n
 }
 
 /**
- * Median filter for denoising: strength 1..5 → window 3..11 per side step.
- * Slow at big windows but the import grid is small; deterministic ordering.
+ * Median filter for denoising: strength 1..5 → window 3..11 per side step. Slow at big windows but
+ * the import grid is small; deterministic ordering.
  */
 export function medianDenoiseRGBA(buf: Float64Array, w: number, h: number, strength: number): void {
   if (strength <= 0) return
@@ -162,8 +162,8 @@ export function medianDenoiseRGBA(buf: Float64Array, w: number, h: number, stren
 }
 
 /**
- * Additive glow: screen-blend the blurred copy back over the base —
- * out = base + glow·k − base·glow·k/255. Brightens highlights like a bloom.
+ * Additive glow: screen-blend the blurred copy back over the base — out = base + glow·k −
+ * base·glow·k/255. Brightens highlights like a bloom.
  */
 export function glowScreenRGBA(
   buf: Float64Array,
@@ -186,9 +186,8 @@ export function glowScreenRGBA(
 }
 
 /**
- * Horizontal chromatic aberration: the red channel shifts left and the blue
- * channel shifts right by `shift` pixels (alpha and green untouched). Edge
- * pixels clamp.
+ * Horizontal chromatic aberration: the red channel shifts left and the blue channel shifts right by
+ * `shift` pixels (alpha and green untouched). Edge pixels clamp.
  */
 export function chromaticAberrationRGBA(
   buf: Float64Array,

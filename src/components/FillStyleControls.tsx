@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useStore } from '../state/store'
+
 import {
   GRAIN_PATTERNS,
   GRADIENTS,
@@ -11,8 +11,9 @@ import {
   type FillStyle,
 } from '../engine/fillpatterns'
 import { useI18n } from '../i18n'
-import { Chip, ColorInput, Slider } from './ui'
+import { useStore } from '../state/store'
 import { ExpandablePreview } from './PreviewExpander'
+import { Chip, ColorInput, Slider } from './ui'
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
@@ -71,7 +72,7 @@ export function FillPreview({ size = 232 }: { size?: number }) {
       ref={ref}
       width={size}
       height={size}
-      className="aspect-square w-full self-center rounded-md border border-line"
+      className="border-line aspect-square w-full self-center rounded-md border"
       style={{ imageRendering: 'pixelated' }}
       aria-hidden
     />
@@ -79,11 +80,11 @@ export function FillPreview({ size = 232 }: { size?: number }) {
 }
 
 /**
- * Style controls of the fill tool: solid vs pattern fills, dither library, transitions and
- * the second color. Edits go through `patchFillStyle`, or through `onPatch` when the caller
- * needs to react to every change (e.g. re-filling the current selection live). `previewSize`
- * is the backing-store resolution of the inline sample — pass the host panel's content
- * width so the canvas never upscales blurry.
+ * Style controls of the fill tool: solid vs pattern fills, dither library, transitions and the
+ * second color. Edits go through `patchFillStyle`, or through `onPatch` when the caller needs to
+ * react to every change (e.g. re-filling the current selection live). `previewSize` is the
+ * backing-store resolution of the inline sample — pass the host panel's content width so the canvas
+ * never upscales blurry.
  */
 export function FillStyleControls({
   onPatch,
@@ -104,7 +105,7 @@ export function FillStyleControls({
     <>
       {/* the preview stays pinned while the option list scrolls under it, so the pattern
           being configured is always in sight */}
-      <div className="sticky top-0 z-10 -mx-3 bg-panel px-3 pb-2">
+      <div className="bg-panel sticky top-0 z-10 -mx-3 px-3 pb-2">
         <ExpandablePreview
           title={t('preview.large')}
           panelWidth={464 + 24}
@@ -113,7 +114,7 @@ export function FillStyleControls({
           <FillPreview size={previewSize} />
         </ExpandablePreview>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-y-1 text-xs text-body">
+      <div className="text-body flex flex-wrap items-center justify-between gap-y-1 text-xs">
         <span>{t('fill.mode')}</span>
         <div className="flex gap-1">
           <Chip
@@ -135,7 +136,7 @@ export function FillStyleControls({
       {style.mode === 'pattern' && (
         <>
           <div>
-            <div className="mb-1 text-xs text-muted">{t('fill.pattern')}</div>
+            <div className="text-muted mb-1 text-xs">{t('fill.pattern')}</div>
             <div className="grid grid-cols-2 gap-1">
               {PATTERNS.map((p) => (
                 <Chip
@@ -152,7 +153,7 @@ export function FillStyleControls({
           {style.pattern === 'screen' && (
             <>
               <div>
-                <div className="mb-1 text-xs text-muted">{t('fill.htShape')}</div>
+                <div className="text-muted mb-1 text-xs">{t('fill.htShape')}</div>
                 <div className="grid grid-cols-3 gap-1">
                   {HT_SHAPES.map((sh) => (
                     <Chip
@@ -195,7 +196,7 @@ export function FillStyleControls({
             </>
           )}
           <div>
-            <div className="mb-1 text-xs text-muted">{t('fill.gradient')}</div>
+            <div className="text-muted mb-1 text-xs">{t('fill.gradient')}</div>
             <div className="grid grid-cols-3 gap-1">
               {GRADIENTS.map((g) => (
                 <Chip
@@ -241,7 +242,7 @@ export function FillStyleControls({
               onChange={(v) => patch({ density: v })}
             />
           )}
-          <div className="flex items-center justify-between text-xs text-body">
+          <div className="text-body flex items-center justify-between text-xs">
             <span>{t('fill.color2')}</span>
             <div className="flex items-center gap-1.5">
               <ColorInput
@@ -257,7 +258,7 @@ export function FillStyleControls({
                   setColor(style.color2)
                   patch({ color2: color })
                 }}
-                className="text-muted transition hover:text-body"
+                className="text-muted hover:text-body transition"
               >
                 <svg
                   viewBox="0 0 16 16"

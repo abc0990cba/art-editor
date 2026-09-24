@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from 'react'
+
 import { DragNumber } from './DragNumber'
 import { Tooltip } from './Tooltip'
 
@@ -59,21 +60,21 @@ export function Section({
   children,
 }: {
   title: string
-  /** glyph name — see SECTION_GLYPHS */
+  /** Glyph name — see SECTION_GLYPHS */
   icon?: string
   defaultOpen?: boolean
-  /** extra classes on the <details> root, e.g. a max-height for pinned sections */
+  /** Extra classes on the <details> root, e.g. a max-height for pinned sections */
   className?: string
-  /** extra classes on the content wrapper, e.g. internal scrolling */
+  /** Extra classes on the content wrapper, e.g. internal scrolling */
   contentClassName?: string
   children: ReactNode
 }) {
   const id = useId()
   return (
-    <details open={defaultOpen} className={`border-b border-line group ${className ?? ''}`}>
+    <details open={defaultOpen} className={`border-line group border-b ${className ?? ''}`}>
       <summary
         aria-controls={id}
-        className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-[11px] font-semibold tracking-widest text-muted uppercase hover:text-body [&::-webkit-details-marker]:hidden"
+        className="text-muted hover:text-body flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-[11px] font-semibold tracking-widest uppercase [&::-webkit-details-marker]:hidden"
       >
         <span className="flex items-center gap-2">
           {icon && (
@@ -130,11 +131,11 @@ export function Slider({
   step?: number
   display?: (v: number) => string
   title?: string
-  /** show a scrubbable numeric field instead of the plain value readout */
+  /** Show a scrubbable numeric field instead of the plain value readout */
   editable?: boolean
-  /** round edited values to whole numbers */
+  /** Round edited values to whole numbers */
   int?: boolean
-  /** typing bounds for the editable field; the slider itself uses min/max */
+  /** Typing bounds for the editable field; the slider itself uses min/max */
   hardMin?: number
   hardMax?: number
   onChange: (v: number) => void
@@ -142,7 +143,7 @@ export function Slider({
   return (
     <Tooltip label={title}>
       <label className="flex flex-col gap-1">
-        <span className="flex justify-between text-xs text-muted">
+        <span className="text-muted flex justify-between text-xs">
           <span>{label}</span>
           {editable ? (
             <DragNumber
@@ -169,7 +170,7 @@ export function Slider({
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="h-1 w-full cursor-pointer appearance-none rounded-full bg-chip-active accent-indigo-400"
+          className="bg-chip-active h-1 w-full cursor-pointer appearance-none rounded-full accent-indigo-400"
         />
       </label>
     </Tooltip>
@@ -189,7 +190,7 @@ export function CheckRow({
 }) {
   return (
     <Tooltip label={title}>
-      <label className="flex cursor-pointer items-center justify-between text-xs text-body">
+      <label className="text-body flex cursor-pointer items-center justify-between text-xs">
         <span>{label}</span>
         <input
           type="checkbox"
@@ -221,7 +222,7 @@ export function Chip({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`rounded-md border px-2 py-1 text-xs transition disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line ${
+        className={`disabled:hover:border-line rounded-md border px-2 py-1 text-xs transition disabled:cursor-not-allowed disabled:opacity-40 ${
           active
             ? 'border-accent-line bg-accent-soft text-accent-text'
             : 'border-line bg-chip text-body hover:border-chip-line'
@@ -245,9 +246,9 @@ export function IconButton({
   title: string
   onClick?: () => void
   disabled?: boolean
-  /** extra classes on the button, e.g. an accent tint for an active save state */
+  /** Extra classes on the button, e.g. an accent tint for an active save state */
   className?: string
-  /** chip plate behind the icon (top-bar style, like the import/export buttons) */
+  /** Chip plate behind the icon (top-bar style, like the import/export buttons) */
   plate?: boolean
   /** 44px touch target (HIG/Material) — mobile bars */
   big?: boolean
@@ -259,9 +260,9 @@ export function IconButton({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`flex items-center justify-center rounded-md text-body transition disabled:opacity-30 ${big ? 'h-10 w-10' : 'h-7 w-7'} ${
+        className={`text-body flex items-center justify-center rounded-md transition disabled:opacity-30 ${big ? 'h-10 w-10' : 'h-7 w-7'} ${
           plate
-            ? 'border border-line bg-chip hover:border-chip-line disabled:hover:border-line'
+            ? 'border-line bg-chip hover:border-chip-line disabled:hover:border-line border'
             : 'hover:bg-chip-active disabled:hover:bg-transparent'
         } ${className ?? ''}`}
       >
@@ -283,7 +284,7 @@ export function ColorInput({
   return (
     <Tooltip label={title}>
       <label
-        className="relative inline-block h-7 w-7 cursor-pointer overflow-hidden rounded-md border border-chip-line"
+        className="border-chip-line relative inline-block h-7 w-7 cursor-pointer overflow-hidden rounded-md border"
         style={{ background: value }}
       >
         <input
@@ -313,9 +314,9 @@ export function hexLuminance(hex: string): number {
 }
 
 /**
- * Palette swatch with the editor-standard active treatment (à la Photoshop): the active
- * color gets an offset accent ring plus an inner hairline that auto-contrasts with the
- * color, so the current color reads at a glance on any background.
+ * Palette swatch with the editor-standard active treatment (à la Photoshop): the active color gets
+ * an offset accent ring plus an inner hairline that auto-contrasts with the color, so the current
+ * color reads at a glance on any background.
  */
 export function ColorSwatch({
   hex,
@@ -337,8 +338,8 @@ export function ColorSwatch({
         onClick={onPick}
         className={`relative h-5 w-full rounded transition ${
           active
-            ? 'z-10 ring-2 ring-accent-text ring-offset-2 ring-offset-panel'
-            : 'ring-1 ring-line hover:ring-chip-line'
+            ? 'ring-accent-text ring-offset-panel z-10 ring-2 ring-offset-2'
+            : 'ring-line hover:ring-chip-line ring-1'
         }`}
         style={{ background: hex }}
       >

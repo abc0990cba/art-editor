@@ -1,8 +1,9 @@
 import { createContext, useContext, type ReactNode } from 'react'
+
+import { useStore } from '../state/store'
 import type { Dict, Lang } from './en'
 import { en } from './en'
 import { ru } from './ru'
-import { useStore } from '../state/store'
 
 const dicts: Record<Lang, Dict> = { en, ru }
 

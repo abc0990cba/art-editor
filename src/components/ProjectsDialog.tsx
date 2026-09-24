@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
+
 import { deserialize } from '../engine/project'
-import { Tooltip } from './Tooltip'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 import {
   deleteProject,
   duplicateName,
@@ -13,6 +13,7 @@ import {
   saveProject,
   type ProjectEntry,
 } from '../storage/projects'
+import { Tooltip } from './Tooltip'
 
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; entries: ProjectEntry[] }
 
@@ -145,16 +146,16 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl border border-line bg-app p-4 shadow-2xl"
+        className="border-line bg-app flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl border p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold tracking-wide text-body">{t('projects.title')}</h2>
+          <h2 className="text-body text-sm font-semibold tracking-wide">{t('projects.title')}</h2>
           <Tooltip label={t('dialog.close')}>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md px-2 py-1 text-xs text-muted transition hover:bg-chip-active hover:text-body"
+              className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
             >
               ✕
             </button>
@@ -170,7 +171,7 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') void saveCurrent()
             }}
-            className="flex-1 rounded-md border border-line bg-chip px-2 py-1.5 text-xs text-body outline-none focus:border-accent-line"
+            className="border-line bg-chip text-body focus:border-accent-line flex-1 rounded-md border px-2 py-1.5 text-xs outline-none"
           />
           <button
             type="button"
@@ -182,14 +183,14 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={newProject}
-            className="rounded-md border border-line bg-chip px-3 py-1.5 text-xs text-body transition hover:border-chip-line"
+            className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition"
           >
             {t('projects.new')}
           </button>
         </div>
 
         {confirmReplace && (
-          <div className="flex items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-body">
+          <div className="text-body flex items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
             <span>{t('projects.replaceWarn')}</span>
             <div className="flex gap-2">
               <button
@@ -197,7 +198,7 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
                 onClick={() => {
                   setConfirmReplace(null)
                 }}
-                className="rounded border border-line px-2 py-1 transition hover:border-chip-line"
+                className="border-line hover:border-chip-line rounded border px-2 py-1 transition"
               >
                 {t('projects.cancel')}
               </button>
@@ -218,20 +219,20 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {state.kind === 'loading' && (
-            <p className="p-4 text-center text-xs text-muted">{t('projects.loading')}</p>
+            <p className="text-muted p-4 text-center text-xs">{t('projects.loading')}</p>
           )}
           {state.kind === 'error' && (
             <p className="p-4 text-center text-xs text-red-400">{t('projects.error')}</p>
           )}
           {state.kind === 'ready' && entries.length === 0 && (
-            <p className="p-4 text-center text-xs text-muted">{t('projects.empty')}</p>
+            <p className="text-muted p-4 text-center text-xs">{t('projects.empty')}</p>
           )}
           {state.kind === 'ready' && entries.length > 0 && (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {entries.map((entry) => (
                 <div
                   key={entry.id}
-                  className={`overflow-hidden rounded-lg border bg-panel ${
+                  className={`bg-panel overflow-hidden rounded-lg border ${
                     entry.id === projectId ? 'border-accent-line' : 'border-line'
                   }`}
                 >
@@ -244,7 +245,7 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
                           className="aspect-[4/3] w-full object-contain"
                         />
                       ) : (
-                        <div className="aspect-[4/3] w-full bg-chip" />
+                        <div className="bg-chip aspect-[4/3] w-full" />
                       )}
                     </button>
                   </Tooltip>
@@ -261,34 +262,32 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
                             if (e.key === 'Enter') void renameEntry(entry.id, renaming.value)
                             if (e.key === 'Escape') setRenaming(null)
                           }}
-                          className="w-full min-w-0 flex-1 rounded border border-accent-line bg-chip px-1.5 py-0.5 text-xs text-body outline-none"
+                          className="border-accent-line bg-chip text-body w-full min-w-0 flex-1 rounded border px-1.5 py-0.5 text-xs outline-none"
                         />
                       ) : (
                         <Tooltip label={t('projects.rename')}>
                           <button
                             type="button"
-                            onClick={() =>
-                              setRenaming({ id: entry.id, value: entryName(entry) })
-                            }
-                            className="min-w-0 flex-1 truncate rounded px-0.5 text-left text-xs font-medium text-body transition hover:bg-chip-active"
+                            onClick={() => setRenaming({ id: entry.id, value: entryName(entry) })}
+                            className="text-body hover:bg-chip-active min-w-0 flex-1 truncate rounded px-0.5 text-left text-xs font-medium transition"
                           >
                             {entryName(entry)}
                           </button>
                         </Tooltip>
                       )}
                       {entry.id === projectId && (
-                        <span className="shrink-0 rounded border border-accent-line px-1 py-px text-[10px] text-accent-text">
+                        <span className="border-accent-line text-accent-text shrink-0 rounded border px-1 py-px text-[10px]">
                           {t('projects.current')}
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-muted">{fmtDate(entry.updatedAt)}</span>
+                    <span className="text-muted text-[10px]">{fmtDate(entry.updatedAt)}</span>
                     <div className="flex gap-1 text-[11px]">
                       <Tooltip label={t('projects.open')}>
                         <button
                           type="button"
                           onClick={() => openEntry(entry)}
-                          className="flex-1 rounded border border-line py-0.5 transition hover:border-chip-line"
+                          className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition"
                         >
                           {t('projects.open')}
                         </button>
@@ -297,7 +296,7 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
                         <button
                           type="button"
                           onClick={() => void duplicateEntry(entry)}
-                          className="flex-1 rounded border border-line py-0.5 transition hover:border-chip-line"
+                          className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition"
                         >
                           {t('projects.duplicate')}
                         </button>
@@ -317,7 +316,7 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
                           <button
                             type="button"
                             onClick={() => setDeleting(entry.id)}
-                            className="flex-1 rounded border border-line py-0.5 transition hover:border-red-500/60 hover:text-red-400"
+                            className="border-line flex-1 rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400"
                           >
                             {t('projects.delete')}
                           </button>

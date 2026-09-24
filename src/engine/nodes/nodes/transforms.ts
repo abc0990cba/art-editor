@@ -1,7 +1,7 @@
 /** Transform nodes: move or mirror the accumulated pixels. */
 
-import { defineNode } from '../types'
 import { symmetryPoints } from '../../symmetry'
+import { defineNode } from '../types'
 
 export const TRANSFORM_NODES = [
   defineNode({

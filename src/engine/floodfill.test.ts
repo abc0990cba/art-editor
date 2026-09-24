@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { floodFillDoc, floodRegion } from './floodfill'
+
 import { defaultDoc, type Doc } from './doc'
+import { floodFillDoc, floodRegion } from './floodfill'
 import { makeGrid } from './grids'
 
 function docWith(cells: number[], patch: Partial<Doc> = {}): Doc {

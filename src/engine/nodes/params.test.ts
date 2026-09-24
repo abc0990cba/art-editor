@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { boundsWithValue, paramBounds } from './params'
 import type { NodeParamSpec } from './types'
 
@@ -29,7 +30,10 @@ describe('paramBounds', canvasSpans)
 function canvasSpans() {
   it('x span tracks the column count with 15% headroom', () => {
     // pad = ceil(128 * 0.15) = 20 → [-20, 148], intersected with the hard clamp
-    expect(paramBounds(intSpec(0, 2048, 'x'), { cols: 128, rows: 96 })).toEqual({ min: 0, max: 148 })
+    expect(paramBounds(intSpec(0, 2048, 'x'), { cols: 128, rows: 96 })).toEqual({
+      min: 0,
+      max: 148,
+    })
     expect(paramBounds(intSpec(-1024, 3072, 'x'), { cols: 128, rows: 96 })).toEqual({
       min: -20,
       max: 148,
@@ -45,8 +49,14 @@ function canvasSpans() {
   })
 
   it('size span reaches past the larger dimension, keeping the schema floor', () => {
-    expect(paramBounds(intSpec(1, 2048, 'size'), { cols: 64, rows: 32 })).toEqual({ min: 1, max: 74 })
-    expect(paramBounds(intSpec(3, 2048, 'size'), { cols: 64, rows: 32 })).toEqual({ min: 3, max: 74 })
+    expect(paramBounds(intSpec(1, 2048, 'size'), { cols: 64, rows: 32 })).toEqual({
+      min: 1,
+      max: 74,
+    })
+    expect(paramBounds(intSpec(3, 2048, 'size'), { cols: 64, rows: 32 })).toEqual({
+      min: 3,
+      max: 74,
+    })
   })
 
   it('delta span is symmetric around zero over the larger dimension', () => {

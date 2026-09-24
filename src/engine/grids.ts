@@ -5,8 +5,8 @@ export type GridType = 'square' | 'hex' | 'triangle' | 'radial'
 export const GRID_TYPES: GridType[] = ['square', 'hex', 'triangle', 'radial']
 
 /**
- * Cell lattice for a grid type. Square keeps the historical cols×rows lattice used by the
- * square pipelines; the other grids expose per-cell centers, polygons, hit-testing and generic
+ * Cell lattice for a grid type. Square keeps the historical cols×rows lattice used by the square
+ * pipelines; the other grids expose per-cell centers, polygons, hit-testing and generic
  * edge-neighbor maps so tools and rendering work on any cell shape.
  */
 export interface Grid {
@@ -20,10 +20,10 @@ export interface Grid {
   polygon(i: number): Pt[]
   cellAt(x: number, y: number): number
   edgeNeighbors(i: number): number[]
-  /** polar coordinates of the cell center relative to the canvas center (for symmetry) */
+  /** Polar coordinates of the cell center relative to the canvas center (for symmetry) */
   radiusOf(i: number): number
   angleOf(i: number): number
-  /** cell on the same radius ring closest to the target angle (-1 when none) */
+  /** Cell on the same radius ring closest to the target angle (-1 when none) */
   cellByAngle(i: number, targetAngle: number): number
 }
 
@@ -416,11 +416,11 @@ function endpointPoint(l: Link, which: 'a' | 'b', grid: Grid, square: boolean): 
 }
 
 /**
- * Everything a grid conversion needs: the new→old cell index map plus both grids, shared
- * by the flat convertGridDoc and the scene-tree remap (engine/scene.ts).
+ * Everything a grid conversion needs: the new→old cell index map plus both grids, shared by the
+ * flat convertGridDoc and the scene-tree remap (engine/scene.ts).
  */
 export interface GridConvertMap {
-  /** new cell index → old cell index, -1 when the new cell has no source */
+  /** New cell index → old cell index, -1 when the new cell has no source */
   map: Int32Array
   oldGrid: Grid
   newGrid: Grid
@@ -457,7 +457,16 @@ export function gridConvertMap(
     const c = normalized(newGrid.center(i), newGrid.w, newGrid.h, oldGrid.w, oldGrid.h)
     map[i] = oldGrid.cellAt(c.x, c.y)
   }
-  return { map, oldGrid, newGrid, oldSquare, toSquare: gridType === 'square', toCols, toRows, toEven }
+  return {
+    map,
+    oldGrid,
+    newGrid,
+    oldSquare,
+    toSquare: gridType === 'square',
+    toCols,
+    toRows,
+    toEven,
+  }
 }
 
 /** Map one connector onto the target grid; null = collapsed or out of the grid. */

@@ -1,23 +1,18 @@
 import { useEffect, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
-import { SIZE_GROUPS } from '../engine/sizes'
+
 import { GRID_TYPES, type GridType } from '../engine/grids'
+import { SIZE_GROUPS } from '../engine/sizes'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 
 const sizeKey = (cols: number, rows: number) => `${cols}×${rows}`
 
 /**
- * Project creation/editing dialog (Photoshop/Photopea-style): on startup the user names
- * the project and picks a canvas size before seeing the canvas; later the same dialog
- * opens from the top bar's gear to rename or resize the open project.
+ * Project creation/editing dialog (Photoshop/Photopea-style): on startup the user names the project
+ * and picks a canvas size before seeing the canvas; later the same dialog opens from the top bar's
+ * gear to rename or resize the open project.
  */
-export function ProjectDialog({
-  mode,
-  onClose,
-}: {
-  mode: 'create' | 'edit'
-  onClose: () => void
-}) {
+export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onClose: () => void }) {
   const { t } = useI18n()
   const doc = useStore((s) => s.doc)
   const projectName = useStore((s) => s.projectName)
@@ -35,7 +30,9 @@ export function ProjectDialog({
   const [even, setEven] = useState(mode === 'edit' ? doc.radialEven : false)
 
   const currentKey = sizeKey(cols, rows)
-  const isPreset = SIZE_GROUPS.some((g) => g.sizes.some((s) => sizeKey(s.cols, s.rows) === currentKey))
+  const isPreset = SIZE_GROUPS.some((g) =>
+    g.sizes.some((s) => sizeKey(s.cols, s.rows) === currentKey),
+  )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -64,15 +61,15 @@ export function ProjectDialog({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-line bg-app p-4 shadow-2xl"
+        className="border-line bg-app w-full max-w-md rounded-xl border p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-body">
+        <h2 className="text-body mb-3 text-sm font-semibold tracking-wide">
           {mode === 'create' ? t('project.new') : t('project.settings')}
         </h2>
 
         <label className="mb-2.5 block">
-          <span className="mb-1 block text-xs text-muted">{t('project.name')}</span>
+          <span className="text-muted mb-1 block text-xs">{t('project.name')}</span>
           <input
             type="text"
             value={name}
@@ -87,32 +84,36 @@ export function ProjectDialog({
 
         <div className="mb-2.5 flex items-end gap-2">
           <label className="min-w-0 flex-1">
-            <span className="mb-1 block text-xs text-muted">{t('top.width')}</span>
+            <span className="text-muted mb-1 block text-xs">{t('top.width')}</span>
             <input
               type="number"
               min={1}
               max={512}
               value={cols}
-              onChange={(e) => setCols(Math.max(1, Math.min(512, Math.round(Number(e.target.value) || 1))))}
+              onChange={(e) =>
+                setCols(Math.max(1, Math.min(512, Math.round(Number(e.target.value) || 1))))
+              }
               className={fieldClass}
             />
           </label>
-          <span className="pb-1.5 text-xs text-muted">×</span>
+          <span className="text-muted pb-1.5 text-xs">×</span>
           <label className="min-w-0 flex-1">
-            <span className="mb-1 block text-xs text-muted">{t('top.height')}</span>
+            <span className="text-muted mb-1 block text-xs">{t('top.height')}</span>
             <input
               type="number"
               min={1}
               max={512}
               value={rows}
-              onChange={(e) => setRows(Math.max(1, Math.min(512, Math.round(Number(e.target.value) || 1))))}
+              onChange={(e) =>
+                setRows(Math.max(1, Math.min(512, Math.round(Number(e.target.value) || 1))))
+              }
               className={fieldClass}
             />
           </label>
         </div>
 
         <label className="mb-3 block">
-          <span className="mb-1 block text-xs text-muted">{t('top.sizePreset')}</span>
+          <span className="text-muted mb-1 block text-xs">{t('top.sizePreset')}</span>
           <select
             value={isPreset ? currentKey : ''}
             onChange={(e) => {
@@ -142,7 +143,7 @@ export function ProjectDialog({
         </label>
 
         <label className="mb-2.5 block">
-          <span className="mb-1 block text-xs text-muted">{t('project.grid')}</span>
+          <span className="text-muted mb-1 block text-xs">{t('project.grid')}</span>
           <select
             value={gridType}
             onChange={(e) => setGridTypeLocal(e.target.value as GridType)}
@@ -156,7 +157,7 @@ export function ProjectDialog({
           </select>
         </label>
         {gridType === 'radial' && (
-          <label className="mb-3 flex cursor-pointer items-center gap-2 text-xs text-body">
+          <label className="text-body mb-3 flex cursor-pointer items-center gap-2 text-xs">
             <input
               type="checkbox"
               checked={even}
@@ -171,7 +172,7 @@ export function ProjectDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-line bg-chip px-3 py-1.5 text-xs text-body transition hover:border-chip-line"
+            className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition"
           >
             {t('projects.cancel')}
           </button>

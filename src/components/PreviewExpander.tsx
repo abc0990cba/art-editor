@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+
 import { useI18n } from '../i18n'
 import { FloatingPanel } from './FloatingPanel'
 
 /**
- * Overlay button that opens a floating panel with a large live copy of the wrapped
- * preview. The panel is deliberately non-modal: it sits beside the settings popover or
- * section whose sliders drive the preview, so the enlarged sample can be watched while
- * tweaking — e.g. tuning every ring of a concentric-circles tool. FloatingPanel keeps
- * it inside the viewport even when the panel is taller than the space below the button.
+ * Overlay button that opens a floating panel with a large live copy of the wrapped preview. The
+ * panel is deliberately non-modal: it sits beside the settings popover or section whose sliders
+ * drive the preview, so the enlarged sample can be watched while tweaking — e.g. tuning every ring
+ * of a concentric-circles tool. FloatingPanel keeps it inside the viewport even when the panel is
+ * taller than the space below the button.
  */
 export function ExpandablePreview({
   title,
@@ -15,13 +16,13 @@ export function ExpandablePreview({
   large,
   children,
 }: {
-  /** panel caption, usually the name of what is being configured */
+  /** Panel caption, usually the name of what is being configured */
   title: string
   /** CSS width of the floating panel */
   panelWidth: number
-  /** large preview rendered inside the panel; subscribes to the store on its own */
+  /** Large preview rendered inside the panel; subscribes to the store on its own */
   large: ReactNode
-  /** small preview the button overlays */
+  /** Small preview the button overlays */
   children: ReactNode
 }) {
   const { t } = useI18n()
@@ -66,7 +67,7 @@ export function ExpandablePreview({
         title={t('preview.expand')}
         aria-label={t('preview.expand')}
         aria-pressed={!!pos}
-        className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border border-line bg-panel/85 text-muted transition hover:text-body"
+        className="border-line bg-panel/85 text-muted hover:text-body absolute top-1.5 right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border transition"
       >
         <svg
           viewBox="0 0 16 16"
@@ -89,15 +90,15 @@ export function ExpandablePreview({
           x={pos.x}
           y={pos.y}
           width={panelWidth}
-          className="fixed z-50 rounded-xl border border-line bg-panel p-3 shadow-xl"
+          className="border-line bg-panel fixed z-50 rounded-xl border p-3 shadow-xl"
         >
-          <div className="mb-2 flex items-center justify-between gap-3 text-xs font-medium text-body">
+          <div className="text-body mb-2 flex items-center justify-between gap-3 text-xs font-medium">
             <span>{title}</span>
             <button
               type="button"
               onClick={() => setPos(null)}
               aria-label={t('preview.close')}
-              className="text-muted transition hover:text-body"
+              className="text-muted hover:text-body transition"
             >
               <svg
                 viewBox="0 0 16 16"

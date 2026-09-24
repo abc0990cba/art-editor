@@ -1,4 +1,3 @@
-import { resolveColor, type Doc } from './doc'
 import {
   BAYER2,
   BAYER4,
@@ -10,14 +9,15 @@ import {
   VOID_CLUSTER8,
   thresholdAt,
 } from './ditherMatrices'
+import { resolveColor, type Doc } from './doc'
 
 export { BAYER2, BAYER4, BAYER8 }
 
 /**
- * Pattern fills for the fill tool: two-color textures and dithered gradients in the
- * classic pixel-art style. A pattern decides per cell between the active color (A)
- * and a second color (B); a transition profile sets the mix ratio t per position, so
- * the same patterns double as flat textures (flat) or dithered gradients.
+ * Pattern fills for the fill tool: two-color textures and dithered gradients in the classic
+ * pixel-art style. A pattern decides per cell between the active color (A) and a second color (B);
+ * a transition profile sets the mix ratio t per position, so the same patterns double as flat
+ * textures (flat) or dithered gradients.
  */
 export type FillPatternId =
   | 'bayer2'
@@ -55,21 +55,21 @@ export interface FillStyle {
   mode: 'solid' | 'pattern'
   pattern: FillPatternId
   gradient: FillGradient
-  /** color B share 0..1, used when gradient = 'none' */
+  /** Color B share 0..1, used when gradient = 'none' */
   density: number
-  /** second color pattern fills blend towards */
+  /** Second color pattern fills blend towards */
   color2: string
-  /** tile-size multiplier for scaled patterns (stripes, dots, checker, grid, …) */
+  /** Tile-size multiplier for scaled patterns (stripes, dots, checker, grid, …) */
   scale: number
-  /** noise block size in cells (noise, ign) */
+  /** Noise block size in cells (noise, ign) */
   grain: number
-  /** halftone screen: dot silhouette */
+  /** Halftone screen: dot silhouette */
   htShape: FillHtShape
-  /** halftone screen: grid rotation in degrees, 0..180 */
+  /** Halftone screen: grid rotation in degrees, 0..180 */
   htAngle: number
-  /** halftone screen: random dot displacement, 0..100 */
+  /** Halftone screen: random dot displacement, 0..100 */
   htJitter: number
-  /** halftone screen: randomly missing dots, 0..100 */
+  /** Halftone screen: randomly missing dots, 0..100 */
   htDropout: number
 }
 
@@ -152,19 +152,19 @@ function hash2(x: number, y: number): number {
 }
 
 export interface PatternOpts {
-  /** tile-size multiplier for scaled patterns */
+  /** Tile-size multiplier for scaled patterns */
   scale?: number
-  /** noise block size in cells (noise, ign) */
+  /** Noise block size in cells (noise, ign) */
   grain?: number
-  /** anchor for concentric patterns (rings) */
+  /** Anchor for concentric patterns (rings) */
   seed?: { x: number; y: number }
-  /** halftone screen: dot silhouette */
+  /** Halftone screen: dot silhouette */
   htShape?: FillHtShape
-  /** halftone screen: grid rotation in degrees, 0..180 */
+  /** Halftone screen: grid rotation in degrees, 0..180 */
   htAngle?: number
-  /** halftone screen: random dot displacement, 0..100 */
+  /** Halftone screen: random dot displacement, 0..100 */
   htJitter?: number
-  /** halftone screen: randomly missing dots, 0..100 */
+  /** Halftone screen: randomly missing dots, 0..100 */
   htDropout?: number
 }
 
@@ -184,9 +184,9 @@ function htNoise(x: number, y: number): number {
 }
 
 /**
- * Whether the cell at buffer position (x, y) takes color B for mix ratio t (0..1).
- * Ordered dithering compares t against a Bayer threshold; stripes, hatching and shapes
- * grow with t; scaled patterns repeat every 4·scale cells.
+ * Whether the cell at buffer position (x, y) takes color B for mix ratio t (0..1). Ordered
+ * dithering compares t against a Bayer threshold; stripes, hatching and shapes grow with t; scaled
+ * patterns repeat every 4·scale cells.
  */
 export function patternAt(
   id: FillPatternId,
@@ -379,9 +379,8 @@ export function patternCoord(doc: Doc): FillCoord {
 }
 
 /**
- * Assign 0 (active color) or 1 (second color) to every cell of a fill region.
- * `seed` anchors radial gradients and concentric patterns; linear gradients span the
- * region's bounding box.
+ * Assign 0 (active color) or 1 (second color) to every cell of a fill region. `seed` anchors radial
+ * gradients and concentric patterns; linear gradients span the region's bounding box.
  */
 export function applyFillStyle(
   style: FillStyle,
@@ -427,9 +426,9 @@ export function applyFillStyle(
 
 /**
  * Re-fill every painted cell owned by the selected elements — solid `colorA` or a two-color
- * pattern, exactly what a fill click paints but over the whole selection. Cell→element
- * attribution is untouched (cells keep their owners). Returns the new cell buffer with the
- * (possibly extended) palette, or null when the selection owns no painted cells.
+ * pattern, exactly what a fill click paints but over the whole selection. Cell→element attribution
+ * is untouched (cells keep their owners). Returns the new cell buffer with the (possibly extended)
+ * palette, or null when the selection owns no painted cells.
  */
 export function fillSelectionCells(
   doc: Doc,

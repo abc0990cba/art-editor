@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { buildGeometry, PENDING_OBJ } from './geometry'
+
+import { useStore } from '../state/store'
 import { defaultDoc, type Doc } from './doc'
+import { buildGeometry, PENDING_OBJ } from './geometry'
 import { deserialize, serialize } from './project'
 import {
   allObjs,
@@ -12,7 +14,6 @@ import {
   ungroupAround,
   type SceneObj,
 } from './scene'
-import { useStore } from '../state/store'
 
 const pathSignatures = (doc: Doc) =>
   buildGeometry(doc)
@@ -119,7 +120,10 @@ describe('scene: composite and object identity', () => {
     const moved = bottom.children[bottom.children.length - 1]
     const split = syncDoc({
       ...s2.doc,
-      layers: [{ ...bottom, children: bottom.children.slice(0, -1) }, { ...s2.doc.layers![1], children: [moved] }],
+      layers: [
+        { ...bottom, children: bottom.children.slice(0, -1) },
+        { ...s2.doc.layers![1], children: [moved] },
+      ],
     })
     expect(buildGeometry(split).paths).toHaveLength(2)
     // fuseObjects off splits them even on one layer
@@ -391,7 +395,11 @@ describe('scene: store editing', () => {
     useStore.getState().setObjectGraph(id, {
       graphVersion: 1,
       nodes: [
-        { id: 'n1', op: 'source.ellipse', params: { cx: 8, cy: 8, rx: 3, ry: 3, color: '#00ff00' } },
+        {
+          id: 'n1',
+          op: 'source.ellipse',
+          params: { cx: 8, cy: 8, rx: 3, ry: 3, color: '#00ff00' },
+        },
       ],
     })
     const doc = useStore.getState().doc
@@ -405,7 +413,9 @@ describe('scene: store editing', () => {
     // style nodes override the evaluated appearance
     useStore.getState().setObjectGraph(id, {
       graphVersion: 1,
-      nodes: [{ id: 'n1', op: 'style.render', params: { renderMode: 'metaball', connectivity: 'edge' } }],
+      nodes: [
+        { id: 'n1', op: 'style.render', params: { renderMode: 'metaball', connectivity: 'edge' } },
+      ],
     })
     expect(useStore.getState().doc.elements[id - 1].renderMode).toBe('metaball')
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { defaultDoc, type Doc } from './doc'
 import { buildGeometry } from './geometry'
 import { deserialize, serialize } from './project'
@@ -15,7 +16,7 @@ function docWith(cells: Array<[number, number]>, cols = 8, rows = 8): Doc {
   return doc
 }
 
-/** two same-color cells touching at a corner: (1,1) and (2,2) */
+/** Two same-color cells touching at a corner: (1,1) and (2,2) */
 function diagonalDoc(): Doc {
   return docWith([
     [1, 1],

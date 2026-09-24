@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useStore } from '../state/store'
-import { useI18n } from '../i18n'
+
 import {
   BUILT_IN_BRUSHES,
   checkerBrush,
@@ -9,9 +8,11 @@ import {
   squareBrush,
   type Brush,
 } from '../engine/brush'
+import { useI18n } from '../i18n'
+import { useStore } from '../state/store'
 import type { BrushPresetEntry } from '../storage/brushes'
-import { CheckRow, Chip, Section, Slider } from './ui'
 import { Tooltip } from './Tooltip'
+import { CheckRow, Chip, Section, Slider } from './ui'
 
 /** Small canvas rendering of a brush tip (active cells in the accent color). */
 export function BrushPreview({ brush, box = 22 }: { brush: Brush; box?: number }) {
@@ -43,7 +44,7 @@ export function BrushPreview({ brush, box = 22 }: { brush: Brush; box?: number }
       )
     })
   }, [brush, box])
-  return <canvas ref={ref} className="shrink-0 rounded-sm border border-line" />
+  return <canvas ref={ref} className="border-line shrink-0 rounded-sm border" />
 }
 
 const BUILTIN_LIST = BUILT_IN_BRUSHES.map((def) => ({ id: def.id, brush: def.make() }))
@@ -120,14 +121,14 @@ export function BrushSection() {
               }
               if (e.key === 'Escape') setRenaming(null)
             }}
-            className="w-full min-w-0 flex-1 rounded border border-accent-line bg-chip px-1.5 py-0.5 text-xs text-body outline-none"
+            className="border-accent-line bg-chip text-body w-full min-w-0 flex-1 rounded border px-1.5 py-0.5 text-xs outline-none"
           />
         ) : (
           <Tooltip label={t('brush.rename')}>
             <button
               type="button"
               onClick={() => setRenaming({ id: p.id, value: p.name })}
-              className="flex-1 truncate text-left text-xs text-body hover:text-accent-text"
+              className="text-body hover:text-accent-text flex-1 truncate text-left text-xs"
             >
               {p.name}
             </button>
@@ -137,7 +138,7 @@ export function BrushSection() {
           <button
             type="button"
             onClick={() => void overwriteBrush(p.id)}
-            className="text-[10px] text-muted transition hover:text-body"
+            className="text-muted hover:text-body text-[10px] transition"
           >
             ↻
           </button>
@@ -160,7 +161,7 @@ export function BrushSection() {
             <button
               type="button"
               onClick={() => setDeleting(p.id)}
-              className="text-[10px] text-muted transition hover:text-red-400"
+              className="text-muted text-[10px] transition hover:text-red-400"
             >
               ✕
             </button>
@@ -196,7 +197,7 @@ export function BrushSection() {
 
       {isSquare ? (
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs text-muted">{t('brush.tip')}</span>
+          <span className="text-muted text-xs">{t('brush.tip')}</span>
           <div
             className="grid w-full gap-px"
             style={{ gridTemplateColumns: `repeat(${brush.size}, minmax(0, 1fr))` }}
@@ -206,7 +207,7 @@ export function BrushSection() {
                 key={i}
                 type="button"
                 onClick={() => toggle(i)}
-                className={`aspect-square min-w-0 border border-line transition ${
+                className={`border-line aspect-square min-w-0 border transition ${
                   on ? 'bg-indigo-400' : 'bg-chip hover:bg-chip-active'
                 }`}
               />
@@ -246,7 +247,7 @@ export function BrushSection() {
           </div>
         </div>
       ) : (
-        <p className="text-[11px] text-muted">{t('brush.squareOnly')}</p>
+        <p className="text-muted text-[11px]">{t('brush.squareOnly')}</p>
       )}
 
       <CheckRow
@@ -257,10 +258,10 @@ export function BrushSection() {
       />
 
       <div className="flex flex-col gap-1">
-        <span className="flex items-center gap-2 text-xs text-muted">
+        <span className="text-muted flex items-center gap-2 text-xs">
           {t('brush.presets')}
           {brushId === null && (
-            <span className="rounded border border-accent-line px-1 text-[10px] text-accent-text">
+            <span className="border-accent-line text-accent-text rounded border px-1 text-[10px]">
               {t('brush.custom')}
             </span>
           )}
@@ -278,11 +279,11 @@ export function BrushSection() {
               }`}
             >
               <BrushPreview brush={b} />
-              <span className="flex-1 truncate text-left text-xs text-body">
+              <span className="text-body flex-1 truncate text-left text-xs">
                 {t(brushNameKey(id))}
               </span>
               <Tooltip label={t('brush.builtin')}>
-                <span className="text-[10px] text-muted">★</span>
+                <span className="text-muted text-[10px]">★</span>
               </Tooltip>
             </button>
           ))}
@@ -297,7 +298,7 @@ export function BrushSection() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') saveCurrent()
             }}
-            className="min-w-0 flex-1 rounded-md border border-line bg-chip px-2 py-1 text-xs text-body outline-none focus:border-accent-line"
+            className="border-line bg-chip text-body focus:border-accent-line min-w-0 flex-1 rounded-md border px-2 py-1 text-xs outline-none"
           />
           <button
             type="button"

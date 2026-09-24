@@ -5,7 +5,8 @@ export const en = {
   'top.more': 'More',
   'editor.close': 'Close node editor',
   'top.panel': 'Panel',
-  'top.panel.desc': 'Settings, layers and node presets — open as a slide-over drawer on narrow screens',
+  'top.panel.desc':
+    'Settings, layers and node presets — open as a slide-over drawer on narrow screens',
   'tool.skull': 'Skull',
   'tool.skull.desc':
     'Procedural skull: drag the bounding box — vault, sockets, nose and teeth are tuned in the tool panel and re-evaluated in nodes.',
@@ -331,8 +332,10 @@ export const en = {
   'layers.defaultGroup': 'Group',
   'layers.defaultObject': 'Object',
   'layers.rename': 'Rename',
-  'layers.empty': 'Nothing drawn yet. Paint with the pencil — every stroke becomes its own object here.',
-  'layers.scopeHint': 'Layered objects need per-element styles. Switch the style scope to use layers.',
+  'layers.empty':
+    'Nothing drawn yet. Paint with the pencil — every stroke becomes its own object here.',
+  'layers.scopeHint':
+    'Layered objects need per-element styles. Switch the style scope to use layers.',
   'layers.switchScope': 'Switch to per-element',
   'layers.fuse': 'Fuse same-style objects',
   'layers.fuse.desc':
@@ -580,8 +583,10 @@ export const en = {
   'tool.settings.desc': 'Double-click a tool in the toolbar to tune its shape.',
   'graph.section': 'Object graph',
   'graph.create': 'Create node graph',
-  'graph.create.desc': 'The object becomes a live recipe: its ink and appearance re-evaluate from the nodes on every edit.',
-  'graph.empty': 'Empty graph — add the first node: sources paint, mods transform, ramps recolor, styles finish.',
+  'graph.create.desc':
+    'The object becomes a live recipe: its ink and appearance re-evaluate from the nodes on every edit.',
+  'graph.empty':
+    'Empty graph — add the first node: sources paint, mods transform, ramps recolor, styles finish.',
   'graph.add': 'Add',
   'graph.addNode': 'Add node',
   'graph.remove': 'Remove node',
@@ -612,12 +617,14 @@ export const en = {
   'editor.noGraph': 'This object has no node graph yet — create one to compose it from nodes.',
   'editor.autolayout': 'Tidy up',
   'graph.presets': 'Node presets',
-  'graph.presets.hint': 'Click a recipe to apply it to the selected object — or to a fresh one when nothing is selected.',
+  'graph.presets.hint':
+    'Click a recipe to apply it to the selected object — or to a fresh one when nothing is selected.',
   'editor.baseNode': 'Object ink',
   'editor.baseNode.desc': "The object's base pixels — the graph's implicit input",
   'editor.legend.raster': 'pixel map',
   'editor.legend.style': 'style params',
-  'editor.wireHint': 'Drag from a node output to another node input to link them · wheel = zoom · drag the background = pan',
+  'editor.wireHint':
+    'Drag from a node output to another node input to link them · wheel = zoom · drag the background = pan',
   'editor.cycle': 'That link would create a loop',
 
   'preview.expand': 'Show large preview',
@@ -730,7 +737,8 @@ export const en = {
   'paint.strokeColor': 'Stroke color',
   'paint.strokeColor.desc': 'Own color for the outline; empty = the current brush color.',
   'paint.strokeColor.reset': 'Back to the current brush color',
-  'paint.patternHint': 'The pattern itself (dither, halftone, second color) is tuned in the fill tool’s settings.',
+  'paint.patternHint':
+    'The pattern itself (dither, halftone, second color) is tuned in the fill tool’s settings.',
 
   'grid.square.desc': 'Classic square cell lattice (pixel art).',
   'grid.hex.desc': 'Pointy-top hexagons packed in columns.',

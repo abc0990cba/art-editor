@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { marchingSquares } from './marchingSquares'
 
 function discField(fw: number, fh: number, cx: number, cy: number, r: number): Float32Array {

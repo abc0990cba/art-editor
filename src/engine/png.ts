@@ -3,10 +3,10 @@ import { docExtent } from './doc'
 import { buildGeometry, type StyledPath } from './geometry'
 
 /**
- * Parsed Path2D cache keyed by the path string itself. Geometry rebuilds (every commit,
- * pan or zoom) produce fresh StyledPath objects with identical strings, so an identity
- * cache would re-parse megabytes of path data on every frame; equal strings are the same
- * path by construction. Bounded by total cached characters with FIFO eviction.
+ * Parsed Path2D cache keyed by the path string itself. Geometry rebuilds (every commit, pan or
+ * zoom) produce fresh StyledPath objects with identical strings, so an identity cache would
+ * re-parse megabytes of path data on every frame; equal strings are the same path by construction.
+ * Bounded by total cached characters with FIFO eviction.
  */
 const pathCache = new Map<string, Path2D>()
 const PATH_CACHE_BUDGET = 32_000_000

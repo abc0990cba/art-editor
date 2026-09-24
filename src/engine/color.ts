@@ -19,7 +19,7 @@ export interface CMYK {
   k: number
 }
 
-/** h in degrees (0..360), s and v in 0..1 */
+/** H in degrees (0..360), s and v in 0..1 */
 export function hsvToRgb(h: number, s: number, v: number): RGB {
   const c = v * s
   const hp = (((h % 360) + 360) % 360) / 60
@@ -65,7 +65,7 @@ const byte = (v: number) =>
 
 const unit = (v: number) => Math.max(0, Math.min(1, v))
 
-/** r/g/b in 0..255 → c/m/y/k in 0..1 (k = 1 − max channel; black is pure key). */
+/** R/g/b in 0..255 → c/m/y/k in 0..1 (k = 1 − max channel; black is pure key). */
 export function rgbToCmyk(r: number, g: number, b: number): CMYK {
   const rr = r / 255
   const gg = g / 255

@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { useStore, type Tool } from '../state/store'
-import { STAGE_THEMES } from '../engine/doc'
+
 import { brushOffsets } from '../engine/brush'
-import { regionCells } from '../engine/shapefill'
+import { STAGE_THEMES } from '../engine/doc'
 import { applyFillStyle } from '../engine/fillpatterns'
+import { regionCells } from '../engine/shapefill'
 import {
   ellipsePoints,
   isShapeTool,
@@ -11,14 +11,15 @@ import {
   rectPoints,
   shapePathPoints,
 } from '../engine/shapes'
+import { useStore, type Tool } from '../state/store'
 
 /**
- * Live sample of what the tool paints with the current settings: brush tip for the pencil
- * family, the shape's fill + aligned outline rasterized through the tip for the shape
- * tools, a connector segment with its width. Mirrors the stamping math of CanvasStage.
- * The grid dims are props so the same component powers the compact in-popover sample and
- * the large expandable copy — which gets more cells (i.e. more shape detail, like every
- * ring of a concentric tool), not just a zoom of the same grid.
+ * Live sample of what the tool paints with the current settings: brush tip for the pencil family,
+ * the shape's fill + aligned outline rasterized through the tip for the shape tools, a connector
+ * segment with its width. Mirrors the stamping math of CanvasStage. The grid dims are props so the
+ * same component powers the compact in-popover sample and the large expandable copy — which gets
+ * more cells (i.e. more shape detail, like every ring of a concentric tool), not just a zoom of the
+ * same grid.
  */
 export function ToolPreview({
   tool,
@@ -27,10 +28,10 @@ export function ToolPreview({
   cell = 8,
 }: {
   tool: Tool
-  /** sample grid size in cells; shapes rasterize into a (cols-3)×(rows-3) box */
+  /** Sample grid size in cells; shapes rasterize into a (cols-3)×(rows-3) box */
   cols?: number
   rows?: number
-  /** cell size in CSS px; the backing store is scaled by devicePixelRatio */
+  /** Cell size in CSS px; the backing store is scaled by devicePixelRatio */
   cell?: number
 }) {
   const color = useStore((s) => s.color)
@@ -98,19 +99,14 @@ export function ToolPreview({
       // the tip blob is filtered by the alignment against the shape's own regions
       const outlineSet = new Set(outlinePts.map(([x, y]) => y * cols + x))
       const region =
-        (shapeLike && (shapePaint.fill !== 'none' || shapePaint.align !== 'center'))
+        shapeLike && (shapePaint.fill !== 'none' || shapePaint.align !== 'center')
           ? regionCells(outlineSet, cols, rows)
           : null
       if (shapeLike && shapePaint.fill !== 'none') {
         const coordOf = (i: number) => ({ x: i % cols, y: Math.floor(i / cols) })
         const seed = outlineSet.values().next().value ?? 0
         if (shapePaint.fill === 'pattern') {
-          const picks = applyFillStyle(
-            fillStyle,
-            [...outlineSet, ...region!.inside],
-            seed,
-            coordOf,
-          )
+          const picks = applyFillStyle(fillStyle, [...outlineSet, ...region!.inside], seed, coordOf)
           for (const [i, pick] of picks) {
             const gx = i % cols
             const gy = Math.floor(i / cols)
@@ -160,12 +156,29 @@ export function ToolPreview({
       cellPath(ctx, ax, cy, cell, style)
       cellPath(ctx, bx, cy, cell, style)
     }
-  }, [tool, color, brush, opts, concentricRadii, style, connectorWidth, resolvedTheme, stage, cols, rows, cell, w, h, shapePaint, fillStyle])
+  }, [
+    tool,
+    color,
+    brush,
+    opts,
+    concentricRadii,
+    style,
+    connectorWidth,
+    resolvedTheme,
+    stage,
+    cols,
+    rows,
+    cell,
+    w,
+    h,
+    shapePaint,
+    fillStyle,
+  ])
 
   return (
     <canvas
       ref={ref}
-      className="max-w-full self-center rounded-md border border-line"
+      className="border-line max-w-full self-center rounded-md border"
       style={{ width: w, imageRendering: 'pixelated' }}
       aria-hidden
     />
@@ -178,7 +191,13 @@ function cellPath(
   gx: number,
   gy: number,
   cell: number,
-  style: { sizeX: number; sizeY: number; radius: number; corners: { tl: number | null; tr: number | null; br: number | null; bl: number | null }; cornerStyle: string },
+  style: {
+    sizeX: number
+    sizeY: number
+    radius: number
+    corners: { tl: number | null; tr: number | null; br: number | null; bl: number | null }
+    cornerStyle: string
+  },
 ) {
   const cw = style.sizeX * cell
   const ch = style.sizeY * cell

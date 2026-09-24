@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { PALETTES } from './palettes'
-import { IMPORT_PRESETS } from './importPresets'
+
 import { DEFAULT_IMPORT_OPTIONS, ORDERED_DITHERS } from './importImage'
+import { IMPORT_PRESETS } from './importPresets'
+import { PALETTES } from './palettes'
 
 const VALID_DITHERS: ReadonlySet<string> = new Set([
   'none',
