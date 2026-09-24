@@ -50,13 +50,13 @@ export interface MetaballSettings {
 }
 
 /** Baked vector texture punched into the inner pixel fill (all render modes). */
-export type TextureEffect = 'none' | 'grain' | 'grunge' | 'halftone'
+type TextureEffect = 'none' | 'grain' | 'grunge' | 'halftone'
 
 /** Spatial distribution of the texture specks. */
-export type TextureDist = 'scatter' | 'clumps' | 'streaks' | 'perlin' | 'voronoi'
+type TextureDist = 'scatter' | 'clumps' | 'streaks' | 'perlin' | 'voronoi'
 
 /** Speck silhouette (halftone always uses dots). */
-export type TextureShape = 'square' | 'dot' | 'chip'
+type TextureShape = 'square' | 'dot' | 'chip'
 
 export interface TextureSettings {
   effect: TextureEffect
@@ -200,7 +200,7 @@ export interface Doc {
   connectorWidth: number
 }
 
-export type SymmetryMode =
+type SymmetryMode =
   | 'none'
   | 'mirrorX'
   | 'mirrorY'
@@ -464,7 +464,7 @@ export function changeSub(doc: Doc, sub: SubDetail): Doc {
 /** Pure version of colorValue: returns { doc, v } with an extended palette when needed. */
 export function resolveColor(doc: Doc, hex: string): { doc: Doc; v: number } {
   const i = doc.palette.findIndex((c) => c.toLowerCase() === hex.toLowerCase())
-  if (i >= 0) return { doc, v: i + 1 }
+  if (i !== -1) return { doc, v: i + 1 }
   const palette = [...doc.palette, hex.toLowerCase()]
   return { doc: { ...doc, palette }, v: palette.length }
 }

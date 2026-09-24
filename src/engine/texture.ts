@@ -12,7 +12,7 @@ import type { TextureSettings } from './doc'
  */
 
 /** Max flecks per region / metaball blob — bounds path data size. */
-const MAX_REGION_FLECKS = 20000
+const MAX_REGION_FLECKS = 20_000
 
 /** Marching-squares threshold used by metaball mode. */
 const ISO = 0.5
@@ -25,12 +25,12 @@ const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
 /** 32-bit mix of two integer keys and a seed → PRNG / noise input. */
 function hash2(x: number, y: number, seed: number): number {
   let h =
-    (Math.imul(x | 0, 0x9e3779b1) ^
-      Math.imul(y | 0, 0x85ebca6b) ^
-      Math.imul(seed + 1, 0xc2b2ae35)) |
+    (Math.imul(x | 0, 0x9e_37_79_b1) ^
+      Math.imul(y | 0, 0x85_eb_ca_6b) ^
+      Math.imul(seed + 1, 0xc2_b2_ae_35)) |
     0
-  h = Math.imul(h ^ (h >>> 16), 2246822507)
-  h = Math.imul(h ^ (h >>> 13), 3266489909)
+  h = Math.imul(h ^ (h >>> 16), 2_246_822_507)
+  h = Math.imul(h ^ (h >>> 13), 3_266_489_909)
   return (h ^ (h >>> 16)) >>> 0
 }
 
@@ -42,10 +42,10 @@ function hash(key: number, seed: number): number {
 /** Mulberry32: tiny, fast, identical output on every platform. */
 function mulberry32(a: number): () => number {
   return () => {
-    a = (a + 0x6d2b79f5) | 0
+    a = (a + 0x6d_2b_79_f5) | 0
     let t = Math.imul(a ^ (a >>> 15), 1 | a)
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296
   }
 }
 
@@ -79,20 +79,16 @@ function emitFleck(
     const h = s / 2
     const ca = Math.cos(rot)
     const sa = Math.sin(rot)
-    const corners: Array<[number, number]> = [
+    const corners: [number, number][] = [
       [-h, -h],
       [h, -h],
       [h, h],
       [-h, h],
     ].map(([x, y]) => [cx + x * ca - y * sa, cy + x * sa + y * ca])
-    return (
-      `M${fmt(corners[0][0])} ${fmt(corners[0][1])}` +
-      corners
-        .slice(1)
-        .map(([x, y]) => `L${fmt(x)} ${fmt(y)}`)
-        .join('') +
-      'z'
-    )
+    return `M${fmt(corners[0][0])} ${fmt(corners[0][1])}${corners
+      .slice(1)
+      .map(([x, y]) => `L${fmt(x)} ${fmt(y)}`)
+      .join('')}z`
   }
   return squareFleck(fx, fy, a)
 }
@@ -107,7 +103,7 @@ function valueNoise(gx: number, gy: number, seed: number): number {
   const fy = gy - iy
   const sx = fx * fx * (3 - 2 * fx)
   const sy = fy * fy * (3 - 2 * fy)
-  const v = (a: number, b: number) => hash2(a, b, seed) / 4294967296
+  const v = (a: number, b: number) => hash2(a, b, seed) / 4_294_967_296
   return (
     (v(ix, iy) * (1 - sx) + v(ix + 1, iy) * sx) * (1 - sy) +
     (v(ix, iy + 1) * (1 - sx) + v(ix + 1, iy + 1) * sx) * sy
@@ -139,9 +135,9 @@ function distWeight(t: TextureSettings, x: number, y: number, pitch: number): nu
       for (let ox = -1; ox <= 1; ox++) {
         const lx = ix + ox
         const ly = iy + oy
-        const r1 = hash2(lx, ly, t.seed) / 4294967296
-        const r2 = hash2(lx, ly, t.seed + 17) / 4294967296
-        const r3 = hash2(lx, ly, t.seed + 53) / 4294967296
+        const r1 = hash2(lx, ly, t.seed) / 4_294_967_296
+        const r2 = hash2(lx, ly, t.seed + 17) / 4_294_967_296
+        const r3 = hash2(lx, ly, t.seed + 53) / 4_294_967_296
         const px = (lx + 0.15 + 0.7 * r1) * step
         const py = (ly + 0.15 + 0.7 * r2) * step
         const radius = step * (0.6 + 0.8 * r3)
@@ -175,10 +171,10 @@ interface HtDot {
 const HT_WOBBLE_AMP = 0.42
 
 /** Packed signed grid key: 16 bits per axis around a 0x8000 bias. */
-const htKey = (i: number, j: number) => (i + 0x8000) * 0x10000 + (j + 0x8000)
+const htKey = (i: number, j: number) => (i + 0x80_00) * 0x1_00_00 + (j + 0x80_00)
 
 /** Closed smooth polygon through `pts` (midpoint quadratic spline). */
-function smoothClosedPath(pts: Array<[number, number]>): string {
+function smoothClosedPath(pts: [number, number][]): string {
   const n = pts.length
   const mx = (a: [number, number], b: [number, number]) => fmt((a[0] + b[0]) / 2)
   const my = (a: [number, number], b: [number, number]) => fmt((a[1] + b[1]) / 2)
@@ -188,13 +184,13 @@ function smoothClosedPath(pts: Array<[number, number]>): string {
     const q = pts[(i + 1) % n]
     d += `Q${fmt(p[0])} ${fmt(p[1])} ${mx(p, q)} ${my(p, q)}`
   }
-  return d + 'z'
+  return `${d}z`
 }
 
 /** Single wobbled circle: noise perturbation sampled on a circular route, so it closes. */
 function wobblyCirclePath(cx: number, cy: number, r: number, amp: number, seed: number): string {
   const K = 12
-  const pts: Array<[number, number]> = []
+  const pts: [number, number][] = []
   for (let k = 0; k < K; k++) {
     const a = (k / K) * Math.PI * 2
     const ca = Math.cos(a)
@@ -232,7 +228,7 @@ function clusterBlobPath(cluster: HtDot[], amp: number, seed: number): string {
     gy = big.cy
   }
   const K = Math.min(32, 10 + cluster.length * 6)
-  const pts: Array<[number, number]> = []
+  const pts: [number, number][] = []
   for (let k = 0; k < K; k++) {
     const a = (k / K) * Math.PI * 2
     const ux = Math.cos(a)
@@ -298,7 +294,7 @@ function emitHalftoneDots(
   const neck = mergeP * 0.55 * pitch
   for (let i = 0; i < n; i++) {
     const ki = keys[i]
-    for (const nk of [ki + stride * 0x10000, ki + stride]) {
+    for (const nk of [ki + stride * 0x1_00_00, ki + stride]) {
       const j = dotAt.get(nk)
       if (j === undefined) continue
       const d = Math.hypot(dots[j].cx - dots[i].cx, dots[j].cy - dots[i].cy)
@@ -314,7 +310,7 @@ function emitHalftoneDots(
         ri !== rj &&
         size[ri] === 1 &&
         size[rj] === 1 &&
-        hash2(Math.min(ki, nk), Math.max(ki, nk), t.seed + 991) / 4294967296 < mergeP
+        hash2(Math.min(ki, nk), Math.max(ki, nk), t.seed + 991) / 4_294_967_296 < mergeP
       ) {
         unite(ri, rj)
       }
@@ -346,7 +342,7 @@ function emitHalftoneDots(
 
 /** Spray specks that would land on (or inside) a dot are dropped, not XORed. */
 function filterSpray(
-  spray: Array<HtDot & { key: number }>,
+  spray: (HtDot & { key: number })[],
   dots: HtDot[],
   dotAt: Map<number, number>,
   pitch: number,
@@ -357,7 +353,7 @@ function filterSpray(
     let ok = true
     for (let di = -1; di <= 1 && ok; di++) {
       for (let dj = -1; dj <= 1 && ok; dj++) {
-        const j = dotAt.get(s.key + di * 0x10000 + dj)
+        const j = dotAt.get(s.key + di * 0x1_00_00 + dj)
         if (j === undefined) continue
         if (Math.hypot(dots[j].cx - s.cx, dots[j].cy - s.cy) < dots[j].r + s.r + clearance)
           ok = false
@@ -428,10 +424,10 @@ export function regionTextureFragments(
   cells.forEach((c, k) => {
     const bx = Math.floor(((c.cx0 + c.cx1) / 2) * sub)
     const by = Math.floor(((c.cy0 + c.cy1) / 2) * sub)
-    index.set(bx * 65536 + by, k)
+    index.set(bx * 65_536 + by, k)
   })
   const locate = (px: number, py: number): number | undefined =>
-    index.get(Math.floor(px * sub) * 65536 + Math.floor(py * sub))
+    index.get(Math.floor(px * sub) * 65_536 + Math.floor(py * sub))
 
   // a sample point must sit inside the painted fill rect (corner fillets
   // included) AND inside the tile's placement bounds. The fill-rect test is what
@@ -536,7 +532,7 @@ export function regionTextureFragments(
   const dots: HtDot[] = []
   const dotKeys: number[] = []
   const dotAt = new Map<number, number>()
-  const sprayCand: Array<HtDot & { key: number }> = []
+  const sprayCand: (HtDot & { key: number })[] = []
   let out = ''
   let count = 0
   for (let J = J0; J <= J1 && count < MAX_REGION_FLECKS; J += stride) {
@@ -820,7 +816,7 @@ export function fieldTextureFragments(
   const dots: HtDot[] = []
   const dotKeys: number[] = []
   const dotAt = new Map<number, number>()
-  const sprayCand: Array<HtDot & { key: number }> = []
+  const sprayCand: (HtDot & { key: number })[] = []
   let out = ''
   let count = 0
 

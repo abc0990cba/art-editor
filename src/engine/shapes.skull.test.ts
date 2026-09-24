@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { fillCellsEvenOdd } from './shapefill'
-import { shapeHasHoles, shapePathLoops, shapePathPoints, type ShapeOpts } from './shapes'
+import { fillCellsEvenOdd } from './shapefill.ts'
+import { shapeHasHoles, shapePathLoops, shapePathPoints, type ShapeOpts } from './shapes.ts'
 
 const BW = 80
 const BH = 80
@@ -112,7 +112,7 @@ function knobs() {
   it('mandible off closes the silhouette above the box bottom', () => {
     const withJaw = shapePathPoints('skull', 8, 8, 72, 72)
     const noJaw = shapePathPoints('skull', 8, 8, 72, 72, { skullMandible: false })
-    const maxY = (pts: Array<[number, number]>) => Math.max(...pts.map(([, y]) => y))
+    const maxY = (pts: [number, number][]) => Math.max(...pts.map(([, y]) => y))
     expect(maxY(noJaw)).toBeLessThan(maxY(withJaw))
   })
 

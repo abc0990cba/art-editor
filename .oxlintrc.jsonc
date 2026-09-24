@@ -1,0 +1,173 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Максимально строгий профиль для AI-разработки: correctness+suspicious+pedantic = error.
+  // Выключенные ниже правила — осознанный триаж для домена пиксельного редактора
+  // (геометрия, матемтика, большие компоненты). Каждое — с причиной.
+  // vitest-плагин снят целиком: его стайл-правила ломали семантику тестов (toBeTruthy → toBe(true) и т.п.)
+  "plugins": ["unicorn", "typescript", "react", "oxc", "import", "jsx-a11y"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "error",
+    "style": "warn",
+    "restriction": "warn"
+  },
+  "rules": {
+    "unicorn/filename-case": ["error", { "case": "kebabCase" }],
+
+    // --- домен: пиксельная геометрия, числа повсюду и это норма ---
+    "eslint/no-magic-numbers": "off",
+    "eslint/id-length": "off", // x/y/a/b в математике ядра
+    "eslint/no-plusplus": "off",
+    "oxc/no-optional-chaining": "off", // идиоматичный TS
+    "typescript/no-non-null-assertion": "off", // точные инварианты горячих путей
+
+    // --- стиль, конфликтующий с кодовой базой / oxfmt ---
+    "eslint/one-var": "off",
+    "eslint/curly": "off",
+    "eslint/capitalized-comments": "off",
+    "eslint/sort-keys": "off",
+    "eslint/no-ternary": "off",
+    "eslint/func-style": "off",
+    "eslint/no-continue": "off",
+    "eslint/prefer-destructuring": "off",
+    "eslint/sort-imports": "off", // порядок импортов закреплён за oxfmt (sortImports)
+    "import/group-exports": "off", // именованные экспорты по всему файлу — наш стиль
+    "import/exports-last": "off",
+    "import/no-named-export": "off",
+    "import/no-relative-parent-imports": "off", // границы слоёв проверяет dependency-cruiser
+    "oxc/no-rest-spread-properties": "off",
+
+    // --- React ---
+    "react/react-in-jsx-scope": "off", // jsx: react-jsx
+    "react/jsx-max-depth": "off",
+
+    // --- размер: известный техдолг (canvas-stage ~2400 строк, editor.store ~2200) ---
+    "eslint/max-lines-per-function": "off",
+    "eslint/max-statements": "off",
+
+    // --- тесты: без навязчивого стиля ---
+    "vitest/prefer-expect-assertions": "off",
+    "vitest/require-test-timeout": "off",
+    "vitest/prefer-to-be-truthy": "off",
+    "vitest/prefer-strict-equal": "off",
+
+    // --- возвращаемые типы: только у публичных функций, не у стрелок-колбэков ---
+    "typescript/explicit-function-return-type": ["warn", { "allowExpressions": true }],
+
+    // --- вторая волна триажа: механические стили, конфликтующие с доменом ---
+    "eslint/no-use-before-define": "off", // хойстинг функций — норма для модулей ядра
+    "import/consistent-type-specifier-style": "off", // смешанные import type — легальны
+    "eslint/max-params": "off", // геометрические функции (x0, y0, x1, y1, opts…)
+    "vitest/no-conditional-in-test": "off", // параметризованные проверки в тестах
+    "eslint/no-inline-comments": "off",
+    "eslint/no-bitwise": "off", // битовые операции — ядро дизеринга и масок
+    "eslint/require-unicode-regexp": "off",
+    "unicorn/consistent-function-scoping": "off", // замыкания в компонентах — норма
+    "eslint/max-depth": "off",
+    "vitest/max-expects": "off",
+    "vitest/prefer-to-be-falsy": "off",
+    "vitest/valid-expect": "off", // ложные срабатывания на кастомных обёртках
+
+    // --- третья волна: вывод типов покрывает безопасность, стиль не навязываем ---
+    "typescript/explicit-function-return-type": "off", // noImplicitAny + ревью покрывают
+    "typescript/explicit-module-boundary-types": "off",
+    "unicorn/prefer-global-this": "off",
+    "oxc/no-async-await": "off", // async/await — идиоматика проекта
+    "eslint/no-undefined": "off",
+    "eslint/complexity": "off", // известный техдолг: giant switch рендера фигур
+    "eslint/max-lines": "off", // canvas-stage/store — задокументированный техдолг
+    "eslint/no-void": "off", // fire-and-forget вызовы сохранения
+    "react/jsx-no-literals": "off",
+    "react/jsx-filename-extension": "off",
+    "import/prefer-default-export": "off", // у нас только именованные экспорты
+    "vitest/prefer-importing-vitest-globals": "off",
+    "vitest/valid-title": "off",
+    "unicorn/no-array-sort": "off", // мутабельный sort в геометрии — осознанно
+    "eslint/init-declarations": "off",
+    "eslint/prefer-named-capture-group": "off",
+    "unicorn/max-nested-calls": "off",
+    "react/no-multi-comp": "off", // ui.tsx — набор мелких примитивов в одном модуле
+    "eslint/no-duplicate-imports": "off", // oxfmt sortImports консолидирует
+    "react/forbid-component-props": "off",
+    "react/refs": "off",
+    "unicorn/no-array-for-each": "off",
+    // canvas-редактор: вся интерактивность — pointer-события на канвасе,
+    // клавиатура обрабатывается глобально; a11y-правила для DOM-кнопок неприменимы
+    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/no-static-element-interactions": "off",
+
+    // --- четвёртая волна: точечный триаж остатка ---
+    "eslint/no-nested-ternary": "off", // тернарные цепочки в цветовых рампах — читаемы
+    "unicorn/no-nested-ternary": "off",
+    "vitest/require-hook": "off",
+    "vitest/no-hooks": "off",
+    "vitest/no-conditional-expect": "off",
+    "vitest/valid-describe-callback": "off",
+    "jsx-a11y/control-has-associated-label": "off",
+    "typescript/explicit-member-accessibility": "off",
+    "eslint/eqeqeq": ["error", "smart"], // == null (null-или-undefined) — легально
+
+    // --- финальный триаж: микростили unicorn/import не стоят churn ---
+    "unicorn/prefer-structured-clone": "off",
+    "unicorn/prefer-single-call": "off",
+    "unicorn/no-immediate-mutation": "off",
+    "unicorn/no-array-fill-with-reference-type": "off",
+    "unicorn/prefer-math-trunc": "off",
+    "unicorn/prefer-math-min-max": "off",
+    "unicorn/prefer-native-coercion-functions": "off",
+    "unicorn/no-array-callback-reference": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    "import/first": "off", // раскладку импортов ведёт oxfmt
+    "import/max-dependencies": "off",
+    "typescript/method-signature-style": "off",
+    "eslint/no-eq-null": "off", // противоречит eqeqeq:smart (== null легален)
+
+    // --- ЗАПРЕЩЁННЫЕ АВТОФИКСЫ: ломают типизированные массивы и типобезопасность ---
+    "unicorn/prefer-at": "off", // .at(-1) возвращает T|undefined — небезопаснее индексации
+    "unicorn/prefer-spread": "off", // спред Uint16Array/Uint32Array даёт number[]
+
+    // --- vitest: тестируем семантику, а не стиль тестов ---
+    "vitest/no-importing-vitest-globals": "off", // явные импорты — ок (и глобсы тоже типизированы)
+    "vitest/prefer-to-have-length": "off",
+    "vitest/prefer-describe-function-title": "off", // заголовки describe — только строки
+    "vitest/consistent-test-it": "off",
+    "unicorn/number-literal-case": "off",
+    "unicorn/numeric-separators-style": "off",
+    "eslint/no-implicit-coercion": "off",
+
+    // --- опасные автофиксы, часть 2 ---
+    "unicorn/no-useless-undefined": "off", // выкидывал normalizeBrush(undefined) и useRef(undefined)
+    "unicorn/prefer-dom-node-dataset": "off", // dataset недоступен на Element
+    // комментарий: vitest-плагин снят целиком — см. plugins выше
+    // --- пятая волна: неприменимое к домену — off, ценное с churn — advisory (warn) ---
+    "typescript/prefer-for-of": "off", // в ядре индекс needed: циклы по Uint16Array с записью
+    "eslint/default-case": "off", // switch по union-типам: tsc проверяет полноту, default ломает
+    "eslint/no-param-reassign": "off", // мутация вершин геометрии — идиоматика
+    "eslint/no-multi-assign": "off",
+    "react/only-export-components": "off", // ui/index экспортирует хуки+компоненты
+    "jsx-a11y/no-autofocus": "off", // фокус в модалках диалогов — намеренно
+    "unicorn/prefer-export-from": "off",
+    // advisory: читаем при каждом ревью, исправляем или обосновываем
+    "eslint/no-shadow": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/exhaustive-effect-dependencies": "warn",
+    "react/memo-dependencies": "warn",
+    "react/set-state-in-effect": "warn",
+
+    // --- шестая волна: API-контракты и интерактивные канвас-паттерны ---
+    "eslint/require-await": "off", // async-сигнатура — часть API даже без await
+    "eslint/no-underscore-dangle": "off", // __store — соглашение devtools-хука
+    "jsx-a11y/label-has-associated-control": "off", // наш ColorInput-паттерн
+    "jsx-a11y/prefer-tag-over-role": "off", // role=separator на интерактивном делителе
+    "jsx-a11y/no-noninteractive-element-interactions": "off", // canvas-приложение
+    "import/no-unassigned-import": "off", // side-effect импорт index.css
+    "unicorn/prefer-top-level-await": "off",
+    "unicorn/no-array-reverse": "off", // reverse() на свежей копии — безопасно, lib ES2022 // async IIFE в инициализации стора
+    "react/purity": "off", // Date.now в render диалогов — осознанный паттерн
+    "oxc/branches-sharing-code": "off", // рефакторинг горячей геометрии не оправдан
+
+    "unicorn/no-null": "off" // null валиден в этом коде (DOM, сравнения)
+  },
+  "ignorePatterns": ["dist/", "node_modules/", "coverage/"]
+}

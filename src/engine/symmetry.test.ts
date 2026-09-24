@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { linePoints } from './shapes'
+import { linePoints } from './shapes.ts'
 import {
   REPEAT_MODES,
   polarAngleMaps,
@@ -8,14 +8,14 @@ import {
   symmetryPairPoints,
   symmetryPoints,
   symmetryTransforms,
-} from './symmetry'
-import type { SymMode } from './symmetry'
+} from './symmetry.ts'
+import type { SymMode } from './symmetry.ts'
 
 const CELL = 8
 const BW = 48
 const BH = 48
 
-function orbit(mode: SymMode, x: number, y: number, cell = CELL): Array<[number, number]> {
+function orbit(mode: SymMode, x: number, y: number, cell = CELL): [number, number][] {
   return symmetryPoints(x, y, BW, BH, mode, 8, cell)
 }
 
@@ -186,7 +186,7 @@ describe('repeat modes (wallpaper / tiling)', () => {
   })
 
   it('op tables close under composition modulo lattice translations', () => {
-    const sample: Array<[number, number]> = [
+    const sample: [number, number][] = [
       [0.137, 0.521],
       [0.6, 0.3],
       [0.25, 0.75],

@@ -1,7 +1,7 @@
 import type { Doc, ElementStyle, Link, PixelStyle } from './doc'
 import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from './doc'
-import { gridBuildGeometry } from './gridGeometry'
-import { marchingSquares, type Pt } from './marchingSquares'
+import { gridBuildGeometry } from './grid-geometry.ts'
+import { marchingSquares, type Pt } from './marching-squares.ts'
 import { evalGraph } from './nodes'
 import { outlineGeometry } from './outline'
 import { visibleObjs } from './scene'
@@ -70,7 +70,7 @@ function roundedRectPath(
   d += join(x, y + h - bl, bl)
   d += `L${fmt(x)} ${fmt(y + tl)}`
   d += join(x + tl, y, tl)
-  return d + 'Z'
+  return `${d}Z`
 }
 
 /**
@@ -342,7 +342,7 @@ function loopsToPath(loops: Pt[][], scale: number): string {
   for (const raw of loops) {
     const pts: Pt[] = []
     for (const p of raw) {
-      const last = pts[pts.length - 1]
+      const last = pts.at(-1)
       if (!last || Math.abs(last.x - p.x) > 1e-9 || Math.abs(last.y - p.y) > 1e-9) pts.push(p)
     }
     if (pts.length > 2) {
@@ -460,7 +460,7 @@ interface ElementGroup {
  */
 const styleKeyCache = new WeakMap<ElementStyle, string>()
 
-export function elementStyleKey(el: ElementStyle): string {
+function elementStyleKey(el: ElementStyle): string {
   let k = styleKeyCache.get(el)
   if (k) return k
   const s = el.style
@@ -560,7 +560,7 @@ function elementGeometry(
   const fallbackIdx = groups.indexOf(byId.get(0)!)
   let ordered = groups
   if (fallbackIdx > 0) {
-    ordered = groups.slice()
+    ordered = [...groups]
     ordered.unshift(ordered.splice(fallbackIdx, 1)[0])
   }
 
@@ -608,7 +608,7 @@ let sceneScratchObjs: Uint32Array | null = null
 function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
   const layers = doc.layers!
   const length = doc.cells.length
-  const preview = !!(staging && staging.cells && staging.cells.size > 0)
+  const preview = Boolean(staging && staging.cells && staging.cells.size > 0)
   // staged erase cells without a layer tag punch wherever their composite owner lives
   const objLayerOf = new Map<number, number>()
   for (const layer of layers) {
@@ -616,11 +616,11 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
   }
   const paths: StyledPath[] = []
   // staged ink without an explicit layer tag defaults to the topmost layer
-  const inkLayerId = staging?.layerId ?? layers[layers.length - 1]?.id
+  const inkLayerId = staging?.layerId ?? layers.at(-1)?.id
   // graph objects evaluate their node graph; hex colors resolve against the derived palette
   const hexValue = (hex: string) => {
     const i = doc.palette.findIndex((c) => c.toLowerCase() === hex.toLowerCase())
-    return (i >= 0 ? i : 0) + 1
+    return (i === -1 ? 0 : i) + 1
   }
   for (const layer of layers) {
     if (!layer.visible) continue
@@ -700,7 +700,7 @@ export function buildGeometry(doc: Doc, staging?: Staging): Geometry {
   if (doc.layers) return sceneGeometry(doc, staging)
   const cells = mergedCells(doc, staging)
   const links = staging?.links ?? doc.links
-  const preview = !!(staging && staging.cells && staging.cells.size > 0)
+  const preview = Boolean(staging && staging.cells && staging.cells.size > 0)
   if (doc.styleScope === 'element' && (doc.cellObj || staging?.objs)) {
     return elementGeometry(doc, cells, links, staging?.objs, preview)
   }
@@ -717,7 +717,7 @@ export function buildGeometry(doc: Doc, staging?: Staging): Geometry {
  * preview with the document-level drawing style — exactly the style they will be frozen with when
  * the stroke commits.
  */
-export const PENDING_OBJ = 0xffffffff
+export const PENDING_OBJ = 0xff_ff_ff_ff
 
 export interface StagingPreview {
   /** Staged ink: one path per (style group × color), drawn above the committed artwork */

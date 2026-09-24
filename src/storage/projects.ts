@@ -25,9 +25,9 @@ export function sortEntries(entries: ProjectEntry[]): ProjectEntry[] {
 
 /** Trim, collapse whitespace, cap length; empty input becomes "Untitled". */
 export function normalizeName(raw: string, maxLength = 40): string {
-  const cleaned = raw.replace(/\s+/g, ' ').trim()
+  const cleaned = raw.replaceAll(/\s+/g, ' ').trim()
   if (!cleaned) return 'Untitled'
-  return cleaned.length > maxLength ? cleaned.slice(0, maxLength - 1).trimEnd() + '…' : cleaned
+  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength - 1).trimEnd()}…` : cleaned
 }
 
 /** Name for a duplicate of `name` that is unique within `existing` names. */

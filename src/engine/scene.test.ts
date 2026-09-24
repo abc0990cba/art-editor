@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { useStore } from '../state/store'
-import { defaultDoc, type Doc } from './doc'
-import { buildGeometry, PENDING_OBJ } from './geometry'
-import { deserialize, serialize } from './project'
+import { useStore } from '../state/editor.store'
+import { defaultDoc, type Doc } from './doc.ts'
+import { buildGeometry, PENDING_OBJ } from './geometry.ts'
+import { deserialize, serialize } from './project.ts'
 import {
   allObjs,
   ensureScene,
@@ -13,7 +13,7 @@ import {
   syncDoc,
   ungroupAround,
   type SceneObj,
-} from './scene'
+} from './scene.ts'
 
 const pathSignatures = (doc: Doc) =>
   buildGeometry(doc)
@@ -24,7 +24,7 @@ const RED = '#ff0000'
 const GREEN = '#00ff00'
 
 /** Paint through the store's paintCells; returns the palette value the cells received. */
-function stroke(cells: Array<[number, number]>, color = RED): number {
+function stroke(cells: [number, number][], color = RED): number {
   const s = useStore.getState()
   const v =
     s.doc.palette.findIndex((c) => c.toLowerCase() === color.toLowerCase()) + 1 ||

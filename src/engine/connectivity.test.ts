@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc, type Doc } from './doc'
-import { buildGeometry } from './geometry'
-import { deserialize, serialize } from './project'
+import { defaultDoc, type Doc } from './doc.ts'
+import { buildGeometry } from './geometry.ts'
+import { deserialize, serialize } from './project.ts'
 
-function docWith(cells: Array<[number, number]>, cols = 8, rows = 8): Doc {
+function docWith(cells: [number, number][], cols = 8, rows = 8): Doc {
   const doc = defaultDoc()
   doc.cols = cols
   doc.rows = rows
@@ -91,7 +91,7 @@ describe('connectivity round trip', () => {
 
 describe('bridge junction direction symmetry', () => {
   const pts = (d: string) => {
-    const out: Array<[number, number]> = []
+    const out: [number, number][] = []
     const re = /([MLAZ])([^MLAZ]*)/g
     let m: RegExpExecArray | null
     while ((m = re.exec(d))) {
@@ -104,7 +104,7 @@ describe('bridge junction direction symmetry', () => {
     }
     return out
   }
-  const mk = (cells: Array<[number, number]>) => {
+  const mk = (cells: [number, number][]) => {
     const doc = defaultDoc()
     doc.cols = 8
     doc.rows = 8
@@ -115,7 +115,7 @@ describe('bridge junction direction symmetry', () => {
     const g = buildGeometry(doc)
     return g.paths[1].d // bridge overlay path
   }
-  const sorted = (pts: Array<[number, number]>) =>
+  const sorted = (pts: [number, number][]) =>
     JSON.stringify(
       [...pts]
         .map(([x, y]) => [Math.round(x * 1000) / 1000, Math.round(y * 1000) / 1000])

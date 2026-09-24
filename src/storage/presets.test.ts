@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { defaultDoc } from '../engine/doc'
-import { BUILTIN_PRESETS, presetFromDoc } from '../engine/presets'
+import { defaultDoc } from '../engine/doc.ts'
+import { BUILTIN_PRESETS, presetFromDoc } from '../engine/presets.ts'
 import {
   clearPresetsForTests,
   deletePreset,
@@ -11,7 +11,7 @@ import {
   savePreset,
   sortPresets,
   type PresetEntry,
-} from './presets'
+} from './presets.ts'
 
 function entry(id: string, name: string, updatedAt: number): PresetEntry {
   return {

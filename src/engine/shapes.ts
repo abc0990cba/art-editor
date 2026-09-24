@@ -1,20 +1,15 @@
 /** Rasterized shape outlines in integer buffer coordinates. */
 
-export function linePoints(
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-): Array<[number, number]> {
-  const pts: Array<[number, number]> = []
-  let dx = Math.abs(x1 - x0)
-  let dy = -Math.abs(y1 - y0)
+export function linePoints(x0: number, y0: number, x1: number, y1: number): [number, number][] {
+  const pts: [number, number][] = []
+  const dx = Math.abs(x1 - x0)
+  const dy = -Math.abs(y1 - y0)
   const sx = x0 < x1 ? 1 : -1
   const sy = y0 < y1 ? 1 : -1
   let err = dx + dy
   let x = x0
   let y = y0
-  for (let guard = 0; guard < 100000; guard++) {
+  for (let guard = 0; guard < 100_000; guard++) {
     pts.push([x, y])
     if (x === x1 && y === y1) break
     const e2 = 2 * err
@@ -36,7 +31,7 @@ export function rectPoints(
   x1: number,
   y1: number,
   opts: ShapeOpts = {},
-): Array<[number, number]> {
+): [number, number][] {
   const ax = Math.min(x0, x1)
   const bx = Math.max(x0, x1)
   const ay = Math.min(y0, y1)
@@ -67,7 +62,7 @@ export function ellipsePoints(
   x1: number,
   y1: number,
   opts: ShapeOpts = {},
-): Array<[number, number]> {
+): [number, number][] {
   const cx = (x0 + x1) / 2
   const cy = (y0 + y1) / 2
   const a = Math.abs(x1 - x0) / 2
@@ -82,8 +77,8 @@ export function ellipsePoints(
     const t = (i / steps) * 2 * Math.PI
     const ct = Math.cos(t)
     const st = Math.sin(t)
-    const px = Math.round(cx + a * Math.sign(ct) * Math.pow(Math.abs(ct), e))
-    const py = Math.round(cy + b * Math.sign(st) * Math.pow(Math.abs(st), e))
+    const px = Math.round(cx + a * Math.sign(ct) * Math.abs(ct) ** e)
+    const py = Math.round(cy + b * Math.sign(st) * Math.abs(st) ** e)
     pts.set(`${px},${py}`, [px, py])
   }
   return [...pts.values()]
@@ -283,7 +278,7 @@ export interface ShapeOpts {
   skullMouthY?: number
 }
 
-type Polyline = Array<[number, number]>
+type Polyline = [number, number][]
 
 type BoxShapeId = Exclude<ShapeToolId, 'arrow' | 'wave' | 'zigzag'>
 
@@ -335,7 +330,7 @@ function boxShapePolylines(tool: BoxShapeId, opts: ShapeOpts, steps: number): Po
       pts.push(pts[0])
       return rotated(decoratePolylines([pts], opts), opts.polygonRotation ?? 0)
     }
-    case 'diamond':
+    case 'diamond': {
       return rotated(
         decoratePolylines(
           [
@@ -351,6 +346,7 @@ function boxShapePolylines(tool: BoxShapeId, opts: ShapeOpts, steps: number): Po
         ),
         opts.diamondRotation ?? 0,
       )
+    }
     case 'cross': {
       const a = clamp(opts.crossThickness ?? 1 / 3, 0.15, 0.45)
       return rotated(
@@ -374,7 +370,7 @@ function boxShapePolylines(tool: BoxShapeId, opts: ShapeOpts, steps: number): Po
         opts.crossRotation ?? 0,
       )
     }
-    case 'lightning':
+    case 'lightning': {
       return rotated(
         [
           [
@@ -390,6 +386,7 @@ function boxShapePolylines(tool: BoxShapeId, opts: ShapeOpts, steps: number): Po
         ],
         opts.lightningRotation ?? 0,
       )
+    }
     case 'heart': {
       // classic parametric heart, auto-fitted and centered into the unit box
       const pad = 0.07
@@ -635,8 +632,9 @@ function boxShapePolylines(tool: BoxShapeId, opts: ShapeOpts, steps: number): Po
         ]
       })
     }
-    case 'skull':
+    case 'skull': {
       return skullPolylines(opts, steps)
+    }
   }
 }
 
@@ -740,8 +738,8 @@ function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
     const ct = Math.cos(a)
     const st = Math.sin(a)
     right.push([
-      0.5 + domeRx * Math.sign(ct) * Math.pow(Math.abs(ct), domePow),
-      domeCy + domeRy * Math.sign(st) * Math.pow(Math.abs(st), domePow),
+      0.5 + domeRx * Math.sign(ct) * Math.abs(ct) ** domePow,
+      domeCy + domeRy * Math.sign(st) * Math.abs(st) ** domePow,
     ])
   }
   right.push([domeEndX, domeEndY])
@@ -812,27 +810,19 @@ function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
       const pts: Polyline = []
       pts.push(
         ...quadSeg([cx - w2, top + noseH * 0.3], [cx - w2 * 0.8, bot - noseH * 0.2], [cx, bot], 8),
-      )
-      pts.push(
         ...quadSeg([cx, bot], [cx + w2 * 0.8, bot - noseH * 0.2], [cx + w2, top + noseH * 0.3], 8),
-      )
-      pts.push(
         ...quadSeg(
           [cx + w2, top + noseH * 0.3],
           [cx + w2 * 0.5, top - noseH * 0.08],
           [cx + w2 * 0.12, top + noseH * 0.16],
           6,
         ),
-      )
-      pts.push(
         ...quadSeg(
           [cx + w2 * 0.12, top + noseH * 0.16],
           [cx, top + noseH * 0.26],
           [cx - w2 * 0.12, top + noseH * 0.16],
           5,
         ),
-      )
-      pts.push(
         ...quadSeg(
           [cx - w2 * 0.12, top + noseH * 0.16],
           [cx - w2 * 0.5, top - noseH * 0.08],
@@ -847,16 +837,14 @@ function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
       const r = w2 * 0.9
       const cyc = top + r
       const pts: Polyline = []
-      pts.push(...ellipseArc(cx, cyc, r, r, Math.PI * 0.95, Math.PI * 2.05, 14))
       pts.push(
+        ...ellipseArc(cx, cyc, r, r, Math.PI * 0.95, Math.PI * 2.05, 14),
         ...quadSeg(
           [cx + r * 0.95, cyc + r * 0.3],
           [cx + w2 * 0.4, bot - noseH * 0.18],
           [cx, bot],
           6,
         ),
-      )
-      pts.push(
         ...quadSeg(
           [cx, bot],
           [cx - w2 * 0.4, bot - noseH * 0.18],
@@ -893,8 +881,10 @@ function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
         if (teethShape === 'rect') {
           pts.push([x0, depth], [x1, depth])
         } else if (teethShape === 'rounded') {
-          pts.push(...quadSeg([x0, mt], [x0 + (x1 - x0) * 0.1, depth], [0.5 * (x0 + x1), depth], 4))
-          pts.push(...quadSeg([0.5 * (x0 + x1), depth], [x1 - (x1 - x0) * 0.1, depth], [x1, mt], 4))
+          pts.push(
+            ...quadSeg([x0, mt], [x0 + (x1 - x0) * 0.1, depth], [0.5 * (x0 + x1), depth], 4),
+            ...quadSeg([0.5 * (x0 + x1), depth], [x1 - (x1 - x0) * 0.1, depth], [x1, mt], 4),
+          )
         } else {
           // pointed teeth and fangs: a V dip under every tooth
           pts.push([0.5 * (x0 + x1), depth])
@@ -902,8 +892,10 @@ function skullPolylines(opts: ShapeOpts, steps: number): Polyline[] {
       }
       pts.push([mr, mt])
       // bottom edge: shallow arc suggesting the lower jaw line
-      pts.push(...quadSeg([mr, mt], [mr, mb], [0.5, mb], 6))
-      pts.push(...quadSeg([0.5, mb], [ml, mb], [ml, mt], 6))
+      pts.push(
+        ...quadSeg([mr, mt], [mr, mb], [0.5, mb], 6),
+        ...quadSeg([0.5, mb], [ml, mb], [ml, mt], 6),
+      )
       pts.push(pts[0])
       polys.push(pts)
     }
@@ -922,11 +914,11 @@ function concentricRadii(opts: ShapeOpts): number[] {
 function seededRandom(seed: number): () => number {
   let a = (Math.floor(seed) || 1) >>> 0
   return () => {
-    a = (a + 0x6d2b79f5) >>> 0
+    a = (a + 0x6d_2b_79_f5) >>> 0
     let t = a
     t = Math.imul(t ^ (t >>> 15), t | 1)
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296
   }
 }
 
@@ -1090,7 +1082,7 @@ function bentoSlots(opts: ShapeOpts): BentoRect[] {
     const d: number[] = []
     for (let i = 1; i < n; i++) {
       let v = i / n + chaos * (rnd() * 2 - 1) * (0.5 / n)
-      const prev = d.length ? d[d.length - 1] : 0
+      const prev = d.length > 0 ? d[d.length - 1] : 0
       v = Math.min(Math.max(v, prev + 0.15 / n), 1 - 0.15 / n)
       d.push(v)
     }
@@ -1125,12 +1117,13 @@ function bentoSlots(opts: ShapeOpts): BentoRect[] {
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const g = groups.get(find(r * cols + c))
-      if (!g) groups.set(find(r * cols + c), { r0: r, r1: r, c0: c, c1: c })
-      else {
+      if (g) {
         g.r0 = Math.min(g.r0, r)
         g.r1 = Math.max(g.r1, r)
         g.c0 = Math.min(g.c0, c)
         g.c1 = Math.max(g.c1, c)
+      } else {
+        groups.set(find(r * cols + c), { r0: r, r1: r, c0: c, c1: c })
       }
     }
   }
@@ -1151,7 +1144,7 @@ function bentoSlots(opts: ShapeOpts): BentoRect[] {
 }
 
 /** Rasterize float polylines into integer cells, Bresenham-traced between vertices. */
-function polylineCells(segs: Polyline[]): Array<[number, number]> {
+function polylineCells(segs: Polyline[]): [number, number][] {
   const pts = new Map<string, [number, number]>()
   for (const poly of segs) {
     let px = Math.round(poly[0][0])
@@ -1289,7 +1282,7 @@ export function shapePathPoints(
   by: number,
   opts: ShapeOpts = {},
   steps?: number,
-): Array<[number, number]> {
+): [number, number][] {
   const segs = shapePathSegments(tool, ax, ay, bx, by, opts, steps)
   return polylineCells(segs)
 }

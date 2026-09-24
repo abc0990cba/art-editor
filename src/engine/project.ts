@@ -6,9 +6,8 @@ import type { SceneGroup, SceneItem, SceneLayer, SceneObj } from './scene'
 import { decodeObjCells, encodeObjCells, sceneFromLegacy, syncDoc } from './scene'
 
 /** The object's node graph as stored: already plain JSON-safe data. */
-export type GraphJSON = Graph
 
-export interface SceneObjJSON {
+interface SceneObjJSON {
   kind: 'obj'
   id: number
   name: string
@@ -22,7 +21,7 @@ export interface SceneObjJSON {
   graph?: Graph
 }
 
-export interface SceneGroupJSON {
+interface SceneGroupJSON {
   kind: 'group'
   id: number
   name: string
@@ -31,7 +30,7 @@ export interface SceneGroupJSON {
   children: SceneItemJSON[]
 }
 
-export interface SceneLayerJSON {
+interface SceneLayerJSON {
   kind: 'layer'
   id: number
   name: string
@@ -40,7 +39,7 @@ export interface SceneLayerJSON {
   children: SceneItemJSON[]
 }
 
-export type SceneItemJSON = SceneObjJSON | SceneGroupJSON
+type SceneItemJSON = SceneObjJSON | SceneGroupJSON
 
 export interface ProjectJSON {
   v: 3
@@ -138,7 +137,7 @@ export function serialize(doc: Doc): ProjectJSON {
   }
   return {
     ...head,
-    cells: Array.from(doc.cells),
+    cells: [...doc.cells],
     links: doc.links,
     elements: doc.elements,
     cellObj: encodeCellObj(doc.cellObj),
@@ -192,9 +191,9 @@ function deserializeTexture(raw: unknown, base: Doc['texture']): Doc['texture'] 
   const t = (raw ?? {}) as Partial<Doc['texture']> & { size?: unknown }
   const legacy = Number(t.size)
   const sizeMin =
-    t.sizeMin !== undefined ? Number(t.sizeMin) : legacy > 0 ? legacy * 0.18 : base.sizeMin
+    t.sizeMin === undefined ? (legacy > 0 ? legacy * 0.18 : base.sizeMin) : Number(t.sizeMin)
   const sizeMax =
-    t.sizeMax !== undefined ? Number(t.sizeMax) : legacy > 0 ? legacy * 0.35 : base.sizeMax
+    t.sizeMax === undefined ? (legacy > 0 ? legacy * 0.35 : base.sizeMax) : Number(t.sizeMax)
   return {
     effect: TEXTURE_EFFECTS.includes(t.effect as Doc['texture']['effect'])
       ? (t.effect as Doc['texture']['effect'])
@@ -258,7 +257,7 @@ function normalizeMetaball(raw: unknown, base: Doc['metaball']): Doc['metaball']
 }
 
 /** Defensive validation for one frozen element style (stored/raw data). */
-export function normalizeElementStyle(raw: unknown, base: ElementStyle): ElementStyle {
+function normalizeElementStyle(raw: unknown, base: ElementStyle): ElementStyle {
   if (typeof raw !== 'object' || raw === null)
     return { ...base, style: { ...base.style, corners: { ...base.style.corners } } }
   const d = raw as Partial<ElementStyle>
@@ -288,15 +287,15 @@ function parseLinks(raw: unknown, cols: number, rows: number): Link[] {
           (k) => typeof (l as Record<string, unknown>)[k] === 'number',
         ),
     )
-    .filter((l) => l.ax >= 0 && l.ay >= 0 && l.bx < cols && l.by < rows && l.v >= 0)
+    .filter((l) => l['ax'] >= 0 && l['ay'] >= 0 && l['bx'] < cols && l['by'] < rows && l['v'] >= 0)
     .map((l) => ({
-      ax: l.ax,
-      ay: l.ay,
-      bx: l.bx,
-      by: l.by,
-      v: Math.floor(l.v),
-      ...(typeof l.obj === 'number' && Number.isFinite(l.obj) && l.obj >= 0
-        ? { obj: Math.floor(l.obj) }
+      ax: l['ax'],
+      ay: l['ay'],
+      bx: l['bx'],
+      by: l['by'],
+      v: Math.floor(l['v']),
+      ...(typeof l['obj'] === 'number' && Number.isFinite(l['obj']) && l['obj'] >= 0
+        ? { obj: Math.floor(l['obj']) }
         : {}),
     }))
 }
@@ -315,17 +314,17 @@ function parseItem(
 ): SceneItem | null {
   if (typeof raw !== 'object' || raw === null) return null
   const d = raw as Record<string, unknown>
-  const id = nodeId(d.id)
+  const id = nodeId(d['id'])
   if (id === 0 || ids.has(id)) return null
-  const name = typeof d.name === 'string' ? d.name : ''
-  const visible = d.visible !== false
-  const locked = d.locked === true
-  if (d.kind === 'group') {
+  const name = typeof d['name'] === 'string' ? d['name'] : ''
+  const visible = d['visible'] !== false
+  const locked = d['locked'] === true
+  if (d['kind'] === 'group') {
     ids.add(id)
     maxId.n = Math.max(maxId.n, id)
     const children: SceneItem[] = []
-    if (Array.isArray(d.children)) {
-      for (const c of d.children) {
+    if (Array.isArray(d['children'])) {
+      for (const c of d['children']) {
         const item = parseItem(c, base, length, ids, maxId)
         if (item) children.push(item)
       }
@@ -333,27 +332,27 @@ function parseItem(
     const group: SceneGroup = { kind: 'group', id, name, visible, locked, children }
     return group
   }
-  if (d.kind !== 'obj') return null
+  if (d['kind'] !== 'obj') return null
   ids.add(id)
   maxId.n = Math.max(maxId.n, id)
   // graph JSON is normalized through the node validator: unknown ops stay flagged,
   // parameters are clamped to the registry schema
-  const validated = 'graph' in d ? validateGraph(d.graph) : null
+  const validated = 'graph' in d ? validateGraph(d['graph']) : null
   const obj: SceneObj = {
     kind: 'obj',
     id,
     name,
     visible,
     locked,
-    style: normalizeElementStyle(d.style, {
+    style: normalizeElementStyle(d['style'], {
       style: base.style,
       renderMode: base.renderMode,
       connectivity: base.connectivity,
       metaball: base.metaball,
       texture: base.texture,
     }),
-    cells: decodeObjCells(d.cells, length),
-    links: parseLinks(d.links, base.cols, base.rows),
+    cells: decodeObjCells(d['cells'], length),
+    links: parseLinks(d['links'], base.cols, base.rows),
     ...(validated?.ok ? { graph: validated.graph } : {}),
   }
   return obj
@@ -373,14 +372,14 @@ function parseScene(
   for (const l of raw) {
     if (typeof l !== 'object' || l === null) continue
     const d = l as Record<string, unknown>
-    if (d.kind !== 'layer') continue
-    const id = nodeId(d.id)
+    if (d['kind'] !== 'layer') continue
+    const id = nodeId(d['id'])
     if (id === 0 || ids.has(id)) continue
     ids.add(id)
     maxId.n = Math.max(maxId.n, id)
     const children: SceneItem[] = []
-    if (Array.isArray(d.children)) {
-      for (const c of d.children) {
+    if (Array.isArray(d['children'])) {
+      for (const c of d['children']) {
         const item = parseItem(c, base, length, ids, maxId)
         if (item) children.push(item)
       }
@@ -388,9 +387,9 @@ function parseScene(
     layers.push({
       kind: 'layer',
       id,
-      name: typeof d.name === 'string' ? d.name : '',
-      visible: d.visible !== false,
-      locked: d.locked === true,
+      name: typeof d['name'] === 'string' ? d['name'] : '',
+      visible: d['visible'] !== false,
+      locked: d['locked'] === true,
       children,
     })
   }
@@ -403,44 +402,47 @@ export function deserialize(data: unknown): Doc {
   const base = defaultDoc()
   if (typeof data !== 'object' || data === null) return base
   const d = data as Record<string, unknown>
-  const cols = clamp(Number(d.cols) || base.cols, MIN_SIZE, MAX_SIZE)
-  const rows = clamp(Number(d.rows) || base.rows, MIN_SIZE, MAX_SIZE)
-  const sub = ([1, 2, 3] as SubDetail[]).includes(d.sub as SubDetail) ? (d.sub as SubDetail) : 1
+  const cols = clamp(Number(d['cols']) || base.cols, MIN_SIZE, MAX_SIZE)
+  const rows = clamp(Number(d['rows']) || base.rows, MIN_SIZE, MAX_SIZE)
+  const sub = ([1, 2, 3] as SubDetail[]).includes(d['sub'] as SubDetail)
+    ? (d['sub'] as SubDetail)
+    : 1
   const length = cols * sub * rows * sub
   const cells = makeCells(cols, rows, sub)
-  if (Array.isArray(d.cells)) {
-    for (let i = 0; i < Math.min(cells.length, d.cells.length); i++) {
-      const v = Number(d.cells[i])
+  if (Array.isArray(d['cells'])) {
+    for (let i = 0; i < Math.min(cells.length, d['cells'].length); i++) {
+      const v = Number(d['cells'][i])
       cells[i] = Number.isFinite(v) && v > 0 ? Math.floor(v) : 0
     }
   }
-  const links = parseLinks(d.links, cols, rows)
-  const palette = Array.isArray(d.palette) ? d.palette.map(hex).filter(Boolean) : base.palette
-  const st = (d.style ?? {}) as Partial<Doc['style']>
-  const mb = (d.metaball ?? {}) as Partial<Doc['metaball']> & { enabled?: unknown }
-  const renderMode = RENDER_MODES.includes(d.renderMode as Doc['renderMode'])
-    ? (d.renderMode as Doc['renderMode'])
+  const links = parseLinks(d['links'], cols, rows)
+  const palette = Array.isArray(d['palette']) ? d['palette'].map(hex).filter(Boolean) : base.palette
+  const st = (d['style'] ?? {}) as Partial<Doc['style']>
+  const mb = (d['metaball'] ?? {}) as Partial<Doc['metaball']> & { enabled?: unknown }
+  const renderMode = RENDER_MODES.includes(d['renderMode'] as Doc['renderMode'])
+    ? (d['renderMode'] as Doc['renderMode'])
     : mb.enabled === true
       ? 'metaball'
       : 'pixels'
-  const connectivity = CONNECTIVITIES.includes(d.connectivity as Doc['connectivity'])
-    ? (d.connectivity as Doc['connectivity'])
+  const connectivity = CONNECTIVITIES.includes(d['connectivity'] as Doc['connectivity'])
+    ? (d['connectivity'] as Doc['connectivity'])
     : 'edge'
   const gridTypes = ['square', 'hex', 'triangle', 'radial'] as const
-  const gridType = gridTypes.includes(d.gridType as Doc['gridType'])
-    ? (d.gridType as Doc['gridType'])
+  const gridType = gridTypes.includes(d['gridType'] as Doc['gridType'])
+    ? (d['gridType'] as Doc['gridType'])
     : 'square'
   // v1 projects (and any payload without element data) load in global scope; element
   // elements are clamped against the base style table
-  const styleScope = d.styleScope === 'element' && Array.isArray(d.elements) ? 'element' : 'global'
+  const styleScope =
+    d['styleScope'] === 'element' && Array.isArray(d['elements']) ? 'element' : 'global'
   const elements =
     styleScope === 'element'
-      ? (d.elements as unknown[]).map((el) =>
+      ? (d['elements'] as unknown[]).map((el) =>
           normalizeElementStyle(
             el,
             base.elements[0] ?? {
               style: base.style,
-              renderMode: renderMode,
+              renderMode,
               connectivity,
               metaball: base.metaball,
               texture: base.texture,
@@ -453,7 +455,7 @@ export function deserialize(data: unknown): Doc {
     cols,
     rows,
     sub,
-    radialEven: gridType === 'radial' && d.radialEven === true,
+    radialEven: gridType === 'radial' && d['radialEven'] === true,
     cells,
     links,
     palette: palette.length > 0 ? palette : base.palette,
@@ -461,18 +463,18 @@ export function deserialize(data: unknown): Doc {
     renderMode,
     connectivity,
     metaball: normalizeMetaball(mb, base.metaball),
-    texture: deserializeTexture(d.texture, base.texture),
+    texture: deserializeTexture(d['texture'], base.texture),
     styleScope,
     elements,
-    cellObj: decodeCellObj(d.cellObj, cells.length),
+    cellObj: decodeCellObj(d['cellObj'], cells.length),
     layers: null,
     nextNodeId: 1,
-    fuseObjects: d.fuseObjects !== false,
-    bg: hex(d.bg),
-    connectorWidth: clamp(Number(d.connectorWidth ?? base.connectorWidth), 0.05, 1),
+    fuseObjects: d['fuseObjects'] !== false,
+    bg: hex(d['bg']),
+    connectorWidth: clamp(Number(d['connectorWidth'] ?? base.connectorWidth), 0.05, 1),
   }
   // v3 scene tree when present…
-  const scene = parseScene(d.layers, d.nextNodeId, doc, length)
+  const scene = parseScene(d['layers'], d['nextNodeId'], doc, length)
   if (scene) return syncDoc({ ...doc, ...scene })
   // …otherwise migrate element-scope legacy docs (v2) into the scene model; global-scope
   // documents stay flat and keep their legacy rendering path

@@ -11,7 +11,7 @@ import {
   saveProject,
   sortEntries,
   type ProjectEntry,
-} from './projects'
+} from './projects.ts'
 
 function entry(id: string, name: string, updatedAt: number): ProjectEntry {
   return {

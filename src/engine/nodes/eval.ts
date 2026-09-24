@@ -97,7 +97,7 @@ export function evalGraphStages(
     const outputs = new Map<string, Cells>()
     for (const id of order) {
       const { node, def } = raster.get(id)!
-      let acc: Cells = new Map()
+      const acc: Cells = new Map()
       for (const src of incoming.get(id) ?? []) {
         for (const [i, v] of outputs.get(src) ?? []) if (!acc.has(i)) acc.set(i, v)
       }

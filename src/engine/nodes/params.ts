@@ -37,22 +37,26 @@ export function paramBounds(
   let lo: number
   let hi: number
   switch (spec.span) {
-    case 'x':
+    case 'x': {
       lo = -padOf(grid.cols)
       hi = grid.cols + padOf(grid.cols)
       break
-    case 'y':
+    }
+    case 'y': {
       lo = -padOf(grid.rows)
       hi = grid.rows + padOf(grid.rows)
       break
-    case 'size':
+    }
+    case 'size': {
       lo = spec.min
       hi = maxDim + padOf(maxDim)
       break
-    case 'delta':
+    }
+    case 'delta': {
       lo = -(maxDim + padOf(maxDim))
       hi = maxDim + padOf(maxDim)
       break
+    }
   }
   return {
     min: round(Math.max(hard.min, Math.min(lo, hi)), int),

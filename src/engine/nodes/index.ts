@@ -3,12 +3,12 @@
  * family = a new file under `nodes/` + one `registerNodes` line here.
  */
 
-import { RAMP_NODES } from './nodes/ramps'
-import { REPEAT_NODES } from './nodes/repeats'
-import { SOURCE_NODES } from './nodes/sources'
-import { STYLE_NODES } from './nodes/styles'
-import { TRANSFORM_NODES } from './nodes/transforms'
+import { RAMP_NODES } from './ramps.node.ts'
 import { registerNodes } from './registry'
+import { REPEAT_NODES } from './repeats.node.ts'
+import { SOURCE_NODES } from './sources.node.ts'
+import { STYLE_NODES } from './styles.node.ts'
+import { TRANSFORM_NODES } from './transforms.node.ts'
 
 registerNodes([...SOURCE_NODES, ...TRANSFORM_NODES, ...REPEAT_NODES, ...RAMP_NODES, ...STYLE_NODES])
 

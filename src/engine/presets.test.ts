@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc } from './doc'
+import { defaultDoc } from './doc.ts'
 import {
   BUILTIN_PRESETS,
   configMatchesState,
   normalizePresetConfig,
   presetFromDoc,
-} from './presets'
+} from './presets.ts'
 
 const HEX = /^#[0-9a-f]{3,8}$/
 

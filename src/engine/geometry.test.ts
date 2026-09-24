@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { changeSub, defaultDoc, resizeDoc } from './doc'
-import { buildGeometry, distanceToLinkSq } from './geometry'
-import { deserialize, serialize } from './project'
-import { buildSvg } from './svg'
+import { changeSub, defaultDoc, resizeDoc } from './doc.ts'
+import { buildGeometry, distanceToLinkSq } from './geometry.ts'
+import { deserialize, serialize } from './project.ts'
+import { buildSvg } from './svg.ts'
 
-function docWith(cells: Array<[number, number]>, cols = 8, rows = 8) {
+function docWith(cells: [number, number][], cols = 8, rows = 8) {
   const doc = defaultDoc()
   doc.cols = cols
   doc.rows = rows

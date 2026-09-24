@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { useStore } from '../state/store'
+import { useStore } from '../state/editor.store'
 import {
   changeSub,
   defaultDoc,
@@ -9,12 +9,12 @@ import {
   sameElementStyle,
   withStyleScope,
   type Doc,
-} from './doc'
-import { buildGeometry } from './geometry'
-import { decodeCellObj, deserialize, encodeCellObj, serialize } from './project'
+} from './doc.ts'
+import { buildGeometry } from './geometry.ts'
+import { decodeCellObj, deserialize, encodeCellObj, serialize } from './project.ts'
 
 /** Simulate a stroke: paint cells and freeze the current drawing style as a new element. */
-function paint(doc: Doc, cells: Array<[number, number]>, v: number): Doc {
+function paint(doc: Doc, cells: [number, number][], v: number): Doc {
   const el = elementFromDoc(doc)
   const elements = [...doc.elements]
   let id = elements.findIndex((e) => sameElementStyle(e, el)) + 1
@@ -192,7 +192,7 @@ describe('element styles: buffer transforms and serialization', () => {
     for (const [x, y] of [
       [2, 2],
       [3, 2],
-    ] as Array<[number, number]>) {
+    ] as [number, number][]) {
       expect(resized.cells[y * nbw + x]).toBe(1)
       expect(resized.cellObj![y * nbw + x]).toBe(1)
     }
@@ -246,7 +246,7 @@ describe('element styles: buffer transforms and serialization', () => {
   })
 
   it('v1 projects migrate to global scope and render identically', () => {
-    let doc = paint(
+    const doc = paint(
       { ...defaultDoc(), styleScope: 'global' },
       [
         [2, 2],

@@ -1,7 +1,7 @@
 /** Shared opener for the glyph-editor database: one connection, all object stores, schema v3. */
 
-export const DB_NAME = 'glyph-editor'
-export const DB_VERSION = 3
+const DB_NAME = 'glyph-editor'
+const DB_VERSION = 3
 
 let memoryOnly = false
 let dbPromise: Promise<IDBDatabase | null> | null = null

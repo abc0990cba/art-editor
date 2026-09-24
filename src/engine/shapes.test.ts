@@ -7,11 +7,11 @@ import {
   rectPoints,
   shapePathPoints,
   shapePathSegments,
-} from './shapes'
+} from './shapes.ts'
 
 const BOX_SHAPES = SHAPE_TOOLS.filter((t) => t !== 'arrow' && t !== 'wave' && t !== 'zigzag')
 
-function has(pts: Array<[number, number]>, x: number, y: number): boolean {
+function has(pts: [number, number][], x: number, y: number): boolean {
   return pts.some(([px, py]) => px === x && py === y)
 }
 
@@ -321,7 +321,7 @@ describe('shape tools', () => {
   it('diamond bulge bows the side midpoints', () => {
     const bowed = shapePathSegments('diamond', 0, 0, 20, 20, { shapeBulge: 1 })[0]
     const pinched = shapePathSegments('diamond', 0, 0, 20, 20, { shapeBulge: -1 })[0]
-    const near = (poly: Array<[number, number]>, tx: number, ty: number) =>
+    const near = (poly: [number, number][], tx: number, ty: number) =>
       poly.some(([x, y]) => Math.abs(x - tx) < 0.05 && Math.abs(y - ty) < 0.05)
     // plain midpoint (15, 5) moves outward when bowed and vanishes when pinched
     expect(near(bowed, 15, 5)).toBe(false)

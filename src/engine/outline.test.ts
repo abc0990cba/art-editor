@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc, type Doc } from './doc'
-import { buildGeometry } from './geometry'
-import { deserialize } from './project'
+import { defaultDoc, type Doc } from './doc.ts'
+import { buildGeometry } from './geometry.ts'
+import { deserialize } from './project.ts'
 
-function docWith(cells: Array<[number, number]>, cols = 8, rows = 8): Doc {
+function docWith(cells: [number, number][], cols = 8, rows = 8): Doc {
   const doc = defaultDoc()
   doc.cols = cols
   doc.rows = rows

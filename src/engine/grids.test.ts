@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc, type Doc } from './doc'
-import { buildGeometry } from './geometry'
-import { docSize, makeGrid } from './grids'
-import type { Pt } from './marchingSquares'
-import { deserialize, serialize } from './project'
+import { defaultDoc, type Doc } from './doc.ts'
+import { buildGeometry } from './geometry.ts'
+import { docSize, makeGrid } from './grids.ts'
+import type { Pt } from './marching-squares'
+import { deserialize, serialize } from './project.ts'
 
 describe('grid geometry', () => {
   for (const type of ['square', 'hex', 'triangle', 'radial'] as const) {

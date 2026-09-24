@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { MAX_SIZE } from './doc'
-import { SIZE_GROUPS, allSizeOptions } from './sizes'
+import { MAX_SIZE } from './doc.ts'
+import { SIZE_GROUPS, allSizeOptions } from './sizes.ts'
 
 describe('canvas size presets', () => {
   it('keeps every preset inside the 1..MAX_SIZE grid bounds', () => {

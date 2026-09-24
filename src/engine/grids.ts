@@ -1,4 +1,4 @@
-import type { Pt } from './marchingSquares'
+import type { Pt } from './marching-squares.ts'
 
 export type GridType = 'square' | 'hex' | 'triangle' | 'radial'
 
@@ -205,7 +205,7 @@ function makeHex(cols: number, rows: number): Grid {
       const rf = ((2 / 3) * yr) / HEX_R
       let rx = Math.round(qf)
       let ry = Math.round(rf)
-      let rz = Math.round(-qf - rf)
+      const rz = Math.round(-qf - rf)
       const dq = Math.abs(rx - qf)
       const dy = Math.abs(ry - rf)
       const dz = Math.abs(rz - -qf - rf)
@@ -536,7 +536,7 @@ export function convertGridDoc(
   }
 }
 
-export function pointInPolygon(pt: Pt, poly: Pt[]): boolean {
+function pointInPolygon(pt: Pt, poly: Pt[]): boolean {
   let inside = false
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const a = poly[i]

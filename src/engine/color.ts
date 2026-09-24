@@ -111,9 +111,9 @@ export function hexToRgb(hex: string): RGB | null {
   if (/^[0-9a-f]{3}$/.test(s)) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2]
   if (!/^[0-9a-f]{6}$/.test(s)) return null
   return {
-    r: parseInt(s.slice(0, 2), 16),
-    g: parseInt(s.slice(2, 4), 16),
-    b: parseInt(s.slice(4, 6), 16),
+    r: Number.parseInt(s.slice(0, 2), 16),
+    g: Number.parseInt(s.slice(2, 4), 16),
+    b: Number.parseInt(s.slice(4, 6), 16),
   }
 }
 

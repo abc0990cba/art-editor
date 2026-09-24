@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc, type TextureSettings } from './doc'
-import { buildGeometry } from './geometry'
-import { deserialize, serialize } from './project'
-import { buildSvg } from './svg'
-import { fieldTextureFragments, regionTextureFragments, type TextureCell } from './texture'
+import { defaultDoc, type TextureSettings } from './doc.ts'
+import { buildGeometry } from './geometry.ts'
+import { deserialize, serialize } from './project.ts'
+import { buildSvg } from './svg.ts'
+import { fieldTextureFragments, regionTextureFragments, type TextureCell } from './texture.ts'
 
 const DEFAULTS: Omit<TextureSettings, 'effect'> = {
   amount: 60,
@@ -72,8 +72,8 @@ function pairCells(): TextureCell[] {
 }
 
 /** Absolute M points of every fleck (works for squares, dots and chips). */
-function fleckPoints(frag: string): Array<[number, number]> {
-  const pts: Array<[number, number]> = []
+function fleckPoints(frag: string): [number, number][] {
+  const pts: [number, number][] = []
   for (const m of frag.matchAll(/M(-?[\d.]+) (-?[\d.]+)/g)) {
     pts.push([Number(m[1]), Number(m[2])])
   }
@@ -155,7 +155,7 @@ describe('regionTextureFragments', () => {
                   const qx1 = x1 > RECT_X + RECT_W - R
                   const qy0 = y0 < RECT_Y + R
                   const qy1 = y1 > RECT_Y + RECT_H - R
-                  const checks: Array<[boolean, number, number, number, number]> = [
+                  const checks: [boolean, number, number, number, number][] = [
                     [qx0 && qy0, RECT_X + R, RECT_Y + R, x0, y0], // tl
                     [qx1 && qy0, RECT_X + RECT_W - R, RECT_Y + R, x1, y0], // tr
                     [qx1 && qy1, RECT_X + RECT_W - R, RECT_Y + RECT_H - R, x1, y1], // br

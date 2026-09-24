@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { scrollbarMetrics } from './scrollbars'
+import { scrollbarMetrics } from './scrollbars.ts'
 
 describe('scrollbarMetrics', () => {
   it('hides the axis when the whole canvas fits the viewport', () => {

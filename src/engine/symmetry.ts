@@ -55,7 +55,7 @@ const phaseRad = (radial: RadialOpts | undefined) => ((radial?.phase ?? 0) * Mat
 const twistRad = (radial: RadialOpts | undefined) => ((radial?.twist ?? 0) * Math.PI) / 180
 
 /** Buffer-space wedge gate: is the point inside the painted part of its sector? */
-export function inFilledWedge(
+function inFilledWedge(
   x: number,
   y: number,
   bw: number,
@@ -104,7 +104,7 @@ interface RepeatDef {
   /** Extra fractional translation of the lattice (centered cells: cm/cmm) */
   centering?: [number, number]
   /** Mirror-axis directions through lattice points, as fractional direction vectors */
-  mirrors?: Array<[number, number]>
+  mirrors?: [number, number][]
 }
 
 const op = (m: Op['m'], f: [number, number] = [0, 0]): Op => ({ m, f })
@@ -296,12 +296,12 @@ export function symmetryPoints(
   n: number,
   cell: number = 16,
   radial?: RadialOpts,
-): Array<[number, number]> {
+): [number, number][] {
   if (mode === 'none') return [[x, y]]
   if ((mode === 'radial' || mode === 'kaleido') && !inFilledWedge(x, y, bw, bh, n, radial)) {
     return []
   }
-  const out: Array<[number, number]> = [[x, y]]
+  const out: [number, number][] = [[x, y]]
   const seen = new Set<number>([y * bw + x])
   const push = (px: number, py: number) => {
     if (px >= 0 && py >= 0 && px < bw && py < bh && !seen.has(py * bw + px)) {
@@ -320,18 +320,21 @@ export function symmetryPoints(
   const my = bh - 1 - y
 
   switch (mode) {
-    case 'mirrorX':
+    case 'mirrorX': {
       push(mx, y)
       break
-    case 'mirrorY':
+    }
+    case 'mirrorY': {
       push(x, my)
       break
-    case 'quad':
+    }
+    case 'quad': {
       push(mx, y)
       push(x, my)
       push(mx, my)
       break
-    case 'diag8':
+    }
+    case 'diag8': {
       push(mx, y)
       push(x, my)
       push(mx, my)
@@ -340,6 +343,7 @@ export function symmetryPoints(
       push(my, x)
       push(my, mx)
       break
+    }
     case 'radial':
     case 'kaleido': {
       const cx = (bw - 1) / 2
@@ -355,7 +359,7 @@ export function symmetryPoints(
         dx = nx
       }
       const fold = foldCount(n)
-      const sources: Array<[number, number]> =
+      const sources: [number, number][] =
         mode === 'kaleido'
           ? [
               [dx, dy],
@@ -398,16 +402,19 @@ export function polarAngleMaps(
   mode: SymMode,
   n: number,
   radial?: RadialOpts,
-): Array<(a: number, r: number) => number> {
+): ((a: number, r: number) => number)[] {
   const tw = twistRad(radial)
   switch (mode) {
-    case 'mirrorX':
+    case 'mirrorX': {
       return [(a) => Math.PI - a]
-    case 'mirrorY':
+    }
+    case 'mirrorY': {
       return [(a) => -a]
-    case 'quad':
+    }
+    case 'quad': {
       return [(a) => Math.PI - a, (a) => -a, (a) => Math.PI + a]
-    case 'diag8':
+    }
+    case 'diag8': {
       return [
         (a) => Math.PI - a,
         (a) => -a,
@@ -417,16 +424,18 @@ export function polarAngleMaps(
         (a) => a + Math.PI,
         (a) => a + (3 * Math.PI) / 2,
       ]
+    }
     case 'radial':
     case 'kaleido': {
       const fold = foldCount(n)
-      const out: Array<(a: number, r: number) => number> = []
+      const out: ((a: number, r: number) => number)[] = []
       for (let k = 1; k < fold; k++) out.push((a, r) => a + (k * 2 * Math.PI) / fold + tw * r)
       if (mode === 'kaleido') out.push((a, r) => Math.PI - a + tw * r)
       return out
     }
-    default:
+    default: {
       return []
+    }
   }
 }
 
@@ -466,13 +475,16 @@ export function symmetryTransforms(
   const mx = (x: number) => bw - 1 - x
   const my = (y: number) => bh - 1 - y
   switch (mode) {
-    case 'mirrorX':
+    case 'mirrorX': {
       return [(x, y) => [mx(x), y]]
-    case 'mirrorY':
+    }
+    case 'mirrorY': {
       return [(x, y) => [x, my(y)]]
-    case 'quad':
+    }
+    case 'quad': {
       return [(x, y) => [mx(x), y], (x, y) => [x, my(y)], (x, y) => [mx(x), my(y)]]
-    case 'diag8':
+    }
+    case 'diag8': {
       return [
         (x, y) => [mx(x), y],
         (x, y) => [x, my(y)],
@@ -482,6 +494,7 @@ export function symmetryTransforms(
         (x, y) => [my(y), x],
         (x, y) => [my(y), mx(x)],
       ]
+    }
     case 'radial':
     case 'kaleido': {
       const fold = foldCount(n)
@@ -495,8 +508,9 @@ export function symmetryTransforms(
       }
       return out
     }
-    default:
+    default: {
       return null
+    }
   }
 }
 
@@ -516,9 +530,9 @@ export function symmetryPairPoints(
   n: number,
   cell: number = 16,
   radial?: RadialOpts,
-): Array<[number, number, number, number]> {
+): [number, number, number, number][] {
   const inB = (px: number, py: number) => px >= 0 && py >= 0 && px < bw && py < bh
-  const out: Array<[number, number, number, number]> = [[ax, ay, bx, by]]
+  const out: [number, number, number, number][] = [[ax, ay, bx, by]]
   const seen = new Set<string>([`${ax},${ay}`])
 
   const def = isRepeat(mode) ? repeatDef(mode) : null

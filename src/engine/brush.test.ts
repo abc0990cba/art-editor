@@ -10,7 +10,7 @@ import {
   normalizeBrush,
   resizeBrush,
   squareBrush,
-} from './brush'
+} from './brush.ts'
 
 describe('brush factories', () => {
   it('square brush fills the whole tip', () => {

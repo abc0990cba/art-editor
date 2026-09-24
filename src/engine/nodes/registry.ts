@@ -9,7 +9,7 @@ import { Resolved } from './types'
 const byId = new Map<string, AnyNodeDef>()
 
 /** Register one node. Duplicate ids are a programming error, not a runtime event. */
-export function registerNode(def: AnyNodeDef): void {
+function registerNode(def: AnyNodeDef): void {
   if (byId.has(def.id)) throw new Error(`node "${def.id}" is already registered`)
   byId.set(def.id, def)
 }
@@ -42,17 +42,19 @@ export function resolveParams(op: string, params: Record<string, ParamValue>): R
         values[key] = spec.kind === 'int' ? Math.round(n) : n
         break
       }
-      case 'select':
+      case 'select': {
         values[key] = spec.options.includes(raw as never) ? (raw as string) : spec.default
         break
+      }
       case 'hex': {
         const s = typeof raw === 'string' ? raw : ''
         values[key] = /^#[0-9a-fA-F]{6}$/.test(s) ? s.toLowerCase() : spec.default
         break
       }
-      case 'bool':
+      case 'bool': {
         values[key] = typeof raw === 'boolean' ? raw : spec.default
         break
+      }
     }
   }
   return new Resolved(values)
@@ -94,7 +96,7 @@ export function graphColors(graph: Graph): string[] {
   return out
 }
 
-export type ValidateResult = {
+export interface ValidateResult {
   ok: boolean
   errors: string[]
   warnings: string[]
@@ -117,62 +119,62 @@ export function validateGraph(raw: unknown): ValidateResult {
   })
   if (typeof raw !== 'object' || raw === null) return fail(['not an object'])
   const d = raw as Record<string, unknown>
-  if (!Array.isArray(d.nodes)) return fail(['nodes: expected an array'])
+  if (!Array.isArray(d['nodes'])) return fail(['nodes: expected an array'])
   const warnings: string[] = []
   const clean: GraphNode[] = []
   const ids = new Set<string>()
-  d.nodes.forEach((rawNode, index) => {
+  d['nodes'].forEach((rawNode, index) => {
     if (typeof rawNode !== 'object' || rawNode === null) {
       warnings.push(`node #${index}: dropped (not an object)`)
       return
     }
     const n = rawNode as Record<string, unknown>
-    if (typeof n.op !== 'string') {
+    if (typeof n['op'] !== 'string') {
       warnings.push(`node #${index}: dropped (missing op)`)
       return
     }
-    const known = byId.has(n.op)
-    if (!known) warnings.push(`node #${index}: unknown op "${n.op}" kept but skipped`)
-    let id = typeof n.id === 'string' && n.id ? n.id : `n${index}`
+    const known = byId.has(n['op'])
+    if (!known) warnings.push(`node #${index}: unknown op "${n['op']}" kept but skipped`)
+    let id = typeof n['id'] === 'string' && n['id'] ? n['id'] : `n${index}`
     while (ids.has(id)) id = `${id}~`
     ids.add(id)
     const params: Record<string, ParamValue> = {}
-    if (typeof n.params === 'object' && n.params !== null) {
-      for (const [k, v] of Object.entries(n.params as Record<string, unknown>)) {
+    if (typeof n['params'] === 'object' && n['params'] !== null) {
+      for (const [k, v] of Object.entries(n['params'] as Record<string, unknown>)) {
         if (typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean') params[k] = v
       }
     }
-    const resolved = known ? resolveParams(n.op, params) : undefined
+    const resolved = known ? resolveParams(n['op'], params) : undefined
     const pos =
-      typeof n.pos === 'object' && n.pos !== null
+      typeof n['pos'] === 'object' && n['pos'] !== null
         ? (() => {
-            const p = n.pos as Record<string, unknown>
-            const x = Number(p.x)
-            const y = Number(p.y)
+            const p = n['pos'] as Record<string, unknown>
+            const x = Number(p['x'])
+            const y = Number(p['y'])
             return {
-              x: Number.isFinite(x) ? Math.max(-100000, Math.min(100000, x)) : 0,
-              y: Number.isFinite(y) ? Math.max(-100000, Math.min(100000, y)) : 0,
+              x: Number.isFinite(x) ? Math.max(-100_000, Math.min(100_000, x)) : 0,
+              y: Number.isFinite(y) ? Math.max(-100_000, Math.min(100_000, y)) : 0,
             }
           })()
         : undefined
     clean.push({
       id,
-      op: n.op,
-      params: known && resolved ? strip(resolved, n.op) : params,
+      op: n['op'],
+      params: known && resolved ? strip(resolved, n['op']) : params,
       unknown: known ? undefined : true,
       ...(pos ? { pos } : {}),
     })
   })
 
   // edges: keep only wires between surviving nodes, deduplicate, break cycles
-  const edges: Array<{ from: string; to: string }> = []
-  if (Array.isArray(d.edges)) {
+  const edges: { from: string; to: string }[] = []
+  if (Array.isArray(d['edges'])) {
     const seen = new Set<string>()
-    for (const rawEdge of d.edges) {
+    for (const rawEdge of d['edges']) {
       if (typeof rawEdge !== 'object' || rawEdge === null) continue
       const e = rawEdge as Record<string, unknown>
-      const from = typeof e.from === 'string' ? e.from : ''
-      const to = typeof e.to === 'string' ? e.to : ''
+      const from = typeof e['from'] === 'string' ? e['from'] : ''
+      const to = typeof e['to'] === 'string' ? e['to'] : ''
       if (!ids.has(from) || !ids.has(to) || from === to) {
         warnings.push(`edge ${from || '?'}→${to || '?'}: dropped (missing endpoint)`)
         continue
@@ -195,7 +197,7 @@ export function validateGraph(raw: unknown): ValidateResult {
 /** Remove back-edges so the raster flow stays acyclic (each removed edge is a warning). */
 function breakCycles(
   nodes: GraphNode[],
-  edges: Array<{ from: string; to: string }>,
+  edges: { from: string; to: string }[],
   warnings: string[],
 ): void {
   const childrenOf = new Map<string, Set<string>>()

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolvedTheme } from '../state/store'
-import { STAGE_THEMES } from './doc'
+import { resolvedTheme } from '../state/editor.store'
+import { STAGE_THEMES } from './doc.ts'
 
 describe('theming', () => {
   it('provides full stage theme objects for both themes with distinct values', () => {
@@ -11,7 +11,7 @@ describe('theming', () => {
     // the hover core is intentionally theme-invariant: a white core over a
     // theme-specific dark halo reads on any background
     const themeInvariant = new Set(['hover'])
-    for (const k of keys as Array<keyof typeof STAGE_THEMES.dark>) {
+    for (const k of keys as (keyof typeof STAGE_THEMES.dark)[]) {
       if (themeInvariant.has(k)) continue
       expect(STAGE_THEMES.dark[k]).not.toBe(STAGE_THEMES.light[k])
     }

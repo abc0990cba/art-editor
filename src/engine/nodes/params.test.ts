@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { boundsWithValue, paramBounds } from './params'
-import type { NodeParamSpec } from './types'
+import { boundsWithValue, paramBounds } from './params.ts'
+import type { NodeParamSpec } from './types.ts'
 
 const intSpec = (min: number, max: number, span?: 'x' | 'y' | 'size' | 'delta'): NodeParamSpec => ({
   kind: 'int',

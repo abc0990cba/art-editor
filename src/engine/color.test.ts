@@ -10,7 +10,7 @@ import {
   normalizeHex,
   rgbToCmyk,
   rgbToHsv,
-} from './color'
+} from './color.ts'
 
 describe('color conversions', () => {
   it('round trips representative colors through hsv and back', () => {

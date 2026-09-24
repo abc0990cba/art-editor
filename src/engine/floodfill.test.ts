@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc, type Doc } from './doc'
-import { floodFillDoc, floodRegion } from './floodfill'
-import { makeGrid } from './grids'
+import { defaultDoc, type Doc } from './doc.ts'
+import { floodFillDoc, floodRegion } from './floodfill.ts'
+import { makeGrid } from './grids.ts'
 
 function docWith(cells: number[], patch: Partial<Doc> = {}): Doc {
   const cols = patch.cols ?? 4
@@ -34,7 +34,10 @@ describe('floodFillDoc', () => {
   })
 
   it('works in sub-cell resolution on the square grid', () => {
-    const doc = docWith(Array(16).fill(0), { cols: 2, rows: 2, sub: 2 })
+    const doc = docWith(
+      Array.from({ length: 16 }, () => 0),
+      { cols: 2, rows: 2, sub: 2 },
+    )
     const cells = floodFillDoc(doc, 0, 1)
     for (let i = 0; i < 16; i++) expect(cells[i]).toBe(1)
   })
@@ -65,7 +68,7 @@ describe('floodRegion', () => {
     }
     expect(pair).not.toBeNull()
     const [a, b] = pair!
-    const cells = Array(12).fill(0)
+    const cells = Array.from({ length: 12 }, () => 0)
     cells[a] = 1
     cells[b] = 1
     // far cell is edge-adjacent to neither the seed nor its pair

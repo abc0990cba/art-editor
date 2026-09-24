@@ -24,7 +24,7 @@ function n(
 }
 
 /** Chain helper: wires every node into the next one. */
-const chain = (ids: string[]): Array<{ from: string; to: string }> =>
+const chain = (ids: string[]): { from: string; to: string }[] =>
   ids.slice(0, -1).map((id, i) => ({ from: id, to: ids[i + 1] }))
 
 /** Param keys that carry canvas coordinates and must scale with the canvas. */

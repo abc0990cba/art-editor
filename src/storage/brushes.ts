@@ -57,6 +57,3 @@ export async function deleteBrush(id: string): Promise<void> {
 }
 
 /** Test-only: wipe the in-memory fallback store. */
-export function clearBrushesForTests(): void {
-  memory.clear()
-}

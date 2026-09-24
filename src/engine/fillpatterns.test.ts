@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc, resolveColor, type Doc } from './doc'
+import { defaultDoc, resolveColor, type Doc } from './doc.ts'
 import {
   applyFillStyle,
   DEFAULT_FILL_STYLE,
@@ -10,7 +10,7 @@ import {
   patternCoord,
   type FillPatternId,
   type FillStyle,
-} from './fillpatterns'
+} from './fillpatterns.ts'
 
 const style = (patch: Partial<FillStyle>): FillStyle => ({
   ...DEFAULT_FILL_STYLE,

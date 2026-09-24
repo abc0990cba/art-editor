@@ -97,23 +97,27 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
   const base = presetFromDoc(defaultDoc(), DEFAULT_SYMMETRY)
   if (typeof raw !== 'object' || raw === null) return base
   const d = raw as Record<string, unknown>
-  const st = (d.style ?? {}) as Partial<PixelStyle>
+  const st = (d['style'] ?? {}) as Partial<PixelStyle>
   const co = (st.corners ?? {}) as Partial<PixelStyle['corners']>
-  const mb = (d.metaball ?? {}) as Partial<MetaballSettings>
-  const tx = (d.texture ?? {}) as Partial<TextureSettings> & { size?: unknown }
-  const sym = (d.symmetry ?? {}) as Partial<SymmetryState>
+  const mb = (d['metaball'] ?? {}) as Partial<MetaballSettings>
+  const tx = (d['texture'] ?? {}) as Partial<TextureSettings> & { size?: unknown }
+  const sym = (d['symmetry'] ?? {}) as Partial<SymmetryState>
   const corner = (v: unknown) => (typeof v === 'number' ? clamp(v, 0, 0.5) : null)
-  const palette = Array.isArray(d.palette) ? d.palette.map(hex).filter(Boolean) : base.palette
+  const palette = Array.isArray(d['palette']) ? d['palette'].map(hex).filter(Boolean) : base.palette
   const gridTypes = ['square', 'hex', 'triangle', 'radial'] as const
   const renderModes = ['pixels', 'outline', 'metaball'] as const
   const connectivities = ['edge', 'corner', 'corner-bridge'] as const
   return {
     v: 1,
-    gridType: gridTypes.includes(d.gridType as GridType) ? (d.gridType as GridType) : base.gridType,
-    cols: clamp(Math.round(Number(d.cols) || base.cols), MIN_SIZE, MAX_SIZE),
-    rows: clamp(Math.round(Number(d.rows) || base.rows), MIN_SIZE, MAX_SIZE),
-    sub: ([1, 2, 3] as SubDetail[]).includes(d.sub as SubDetail) ? (d.sub as SubDetail) : base.sub,
-    radialEven: d.radialEven === true,
+    gridType: gridTypes.includes(d['gridType'] as GridType)
+      ? (d['gridType'] as GridType)
+      : base.gridType,
+    cols: clamp(Math.round(Number(d['cols']) || base.cols), MIN_SIZE, MAX_SIZE),
+    rows: clamp(Math.round(Number(d['rows']) || base.rows), MIN_SIZE, MAX_SIZE),
+    sub: ([1, 2, 3] as SubDetail[]).includes(d['sub'] as SubDetail)
+      ? (d['sub'] as SubDetail)
+      : base.sub,
+    radialEven: d['radialEven'] === true,
     palette: palette.length > 0 ? palette : base.palette,
     style: {
       radius: clamp(Number(st.radius ?? base.style.radius), 0, 0.5),
@@ -130,11 +134,11 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
       cornerStyle: st.cornerStyle === 'chamfer' ? 'chamfer' : 'arc',
       squareEdges: st.squareEdges === true,
     },
-    renderMode: renderModes.includes(d.renderMode as RenderMode)
-      ? (d.renderMode as RenderMode)
+    renderMode: renderModes.includes(d['renderMode'] as RenderMode)
+      ? (d['renderMode'] as RenderMode)
       : base.renderMode,
-    connectivity: connectivities.includes(d.connectivity as Connectivity)
-      ? (d.connectivity as Connectivity)
+    connectivity: connectivities.includes(d['connectivity'] as Connectivity)
+      ? (d['connectivity'] as Connectivity)
       : base.connectivity,
     metaball: {
       strength: clamp(Number(mb.strength ?? base.metaball.strength), 0, 100),
@@ -144,17 +148,17 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
     },
     texture: (() => {
       const sizeMin =
-        tx.sizeMin !== undefined
-          ? Number(tx.sizeMin)
-          : Number(tx.size) > 0
+        tx.sizeMin === undefined
+          ? Number(tx.size) > 0
             ? Number(tx.size) * 0.18
             : base.texture.sizeMin
+          : Number(tx.sizeMin)
       const sizeMax =
-        tx.sizeMax !== undefined
-          ? Number(tx.sizeMax)
-          : Number(tx.size) > 0
+        tx.sizeMax === undefined
+          ? Number(tx.size) > 0
             ? Number(tx.size) * 0.35
             : base.texture.sizeMax
+          : Number(tx.sizeMax)
       return {
         effect: TEXTURE_EFFECTS.includes(tx.effect as TextureSettings['effect'])
           ? (tx.effect as TextureSettings['effect'])
@@ -190,9 +194,10 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
         ramp: clamp(Number(tx.ramp ?? base.texture.ramp), 0, 100),
       }
     })(),
-    styleScope: d.styleScope === 'global' || d.styleScope === 'element' ? d.styleScope : undefined,
-    bg: hex(d.bg),
-    connectorWidth: clamp(Number(d.connectorWidth ?? base.connectorWidth), 0.05, 1),
+    styleScope:
+      d['styleScope'] === 'global' || d['styleScope'] === 'element' ? d['styleScope'] : undefined,
+    bg: hex(d['bg']),
+    connectorWidth: clamp(Number(d['connectorWidth'] ?? base.connectorWidth), 0.05, 1),
     symmetry: {
       mode: SYM_MODES.includes(sym.mode as SymmetryState['mode'])
         ? (sym.mode as SymmetryState['mode'])

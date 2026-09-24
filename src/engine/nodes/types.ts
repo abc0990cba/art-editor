@@ -26,7 +26,7 @@ export type NodeKind = 'source' | 'mod' | 'ramp' | 'style'
  * Marked params get editor ranges derived from the current grid (canvas ±15%) instead of their
  * static schema bounds.
  */
-export type ParamSpan = 'x' | 'y' | 'size' | 'delta'
+type ParamSpan = 'x' | 'y' | 'size' | 'delta'
 
 export type NodeParamSpec =
   | { kind: 'number'; min: number; max: number; step?: number; default: number; span?: ParamSpan }
@@ -109,7 +109,7 @@ export interface RasterNodeDef extends NodeBase {
 }
 
 /** Writes the object's appearance on a clone the evaluator provides. */
-export interface StyleNodeDef extends NodeBase {
+interface StyleNodeDef extends NodeBase {
   kind: 'style'
   domain: { in: 'style' | 'none'; out: 'style' }
   evaluate: (ctx: EvalContext, p: Resolved, style: ElementStyle) => void
@@ -139,7 +139,7 @@ export interface GraphNode {
 }
 
 /** A wire: the cell map of the `from` node flows into the `to` node's input. */
-export interface GraphEdge {
+interface GraphEdge {
   from: string
   to: string
 }

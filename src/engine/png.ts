@@ -46,7 +46,7 @@ export function drawGeometry(ctx: CanvasRenderingContext2D, paths: StyledPath[])
 }
 
 /** Maximum exported PNG side length in pixels. */
-export const MAX_PNG_SIDE = 5000
+const MAX_PNG_SIDE = 5000
 
 export interface PngSize {
   width: number
@@ -81,7 +81,10 @@ export async function renderPng(doc: Doc, size: PngSize, includeBg: boolean): Pr
   ctx.scale(canvas.width / w, canvas.height / h)
   drawGeometry(ctx, buildGeometry(doc).paths)
   return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png')
+    canvas.toBlob((b) => {
+      if (b) resolve(b)
+      else reject(new Error('toBlob failed'))
+    }, 'image/png')
   })
 }
 

@@ -60,10 +60,6 @@ export interface SceneLayer {
   children: SceneItem[]
 }
 
-export function isObj(item: SceneItem): item is SceneObj {
-  return item.kind === 'obj'
-}
-
 /** Fresh empty layer with the next id from the doc's counter. */
 export function newLayer(doc: Doc, name = ''): { layer: SceneLayer; doc: Doc } {
   const id = doc.nextNodeId
@@ -91,7 +87,7 @@ export function newObj(doc: Doc, style: ElementStyle, name = ''): { obj: SceneOb
   }
 }
 
-export function newGroup(doc: Doc, name = ''): { group: SceneGroup; doc: Doc } {
+function newGroup(doc: Doc, name = ''): { group: SceneGroup; doc: Doc } {
   const id = doc.nextNodeId
   return {
     group: { kind: 'group', id, name, visible: true, locked: false, children: [] },
@@ -100,13 +96,8 @@ export function newGroup(doc: Doc, name = ''): { group: SceneGroup; doc: Doc } {
 }
 
 /** Initial scene for new documents: one empty layer. */
-export function initialScene(doc: Doc): Pick<Doc, 'layers' | 'nextNodeId'> {
-  const { layer, doc: d } = newLayer(doc)
-  return { layers: [layer], nextNodeId: d.nextNodeId }
-}
-
 /** Visit every object of the tree (hidden ones included), bottom → top. */
-export function eachObj(
+function eachObj(
   layers: SceneLayer[],
   fn: (obj: SceneObj, layer: SceneLayer, visibleChain: boolean) => void,
 ): void {
@@ -632,8 +623,8 @@ export function pruneEmptyObjs(
   const walk = (items: SceneItem[]): SceneItem[] =>
     items.flatMap<SceneItem>((item) => {
       if (item.kind === 'obj') {
-        const regenerates = !!item.graph?.nodes.some(
-          (nd) => !nd.unknown && nodeDef(nd.op)?.kind === 'source',
+        const regenerates = Boolean(
+          item.graph?.nodes.some((nd) => !nd.unknown && nodeDef(nd.op)?.kind === 'source'),
         )
         if (
           item.cells.size === 0 &&

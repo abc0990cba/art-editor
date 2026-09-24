@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { en } from '../i18n/en'
-import { useStore } from '../state/store'
-import { cellColor, defaultDoc } from './doc'
-import { buildGeometry } from './geometry'
-import { PALETTES, matchedPresetId } from './palettes'
-import { deserialize, serialize } from './project'
+import { en } from '../shared/i18n/en.messages'
+import { useStore } from '../state/editor.store'
+import { cellColor, defaultDoc } from './doc.ts'
+import { buildGeometry } from './geometry.ts'
+import { PALETTES, matchedPresetId } from './palettes.ts'
+import { deserialize, serialize } from './project.ts'
 
 describe('palette presets', () => {
   it('all presets have unique valid hex colors and sane sizes', () => {

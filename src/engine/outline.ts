@@ -1,7 +1,7 @@
 import type { Doc, Link, TextureSettings } from './doc'
 import { bufferHeight, bufferWidth, cellColor } from './doc'
 import type { StyledPath } from './geometry'
-import { marchingSquares, type Pt } from './marchingSquares'
+import { marchingSquares, type Pt } from './marching-squares.ts'
 import { regionTextureFragments, type TextureCell } from './texture'
 
 /**
@@ -160,7 +160,7 @@ function bridgeOverlays(doc: Doc, cells: Uint16Array, v: number): string {
   const r = doc.style.concaveRadius / doc.sub
   const chamfer = doc.style.cornerStyle === 'chamfer'
   let d = ''
-  const junctions: Array<{ jx: number; jy: number }> = []
+  const junctions: { jx: number; jy: number }[] = []
   for (let y = 0; y < bh; y++) {
     for (let x = 0; x < bw; x++) {
       if (cells[y * bw + x] !== v) continue
@@ -223,7 +223,7 @@ export function emitFilletPath(
     // drop consecutive duplicates (incl. wrap-around) so segments never have zero length
     const pts: Pt[] = []
     for (const p of raw) {
-      const last = pts[pts.length - 1]
+      const last = pts.at(-1)
       if (!last || last.x !== p.x || last.y !== p.y) pts.push(p)
     }
     if (pts.length > 1) {
@@ -238,7 +238,7 @@ export function emitFilletPath(
       dy: b.y - a.y,
       len: Math.hypot(b.x - a.x, b.y - a.y),
     })
-    const segs: Array<ReturnType<typeof seg>> = []
+    const segs: ReturnType<typeof seg>[] = []
     for (let i = 0; i < n; i++) segs.push(seg(pts[i], pts[(i + 1) % n]))
     let crossSum = 0
     for (let i = 0; i < n; i++) {
@@ -270,7 +270,7 @@ export function emitFilletPath(
           : `A${fmt(t)} ${fmt(t)} 0 0 ${cross > 0 ? 1 : 0} ${fmt(bx)} ${fmt(by)}`
       }
     }
-    if (dStr) d += dStr + 'Z'
+    if (dStr) d += `${dStr}Z`
   }
   return d
 }

@@ -8,10 +8,8 @@ import {
   BLUE_NOISE8,
   VOID_CLUSTER8,
   thresholdAt,
-} from './ditherMatrices'
+} from './dither-matrices.ts'
 import { resolveColor, type Doc } from './doc'
-
-export { BAYER2, BAYER4, BAYER8 }
 
 /**
  * Pattern fills for the fill tool: two-color textures and dithered gradients in the classic
@@ -145,10 +143,10 @@ const fract = (v: number) => v - Math.floor(v)
 
 /** Deterministic per-position noise in [0,1) — stable for a given cell coordinate. */
 function hash2(x: number, y: number): number {
-  let h = Math.imul(x, 374761393) + Math.imul(y, 668265263)
-  h = Math.imul(h ^ (h >>> 13), 1274126177)
+  let h = Math.imul(x, 374_761_393) + Math.imul(y, 668_265_263)
+  h = Math.imul(h ^ (h >>> 13), 1_274_126_177)
   h ^= h >>> 16
-  return (h >>> 0) / 4294967296
+  return (h >>> 0) / 4_294_967_296
 }
 
 export interface PatternOpts {
@@ -198,20 +196,26 @@ export function patternAt(
   const c = Math.min(1, Math.max(0, t))
   const s = Math.max(1, Math.round(o.scale ?? 1))
   switch (id) {
-    case 'bayer2':
+    case 'bayer2': {
       return c > thresholdAt(BAYER2, 2, 4, x, y)
-    case 'bayer4':
+    }
+    case 'bayer4': {
       return c > thresholdAt(BAYER4, 4, 16, x, y)
-    case 'bayer8':
+    }
+    case 'bayer8': {
       return c > thresholdAt(BAYER8, 8, 64, x, y)
-    case 'bayer16':
+    }
+    case 'bayer16': {
       return c > thresholdAt(BAYER16, 16, 256, x, y)
-    case 'cluster':
+    }
+    case 'cluster': {
       // clustered-dot print screen: ink grows in a spiral from each 4×4 cell
       return c > thresholdAt(CLUSTER4, 4, 16, x, y)
-    case 'halftone':
+    }
+    case 'halftone': {
       // diamond halftone dots, the newspaper-print look
       return c > thresholdAt(HALFTONE4, 4, 16, x, y)
+    }
     case 'screen': {
       // true halftone screen: a rotated dot grid in screen space, tone in dot
       // area. Shapes morph like print screens — round dots, squares, diamonds,
@@ -244,8 +248,9 @@ export function patternAt(
           const r = Math.sqrt(c / 2)
           return Math.abs(du) + Math.abs(dv) < r
         }
-        case 'line':
+        case 'line': {
           return Math.abs(dv) < c / 2
+        }
         case 'ellipse': {
           // wide ellipses overlap along the row mid-tone — the chain-dot screen
           const rx = 0.8 * Math.sqrt((2 * c) / Math.PI)
@@ -258,12 +263,14 @@ export function patternAt(
         }
       }
     }
-    case 'blue-noise':
+    case 'blue-noise': {
       // aperiodic high-frequency mask — no visible grid, evenly speckled
       return c > thresholdAt(BLUE_NOISE8, 8, 16, x, y)
-    case 'void-cluster':
+    }
+    case 'void-cluster': {
       // void-and-cluster: blue-noise character on a finer 8×8×256 grain
       return c > thresholdAt(VOID_CLUSTER8, 8, 256, x, y)
+    }
     case 'noise': {
       const g = Math.max(1, Math.round(o.grain ?? 1))
       return hash2(Math.floor(x / g), Math.floor(y / g)) < c
@@ -276,9 +283,10 @@ export function patternAt(
       )
       return n < c
     }
-    case 'checker':
+    case 'checker': {
       // coarse Bayer-2: an s×s-block checkerboard at 50%
       return c > (BAYER2[mod(Math.floor(y / s), 2)][mod(Math.floor(x / s), 2)] + 0.5) / 4
+    }
     case 'grid': {
       // windowpane: lines along the top/left of each cell×cell tile
       const cell = 4 * s
@@ -291,12 +299,15 @@ export function patternAt(
       const band = Math.round(c * p)
       return mod(x + y, p) < band || mod(x - y, p) < band
     }
-    case 'stripes-h':
+    case 'stripes-h': {
       return mod(y, 4 * s) < Math.round(c * 4 * s)
-    case 'stripes-v':
+    }
+    case 'stripes-v': {
       return mod(x, 4 * s) < Math.round(c * 4 * s)
-    case 'stripes-diag':
+    }
+    case 'stripes-diag': {
       return mod(x + y, 4 * s) < Math.round(c * 4 * s)
+    }
     case 'zigzag': {
       // rows offset by a triangle wave; scale sets amplitude and spacing
       const p = 4 * s
@@ -346,16 +357,21 @@ export function gradientAt(
   const spanX = box.x1 - box.x0
   const spanY = box.y1 - box.y0
   switch (g) {
-    case 'none':
+    case 'none': {
       return 0
-    case 'vertical':
+    }
+    case 'vertical': {
       return spanY > 0 ? (y - box.y0) / spanY : 0
-    case 'horizontal':
+    }
+    case 'horizontal': {
       return spanX > 0 ? (x - box.x0) / spanX : 0
-    case 'diag':
+    }
+    case 'diag': {
       return spanX + spanY > 0 ? (x - box.x0 + (y - box.y0)) / (spanX + spanY) : 0
-    case 'diag-inv':
+    }
+    case 'diag-inv': {
       return spanX + spanY > 0 ? (x - box.x0 - (y - box.y0) + spanY) / (spanX + spanY) : 0
+    }
     case 'radial': {
       const max = Math.max(
         Math.hypot(box.x0 - seed.x, box.y0 - seed.y),

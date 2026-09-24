@@ -58,7 +58,7 @@ export function regionCells(outline: ReadonlySet<number>, bw: number, bh: number
     visit(minX, y)
     visit(maxX, y)
   }
-  while (stack.length) {
+  while (stack.length > 0) {
     const li = stack.pop() as number
     const lx = li % w
     const ly = (li - lx) / w
@@ -85,12 +85,12 @@ export function regionCells(outline: ReadonlySet<number>, bw: number, bh: number
  * the outline cells separately as material.
  */
 export function fillCellsEvenOdd(
-  loops: ReadonlyArray<ReadonlyArray<readonly [number, number]>>,
+  loops: readonly (readonly (readonly [number, number])[])[],
   bw: number,
   bh: number,
 ): Set<number> {
   const inside = new Set<number>()
-  if (!loops.length || bw <= 0 || bh <= 0) return inside
+  if (loops.length === 0 || bw <= 0 || bh <= 0) return inside
   let minX = Infinity
   let minY = Infinity
   let maxX = -Infinity
@@ -117,7 +117,7 @@ export function fillCellsEvenOdd(
 
 /** Even-odd containment test of a point against a set of polylines. */
 export function pointInPolys(
-  polys: ReadonlyArray<ReadonlyArray<readonly [number, number]>>,
+  polys: readonly (readonly (readonly [number, number])[])[],
   x: number,
   y: number,
 ): boolean {

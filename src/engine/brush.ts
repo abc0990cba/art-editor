@@ -4,7 +4,7 @@
  * pixel size the user draws with (5 = "5-cell pixel"). Pure data, no React.
  */
 
-export const MIN_BRUSH = 1
+const MIN_BRUSH = 1
 export const MAX_BRUSH = 16
 
 export interface Brush {
@@ -14,7 +14,7 @@ export interface Brush {
   pattern: boolean[]
 }
 
-export function clampBrushSize(size: unknown): number {
+function clampBrushSize(size: unknown): number {
   const n = Math.round(Number(size))
   if (!Number.isFinite(n)) return MIN_BRUSH
   return Math.max(MIN_BRUSH, Math.min(MAX_BRUSH, n))
@@ -77,8 +77,8 @@ export function resizeBrush(brush: Brush, size: number): Brush {
 }
 
 /** Active tip cells as offsets from the stamp anchor, in scan order. */
-export function brushOffsets(brush: Brush): Array<[number, number]> {
-  const out: Array<[number, number]> = []
+export function brushOffsets(brush: Brush): [number, number][] {
+  const out: [number, number][] = []
   for (let y = 0; y < brush.size; y++)
     for (let x = 0; x < brush.size; x++) if (brush.pattern[y * brush.size + x]) out.push([x, y])
   return out

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { pointInPolys, regionCells } from './shapefill'
+import { pointInPolys, regionCells } from './shapefill.ts'
 
 describe('regionCells', () => {
   it('classifies a closed rect outline on a square buffer', () => {

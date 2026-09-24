@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { useStore } from '../../state/store'
-import { defaultDoc, elementFromDoc, type Doc } from '../doc'
-import { buildGeometry } from '../geometry'
-import { ensureScene, type SceneObj } from '../scene'
+import { useStore } from '../../state/editor.store'
+import { defaultDoc, elementFromDoc, type Doc } from '../doc.ts'
+import { buildGeometry } from '../geometry.ts'
+import { ensureScene, type SceneObj } from '../scene.ts'
 import {
   allNodes,
   evalGraph,
@@ -16,7 +16,7 @@ import {
   fitGraphToCanvas,
   type Graph,
   type GraphNode,
-} from './index'
+} from './index.ts'
 
 const ctx = (over?: Partial<EvalInput>): EvalInput => ({
   bw: 16,
@@ -29,7 +29,7 @@ const ctx = (over?: Partial<EvalInput>): EvalInput => ({
 })
 
 const run = (
-  nodes: Array<{ op: string; params?: Record<string, unknown> }>,
+  nodes: { op: string; params?: Record<string, unknown> }[],
   over?: Partial<EvalInput>,
 ) => evalGraph({ graphVersion: 1, nodes: nodes as GraphNode[] }, { ...ctx(), ...over }).cells
 
@@ -49,7 +49,7 @@ describe('node registry', () => {
 
   it('registryJSON carries every node with its parameter schema', () => {
     const parsed = JSON.parse(registryJSON()) as {
-      nodes: Array<{ id: string; params: Record<string, { kind: string; default: unknown }> }>
+      nodes: { id: string; params: Record<string, { kind: string; default: unknown }> }[]
     }
     expect(parsed.nodes.map((n) => n.id).sort()).toEqual(
       allNodes()
@@ -57,7 +57,7 @@ describe('node registry', () => {
         .sort(),
     )
     const rect = parsed.nodes.find((n) => n.id === 'source.rect')!
-    expect(rect.params.w).toMatchObject({ kind: 'int', default: 8 })
+    expect(rect.params['w']).toMatchObject({ kind: 'int', default: 8 })
   })
 
   it('conformance: every registered node evaluates deterministically on defaults', () => {
@@ -251,9 +251,9 @@ describe('validation (AI entry contract)', () => {
     expect(res.graph.nodes).toHaveLength(2)
     expect(res.graph.nodes[0].unknown).toBe(true)
     const rect = res.graph.nodes[1].params
-    expect(rect.w).toBe(2048)
-    expect(rect.h).toBe(1)
-    expect(rect.color).toBe('#e63946')
+    expect(rect['w']).toBe(2048)
+    expect(rect['h']).toBe(1)
+    expect(rect['color']).toBe('#e63946')
     expect(res.warnings.length).toBeGreaterThan(0)
     // the unknown node is skipped by the evaluator, the known one still paints
     const cells = evalGraph(res.graph, ctx()).cells
@@ -296,14 +296,14 @@ describe('graph presets', () => {
     const preset = GRAPH_PRESETS.find((p) => p.id === 'flower-circle-array') as GraphPreset
     const fitted = fitGraphToCanvas(preset.graph, 32, 32)
     const ellipse = fitted.nodes.find((nd) => nd.op === 'source.ellipse')!
-    expect(ellipse.params.cx).toBe(16)
-    expect(ellipse.params.cy).toBe(10)
-    expect(ellipse.params.ry).toBe(7)
+    expect(ellipse.params['cx']).toBe(16)
+    expect(ellipse.params['cy']).toBe(10)
+    expect(ellipse.params['ry']).toBe(7)
     // card positions are editor pixels — they never scale with the canvas
     expect(ellipse.pos).toEqual({ x: 40, y: 40 })
     // non-positional params pass through untouched
     const circle = fitted.nodes.find((nd) => nd.op === 'mod.arrayCircle')!
-    expect(circle.params.count).toBe(6)
+    expect(circle.params['count']).toBe(6)
   })
 })
 
@@ -518,8 +518,8 @@ describe('applyGraphPreset (always-visible node presets)', () => {
     const obj = state().doc.layers![0].children.find((c) => c.kind === 'obj') as SceneObj
     const ellipse = obj.graph!.nodes.find((nd) => nd.op === 'source.ellipse')!
     // preset tuned for 16×16 (cx 8, cy 5, rx 2, ry 3.5) × 8 on a 128 canvas
-    expect(ellipse.params.cx).toBe(64)
-    expect(ellipse.params.ry).toBe(28)
+    expect(ellipse.params['cx']).toBe(64)
+    expect(ellipse.params['ry']).toBe(28)
     // the parametric ink lands inside the canvas
     let ink = 0
     for (let i = 0; i < state().doc.cells.length; i++) if (state().doc.cells[i] > 0) ink++
@@ -592,8 +592,8 @@ describe('draw → auto node graph (live sync)', () => {
       | undefined
     if (!obj) throw new Error('moved object not found')
     const offset = obj.graph?.nodes.find((nd) => nd.op === 'mod.offset')
-    expect(offset?.params.dx).toBe(2)
-    expect(offset?.params.dy).toBe(1)
+    expect(offset?.params['dx']).toBe(2)
+    expect(offset?.params['dy']).toBe(1)
     // the procedural ink follows the offset on canvas
     expect(state().doc.cells[1 * state().doc.cols + 2]).toBeGreaterThan(0)
   })

@@ -16,7 +16,14 @@ npm run dev        # http://localhost:5173
 
 ```bash
 npm test           # vitest — юнит-тесты движка
-npm run lint       # oxlint
+npm run lint       # oxlint (0 ошибок — гейт; warnings — advisory)
+npm run lint:ai    # oxlint в agent-формате (машинная петля)
+npm run arch:check # границы слоёв/фич (dependency-cruiser)
+npm run knip       # мёртвые экспорты/файлы/зависимости
+npm run format     # oxfmt — форматирование
+npm run format:check  # проверка форматирования без записи
+
+Конвенции и границы слоёв — в AGENTS.md.
 npm run format     # oxfmt — строгое форматирование (валидатор AI-кода)
 npm run format:check  # проверка форматирования без записи
 npm run build      # tsc --noEmit + vite build
