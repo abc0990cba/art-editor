@@ -67,7 +67,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
           <button
             type="button"
             onClick={() => setSetupOpen(true)}
-            className="max-w-[168px] truncate rounded-md border border-line bg-chip px-2 py-1 text-xs text-body transition hover:border-chip-line"
+            className="flex h-7 max-w-[168px] items-center truncate rounded-md border border-line bg-chip px-2 text-xs text-body transition hover:border-chip-line"
           >
             {projectName || t('project.untitled')}
           </button>
@@ -114,7 +114,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
 
       <div className="flex items-center gap-1">
         <span
-          className="rounded-md border border-line bg-chip px-2 py-1 text-xs text-muted"
+          className="flex h-7 items-center rounded-md border border-line bg-chip px-2 text-xs text-muted"
           title={`${t('top.sizePreset')} — ${t('canvas.size')}`}
         >
           {doc.cols} × {doc.rows}
@@ -187,7 +187,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
           <button
             type="button"
             onClick={() => importFileRef.current?.click()}
-            className="flex items-center gap-1.5 rounded-md border border-line bg-chip px-2.5 py-1.5 text-xs text-body transition hover:border-chip-line"
+            className="flex h-7 items-center gap-1.5 rounded-md border border-line bg-chip px-2 text-xs text-body transition hover:border-chip-line"
           >
             <svg
               viewBox="0 0 16 16"
@@ -222,7 +222,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
             type="button"
             onClick={() => setExportOpen((v) => !v)}
             aria-expanded={exportOpen}
-            className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition ${
+            className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs transition ${
               exportOpen
                 ? 'border-accent-line bg-accent-soft text-accent-text'
                 : 'border-line bg-chip text-body hover:border-chip-line'
@@ -253,7 +253,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
                 setLangOpen(false)
               }}
               aria-expanded={themeOpen}
-              className={`flex items-center justify-center rounded-md border px-2 py-1.5 text-xs transition ${
+              className={`flex h-7 items-center justify-center rounded-md border px-2 text-xs transition ${
                 themeOpen
                   ? 'border-accent-line bg-accent-soft text-accent-text'
                   : 'border-line bg-chip text-body hover:border-chip-line'
@@ -317,7 +317,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
                 setThemeOpen(false)
               }}
               aria-expanded={langOpen}
-              className={`flex items-center justify-center rounded-md border px-2 py-1.5 text-xs transition ${
+              className={`flex h-7 items-center justify-center rounded-md border px-2 text-xs transition ${
                 langOpen
                   ? 'border-accent-line bg-accent-soft text-accent-text'
                   : 'border-line bg-chip text-body hover:border-chip-line'

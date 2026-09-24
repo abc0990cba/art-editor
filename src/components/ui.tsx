@@ -256,7 +256,7 @@ export function IconButton({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`flex h-8 w-8 items-center justify-center rounded-md text-body transition disabled:opacity-30 ${
+        className={`flex h-7 w-7 items-center justify-center rounded-md text-body transition disabled:opacity-30 ${
           plate
             ? 'border border-line bg-chip hover:border-chip-line disabled:hover:border-line'
             : 'hover:bg-chip-active disabled:hover:bg-transparent'
