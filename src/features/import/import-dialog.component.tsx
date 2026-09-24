@@ -15,6 +15,7 @@ import {
 import { IMPORT_PRESETS } from '../../engine/import-presets.ts'
 import { PALETTES } from '../../engine/palettes.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+import { GlyphSetPicker } from '../../shared/ui/glyph-set-picker.component.tsx'
 import { Chip, CheckRow, Slider } from '../../shared/ui/index.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
@@ -26,6 +27,7 @@ const DITHER_GROUPS: {
     | 'import.ditherGroup.ordered'
     | 'import.ditherGroup.diffusion'
     | 'import.ditherGroup.special'
+    | 'import.ditherGroup.glyph'
   dithers: ImportDither[]
 }[] = [
   { label: 'import.ditherGroup.off', dithers: ['none'] },
@@ -61,6 +63,10 @@ const DITHER_GROUPS: {
   {
     label: 'import.ditherGroup.special',
     dithers: ['ostromoukhov', 'variable-error', 'dot-diffusion', 'riemersma'],
+  },
+  {
+    label: 'import.ditherGroup.glyph',
+    dithers: ['glyph', 'palette-glyph'],
   },
 ]
 
@@ -354,6 +360,12 @@ export function ImportDialog({
                   value={opts.ditherStrength}
                   display={(v) => `${v}%`}
                   onChange={(v) => patch({ ditherStrength: v })}
+                />
+              )}
+              {(opts.dither === 'glyph' || opts.dither === 'palette-glyph') && (
+                <GlyphSetPicker
+                  value={opts.glyphSet}
+                  onChange={(set) => patch({ glyphSet: set })}
                 />
               )}
               {ORDERED_DITHERS.has(opts.dither) && (

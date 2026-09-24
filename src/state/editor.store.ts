@@ -32,6 +32,7 @@ import {
   type FillStyle,
 } from '../engine/fillpatterns.ts'
 import { floodFillDoc, floodRegion } from '../engine/floodfill.ts'
+import type { GlyphTileSet } from '../engine/glyph-tiles.ts'
 import { colorRegions } from '../engine/import-image.ts'
 import type { ImportResult } from '../engine/import-image.ts'
 import { fitGraphToCanvas, nodeDef, type GraphNode } from '../engine/nodes/index.ts'
@@ -76,6 +77,7 @@ import {
   sortBrushes,
   type BrushPresetEntry,
 } from '../storage/brushes.ts'
+import type { GlyphTileSetEntry } from '../storage/glyph-tiles.ts'
 import {
   deletePreset as deletePresetRow,
   listPresets,
@@ -91,6 +93,7 @@ import {
   normalizeName,
   saveProject,
 } from '../storage/projects.ts'
+import { createGlyphInit, createGlyphSlice } from './glyph.slice.ts'
 
 export type Tool =
   | 'select'
@@ -330,7 +333,7 @@ const DEFAULT_TOOL_OPTS: ToolOpts = {
 /** What one fill click covers on a radial grid: a cell, the whole sector wedge or the ring. */
 type FillScope = 'cell' | 'sector' | 'ring'
 
-interface State {
+export interface State {
   doc: Doc
   // UI state (outside undo history)
   tool: Tool
@@ -391,6 +394,12 @@ interface State {
   // brush preset library (user brushes; built-ins come from engine/brush)
   brushPresets: BrushPresetEntry[]
   brushesReady: boolean
+  // glyph tile set library (user sets; built-ins come from engine/glyph-tiles)
+  glyphSets: GlyphTileSetEntry[]
+  glyphSetsReady: boolean
+  /** The glyph set currently being edited in the right panel; null = a built-in/new */
+  glyphDraft: GlyphTileSet
+  glyphDraftId: string | null // library entry id; null = unsaved custom draft
   // actions on the document (undoable)
   setSize: (cols: number, rows: number) => void
   setGridType: (gridType: GridType) => void
@@ -487,6 +496,15 @@ interface State {
   deleteBrushPreset: (id: string) => Promise<void>
   /** Make a preset the single current brush */
   applyBrushPreset: (id: string, brush: Brush) => void
+  // glyph tile set library + editor
+  loadGlyphSets: () => Promise<void>
+  patchGlyphDraft: (patch: Partial<GlyphTileSet>) => void
+  setGlyphDraftId: (id: string | null) => void
+  saveGlyphDraft: (name: string) => Promise<void>
+  overwriteGlyphDraft: (id: string) => Promise<void>
+  renameGlyphSet: (id: string, name: string) => Promise<void>
+  deleteGlyphSet: (id: string) => Promise<void>
+  applyGlyphSet: (id: string | null, set: GlyphTileSet) => void
   // UI actions
   setTool: (tool: Tool) => void
   /**
@@ -1886,6 +1904,8 @@ export const useStore = create<State>()(
       },
       applyBrushPreset: (id, brush) => set({ brush: normalizeBrush(brush), brushId: id }),
 
+      ...createGlyphInit(),
+      ...createGlyphSlice({ set, get }),
       setConcentricCount: (n) => {
         const target = Math.max(1, Math.min(8, Math.round(n)))
         set((s) => {

@@ -29,7 +29,7 @@ npm test               # vitest, все тесты зелёные
 src/
   app/       # каркас: app.component.tsx, app-top-bar.component.tsx, main.tsx
   features/  # вертикальные модули UI: canvas, tools, nodes-editor, layers,
-             # settings-panel, projects, export, import
+             # settings-panel, glyph-editor, projects, export, import
   engine/    # чистый домен (без React!): doc, scene, shapes, brush, grids, nodes…
   state/     # editor.store.ts (zustand) — единый стор приложения
   storage/   # IndexedDB-персистенция (projects, presets, brushes, db)
@@ -65,6 +65,30 @@ src/
 | `index.ts(x)` | баррель (единственное имя без суффикса) | `shared/ui/index.tsx` |
 
 Модули `engine` (кроме нод) — просто kebab-case без суффикса: `shapes.ts`, `doc.ts`.
+
+## Лимиты размера кода (ratchet)
+
+Глобальные пороги (error, для всего нового кода):
+
+| Правило | Лимит |
+|---|---|
+| `eslint/max-lines` | **400 строк** файла (без комментариев/пустых) |
+| `eslint/max-lines-per-function` | **150 строк** |
+| `eslint/complexity` | 20 |
+| `eslint/max-statements` | 60 |
+| `eslint/max-depth` | 4 |
+| `eslint/max-params` | 5 |
+
+Легаси-файлы, не влезающие в пороги, **заперты храповиком** в `overrides` секции
+`.oxlintrc.jsonc`: каждому задан cap = текущий размер + 2. Расти нельзя (новые строки
+уложат в лимит и lint упадёт); уменьшил файл — уменьши и его cap в override (или убери
+override, когда файл вписывается в глобальные пороги). Исключения: `*.messages.ts`
+(файлы-данные локализации) — свободный лимит; тесты — cap по фактическому размеру.
+
+При рефакторинге гигантов (`canvas-stage` 2437 → цель ≤400, `editor.store` 2177,
+`shapes` 1310, `tool-rail` 1287, `node-editor-canvas` 1233, `settings-panel` 1170,
+`import-image` 1136) — разбивай по фичам/слоям согласно структуре выше, не выбирай
+исключения из правил.
 
 ## TypeScript — жёсткий профиль
 

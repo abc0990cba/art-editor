@@ -33,6 +33,7 @@ import {
 } from '../../shared/ui/index.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
+import { GlyphEditor } from '../glyph-editor/glyph-editor.component.tsx'
 import { LayersPanel } from '../layers/layers-panel.component.tsx'
 import {
   NodePresetsPanel,
@@ -343,35 +344,8 @@ export function SettingsPanel({
         <LayersPanel />
         <NodePresetsPanel />
         <ObjectGraphPanel />
-        {/* grid TYPE is chosen at project creation / in project settings — not here */}
-        <Section title={t('panel.grid')} icon="grid">
-          {doc.gridType === 'radial' && (
-            <>
-              <CheckRow
-                label={t('grid.evenCells')}
-                title={t('grid.evenCells.desc')}
-                checked={doc.radialEven}
-                onChange={(v) => setRadialEven(v)}
-              />
-              <div className="text-body flex items-center justify-between text-xs">
-                <span>{t('fill.scope')}</span>
-                <div className="flex gap-1">
-                  {(['cell', 'sector', 'ring'] as const).map((sc) => (
-                    <Chip
-                      key={sc}
-                      active={fillScope === sc}
-                      title={t(`fill.scope.${sc}.desc` as 'fill.scope.cell.desc')}
-                      onClick={() => setFillScope(sc)}
-                    >
-                      {t(`fill.scope.${sc}` as 'fill.scope.cell')}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </Section>
         <BrushSection />
+        <GlyphEditor />
         <Section title={t('panel.presets')} icon="presets">
           <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
             {allPresets.map((p) => {
@@ -1130,6 +1104,31 @@ export function SettingsPanel({
         </Section>
 
         <Section title={t('panel.canvas')} icon="canvas">
+          {doc.gridType === 'radial' && (
+            <>
+              <CheckRow
+                label={t('grid.evenCells')}
+                title={t('grid.evenCells.desc')}
+                checked={doc.radialEven}
+                onChange={(v) => setRadialEven(v)}
+              />
+              <div className="text-body flex items-center justify-between text-xs">
+                <span>{t('fill.scope')}</span>
+                <div className="flex gap-1">
+                  {(['cell', 'sector', 'ring'] as const).map((sc) => (
+                    <Chip
+                      key={sc}
+                      active={fillScope === sc}
+                      title={t(`fill.scope.${sc}.desc` as 'fill.scope.cell.desc')}
+                      onClick={() => setFillScope(sc)}
+                    >
+                      {t(`fill.scope.${sc}` as 'fill.scope.cell')}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
           <Slider
             label={t('canvas.connectorWidth')}
             title={t('canvas.connectorWidth.desc')}

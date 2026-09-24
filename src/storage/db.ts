@@ -1,7 +1,7 @@
-/** Shared opener for the glyph-editor database: one connection, all object stores, schema v3. */
+/** Shared opener for the glyph-editor database: one connection, all object stores, schema v4. */
 
 const DB_NAME = 'glyph-editor'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 let memoryOnly = false
 let dbPromise: Promise<IDBDatabase | null> | null = null
@@ -30,6 +30,10 @@ export function openDb(): Promise<IDBDatabase | null> {
         if (!db.objectStoreNames.contains('brushes')) {
           const brushes = db.createObjectStore('brushes', { keyPath: 'id' })
           brushes.createIndex('by_updated', 'updatedAt')
+        }
+        if (!db.objectStoreNames.contains('glyphTiles')) {
+          const tiles = db.createObjectStore('glyphTiles', { keyPath: 'id' })
+          tiles.createIndex('by_updated', 'updatedAt')
         }
       }
       req.onsuccess = () => resolve(req.result)

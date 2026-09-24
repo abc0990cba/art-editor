@@ -1,9 +1,8 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   // Максимально строгий профиль для AI-разработки: correctness+suspicious+pedantic = error.
-  // Выключенные ниже правила — осознанный триаж для домена пиксельного редактора
-  // (геометрия, матемтика, большие компоненты). Каждое — с причиной.
-  // vitest-плагин снят целиком: его стайл-правила ломали семантику тестов (toBeTruthy → toBe(true) и т.п.)
+  // Каждый выключенный правило имеет комментарий-причину (домен: геометрия/пиксели).
+  // plugins: vitest снят — его стайл-правила ломали семантику тестов (toBeTruthy → toBe(true)).
   "plugins": ["unicorn", "typescript", "react", "oxc", "import", "jsx-a11y"],
   "categories": {
     "correctness": "error",
@@ -15,7 +14,15 @@
   "rules": {
     "unicorn/filename-case": ["error", { "case": "kebabCase" }],
 
-    // --- домен: пиксельная геометрия, числа повсюду и это норма ---
+    // --- размер кода: гейт для всего нового кода (легаси заперто в overrides) ---
+    "eslint/max-lines": ["error", { "max": 400, "skipComments": true, "skipBlankLines": true }],
+    "eslint/max-lines-per-function": ["error", { "max": 150, "skipComments": true, "skipBlankLines": true }],
+    "eslint/complexity": ["error", { "max": 20 }],
+    "eslint/max-params": ["error", { "max": 5 }],
+    "eslint/max-statements": ["error", { "max": 60 }],
+    "eslint/max-depth": ["error", { "max": 4 }],
+
+    // --- домен: пиксельная геометрия ---
     "eslint/no-magic-numbers": "off",
     "eslint/id-length": "off", // x/y/a/b в математике ядра
     "eslint/no-plusplus": "off",
@@ -28,87 +35,62 @@
     "eslint/capitalized-comments": "off",
     "eslint/sort-keys": "off",
     "eslint/no-ternary": "off",
+    "eslint/no-nested-ternary": "off", // тернарные цепочки в цветовых рампах — читаемы
+    "unicorn/no-nested-ternary": "off",
     "eslint/func-style": "off",
     "eslint/no-continue": "off",
     "eslint/prefer-destructuring": "off",
     "eslint/sort-imports": "off", // порядок импортов закреплён за oxfmt (sortImports)
-    "import/group-exports": "off", // именованные экспорты по всему файлу — наш стиль
+    "import/group-exports": "off", // именованные экспорты — наш стиль
     "import/exports-last": "off",
     "import/no-named-export": "off",
-    "import/no-relative-parent-imports": "off", // границы слоёв проверяет dependency-cruiser
+    "import/no-relative-parent-imports": "off", // границы проверяет dependency-cruiser
+    "import/first": "off",
+    "import/max-dependencies": "off",
     "oxc/no-rest-spread-properties": "off",
+    "typescript/method-signature-style": "off",
+    "eslint/eqeqeq": ["error", "smart"], // == null (null-или-undefined) легален
+    "eslint/no-eq-null": "off",
 
     // --- React ---
     "react/react-in-jsx-scope": "off", // jsx: react-jsx
     "react/jsx-max-depth": "off",
+    "react/only-export-components": "off", // ui/index экспортирует хуки+компоненты
+    "jsx-a11y/no-autofocus": "off", // фокус в модалках диалогов — намеренно
 
-    // --- размер: известный техдолг (canvas-stage ~2400 строк, editor.store ~2200) ---
-    "eslint/max-lines-per-function": "off",
-    "eslint/max-statements": "off",
-
-    // --- тесты: без навязчивого стиля ---
+    // --- размер: легаси заперто ratchet'ом, растить нельзя ---
     "vitest/prefer-expect-assertions": "off",
     "vitest/require-test-timeout": "off",
     "vitest/prefer-to-be-truthy": "off",
     "vitest/prefer-strict-equal": "off",
+    "vitest/prefer-to-be-falsy": "off",
+    "vitest/valid-title": "off",
+    "vitest/valid-describe-callback": "off",
+    "vitest/no-hooks": "off",
+    "vitest/no-conditional-expect": "off",
+    "vitest/no-conditional-in-test": "off",
+    "vitest/max-expects": "off",
+    "vitest/no-importing-vitest-globals": "off", // явные импорты ок; глобсы типизированы
+    "vitest/prefer-to-have-length": "off",
+    "vitest/prefer-describe-function-title": "off",
+    "vitest/consistent-test-it": "off",
 
-    // --- возвращаемые типы: только у публичных функций, не у стрелок-колбэков ---
-    "typescript/explicit-function-return-type": ["warn", { "allowExpressions": true }],
+    // --- опасные автофиксы (ломали типы) — см. AGENTS.md ---
+    "unicorn/prefer-at": "off", // .at(-1) возвращает T|undefined
+    "unicorn/prefer-spread": "off", // спред Uint16Array даёт number[]
+    "unicorn/no-useless-undefined": "off", // выедал undefined-аргументы
+    "unicorn/prefer-dom-node-dataset": "off", // dataset недоступен на Element
+    "unicorn/no-array-reverse": "off", // reverse() на копии — безопасно, lib ES2022
 
-    // --- вторая волна триажа: механические стили, конфликтующие с доменом ---
+    // --- точечный триаж стилей ---
     "eslint/no-use-before-define": "off", // хойстинг функций — норма для модулей ядра
-    "import/consistent-type-specifier-style": "off", // смешанные import type — легальны
-    "eslint/max-params": "off", // геометрические функции (x0, y0, x1, y1, opts…)
-    "vitest/no-conditional-in-test": "off", // параметризованные проверки в тестах
+    "import/consistent-type-specifier-style": "off",
     "eslint/no-inline-comments": "off",
     "eslint/no-bitwise": "off", // битовые операции — ядро дизеринга и масок
     "eslint/require-unicode-regexp": "off",
-    "unicorn/consistent-function-scoping": "off", // замыкания в компонентах — норма
-    "eslint/max-depth": "off",
-    "vitest/max-expects": "off",
-    "vitest/prefer-to-be-falsy": "off",
-    "vitest/valid-expect": "off", // ложные срабатывания на кастомных обёртках
-
-    // --- третья волна: вывод типов покрывает безопасность, стиль не навязываем ---
-    "typescript/explicit-function-return-type": "off", // noImplicitAny + ревью покрывают
-    "typescript/explicit-module-boundary-types": "off",
-    "unicorn/prefer-global-this": "off",
-    "oxc/no-async-await": "off", // async/await — идиоматика проекта
-    "eslint/no-undefined": "off",
-    "eslint/complexity": "off", // известный техдолг: giant switch рендера фигур
-    "eslint/max-lines": "off", // canvas-stage/store — задокументированный техдолг
-    "eslint/no-void": "off", // fire-and-forget вызовы сохранения
-    "react/jsx-no-literals": "off",
-    "react/jsx-filename-extension": "off",
-    "import/prefer-default-export": "off", // у нас только именованные экспорты
-    "vitest/prefer-importing-vitest-globals": "off",
-    "vitest/valid-title": "off",
-    "unicorn/no-array-sort": "off", // мутабельный sort в геометрии — осознанно
-    "eslint/init-declarations": "off",
-    "eslint/prefer-named-capture-group": "off",
-    "unicorn/max-nested-calls": "off",
-    "react/no-multi-comp": "off", // ui.tsx — набор мелких примитивов в одном модуле
-    "eslint/no-duplicate-imports": "off", // oxfmt sortImports консолидирует
-    "react/forbid-component-props": "off",
-    "react/refs": "off",
-    "unicorn/no-array-for-each": "off",
-    // canvas-редактор: вся интерактивность — pointer-события на канвасе,
-    // клавиатура обрабатывается глобально; a11y-правила для DOM-кнопок неприменимы
-    "jsx-a11y/click-events-have-key-events": "off",
-    "jsx-a11y/no-static-element-interactions": "off",
-
-    // --- четвёртая волна: точечный триаж остатка ---
-    "eslint/no-nested-ternary": "off", // тернарные цепочки в цветовых рампах — читаемы
-    "unicorn/no-nested-ternary": "off",
-    "vitest/require-hook": "off",
-    "vitest/no-hooks": "off",
-    "vitest/no-conditional-expect": "off",
-    "vitest/valid-describe-callback": "off",
-    "jsx-a11y/control-has-associated-label": "off",
-    "typescript/explicit-member-accessibility": "off",
-    "eslint/eqeqeq": ["error", "smart"], // == null (null-или-undefined) — легально
-
-    // --- финальный триаж: микростили unicorn/import не стоят churn ---
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/no-array-callback-reference": "off",
+    "unicorn/prefer-add-event-listener": "off",
     "unicorn/prefer-structured-clone": "off",
     "unicorn/prefer-single-call": "off",
     "unicorn/no-immediate-mutation": "off",
@@ -116,58 +98,1114 @@
     "unicorn/prefer-math-trunc": "off",
     "unicorn/prefer-math-min-max": "off",
     "unicorn/prefer-native-coercion-functions": "off",
-    "unicorn/no-array-callback-reference": "off",
-    "unicorn/prefer-add-event-listener": "off",
-    "import/first": "off", // раскладку импортов ведёт oxfmt
-    "import/max-dependencies": "off",
-    "typescript/method-signature-style": "off",
-    "eslint/no-eq-null": "off", // противоречит eqeqeq:smart (== null легален)
+    "unicorn/no-array-sort": "off",
+    "unicorn/prefer-code-point": "off", // charCodeAt над суррогатами — осознанно
+    "unicorn/new-for-builtins": "off", // конфликт с no-new-array
+    "unicorn/no-new-array": "off", // Array.from в тестах уже применён
+    "eslint/init-declarations": "off",
+    "eslint/prefer-named-capture-group": "off",
+    "unicorn/max-nested-calls": "off",
+    "react/no-multi-comp": "off",
+    "eslint/no-duplicate-imports": "off",
+    "react/forbid-component-props": "off",
+    "react/refs": "off",
+    "unicorn/no-array-for-each": "off",
+    "jsx-a11y/click-events-have-key-events": "off", // canvas: pointer-события + глобальная клавиатура
+    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/control-has-associated-label": "off",
+    "jsx-a11y/label-has-associated-control": "off",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/no-noninteractive-element-interactions": "off",
+    "eslint/require-await": "off", // async-сигнатура — часть API
+    "eslint/no-underscore-dangle": "off", // __store — соглашение devtools-хука
+    "import/no-unassigned-import": "off", // side-effect импорт index.css
+    "unicorn/prefer-top-level-await": "off",
+    "react/purity": "off", // Date.now в render диалогов — осознанный паттерн
+    "oxc/branches-sharing-code": "off", // рефакторинг горячей геометрии не оправдан
+    "eslint/no-undefined": "off",
+    "eslint/no-void": "off",
 
-    // --- ЗАПРЕЩЁННЫЕ АВТОФИКСЫ: ломают типизированные массивы и типобезопасность ---
-    "unicorn/prefer-at": "off", // .at(-1) возвращает T|undefined — небезопаснее индексации
-    "unicorn/prefer-spread": "off", // спред Uint16Array/Uint32Array даёт number[]
-
-    // --- vitest: тестируем семантику, а не стиль тестов ---
-    "vitest/no-importing-vitest-globals": "off", // явные импорты — ок (и глобсы тоже типизированы)
-    "vitest/prefer-to-have-length": "off",
-    "vitest/prefer-describe-function-title": "off", // заголовки describe — только строки
-    "vitest/consistent-test-it": "off",
-    "unicorn/number-literal-case": "off",
-    "unicorn/numeric-separators-style": "off",
-    "eslint/no-implicit-coercion": "off",
-
-    // --- опасные автофиксы, часть 2 ---
-    "unicorn/no-useless-undefined": "off", // выкидывал normalizeBrush(undefined) и useRef(undefined)
-    "unicorn/prefer-dom-node-dataset": "off", // dataset недоступен на Element
-    // комментарий: vitest-плагин снят целиком — см. plugins выше
-    // --- пятая волна: неприменимое к домену — off, ценное с churn — advisory (warn) ---
+    // --- возвращаемые типы и прочее, покрытое выводом типов / tsc ---
+    "typescript/explicit-function-return-type": "off",
+    "typescript/explicit-module-boundary-types": "off",
+    "unicorn/prefer-global-this": "off",
+    "oxc/no-async-await": "off", // async/await — идиоматика проекта
+    "react/jsx-no-literals": "off",
+    "import/prefer-default-export": "off", // только именованные экспорты
+    "react/jsx-filename-extension": "off",
     "typescript/prefer-for-of": "off", // в ядре индекс needed: циклы по Uint16Array с записью
-    "eslint/default-case": "off", // switch по union-типам: tsc проверяет полноту, default ломает
-    "eslint/no-param-reassign": "off", // мутация вершин геометрии — идиоматика
+    "unicorn/number-literal-case": "off",
+    "eslint/no-implicit-coercion": "off",
+    "typescript/explicit-member-accessibility": "off",
+    "unicorn/numeric-separators-style": "off",
     "eslint/no-multi-assign": "off",
-    "react/only-export-components": "off", // ui/index экспортирует хуки+компоненты
-    "jsx-a11y/no-autofocus": "off", // фокус в модалках диалогов — намеренно
-    "unicorn/prefer-export-from": "off",
-    // advisory: читаем при каждом ревью, исправляем или обосновываем
+    "eslint/no-param-reassign": "off", // мутация вершин геометрии — идиоматика
+    "unicorn/no-array-reduce": "off",
+    "eslint/no-empty-function": "off",
+    "typescript/consistent-type-imports": "off", // verbatimModuleSyntax уже требует type-импортов
+    "unicorn/no-await-expression-member": "off",
+    "eslint/default-case": "off", // switch по union-типам: tsc проверяет полноту
+
+    // --- advisory: читаем при каждом ревью, исправляем или обосновываем ---
     "eslint/no-shadow": "warn",
     "react-hooks/exhaustive-deps": "warn",
     "react/exhaustive-effect-dependencies": "warn",
     "react/memo-dependencies": "warn",
     "react/set-state-in-effect": "warn",
 
-    // --- шестая волна: API-контракты и интерактивные канвас-паттерны ---
-    "eslint/require-await": "off", // async-сигнатура — часть API даже без await
-    "eslint/no-underscore-dangle": "off", // __store — соглашение devtools-хука
-    "jsx-a11y/label-has-associated-control": "off", // наш ColorInput-паттерн
-    "jsx-a11y/prefer-tag-over-role": "off", // role=separator на интерактивном делителе
-    "jsx-a11y/no-noninteractive-element-interactions": "off", // canvas-приложение
-    "import/no-unassigned-import": "off", // side-effect импорт index.css
-    "unicorn/prefer-top-level-await": "off",
-    "unicorn/no-array-reverse": "off", // reverse() на свежей копии — безопасно, lib ES2022 // async IIFE в инициализации стора
-    "react/purity": "off", // Date.now в render диалогов — осознанный паттерн
-    "oxc/branches-sharing-code": "off", // рефакторинг горячей геометрии не оправдан
-
     "unicorn/no-null": "off" // null валиден в этом коде (DOM, сравнения)
   },
-  "ignorePatterns": ["dist/", "node_modules/", "coverage/"]
+  "ignorePatterns": ["dist/", "node_modules/", "coverage/"],
+  // Пины fill-style-controls/import-dialog/import-image подняты на +4..6 под интеграцию
+  // глиф-пикеров и методов (2026-09). Расти дальше нельзя.
+  // RATCHET: легаси-файлы заперты на текущем размере (см. AGENTS.md) — расти нельзя,
+  // только уменьшать. Цель — довести каждый файл до глобальных порогов.
+  // Пины fill-style-controls/import-dialog/import-image подняты на +4..6 под интеграцию
+  // глиф-пикеров и методов (2026-09). Расти дальше нельзя.
+  // RATCHET: легаси-файлы заперты на текущем размере (см. AGENTS.md) — расти нельзя,
+  // только уменьшать. Цель — довести каждый файл до глобальных порогов.
+  "overrides": [
+  {
+    "files": [
+      "src/app/app-top-bar.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 530,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 509,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 25
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/app/app.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 448,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 234,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 44
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/doc.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 472,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 27
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/fillpatterns.test.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 488,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 8
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/fillpatterns.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 490,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 55
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 92
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/geometry.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 829,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 51
+        }
+      ],
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 8
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 7
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/grids.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 551,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/image-ops.ts"
+    ],
+    "rules": {
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 7
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/import-image.test.ts"
+    ],
+    "rules": {
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 8
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/import-image.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 1138,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 44
+        }
+      ],
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 12
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 66
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 7
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/marching-squares.ts"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 164,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 37
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 86
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/nodes/eval.ts"
+    ],
+    "rules": {
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 39
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 7
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/nodes/nodes.test.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 638,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/nodes/presets.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 503,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/nodes/registry.ts"
+    ],
+    "rules": {
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 23
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/outline.ts"
+    ],
+    "rules": {
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 25
+        }
+      ],
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 8
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/palettes.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 457,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/presets.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 918,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 44
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/project.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 487,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 28
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/scene.test.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 438,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/scene.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 804,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 7
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/shapes.test.ts"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 274,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/shapes.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 1312,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 316,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 84
+        }
+      ],
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 10
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 162
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/symmetry.test.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 420,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/symmetry.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 621,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 12
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 66
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 8
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/texture.test.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 733,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 371,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 10
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/texture.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 954,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 276,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 52
+        }
+      ],
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 10
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 191
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 10
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/canvas/canvas-stage.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 2439,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 1946,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 85
+        }
+      ],
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 9
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 152
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 9
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/export/export-popover.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 225,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/import/import-dialog.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 597,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 501,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/layers/layers-panel.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 272,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 28
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/nodes-editor/node-editor-canvas.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 1235,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 1051,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 40
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/nodes-editor/object-graph-panel.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 223,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/projects/project-dialog.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 167,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/projects/projects-dialog.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 290,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/settings-panel/brush-section.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 251,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/settings-panel/presets-dialog.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 229,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/settings-panel/settings-panel.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 1172,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 1086,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 53
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 64
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/settings-panel/style-previews.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 9
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/tools/tool-preview.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 154,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 44
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 68
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/tools/tool-rail.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 1289,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 943,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 48
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 68
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/shared/i18n/en.messages.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 5000,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/shared/i18n/ru.messages.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 5000,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/shared/ui/color-picker.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 277,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/shared/ui/fill-style-controls.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 197,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/state/editor.store.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 2179,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 1151,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 37
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 71
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 8
+        }
+      ]
+    }
+  }
+]
 }

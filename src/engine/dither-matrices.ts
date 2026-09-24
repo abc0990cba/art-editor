@@ -5,6 +5,9 @@
  * comparison value: a pixel tone t picks the second palette color when t > thresholdAt(x, y).
  */
 
+/** Row-major rank matrix (0 = first threshold to flip). */
+export type OrderedMatrix = readonly (readonly number[])[]
+
 export const BAYER2 = [
   [0, 2],
   [3, 1],

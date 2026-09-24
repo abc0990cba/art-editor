@@ -200,10 +200,12 @@ function Editor() {
   useHotkeys()
   const loadPresets = useStore((s) => s.loadPresets)
   const loadBrushes = useStore((s) => s.loadBrushes)
+  const loadGlyphSets = useStore((s) => s.loadGlyphSets)
   useEffect(() => {
     void loadPresets()
     void loadBrushes()
-  }, [loadPresets, loadBrushes])
+    void loadGlyphSets()
+  }, [loadPresets, loadBrushes, loadGlyphSets])
 
   const [importBitmap, setImportBitmap] = useState<ImportBitmap | null>(null)
   const openImportFile = useCallback((file: File | Blob) => {

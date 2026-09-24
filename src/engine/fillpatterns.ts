@@ -10,6 +10,7 @@ import {
   thresholdAt,
 } from './dither-matrices.ts'
 import { resolveColor, type Doc } from './doc'
+import { glyphCellAt, type GlyphTileSet } from './glyph-tiles.ts'
 
 /**
  * Pattern fills for the fill tool: two-color textures and dithered gradients in the classic
@@ -39,15 +40,33 @@ export type FillPatternId =
   | 'dots'
   | 'bricks'
   | 'rings'
+  | 'glyph'
 
 /** How the mix ratio t varies across the filled region. */
 export type FillGradient = 'none' | 'vertical' | 'horizontal' | 'diag' | 'diag-inv' | 'radial'
 
 /** Silhouette of the halftone screen dots. */
-export type FillHtShape = 'dot' | 'square' | 'diamond' | 'line' | 'ellipse'
+export type FillHtShape =
+  | 'dot'
+  | 'square'
+  | 'diamond'
+  | 'line'
+  | 'ellipse'
+  | 'star'
+  | 'heart'
+  | 'cross'
 
 /** Halftone screen shapes in UI order. */
-export const HT_SHAPES: FillHtShape[] = ['dot', 'square', 'diamond', 'line', 'ellipse']
+export const HT_SHAPES: FillHtShape[] = [
+  'dot',
+  'square',
+  'diamond',
+  'line',
+  'ellipse',
+  'star',
+  'heart',
+  'cross',
+]
 
 export interface FillStyle {
   mode: 'solid' | 'pattern'
@@ -69,6 +88,8 @@ export interface FillStyle {
   htJitter: number
   /** Halftone screen: randomly missing dots, 0..100 */
   htDropout: number
+  /** Tile set for the 'glyph' pattern; null falls back to a flat half fill */
+  glyphSet: GlyphTileSet | null
 }
 
 export const DEFAULT_FILL_STYLE: FillStyle = {
@@ -80,6 +101,7 @@ export const DEFAULT_FILL_STYLE: FillStyle = {
   scale: 1,
   grain: 1,
   htShape: 'dot',
+  glyphSet: null,
   htAngle: 45,
   htJitter: 0,
   htDropout: 0,
@@ -108,6 +130,7 @@ export const PATTERNS: FillPatternId[] = [
   'dots',
   'bricks',
   'rings',
+  'glyph',
 ]
 
 /** Patterns whose tiles grow with the scale setting. */
@@ -150,6 +173,8 @@ function hash2(x: number, y: number): number {
 }
 
 export interface PatternOpts {
+  /** Tile set for the glyph pattern */
+  glyph?: GlyphTileSet | null
   /** Tile-size multiplier for scaled patterns */
   scale?: number
   /** Noise block size in cells (noise, ign) */
@@ -186,6 +211,54 @@ function htNoise(x: number, y: number): number {
  * dithering compares t against a Bayer threshold; stripes, hatching and shapes grow with t; scaled
  * patterns repeat every 4·scale cells.
  */
+
+/** Silhouette test of one screen dot at the normalized in-cell offset (du, dv); c = tone. */
+function screenShapeHit(shape: FillHtShape, du: number, dv: number, c: number): boolean {
+  switch (shape) {
+    case 'square': {
+      const h = Math.sqrt(c) / 2
+      return Math.abs(du) < h && Math.abs(dv) < h
+    }
+    case 'diamond': {
+      const r = Math.sqrt(c / 2)
+      return Math.abs(du) + Math.abs(dv) < r
+    }
+    case 'line': {
+      return Math.abs(dv) < c / 2
+    }
+    case 'ellipse': {
+      // wide ellipses overlap along the row mid-tone — the chain-dot screen
+      const rx = 0.8 * Math.sqrt((2 * c) / Math.PI)
+      const ry = 0.8 * Math.sqrt(c / (2 * Math.PI))
+      return (du / rx) * (du / rx) + (dv / ry) * (dv / ry) < 1
+    }
+    case 'star': {
+      // five-point star: polar radius minimum over the star wedge profile
+      const r = Math.hypot(du, dv)
+      if (r < 1e-9) return true
+      const ang = Math.atan2(dv, du)
+      const k = 0.45 + 0.55 * Math.abs(Math.cos(((2.5 * ang) % Math.PI) - Math.PI / 2) * 1.6)
+      return r < Math.sqrt(c) * Math.min(1.6, k)
+    }
+    case 'heart': {
+      // classic heart curve, scaled so the area matches the dot at mid-tone
+      const px = du * 1.7
+      const py = -dv * 1.9 + 0.32
+      const a2 = px * px + py * py - 1
+      return a2 * a2 * a2 - px * px * py * py * py < 0
+    }
+    case 'cross': {
+      const arm = Math.sqrt(c) / 2
+      const w = Math.sqrt(c) / 6
+      return (Math.abs(du) < w && Math.abs(dv) < arm) || (Math.abs(dv) < w && Math.abs(du) < arm)
+    }
+    default: {
+      const r = Math.sqrt(c / Math.PI)
+      return du * du + dv * dv < r * r
+    }
+  }
+}
+
 export function patternAt(
   id: FillPatternId,
   x: number,
@@ -240,27 +313,17 @@ export function patternAt(
       if (dropout > 0 && htNoise(iu / 2, iv / 2) < dropout * 0.95) return false
       if (c >= 0.999) return true
       switch (o.htShape ?? 'dot') {
-        case 'square': {
-          const h = Math.sqrt(c) / 2
-          return Math.abs(du) < h && Math.abs(dv) < h
-        }
-        case 'diamond': {
-          const r = Math.sqrt(c / 2)
-          return Math.abs(du) + Math.abs(dv) < r
-        }
-        case 'line': {
-          return Math.abs(dv) < c / 2
-        }
-        case 'ellipse': {
-          // wide ellipses overlap along the row mid-tone — the chain-dot screen
-          const rx = 0.8 * Math.sqrt((2 * c) / Math.PI)
-          const ry = 0.8 * Math.sqrt(c / (2 * Math.PI))
-          return (du / rx) * (du / rx) + (dv / ry) * (dv / ry) < 1
-        }
-        default: {
-          const r = Math.sqrt(c / Math.PI)
-          return du * du + dv * dv < r * r
-        }
+        case 'dot':
+        case 'square':
+        case 'diamond':
+        case 'line':
+        case 'ellipse':
+        case 'star':
+        case 'heart':
+        case 'cross':
+          return screenShapeHit(o.htShape ?? 'dot', du, dv, c)
+        default:
+          return screenShapeHit('dot', du, dv, c)
       }
     }
     case 'blue-noise': {
@@ -335,6 +398,13 @@ export function patternAt(
       const p = 4 * s
       const d = Math.hypot(x - (o.seed?.x ?? 0), y - (o.seed?.y ?? 0))
       return mod(d, p) < Math.round(c * p)
+    }
+    case 'glyph': {
+      // user-editable tile set: tone picks the level, the tile cell decides
+      const set = o.glyph
+      if (!set || set.levels.length === 0) return c > 0.5
+      const step = Math.max(1, s)
+      return glyphCellAt(set, Math.floor(x / step), Math.floor(y / step), c)
     }
   }
 }
@@ -426,6 +496,7 @@ export function applyFillStyle(
     scale: style.scale,
     grain: style.grain,
     seed: s,
+    glyph: style.glyphSet,
     htShape: style.htShape,
     htAngle: style.htAngle,
     htJitter: style.htJitter,

@@ -14,6 +14,7 @@ import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Chip, ColorInput, Slider } from '../../shared/ui/index.tsx'
 import { ExpandablePreview } from '../../shared/ui/preview-expander.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
+import { GlyphSetPicker } from './glyph-set-picker.component.tsx'
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
@@ -150,6 +151,9 @@ export function FillStyleControls({
               ))}
             </div>
           </div>
+          {style.pattern === 'glyph' && (
+            <GlyphSetPicker value={style.glyphSet} onChange={(set) => patch({ glyphSet: set })} />
+          )}
           {style.pattern === 'screen' && (
             <>
               <div>
