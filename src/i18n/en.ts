@@ -2,6 +2,8 @@ export const en = {
   'tool.concentric': 'Concentric circles',
   'tool.concentric.desc': 'Drag to draw concentric circles; count and radii are in the settings.',
   'tool.concentricRect': 'Concentric rects',
+  'top.more': 'More',
+  'editor.close': 'Close node editor',
   'top.panel': 'Panel',
   'top.panel.desc': 'Settings, layers and node presets — open as a slide-over drawer on narrow screens',
   'tool.skull': 'Skull',

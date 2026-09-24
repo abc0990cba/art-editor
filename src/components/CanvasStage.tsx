@@ -382,6 +382,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const extent = docExtent(doc)
 
   const [view, setView] = useState({ zoom: 8, x: 0, y: 0 })
+  // live mirror: the touch-gesture effect mounts once and reads the view at pinch start
+  const viewRef = useRef(view)
+  viewRef.current = view
   const [wrapSize, setWrapSize] = useState({ w: 0, h: 0 })
   const fittedRef = useRef(false)
   const [resizeCount, bumpResize] = useReducer((x: number) => x + 1, 0)
@@ -1209,7 +1212,11 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
   // ---- pointer handlers ----
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId)
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      /* synthetic pointers have no active id — drawing still works uncaptured */
+    }
     if (e.button === 1 || spaceRef.current) {
       drag.current = { kind: 'pan', sx: e.clientX, sy: e.clientY, panX: view.x, panY: view.y }
       setDragKind('pan')
@@ -1439,6 +1446,77 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const onPointerUp = () => {
     finishDragRef.current()
   }
+
+  // ---- two-finger touch: pinch to zoom, move to pan (Procreate-style) ----
+  // capture-phase listeners see both pointers before the drawing handlers; the
+  // in-progress stroke is cancelled the moment the second finger lands
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const pts = new Map<number, { x: number; y: number }>()
+    let start: null | {
+      d0: number
+      cx0: number
+      cy0: number
+      view: { zoom: number; x: number; y: number }
+    } = null
+    const cancelStroke = () => {
+      drag.current = null
+      shapeStartRef.current = null
+      shapeLastRef.current = null
+      setPendingLink(null)
+      if (stagingRef.current) {
+        stagingRef.current = null
+        bumpStaging()
+      }
+    }
+    const down = (e: PointerEvent) => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (pts.size === 2 && !start) {
+        cancelStroke()
+        const [a, b] = [...pts.values()]
+        const r = el.getBoundingClientRect()
+        start = {
+          d0: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+          cx0: (a.x + b.x) / 2 - r.left,
+          cy0: (a.y + b.y) / 2 - r.top,
+          view: { ...viewRef.current },
+        }
+      }
+    }
+    const move = (e: PointerEvent) => {
+      if (!pts.has(e.pointerId)) return
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (!start || pts.size < 2) return
+      e.stopPropagation()
+      e.preventDefault()
+      const [a, b] = [...pts.values()]
+      const d = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y))
+      const r = el.getBoundingClientRect()
+      const cx = (a.x + b.x) / 2 - r.left
+      const cy = (a.y + b.y) / 2 - r.top
+      // computed eagerly from the gesture-start snapshot: the setState updater may
+      // flush after the gesture ended and `start` was cleared
+      const zoom = Math.min(80, Math.max(0.5, start.view.zoom * (d / start.d0)))
+      const wx = (start.cx0 - start.view.x) / start.view.zoom
+      const wy = (start.cy0 - start.view.y) / start.view.zoom
+      setView({ zoom, x: cx - wx * zoom, y: cy - wy * zoom })
+    }
+    const up = (e: PointerEvent) => {
+      pts.delete(e.pointerId)
+      if (pts.size < 2) start = null
+    }
+    el.addEventListener('pointerdown', down, true)
+    el.addEventListener('pointermove', move, true)
+    el.addEventListener('pointerup', up, true)
+    el.addEventListener('pointercancel', up, true)
+    return () => {
+      el.removeEventListener('pointerdown', down, true)
+      el.removeEventListener('pointermove', move, true)
+      el.removeEventListener('pointerup', up, true)
+      el.removeEventListener('pointercancel', up, true)
+    }
+  }, [])
 
   // ---- zoom ----
   useEffect(() => {

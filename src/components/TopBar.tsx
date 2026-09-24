@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore, undo, redo, useCanUndoRedo } from '../state/store'
 import { useI18n } from '../i18n'
-import { IconButton } from './ui'
+import { IconButton, useMediaQuery } from './ui'
 import { Tooltip } from './Tooltip'
 import { ProjectsDialog } from './ProjectsDialog'
 import { ProjectDialog } from './ProjectDialog'
@@ -34,21 +34,117 @@ export function TopBar({
   const [setupOpen, setSetupOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  // phones/tablets swap the full bar for the mobile composition (nav + overflow menu)
+  const isNarrow = useMediaQuery('(max-width: 1023px)')
   const [themeOpen, setThemeOpen] = useState(false)
   useEffect(() => {
-    if (!langOpen && !themeOpen) return
+    if (!langOpen && !themeOpen && !moreOpen) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setLangOpen(false)
         setThemeOpen(false)
+        setMoreOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [langOpen, themeOpen])
+  }, [langOpen, themeOpen, moreOpen])
+
+  if (isNarrow) {
+    // mobile: nav + document state only (Photoshop/Procreate pattern) — the tools
+    // live in the bottom strip (App), rare actions hide behind the overflow menu
+    const themeLabel = { dark: t('theme.dark'), light: t('theme.light'), auto: t('theme.auto') }[themePref]
+    const row = (label: string, action: () => void) => (
+      <button
+        type="button"
+        onClick={() => {
+          setMoreOpen(false)
+          action()
+        }}
+        className="flex h-11 w-full items-center rounded-lg px-3 text-left text-sm text-body transition hover:bg-chip-active"
+      >
+        {label}
+      </button>
+    )
+    return (
+      <>
+        <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-line px-2">
+          <svg viewBox="0 0 20 20" className="h-6 w-6 shrink-0" aria-hidden>
+            <defs>
+              <linearGradient id="logo-grad-m" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#818cf8" />
+                <stop offset="100%" stopColor="#e879f9" />
+              </linearGradient>
+            </defs>
+            <rect width="20" height="20" rx="5.5" fill="url(#logo-grad-m)" />
+            <rect x="3.5" y="3.5" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".95" />
+            <rect x="10.9" y="3.5" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".7" />
+            <rect x="3.5" y="10.9" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".55" />
+            <circle cx="13.7" cy="13.7" r="2.8" fill="#fff" opacity=".85" />
+            <rect x="9.2" y="9.2" width="1.6" height="1.6" rx=".55" fill="#fff" opacity=".9" />
+          </svg>
+          <button
+            type="button"
+            onClick={() => setSetupOpen(true)}
+            aria-label={t('project.name')}
+            className="flex h-10 min-w-0 flex-1 items-center rounded-md border border-line bg-chip px-2.5 text-left text-xs text-body transition hover:border-chip-line"
+          >
+            <span className="truncate">{projectName || t('project.untitled')}</span>
+          </button>
+          <IconButton
+            big
+            plate
+            title={projectDirty ? `${t('project.save')} (Ctrl+S)` : t('project.saved')}
+            disabled={!projectDirty}
+            className={projectDirty ? 'text-accent-text' : undefined}
+            onClick={() => void saveToLibrary()}
+          >
+            <svg viewBox="0 0 16 16" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round">
+              <path d="M2.5 4A1.5 1.5 0 014 2.5h6.4L13.5 5.6V12a1.5 1.5 0 01-1.5 1.5H4A1.5 1.5 0 012.5 12z" />
+              <path d="M5.5 2.5V6h5V2.5" />
+              <path d="M5.5 13.5V9.5h5v4" />
+            </svg>
+          </IconButton>
+          <IconButton big plate title={t('top.panel')} onClick={onTogglePanel}>
+            <svg viewBox="0 0 16 16" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+              <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
+              <path d="M10.5 2.5v3M10.5 9.5v3" />
+            </svg>
+          </IconButton>
+          <IconButton big plate title={t('top.more')} onClick={() => setMoreOpen((v) => !v)}>
+            <svg viewBox="0 0 16 16" className="h-5 w-5" fill="currentColor">
+              <circle cx="3.2" cy="8" r="1.4" />
+              <circle cx="8" cy="8" r="1.4" />
+              <circle cx="12.8" cy="8" r="1.4" />
+            </svg>
+          </IconButton>
+        </header>
+        {moreOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+            <div className="fixed right-2 top-15 z-50 w-64 rounded-xl border border-line bg-raised p-1.5 shadow-2xl">
+              {row(t('projects.title'), () => setProjectsOpen(true))}
+              {row(nodeEditorOpen ? t('editor.close') : t('editor.open'), () => (nodeEditorOpen ? closeNodeEditor() : openNodeEditor()))}
+              {row(t('import.open'), () => importFileRef.current?.click())}
+              {row(t('export.open'), () => setExportOpen(true))}
+              {row(t('project.settings'), () => setSetupOpen(true))}
+              {row(`${t('top.theme')}: ${themeLabel}`, () => setThemePref(themePref === 'dark' ? 'light' : themePref === 'light' ? 'auto' : 'dark'))}
+              {row(`${t('lang.switch')}: ${lang === 'ru' ? 'RU' : 'EN'}`, () => setLang(lang === 'ru' ? 'en' : 'ru'))}
+              <div className="my-1 h-px bg-line" />
+              {row(t('export.clear'), () => clear())}
+            </div>
+          </>
+        )}
+        {projectsOpen && <ProjectsDialog onClose={() => setProjectsOpen(false)} />}
+        {setupOpen && <ProjectDialog mode="edit" onClose={() => setSetupOpen(false)} />}
+        {exportOpen && <ExportPopover onClose={() => setExportOpen(false)} />}
+      </>
+    )
+  }
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-3 overflow-x-auto border-b border-line px-3 [scrollbar-width:none] max-md:gap-2 [&::-webkit-scrollbar]:hidden">
+    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line px-3">
       <div className="flex shrink-0 items-center gap-2">
         {/* pixel-cluster logo: rounded 2×2 pixels with a dither dot in the middle */}
         <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0" aria-hidden>
@@ -65,7 +161,7 @@ export function TopBar({
           <circle cx="13.7" cy="13.7" r="2.8" fill="#fff" opacity=".85" />
           <rect x="9.2" y="9.2" width="1.6" height="1.6" rx=".55" fill="#fff" opacity=".9" />
         </svg>
-        <span className="hidden text-sm font-semibold tracking-wide sm:inline">{t('app.title')}</span>
+        <span className="text-sm font-semibold tracking-wide">{t('app.title')}</span>
       </div>
 
       <div className="flex items-center gap-1">
@@ -74,7 +170,7 @@ export function TopBar({
           <button
             type="button"
             onClick={() => setSetupOpen(true)}
-            className="hidden h-7 max-w-[168px] items-center truncate rounded-md border border-line bg-chip px-2 text-xs text-body transition hover:border-chip-line sm:flex"
+            className="flex h-7 max-w-[168px] items-center truncate rounded-md border border-line bg-chip px-2 text-xs text-body transition hover:border-chip-line"
           >
             {projectName || t('project.untitled')}
           </button>
@@ -119,7 +215,7 @@ export function TopBar({
         </Tooltip>
       </div>
 
-      <div className="hidden shrink-0 items-center gap-1 md:flex">
+      <div className="flex shrink-0 items-center gap-1">
         <span
           className="flex h-7 items-center rounded-md border border-line bg-chip px-2 text-xs text-muted"
           title={`${t('top.sizePreset')} — ${t('canvas.size')}`}
@@ -189,7 +285,7 @@ export function TopBar({
         </IconButton>
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-2 max-md:gap-1.5">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <Tooltip label={`${t('top.panel')} — ${t('top.panel.desc')}`}>
           <IconButton plate title={t('top.panel')} className="lg:hidden" onClick={onTogglePanel}>
             <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
@@ -218,7 +314,7 @@ export function TopBar({
               <circle cx="5.7" cy="6.2" r="1.1" />
               <path d="M2.5 11.5l3.5-3.5 2 2 2.5-2.5 3 3" />
             </svg>
-            <span className="hidden sm:inline">{t('import.button')}</span>
+            {t('import.button')}
           </button>
         </Tooltip>
         <input
@@ -255,7 +351,7 @@ export function TopBar({
             >
               <path d="M8 2v7.5M8 9.5L5.4 6.9M8 9.5l2.6-2.6M2.5 11.5v1.5a1 1 0 001 1h9a1 1 0 001-1v-1.5" />
             </svg>
-            <span className="hidden sm:inline">{t('export.open')}</span>
+            {t('export.open')}
           </button>
         </Tooltip>
         {/* theme: one icon, dropdown with the three modes */}

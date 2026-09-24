@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useStore, undo, redo, type Tool } from './state/store'
+import { useCanUndoRedo, useStore, undo, redo, type Tool } from './state/store'
 import { I18nProvider, useI18n } from './i18n'
 import { TopBar } from './components/TopBar'
-import { ToolRail } from './components/ToolRail'
+import { allOrder, ToolIcon, ToolRail, ToolSettings, type SettingsAnchor } from './components/ToolRail'
+import { IconButton } from './components/ui'
+import { Tooltip } from './components/Tooltip'
 import { SettingsPanel } from './components/SettingsPanel'
 import { CanvasStage } from './components/CanvasStage'
 import { ImportDialog } from './components/ImportDialog'
@@ -198,10 +200,15 @@ function Editor() {
       })
   }, [])
   const nodeEditorOpen = useStore((s) => s.nodeEditorOpen)
+  const tool = useStore((s) => s.tool)
   // fresh users (no autosave) see the project creation dialog first
   const [setupOpen, setSetupOpen] = useState(() => !hasAutosave())
   // phones/tablets: the right panel lives in a slide-over drawer instead of a column
   const [panelOpen, setPanelOpen] = useState(false)
+  // mobile: the active tool's settings open as a bottom sheet from the strip's gear
+  const [mobileSettings, setMobileSettings] = useState<SettingsAnchor | null>(null)
+  const { canUndo, canRedo } = useCanUndoRedo()
+  const stripRef = useRef<HTMLDivElement>(null)
   const nodeEditorMode = useStore((s) => s.nodeEditorMode)
   const nodeEditorSplit = useStore((s) => s.nodeEditorSplit)
   const editorPaneRef = useRef<HTMLDivElement>(null)
@@ -221,6 +228,12 @@ function Editor() {
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
   }
+  // keep the active tool visible in the mobile strip while the user scrolls it
+  useEffect(() => {
+    stripRef.current
+      ?.querySelector(`[data-tool="${tool}"]`)
+      ?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
+  }, [tool])
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const file = Array.from(e.clipboardData?.files ?? []).find((f) => f.type.startsWith('image/'))
@@ -272,6 +285,81 @@ function Editor() {
         <div className="hidden lg:contents">
           <SettingsPanel />
         </div>
+      </div>
+      {/* mobile: tools in the thumb zone — a horizontally scrollable strip under the
+          canvas, plus a settings shortcut for the active tool (Photoshop iOS layout) */}
+      <div className="flex h-14 shrink-0 items-center gap-1.5 border-t border-line bg-app px-2 lg:hidden">
+        <div
+          ref={stripRef}
+          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {allOrder.map((id) => (
+            <button
+              key={id}
+              data-tool={id}
+              type="button"
+              aria-label={id}
+              onClick={() => useStore.getState().setTool(id)}
+              onDoubleClick={() => setMobileSettings({ tool: id, x: 0, y: 0 })}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition ${
+                tool === id
+                  ? 'border-accent-line bg-accent-soft text-accent-text'
+                  : 'border-transparent text-muted hover:bg-chip hover:text-body'
+              }`}
+            >
+              <ToolIcon id={id} className="h-5 w-5" />
+            </button>
+          ))}
+        </div>
+        <div className="h-8 w-px shrink-0 bg-line" />
+        <IconButton
+          big
+          plate
+          title={t('tool.settings')}
+          onClick={() => setMobileSettings({ tool, x: 0, y: 0 })}
+        >
+          <svg viewBox="0 0 16 16" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+            <path d="M3 4.5h6M12 4.5h1M3 11.5h1M7 11.5h6" />
+            <circle cx="10.5" cy="4.5" r="1.6" />
+            <circle cx="5.5" cy="11.5" r="1.6" />
+          </svg>
+        </IconButton>
+      </div>
+      {mobileSettings && (
+        <ToolSettings anchor={mobileSettings} onClose={() => setMobileSettings(null)} />
+      )}
+      {/* mobile: undo/redo floating pair above the strip — thumb reach, Procreate-style */}
+      <div className="fixed bottom-[4.5rem] left-2 z-20 flex flex-col gap-2 lg:hidden">
+        <Tooltip label={`${t('top.undo')} (Ctrl+Z)`}>
+          <button
+            type="button"
+            onClick={() => undo()}
+            disabled={!canUndo}
+            aria-label={t('top.undo')}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-chip/90 text-body shadow-lg backdrop-blur transition hover:border-chip-line disabled:opacity-30"
+          >
+            <svg viewBox="0 0 16 16" className="h-5 w-5 -scale-x-100" fill="none" stroke="currentColor" strokeWidth="1.4">
+              <path d="M6.5 4L3 7.5 6.5 11" />
+              <path d="M3 7.5h6a4 4 0 010 8H6" />
+            </svg>
+          </button>
+        </Tooltip>
+        <Tooltip label={`${t('top.redo')} (Ctrl+Shift+Z)`}>
+          <button
+            type="button"
+            onClick={() => redo()}
+            disabled={!canRedo}
+            aria-label={t('top.redo')}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-chip/90 text-body shadow-lg backdrop-blur transition hover:border-chip-line disabled:opacity-30"
+          >
+            <svg viewBox="0 0 16 16" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.4">
+              <path d="M9.5 4L13 7.5 9.5 11" />
+              <path d="M13 7.5H7a4 4 0 000 8h1" />
+            </svg>
+          </button>
+        </Tooltip>
+      </div>
+
         {panelOpen && (
           <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setPanelOpen(false)}>
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
@@ -300,7 +388,6 @@ function Editor() {
             </aside>
           </div>
         )}
-      </div>
       {importBitmap && (
         <ImportDialog
           bitmap={importBitmap}

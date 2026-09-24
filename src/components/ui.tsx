@@ -239,6 +239,7 @@ export function IconButton({
   disabled,
   className,
   plate,
+  big,
   children,
 }: {
   title: string
@@ -248,6 +249,8 @@ export function IconButton({
   className?: string
   /** chip plate behind the icon (top-bar style, like the import/export buttons) */
   plate?: boolean
+  /** 44px touch target (HIG/Material) — mobile bars */
+  big?: boolean
   children: ReactNode
 }) {
   return (
@@ -256,7 +259,7 @@ export function IconButton({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className={`flex h-7 w-7 items-center justify-center rounded-md text-body transition disabled:opacity-30 ${
+        className={`flex items-center justify-center rounded-md text-body transition disabled:opacity-30 ${big ? 'h-10 w-10' : 'h-7 w-7'} ${
           plate
             ? 'border border-line bg-chip hover:border-chip-line disabled:hover:border-line'
             : 'hover:bg-chip-active disabled:hover:bg-transparent'

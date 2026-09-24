@@ -174,10 +174,10 @@ const order: Tool[] = [
   'connector',
 ]
 
-/** The rail shows every tool in one flat list. */
-const allOrder: Tool[] = [...order, ...SHAPE_TOOLS]
+/** The rail shows every tool in one flat list; the mobile strip reuses the order. */
+export const allOrder: Tool[] = [...order, ...SHAPE_TOOLS]
 
-function ToolIcon({ id, className = 'h-4.5 w-4.5' }: { id: Tool; className?: string }) {
+export function ToolIcon({ id, className = 'h-4.5 w-4.5' }: { id: Tool; className?: string }) {
   return (
     <svg
       viewBox="0 0 16 16"
@@ -209,14 +209,14 @@ function Chevron({ d }: { d: string }) {
   )
 }
 
-interface SettingsAnchor {
+export interface SettingsAnchor {
   tool: Tool
   x: number
   y: number
 }
 
 /** Floating per-tool settings panel, opened by double-clicking a rail button. */
-function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onClose: () => void }) {
+export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onClose: () => void }) {
   const { t } = useI18n()
   const narrow = useMediaQuery('(max-width: 1023px)')
   const opts = useStore((s) => s.toolOpts)
@@ -1049,7 +1049,7 @@ export function ToolRail() {
   const railOpen = useStore((s) => s.railOpen)
   const toggleRail = useStore((s) => s.toggleRail)
   const [settings, setSettings] = useState<SettingsAnchor | null>(null)
-  // phones and tablets always get the compact icon rail — the labeled one needs ~200px
+  // phones and tablets: tools live in the bottom strip (App), so the side rail is off
   const narrow = useMediaQuery('(max-width: 1023px)')
 
   /** open the per-tool settings next to the double-clicked row; FloatingPanel keeps
@@ -1094,7 +1094,9 @@ export function ToolRail() {
     </Tooltip>
   )
 
-  if (railOpen && !narrow) {
+  if (narrow) return null
+
+  if (railOpen) {
     return (
       <nav className="flex w-48 shrink-0 flex-col border-r border-line">
         <div className="rail-list flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-2">
