@@ -2,6 +2,8 @@ export const en = {
   'tool.concentric': 'Concentric circles',
   'tool.concentric.desc': 'Drag to draw concentric circles; count and radii are in the settings.',
   'tool.concentricRect': 'Concentric rects',
+  'top.panel': 'Panel',
+  'top.panel.desc': 'Settings, layers and node presets — open as a slide-over drawer on narrow screens',
   'tool.skull': 'Skull',
   'tool.skull.desc':
     'Procedural skull: drag the bounding box — vault, sockets, nose and teeth are tuned in the tool panel and re-evaluated in nodes.',

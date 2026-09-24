@@ -7,7 +7,14 @@ import { ProjectsDialog } from './ProjectsDialog'
 import { ProjectDialog } from './ProjectDialog'
 import { ExportPopover } from './ExportPopover'
 
-export function TopBar({ onImportFile }: { onImportFile: (file: File) => void }) {
+export function TopBar({
+  onImportFile,
+  onTogglePanel,
+}: {
+  onImportFile: (file: File) => void
+  /** phones/tablets: toggles the right-panel drawer (the column is hidden below lg) */
+  onTogglePanel?: () => void
+}) {
   const { t } = useI18n()
   const importFileRef = useRef<HTMLInputElement>(null)
   const doc = useStore((s) => s.doc)
@@ -41,8 +48,8 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
   }, [langOpen, themeOpen])
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-line px-3">
-      <div className="flex items-center gap-2">
+    <header className="flex h-12 shrink-0 items-center gap-3 overflow-x-auto border-b border-line px-3 [scrollbar-width:none] max-md:gap-2 [&::-webkit-scrollbar]:hidden">
+      <div className="flex shrink-0 items-center gap-2">
         {/* pixel-cluster logo: rounded 2×2 pixels with a dither dot in the middle */}
         <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0" aria-hidden>
           <defs>
@@ -58,7 +65,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
           <circle cx="13.7" cy="13.7" r="2.8" fill="#fff" opacity=".85" />
           <rect x="9.2" y="9.2" width="1.6" height="1.6" rx=".55" fill="#fff" opacity=".9" />
         </svg>
-        <span className="text-sm font-semibold tracking-wide">{t('app.title')}</span>
+        <span className="hidden text-sm font-semibold tracking-wide sm:inline">{t('app.title')}</span>
       </div>
 
       <div className="flex items-center gap-1">
@@ -67,7 +74,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
           <button
             type="button"
             onClick={() => setSetupOpen(true)}
-            className="flex h-7 max-w-[168px] items-center truncate rounded-md border border-line bg-chip px-2 text-xs text-body transition hover:border-chip-line"
+            className="hidden h-7 max-w-[168px] items-center truncate rounded-md border border-line bg-chip px-2 text-xs text-body transition hover:border-chip-line sm:flex"
           >
             {projectName || t('project.untitled')}
           </button>
@@ -112,7 +119,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
         </Tooltip>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="hidden shrink-0 items-center gap-1 md:flex">
         <span
           className="flex h-7 items-center rounded-md border border-line bg-chip px-2 text-xs text-muted"
           title={`${t('top.sizePreset')} — ${t('canvas.size')}`}
@@ -121,7 +128,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
         </span>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1">
         <IconButton plate title={t('projects.title')} onClick={() => setProjectsOpen(true)}>
           <svg
             viewBox="0 0 16 16"
@@ -182,7 +189,15 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
         </IconButton>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2 max-md:gap-1.5">
+        <Tooltip label={`${t('top.panel')} — ${t('top.panel.desc')}`}>
+          <IconButton plate title={t('top.panel')} className="lg:hidden" onClick={onTogglePanel}>
+            <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+              <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
+              <path d="M10.5 2.5v3M10.5 9.5v3" />
+            </svg>
+          </IconButton>
+        </Tooltip>
         <Tooltip label={`${t('import.open.desc')} (Ctrl+V)`}>
           <button
             type="button"
@@ -203,7 +218,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
               <circle cx="5.7" cy="6.2" r="1.1" />
               <path d="M2.5 11.5l3.5-3.5 2 2 2.5-2.5 3 3" />
             </svg>
-            {t('import.button')}
+            <span className="hidden sm:inline">{t('import.button')}</span>
           </button>
         </Tooltip>
         <input
@@ -240,7 +255,7 @@ export function TopBar({ onImportFile }: { onImportFile: (file: File) => void })
             >
               <path d="M8 2v7.5M8 9.5L5.4 6.9M8 9.5l2.6-2.6M2.5 11.5v1.5a1 1 0 001 1h9a1 1 0 001-1v-1.5" />
             </svg>
-            {t('export.open')}
+            <span className="hidden sm:inline">{t('export.open')}</span>
           </button>
         </Tooltip>
         {/* theme: one icon, dropdown with the three modes */}

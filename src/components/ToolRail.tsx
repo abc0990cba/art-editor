@@ -8,7 +8,7 @@ type NumericOptKey = {
 import { SHAPE_TOOLS } from '../engine/shapes'
 import { useI18n } from '../i18n'
 import { Tooltip } from './Tooltip'
-import { CheckRow, Chip, Slider } from './ui'
+import { CheckRow, Chip, Slider, useMediaQuery } from './ui'
 import { FillSettings } from './FillSettings'
 import { ToolPreview } from './ToolPreview'
 import { ExpandablePreview } from './PreviewExpander'
@@ -218,6 +218,7 @@ interface SettingsAnchor {
 /** Floating per-tool settings panel, opened by double-clicking a rail button. */
 function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onClose: () => void }) {
   const { t } = useI18n()
+  const narrow = useMediaQuery('(max-width: 1023px)')
   const opts = useStore((s) => s.toolOpts)
   const patch = useStore((s) => s.patchToolOpts)
   const brush = useStore((s) => s.brush)
@@ -909,6 +910,36 @@ function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onClose: ()
     )
   }
 
+  if (narrow) {
+    // phones/tablets: the settings become a bottom sheet — an anchored 320px
+    // popover would leave no canvas visible beside it
+    return (
+      <>
+        <div className="fixed inset-0 z-40" onClick={onClose} />
+        <div className="fixed inset-x-2 bottom-2 z-50 max-h-[72dvh] overflow-y-auto rounded-xl border border-line bg-panel p-3 shadow-2xl">
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
+            {t('tool.settings')}
+          </div>
+          <div className="mb-2.5 flex items-center gap-1.5 text-body">
+            <ToolIcon id={tool} className="h-4 w-4" />
+            <span className="flex-1 text-xs font-medium">{t(`tool.${tool}`)}</span>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t('preview.close')}
+              className="text-muted transition hover:text-body"
+            >
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M4 4l8 8M12 4l-8 8" />
+              </svg>
+            </button>
+          </div>
+          {body}
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
@@ -1018,6 +1049,8 @@ export function ToolRail() {
   const railOpen = useStore((s) => s.railOpen)
   const toggleRail = useStore((s) => s.toggleRail)
   const [settings, setSettings] = useState<SettingsAnchor | null>(null)
+  // phones and tablets always get the compact icon rail — the labeled one needs ~200px
+  const narrow = useMediaQuery('(max-width: 1023px)')
 
   /** open the per-tool settings next to the double-clicked row; FloatingPanel keeps
       the popover inside the viewport even for rows near the bottom edge */
@@ -1061,7 +1094,7 @@ export function ToolRail() {
     </Tooltip>
   )
 
-  if (railOpen) {
+  if (railOpen && !narrow) {
     return (
       <nav className="flex w-48 shrink-0 flex-col border-r border-line">
         <div className="rail-list flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-2 py-2">

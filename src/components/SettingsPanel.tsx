@@ -39,7 +39,7 @@ const QUICK_COLORS = [
   '#ff9f1c',
 ]
 
-export function SettingsPanel() {
+export function SettingsPanel({ className = 'flex w-64 shrink-0 flex-col border-l border-line bg-panel' }: { className?: string }) {
   const { t } = useI18n()
   const doc = useStore((s) => s.doc)
   const tool = useStore((s) => s.tool)
@@ -143,7 +143,7 @@ export function SettingsPanel() {
   const activePalette = PALETTES.find((p) => matchedPresetId(doc.palette) === p.id)
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-l border-line bg-panel">
+    <aside className={className}>
       {/* pinned color block: collapsible like every section (open by default), but kept
           outside the scrolling area so the current brush/eraser colors stay visible */}
       <div className="shrink-0">

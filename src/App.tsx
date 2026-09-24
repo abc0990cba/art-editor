@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore, undo, redo, type Tool } from './state/store'
-import { I18nProvider } from './i18n'
+import { I18nProvider, useI18n } from './i18n'
 import { TopBar } from './components/TopBar'
 import { ToolRail } from './components/ToolRail'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -180,6 +180,7 @@ async function decodeImageFile(file: Blob, maxSide = 2048): Promise<ImportBitmap
 }
 
 function Editor() {
+  const { t } = useI18n()
   useHotkeys()
   const loadPresets = useStore((s) => s.loadPresets)
   const loadBrushes = useStore((s) => s.loadBrushes)
@@ -199,6 +200,8 @@ function Editor() {
   const nodeEditorOpen = useStore((s) => s.nodeEditorOpen)
   // fresh users (no autosave) see the project creation dialog first
   const [setupOpen, setSetupOpen] = useState(() => !hasAutosave())
+  // phones/tablets: the right panel lives in a slide-over drawer instead of a column
+  const [panelOpen, setPanelOpen] = useState(false)
   const nodeEditorMode = useStore((s) => s.nodeEditorMode)
   const nodeEditorSplit = useStore((s) => s.nodeEditorSplit)
   const editorPaneRef = useRef<HTMLDivElement>(null)
@@ -230,8 +233,8 @@ function Editor() {
   }, [openImportFile])
 
   return (
-    <div className="flex h-dvh flex-col bg-app text-body select-none">
-      <TopBar onImportFile={openImportFile} />
+    <div className="flex h-dvh flex-col overscroll-none bg-app text-body select-none">
+      <TopBar onImportFile={openImportFile} onTogglePanel={() => setPanelOpen((v) => !v)} />
       <div className="relative flex min-h-0 flex-1">
         <ToolRail />
         <div ref={editorPaneRef} className="relative flex min-w-0 flex-1">
@@ -246,23 +249,57 @@ function Editor() {
                   role="separator"
                   aria-orientation="vertical"
                   onPointerDown={startEditorResize}
-                  className="w-1 shrink-0 cursor-col-resize bg-line transition-colors hover:bg-accent-line"
+                  className="hidden w-1 shrink-0 cursor-col-resize bg-line transition-colors hover:bg-accent-line lg:block"
                 />
               )}
               <div
                 className={
                   nodeEditorMode === 'overlay'
                     ? 'absolute inset-0 z-30'
-                    : 'flex min-w-0 items-stretch'
+                    : 'relative z-30 flex min-w-0 items-stretch max-lg:absolute max-lg:inset-0'
                 }
-                style={nodeEditorMode === 'split' ? { width: `${nodeEditorSplit * 100}%` } : undefined}
+                style={
+                  nodeEditorMode === 'split'
+                    ? { width: `${nodeEditorSplit * 100}%`, maxWidth: undefined }
+                    : undefined
+                }
               >
                 <NodeEditorCanvas onClose={() => useStore.getState().closeNodeEditor()} />
               </div>
             </>
           )}
         </div>
-        <SettingsPanel />
+        <div className="hidden lg:contents">
+          <SettingsPanel />
+        </div>
+        {panelOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setPanelOpen(false)}>
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <aside
+              className="absolute inset-y-0 right-0 flex w-72 max-w-[88vw] flex-col border-l border-line bg-panel shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-line px-3 py-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  {t('top.panel')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPanelOpen(false)}
+                  aria-label={t('preview.close')}
+                  className="text-muted transition hover:text-body"
+                >
+                  <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M4 4l8 8M12 4l-8 8" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex min-h-0 flex-1">
+                <SettingsPanel className="flex min-h-0 flex-1 flex-col" />
+              </div>
+            </aside>
+          </div>
+        )}
       </div>
       {importBitmap && (
         <ImportDialog
