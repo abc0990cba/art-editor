@@ -12,7 +12,7 @@
 import type { ElementStyle } from '../doc'
 import { withNodeRng } from './context'
 import { nodeDef, resolveParams } from './registry'
-import type { Cells, Graph, GraphNode, RasterNodeDef } from './types'
+import type { Cells, Graph, GraphNode, ParamValue, RasterNodeDef } from './types'
 
 export interface EvalInput {
   /** Buffer size in cells */
@@ -132,6 +132,28 @@ export function evalGraphStages(
  * input — EXCEPT when the graph contains a source node: then the graph is fully procedural and the
  * stored ink is ignored (moving or editing source params never leaves stale pixels behind).
  */
+
+/** Bump every numeric param whose key mentions `seed` — the "🎲 variation" action. */
+export function rerollGraphSeeds(graph: Graph, rnd: () => number): Graph {
+  return {
+    graphVersion: 1,
+    nodes: graph.nodes.map((n) => {
+      const params: Record<string, ParamValue> = { ...n.params }
+      let touched = false
+      for (const key of Object.keys(params)) {
+        if (!/seed/i.test(key)) continue
+        const v = params[key]
+        if (typeof v === 'number') {
+          params[key] = 1 + Math.floor(rnd() * 9999)
+          touched = true
+        }
+      }
+      return touched ? { ...n, params } : n
+    }),
+    edges: graph.edges,
+  }
+}
+
 export function evalGraph(graph: Graph, base: EvalInput, input?: Cells): EvalOutput {
   const { stages, style } = evalGraphStages(graph, base, input)
   return {

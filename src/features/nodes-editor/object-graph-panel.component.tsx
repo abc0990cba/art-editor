@@ -13,6 +13,7 @@ import {
   type NodeParamSpec,
   boundsWithValue,
   paramBounds,
+  rerollGraphSeeds,
 } from '../../engine/nodes/index.ts'
 import { findNode, type SceneObj } from '../../engine/scene.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
@@ -293,6 +294,16 @@ export function ObjectGraphPanel() {
             })}
           </div>
 
+          <div className="flex items-center gap-1">
+            <Chip
+              onClick={() => {
+                const seeded = rerollGraphSeeds(graph, Math.random)
+                update(seeded.nodes)
+              }}
+            >
+              🎲 {t('graph.reroll')}
+            </Chip>
+          </div>
           <div className="flex items-center gap-1">
             <select
               value={addOp}
