@@ -2,17 +2,20 @@
 @import 'tw-animate-css';
 
 /*
- * Theme layer — Ditherlab design tokens are the source of truth (five themes via
+ * Theme layer — Ditherlab design tokens are the source of truth (seven themes via
  * <html data-theme>). The shadcn/ui variable names (--background, --card, --primary, …) are
  * derived from them in every theme block, so shadcn components follow the active theme
  * automatically, while the historic ditherlab utilities (bg-app, text-muted, …) keep working.
+ *
+ * Editor palettes for long sessions: dark, OLED, Nord, VS Code Dark Modern, Catppuccin Mocha,
+ * Paper Notebook Light (paper), Tokyo Night Light (light).
  *
  * Adaptation rule for vendored shadcn components: `bg-muted` → `bg-chip`
  * (here `--muted` is the secondary TEXT color, so text-muted keeps its meaning).
  */
 
 @custom-variant dark
-  (&:where([data-theme='dark'], [data-theme='oled'], [data-theme='nord'], [data-theme='dark'] *, [data-theme='oled'] *, [data-theme='nord'] *));
+  (&:where([data-theme='dark'], [data-theme='oled'], [data-theme='nord'], [data-theme='vscode'], [data-theme='catppuccin'], [data-theme='dark'] *, [data-theme='oled'] *, [data-theme='nord'] *, [data-theme='vscode'] *, [data-theme='catppuccin'] *));
 
 :root {
   color-scheme: dark;
@@ -116,20 +119,21 @@
   --ring: #88c0d0;
 }
 
-[data-theme='sepia'] {
+[data-theme='paper'] {
+  /* Paper Notebook Light — Flexoki-paper: warm notebook paper, ink text, muted blue accent */
   color-scheme: light;
-  --app: #f6f1e7;
-  --panel: #efe9dc;
-  --raised: #fdfaf3;
-  --body: #3a362e;
-  --muted: #857d6d;
-  --line: rgba(80, 68, 45, 0.15);
-  --chip: rgba(80, 68, 45, 0.05);
-  --chip-line: rgba(80, 68, 45, 0.16);
-  --chip-active: rgba(80, 68, 45, 0.1);
-  --accent-soft: rgba(154, 124, 88, 0.15);
-  --accent-line: rgba(154, 124, 88, 0.6);
-  --accent-text: #7a5c33;
+  --app: #f4f0e5;
+  --panel: #efebdf;
+  --raised: #fffcf0;
+  --body: #262420;
+  --muted: #857f70;
+  --line: rgba(60, 55, 40, 0.16);
+  --chip: rgba(60, 55, 40, 0.05);
+  --chip-line: rgba(60, 55, 40, 0.16);
+  --chip-active: rgba(60, 55, 40, 0.1);
+  --accent-soft: rgba(32, 93, 149, 0.12);
+  --accent-line: rgba(32, 93, 149, 0.55);
+  --accent-text: #205d95;
   /* shadcn/ui bridge */
   --background: var(--app);
   --foreground: var(--body);
@@ -137,33 +141,34 @@
   --card-foreground: var(--body);
   --popover: var(--raised);
   --popover-foreground: var(--body);
-  --primary: #7a5c33;
-  --primary-foreground: #fdfaf3;
+  --primary: #205d95;
+  --primary-foreground: #fffcf0;
   --secondary: var(--chip-active);
   --secondary-foreground: var(--body);
   --muted-foreground: var(--muted);
   --accent: var(--chip-active);
   --accent-foreground: var(--body);
-  --destructive: #b3543f;
+  --destructive: #af3029;
   --border: var(--line);
   --input: var(--line);
-  --ring: #9a7c58;
+  --ring: #205d95;
 }
 
-[data-theme='light'] {
+[data-theme='tokyo-night'] {
+  /* Tokyo Night Light — misty blue-gray daylight, Tokyo Night blue as the accent */
   color-scheme: light;
-  --app: #eef0f4;
-  --panel: #e4e7ee;
-  --raised: #ffffff;
-  --body: #24242b;
-  --muted: #63636e;
-  --line: rgba(20, 20, 35, 0.12);
-  --chip: rgba(20, 20, 35, 0.04);
-  --chip-line: rgba(20, 20, 35, 0.14);
-  --chip-active: rgba(20, 20, 35, 0.08);
-  --accent-soft: rgba(99, 102, 241, 0.12);
-  --accent-line: rgba(99, 102, 241, 0.55);
-  --accent-text: #4f46e5;
+  --app: #e1e2e7;
+  --panel: #d6d8e1;
+  --raised: #edeef3;
+  --body: #3760bf;
+  --muted: #848cb5;
+  --line: rgba(55, 60, 85, 0.14);
+  --chip: rgba(55, 60, 85, 0.05);
+  --chip-line: rgba(55, 60, 85, 0.15);
+  --chip-active: rgba(55, 60, 85, 0.1);
+  --accent-soft: rgba(46, 125, 233, 0.13);
+  --accent-line: rgba(46, 125, 233, 0.55);
+  --accent-text: #2e7de9;
   /* shadcn/ui bridge */
   --background: var(--app);
   --foreground: var(--body);
@@ -171,17 +176,87 @@
   --card-foreground: var(--body);
   --popover: var(--raised);
   --popover-foreground: var(--body);
-  --primary: #4f46e5;
+  --primary: #2e7de9;
   --primary-foreground: #ffffff;
   --secondary: var(--chip-active);
   --secondary-foreground: var(--body);
   --muted-foreground: var(--muted);
   --accent: var(--chip-active);
   --accent-foreground: var(--body);
-  --destructive: #dc2626;
+  --destructive: #c64343;
   --border: var(--line);
   --input: var(--line);
-  --ring: #6366f1;
+  --ring: #2e7de9;
+}
+
+[data-theme='vscode'] {
+  /* VS Code Dark Modern — the familiar #1f1f1f/#181818 chrome with the #0078d4 accent */
+  color-scheme: dark;
+  --app: #1f1f1f;
+  --panel: #181818;
+  --raised: #202020;
+  --body: #cccccc;
+  --muted: #9d9d9d;
+  --line: rgba(255, 255, 255, 0.11);
+  --chip: rgba(255, 255, 255, 0.055);
+  --chip-line: rgba(255, 255, 255, 0.12);
+  --chip-active: rgba(255, 255, 255, 0.1);
+  --accent-soft: rgba(0, 120, 212, 0.18);
+  --accent-line: rgba(38, 141, 252, 0.6);
+  --accent-text: #6cb8f7;
+  /* shadcn/ui bridge */
+  --background: var(--app);
+  --foreground: var(--body);
+  --card: var(--panel);
+  --card-foreground: var(--body);
+  --popover: var(--raised);
+  --popover-foreground: var(--body);
+  --primary: #0078d4;
+  --primary-foreground: #ffffff;
+  --secondary: var(--chip-active);
+  --secondary-foreground: var(--body);
+  --muted-foreground: var(--muted);
+  --accent: var(--chip-active);
+  --accent-foreground: var(--body);
+  --destructive: #f14c4c;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: #1f8fea;
+}
+
+[data-theme='catppuccin'] {
+  /* Catppuccin Mocha — low-contrast pastel dark, lavender accent */
+  color-scheme: dark;
+  --app: #1e1e2e;
+  --panel: #181825;
+  --raised: #232334;
+  --body: #cdd6f4;
+  --muted: #a6adc8;
+  --line: rgba(205, 214, 244, 0.12);
+  --chip: rgba(205, 214, 244, 0.05);
+  --chip-line: rgba(205, 214, 244, 0.13);
+  --chip-active: rgba(205, 214, 244, 0.1);
+  --accent-soft: rgba(180, 190, 254, 0.15);
+  --accent-line: rgba(180, 190, 254, 0.6);
+  --accent-text: #c7d0fe;
+  /* shadcn/ui bridge */
+  --background: var(--app);
+  --foreground: var(--body);
+  --card: var(--panel);
+  --card-foreground: var(--body);
+  --popover: var(--raised);
+  --popover-foreground: var(--body);
+  --primary: #b4befe;
+  --primary-foreground: #1e1e2e;
+  --secondary: var(--chip-active);
+  --secondary-foreground: var(--body);
+  --muted-foreground: var(--muted);
+  --accent: var(--chip-active);
+  --accent-foreground: var(--body);
+  --destructive: #f38ba8;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: #b4befe;
 }
 
 @theme inline {

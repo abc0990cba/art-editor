@@ -17,8 +17,19 @@ import { PALETTES } from '../../engine/palettes.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { GlyphSetPicker } from '../../shared/ui/glyph-set-picker.component.tsx'
 import { Chip, CheckRow, Slider } from '../../shared/ui/index.tsx'
+import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '../../shared/ui/shadcn/select.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
+import { BeforeAfterPreview } from './before-after-preview.component.tsx'
 
 const FITS: ImportFit[] = ['cover', 'contain', 'stretch', 'resize']
 const DITHER_GROUPS: {
@@ -98,11 +109,9 @@ export function ImportDialog({
   useEffect(() => setBitmap(initialBitmap), [initialBitmap])
 
   const [opts, setOpts] = useState<ImportOptions>(DEFAULT_IMPORT_OPTIONS)
-  const [view, setView] = useState<'original' | 'result'>('result')
   const [paletteSel, setPaletteSel] = useState('auto')
   const [autoColors, setAutoColors] = useState(16)
   const fileRef = useRef<HTMLInputElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const square = doc.gridType === 'square'
   const patch = (p: Partial<ImportOptions>) => setOpts((o) => ({ ...o, ...p }))
@@ -135,49 +144,6 @@ export function ImportDialog({
     return m
   }, [result])
 
-  // preview: the canvas holds the raw buffer 1:1 and CSS scales it with crisp pixels
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !square) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    if (view === 'original') {
-      canvas.width = bitmap.width
-      canvas.height = bitmap.height
-      ctx.putImageData(
-        new ImageData(new Uint8ClampedArray(bitmap.data), bitmap.width, bitmap.height),
-        0,
-        0,
-      )
-      return
-    }
-    if (!result) return
-    const bw = result.cols * doc.sub
-    const bh = result.rows * doc.sub
-    canvas.width = bw
-    canvas.height = bh
-    const img = new ImageData(bw, bh)
-    for (let i = 0; i < result.cells.length; i++) {
-      const v = result.cells[i]
-      if (v === 0) continue
-      const rgb = rgbOf.get(result.palette[(v - 1) % result.palette.length])
-      if (!rgb) continue
-      img.data[i * 4] = rgb.r
-      img.data[i * 4 + 1] = rgb.g
-      img.data[i * 4 + 2] = rgb.b
-      img.data[i * 4 + 3] = 255
-    }
-    ctx.putImageData(img, 0, 0)
-  }, [view, result, bitmap, doc.sub, rgbOf, square])
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   const colorsUsed = result ? new Set(result.cells).size - (result.cells.includes(0) ? 1 : 0) : 0
 
   const apply = () => {
@@ -188,16 +154,20 @@ export function ImportDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
     >
-      <div
-        className="border-line bg-app flex max-h-[85vh] w-full max-w-4xl flex-col gap-3 overflow-hidden rounded-xl border p-4 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[85vh] w-full max-w-4xl flex-col gap-3 overflow-hidden rounded-xl p-4 sm:max-w-4xl"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-body text-sm font-semibold tracking-wide">{t('import.title')}</h2>
+          <DialogTitle className="text-body text-sm font-semibold tracking-wide">
+            {t('import.title')}
+          </DialogTitle>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -234,25 +204,18 @@ export function ImportDialog({
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md:flex-row">
             <div className="flex min-h-0 flex-1 flex-col gap-2">
               <div className="border-line bg-panel min-h-[240px] flex-1 overflow-hidden rounded-lg border p-2">
-                <canvas
-                  ref={canvasRef}
-                  className="h-full w-full"
-                  style={{
-                    ...checkerStyle,
-                    objectFit: 'contain',
-                    imageRendering: view === 'result' ? 'pixelated' : 'auto',
-                  }}
+                <BeforeAfterPreview
+                  bitmap={bitmap}
+                  result={result}
+                  rgbOf={rgbOf}
+                  sub={doc.sub}
+                  backgroundStyle={checkerStyle}
                 />
               </div>
               <div className="flex items-center justify-between gap-2">
-                <div className="flex gap-1">
-                  <Chip active={view === 'original'} onClick={() => setView('original')}>
-                    {t('import.original')}
-                  </Chip>
-                  <Chip active={view === 'result'} onClick={() => setView('result')}>
-                    {t('import.result')}
-                  </Chip>
-                </div>
+                <span className="text-muted text-label">
+                  {t('import.original')} ⟷ {t('import.result')}
+                </span>
                 {result && (
                   <span className="text-muted text-overline">
                     {result.cols}×{result.rows} {t('import.info.cells')} · {colorsUsed}{' '}
@@ -281,42 +244,52 @@ export function ImportDialog({
                 </div>
               </div>
 
-              <label className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1">
                 <span className="text-muted text-xs">{t('import.fit')}</span>
-                <select
-                  value={opts.fit}
-                  onChange={(e) => patch({ fit: e.target.value as ImportFit })}
-                  className="border-line bg-chip text-body focus:border-accent-line w-full cursor-pointer rounded-md border px-2 py-1 text-xs outline-none"
-                >
-                  {FITS.map((f) => (
-                    <option key={f} value={f}>
-                      {t(`import.fit.${f}` as 'import.fit.cover')}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-muted text-xs">{t('import.palette')}</span>
-                <select
-                  value={paletteSel}
-                  onChange={(e) => {
-                    setPaletteSel(e.target.value)
-                    patch({ palette: paletteChoice(e.target.value, autoColors) })
-                  }}
-                  className="border-line bg-chip text-body focus:border-accent-line w-full cursor-pointer rounded-md border px-2 py-1 text-xs outline-none"
-                >
-                  <option value="auto">{t('import.palette.auto')}</option>
-                  <option value="current">{t('import.palette.current')}</option>
-                  <optgroup label={t('palette.presets')}>
-                    {PALETTES.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {t(`palette.${p.id}` as 'palette.classic12')}
-                      </option>
+                <Select value={opts.fit} onValueChange={(v) => patch({ fit: v as ImportFit })}>
+                  <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FITS.map((f) => (
+                      <SelectItem key={f} value={f}>
+                        {t(`import.fit.${f}` as 'import.fit.cover')}
+                      </SelectItem>
                     ))}
-                  </optgroup>
-                </select>
-              </label>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-muted text-xs">{t('import.palette')}</span>
+                <Select
+                  value={paletteSel}
+                  onValueChange={(v) => {
+                    setPaletteSel(v)
+                    patch({ palette: paletteChoice(v, autoColors) })
+                  }}
+                >
+                  <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="auto">{t('import.palette.auto')}</SelectItem>
+                      <SelectItem value="current">{t('import.palette.current')}</SelectItem>
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel className="text-muted text-overline">
+                        {t('palette.presets')}
+                      </SelectLabel>
+                      {PALETTES.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {t(`palette.${p.id}` as 'palette.classic12')}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {opts.palette.kind === 'auto' && (
                 <Slider
@@ -334,21 +307,26 @@ export function ImportDialog({
 
               <div className="flex flex-col gap-1">
                 <span className="text-muted text-xs">{t('import.dither')}</span>
-                <select
+                <Select
                   value={opts.dither}
-                  onChange={(e) => patch({ dither: e.target.value as ImportDither })}
-                  className="border-line bg-chip text-body focus:border-accent-line w-full cursor-pointer rounded-md border px-2 py-1 text-xs outline-none"
+                  onValueChange={(v) => patch({ dither: v as ImportDither })}
                 >
-                  {DITHER_GROUPS.map((g) => (
-                    <optgroup key={g.label} label={t(g.label)}>
-                      {g.dithers.map((d) => (
-                        <option key={d} value={d}>
-                          {t(`import.dither.${d}` as 'import.dither.none')}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                  <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DITHER_GROUPS.map((g) => (
+                      <SelectGroup key={g.label}>
+                        <SelectLabel className="text-muted text-overline">{t(g.label)}</SelectLabel>
+                        {g.dithers.map((d) => (
+                          <SelectItem key={d} value={d}>
+                            {t(`import.dither.${d}` as 'import.dither.none')}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {opts.dither !== 'none' && (
@@ -601,7 +579,7 @@ export function ImportDialog({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

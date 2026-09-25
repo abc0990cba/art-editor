@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { presetPreviewDataURL } from '../../engine/preset-preview.ts'
 import {
@@ -8,6 +8,7 @@ import {
   type EditorPreset,
 } from '../../engine/presets.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import type { PresetEntry } from '../../storage/presets.ts'
@@ -29,14 +30,6 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('')
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   const all: EditorPreset[] = [...BUILTIN_PRESETS, ...userPresets]
   const activeId = all.find((p) => configMatchesState(p.config, doc, symmetry))?.id ?? null
@@ -69,16 +62,20 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
     })
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
     >
-      <div
-        className="border-line bg-app flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl border p-4 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl p-4 sm:max-w-3xl"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-body text-sm font-semibold tracking-wide">{t('presets.title')}</h2>
+          <DialogTitle className="text-body text-sm font-semibold tracking-wide">
+            {t('presets.title')}
+          </DialogTitle>
           <Tooltip label={t('dialog.close')}>
             <button
               type="button"
@@ -247,7 +244,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

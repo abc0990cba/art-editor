@@ -57,7 +57,9 @@ src/
   `components.json`: ui → `@/shared/ui/shadcn`, utils → `@/shared/lib/utils`). Папка исключена
   из knip (`knip.json`) и нейминг-правил; oxlint-override глушит апстрим-стиль
   (prop-spreading, namespace-imports). Правки вручную — только задокументированные адаптации:
-  `bg-muted` → `bg-chip` (у нас `--muted` — цвет вторичного текста), импорт `cn` уже переписан
+  `bg-muted` → `bg-chip` (у нас `--muted` — цвет вторичного текста), в `tooltip.tsx`
+  инвертированный `bg-foreground`/`text-background` → `bg-popover`/`text-popover-foreground`
+  (инверсия выглядит как белые плашки на тёмных темах), импорт `cn` уже переписан
   на `@/shared/lib/utils`.
 - `shared/ui/index.tsx` и соседние `*.component.tsx` — **публичные примитивы проекта**
   (`Chip`, `IconButton`, `Tooltip`, `Slider`, `CheckRow`, `TextField`, `ConfirmDialog`,

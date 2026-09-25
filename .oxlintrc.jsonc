@@ -180,37 +180,6 @@
   },
   {
     "files": [
-      "src/app/app-top-bar.component.tsx"
-    ],
-    "rules": {
-      // 590→645 / 530→539: oxfmt reflow (drift of the previous commit), code untouched
-      // 539→551: desktop clear-canvas was missing its ConfirmDialog render (pre-existing bug)
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 657,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
-      "eslint/max-lines-per-function": [
-        "error",
-        {
-          "max": 551,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
-      "eslint/complexity": [
-        "error",
-        {
-          "max": 25
-        }
-      ]
-    }
-  },
-  {
-    "files": [
       "src/features/projects/projects-dialog.component.tsx"
     ],
     "rules": {
@@ -223,8 +192,8 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          // 364→368: oxfmt reflow (drift of the previous commit), code untouched
-          "max": 368,
+          // 364→368: oxfmt reflow (previous commit); 368→375: shadcn Dialog migration (2026-09)
+          "max": 375,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -912,7 +881,8 @@
       "eslint/max-lines": [
         "error",
         {
-          "max": 597,
+          // 597→601: shadcn Dialog/Select migration (2026-09)
+          "max": 557,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -920,7 +890,8 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          "max": 501,
+          // 501→512: shadcn Dialog/Select migration (2026-09)
+          "max": 512,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -1000,7 +971,8 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          "max": 167,
+          // 167→171: shadcn Dialog/Select migration (2026-09); 171→173: localized close button
+          "max": 173,
           "skipComments": true,
           "skipBlankLines": true
         }

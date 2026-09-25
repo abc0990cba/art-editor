@@ -568,21 +568,39 @@ const PROJECT_NAME_KEY = 'glyph.projectName'
 const PROJECT_ID_KEY = 'glyph.projectId'
 const RAIL_KEY = 'glyph.rail'
 
-export type ThemePref = 'dark' | 'light' | 'oled' | 'nord' | 'sepia' | 'auto'
+export type ThemePref =
+  | 'dark'
+  | 'paper'
+  | 'oled'
+  | 'nord'
+  | 'tokyo-night'
+  | 'vscode'
+  | 'catppuccin'
+  | 'auto'
 export type ResolvedTheme = Exclude<ThemePref, 'auto'>
+
+/** Editor-palette themes in cycling order: darks, lights, then system auto. */
+export const THEME_PREF_CYCLE: readonly ThemePref[] = [
+  'dark',
+  'vscode',
+  'oled',
+  'nord',
+  'catppuccin',
+  'paper',
+  'tokyo-night',
+  'auto',
+]
+
+/** Next preference in the cycle (the overflow menu's one-row theme switching). */
+export function nextThemePref(pref: ThemePref): ThemePref {
+  const i = THEME_PREF_CYCLE.indexOf(pref)
+  return THEME_PREF_CYCLE[(i + 1) % THEME_PREF_CYCLE.length] ?? 'dark'
+}
 
 function initialThemePref(): ThemePref {
   try {
     const v = localStorage.getItem(THEME_KEY)
-    if (
-      v === 'dark' ||
-      v === 'light' ||
-      v === 'oled' ||
-      v === 'nord' ||
-      v === 'sepia' ||
-      v === 'auto'
-    )
-      return v
+    if (v !== null && (THEME_PREF_CYCLE as readonly string[]).includes(v)) return v as ThemePref
   } catch {
     /* ignore */
   }
@@ -601,7 +619,7 @@ export function hasAutosave(): boolean {
 export function resolvedTheme(pref: ThemePref): ResolvedTheme {
   if (pref !== 'auto') return pref
   try {
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'paper' : 'dark'
   } catch {
     return 'dark'
   }

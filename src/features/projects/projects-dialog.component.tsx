@@ -4,6 +4,7 @@ import { renderThumbnailDataURL } from '../../engine/png.ts'
 import { deserialize } from '../../engine/project.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog.component.tsx'
+import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import {
@@ -60,14 +61,6 @@ export function ProjectsDialog({
   useEffect(() => {
     void refresh()
   }, [refresh])
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && variant === 'modal') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, variant])
 
   const hasContent = doc.cells.some((v) => v !== 0) || doc.links.length > 0
   const thumb = useMemo(() => {
@@ -160,39 +153,261 @@ export function ProjectsDialog({
   const entryName = (entry: ProjectEntry) =>
     entry.id === projectId && projectName.trim() ? projectName : entry.name
 
-  const shell =
-    variant === 'home'
-      ? 'bg-app fixed inset-0 z-50 flex flex-col overflow-y-auto p-5'
-      : 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'
+  const shell = 'bg-app fixed inset-0 z-50 flex flex-col overflow-y-auto p-5'
   const card =
-    variant === 'home'
-      ? 'border-line bg-app mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-4 overflow-hidden rounded-xl border p-4'
-      : 'border-line bg-app flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl border p-4 shadow-2xl'
+    'border-line bg-app mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-4 overflow-hidden rounded-xl border p-4'
 
-  return (
-    <div className={shell} onClick={variant === 'modal' ? onClose : undefined}>
-      <div className={card} onClick={(e) => e.stopPropagation()}>
-        {variant === 'home' && (
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 20 20" className="h-6 w-6 shrink-0" aria-hidden>
-              <defs>
-                <linearGradient id="home-logo" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#818cf8" />
-                  <stop offset="100%" stopColor="#e879f9" />
-                </linearGradient>
-              </defs>
-              <rect width="20" height="20" rx="5.5" fill="url(#home-logo)" />
-              <rect x="3.5" y="3.5" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".95" />
-              <rect x="10.9" y="3.5" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".7" />
-              <rect x="3.5" y="10.9" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".55" />
-              <circle cx="13.7" cy="13.7" r="2.8" fill="#fff" opacity=".85" />
-            </svg>
-            <h2 className="text-body text-base font-semibold tracking-wide">{t('home.title')}</h2>
+  const content = (
+    <>
+      {variant === 'home' && (
+        <div className="flex items-center gap-3">
+          <svg viewBox="0 0 20 20" className="h-6 w-6 shrink-0" aria-hidden>
+            <defs>
+              <linearGradient id="home-logo" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#818cf8" />
+                <stop offset="100%" stopColor="#e879f9" />
+              </linearGradient>
+            </defs>
+            <rect width="20" height="20" rx="5.5" fill="url(#home-logo)" />
+            <rect x="3.5" y="3.5" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".95" />
+            <rect x="10.9" y="3.5" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".7" />
+            <rect x="3.5" y="10.9" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".55" />
+            <circle cx="13.7" cy="13.7" r="2.8" fill="#fff" opacity=".85" />
+          </svg>
+          <h2 className="text-body text-base font-semibold tracking-wide">{t('home.title')}</h2>
+        </div>
+      )}
+
+      {variant === 'home' && (
+        <button
+          type="button"
+          onClick={() => (onNewProject ? onNewProject() : newProject())}
+          className="rounded-md bg-indigo-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-indigo-400"
+        >
+          + {t('home.new')}
+        </button>
+      )}
+
+      {variant === 'home' && hasContent && (
+        <div>
+          <p className="text-muted text-overline mb-1.5 font-semibold tracking-widest uppercase">
+            {t('home.lastOpened')}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="border-accent-line bg-panel hover:border-accent-text flex w-full items-center gap-3 rounded-lg border p-2 text-left transition"
+          >
+            {thumb ? (
+              <img
+                src={thumb}
+                alt=""
+                className="border-line h-16 w-20 rounded border object-contain"
+              />
+            ) : (
+              <div className="border-line bg-chip h-16 w-20 rounded border" />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="text-body block truncate text-sm font-medium">
+                {projectName.trim() || t('project.untitled')}
+              </span>
+              <span className="text-muted text-overline block">{t('home.lastSaved')}</span>
+            </span>
+            <span className="border-accent-line text-accent-text rounded border px-2 py-1 text-xs">
+              {t('home.continue')}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {variant === 'modal' && (
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={name}
+            placeholder={t('projects.savePlaceholder')}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void saveCurrent()
+            }}
+            className="border-line bg-chip text-body focus:border-accent-line flex-1 rounded-md border px-2 py-1.5 text-xs outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => void saveCurrent()}
+            className="rounded-md bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400"
+          >
+            {t('projects.save')}
+          </button>
+          <button
+            type="button"
+            onClick={newProject}
+            className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition"
+          >
+            {t('projects.new')}
+          </button>
+        </div>
+      )}
+
+      {deleting && (
+        <ConfirmDialog
+          title={t('confirm.deleteProject.title')}
+          message={t('confirm.deleteProject.msg')}
+          confirmLabel={t('confirm.deleteProject')}
+          cancelLabel={t('projects.cancel')}
+          onConfirm={() => void deleteEntry(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
+      {confirmReplace && (
+        <div className="text-body flex items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
+          <span>{t('projects.replaceWarn')}</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmReplace(null)
+              }}
+              className="border-line hover:border-chip-line rounded border px-2 py-1 transition"
+            >
+              {t('projects.cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const action = confirmReplace
+                setConfirmReplace(null)
+                action()
+              }}
+              className="rounded bg-amber-500 px-2 py-1 font-medium text-white transition hover:bg-amber-400"
+            >
+              {t('projects.confirm')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {state.kind === 'loading' && (
+          <p className="text-muted p-4 text-center text-xs">{t('projects.loading')}</p>
+        )}
+        {state.kind === 'error' && (
+          <p className="p-4 text-center text-xs text-red-400">{t('projects.error')}</p>
+        )}
+        {state.kind === 'ready' && entries.length === 0 && (
+          <p className="text-muted p-4 text-center text-xs">{t('projects.empty')}</p>
+        )}
+        {state.kind === 'ready' && entries.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {entries.map((entry) => (
+              <div
+                key={entry.id}
+                className={`bg-panel overflow-hidden rounded-lg border ${
+                  entry.id === projectId ? 'border-accent-line' : 'border-line'
+                }`}
+              >
+                <Tooltip label={t('projects.open')}>
+                  <button type="button" onClick={() => openEntry(entry)} className="block w-full">
+                    {entry.thumbnail ? (
+                      <img
+                        src={entry.thumbnail}
+                        alt=""
+                        className="aspect-[4/3] w-full object-contain"
+                      />
+                    ) : (
+                      <div className="bg-chip aspect-[4/3] w-full" />
+                    )}
+                  </button>
+                </Tooltip>
+                <div className="flex flex-col gap-1.5 p-2">
+                  <div className="flex items-center gap-1.5">
+                    {renaming?.id === entry.id ? (
+                      <input
+                        autoFocus
+                        type="text"
+                        value={renaming.value}
+                        onChange={(e) => setRenaming({ id: entry.id, value: e.target.value })}
+                        onBlur={() => void renameEntry(entry.id, renaming.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') void renameEntry(entry.id, renaming.value)
+                          if (e.key === 'Escape') setRenaming(null)
+                        }}
+                        className="border-accent-line bg-chip text-body w-full min-w-0 flex-1 rounded border px-1.5 py-0.5 text-xs outline-none"
+                      />
+                    ) : (
+                      <Tooltip label={t('projects.rename')}>
+                        <button
+                          type="button"
+                          onClick={() => setRenaming({ id: entry.id, value: entryName(entry) })}
+                          className="text-body hover:bg-chip-active min-w-0 flex-1 truncate rounded px-0.5 text-left text-xs font-medium transition"
+                        >
+                          {entryName(entry)}
+                        </button>
+                      </Tooltip>
+                    )}
+                    {entry.id === projectId && (
+                      <span className="border-accent-line text-accent-text text-overline shrink-0 rounded border px-1 py-px">
+                        {t('projects.current')}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-muted text-overline">{fmtDate(entry.updatedAt)}</span>
+                  <div className="text-label flex gap-1">
+                    <Tooltip label={t('projects.open')}>
+                      <button
+                        type="button"
+                        onClick={() => openEntry(entry)}
+                        className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition"
+                      >
+                        {t('projects.open')}
+                      </button>
+                    </Tooltip>
+                    <Tooltip label={t('projects.duplicate')}>
+                      <button
+                        type="button"
+                        onClick={() => void duplicateEntry(entry)}
+                        className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition"
+                      >
+                        {t('projects.duplicate')}
+                      </button>
+                    </Tooltip>
+                    <Tooltip label={t('projects.delete')}>
+                      <button
+                        type="button"
+                        onClick={() => setDeleting(entry.id)}
+                        className="border-line flex-1 rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400"
+                      >
+                        {t('projects.delete')}
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
-        {variant === 'modal' && (
+      </div>
+    </>
+  )
+
+  // the modal variant rides the shadcn dialog (Escape, backdrop, focus trap); the home variant
+  // stays a full-screen catalog that only its own buttons navigate (design convention).
+  if (variant === 'modal') {
+    return (
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) onClose()
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl p-4 sm:max-w-3xl"
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-body text-sm font-semibold tracking-wide">{t('projects.title')}</h2>
+            <DialogTitle className="text-body text-sm font-semibold tracking-wide">
+              {t('projects.title')}
+            </DialogTitle>
             <Tooltip label={t('dialog.close')}>
               <button
                 type="button"
@@ -203,218 +418,15 @@ export function ProjectsDialog({
               </button>
             </Tooltip>
           </div>
-        )}
+          {content}
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
-        {variant === 'home' && (
-          <button
-            type="button"
-            onClick={() => (onNewProject ? onNewProject() : newProject())}
-            className="rounded-md bg-indigo-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-indigo-400"
-          >
-            + {t('home.new')}
-          </button>
-        )}
-
-        {variant === 'home' && hasContent && (
-          <div>
-            <p className="text-muted text-overline mb-1.5 font-semibold tracking-widest uppercase">
-              {t('home.lastOpened')}
-            </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="border-accent-line bg-panel hover:border-accent-text flex w-full items-center gap-3 rounded-lg border p-2 text-left transition"
-            >
-              {thumb ? (
-                <img
-                  src={thumb}
-                  alt=""
-                  className="border-line h-16 w-20 rounded border object-contain"
-                />
-              ) : (
-                <div className="border-line bg-chip h-16 w-20 rounded border" />
-              )}
-              <span className="min-w-0 flex-1">
-                <span className="text-body block truncate text-sm font-medium">
-                  {projectName.trim() || t('project.untitled')}
-                </span>
-                <span className="text-muted text-overline block">{t('home.lastSaved')}</span>
-              </span>
-              <span className="border-accent-line text-accent-text rounded border px-2 py-1 text-xs">
-                {t('home.continue')}
-              </span>
-            </button>
-          </div>
-        )}
-
-        {variant === 'modal' && (
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={name}
-              placeholder={t('projects.savePlaceholder')}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void saveCurrent()
-              }}
-              className="border-line bg-chip text-body focus:border-accent-line flex-1 rounded-md border px-2 py-1.5 text-xs outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => void saveCurrent()}
-              className="rounded-md bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400"
-            >
-              {t('projects.save')}
-            </button>
-            <button
-              type="button"
-              onClick={newProject}
-              className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition"
-            >
-              {t('projects.new')}
-            </button>
-          </div>
-        )}
-
-        {deleting && (
-          <ConfirmDialog
-            title={t('confirm.deleteProject.title')}
-            message={t('confirm.deleteProject.msg')}
-            confirmLabel={t('confirm.deleteProject')}
-            cancelLabel={t('projects.cancel')}
-            onConfirm={() => void deleteEntry(deleting)}
-            onClose={() => setDeleting(null)}
-          />
-        )}
-        {confirmReplace && (
-          <div className="text-body flex items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
-            <span>{t('projects.replaceWarn')}</span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setConfirmReplace(null)
-                }}
-                className="border-line hover:border-chip-line rounded border px-2 py-1 transition"
-              >
-                {t('projects.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const action = confirmReplace
-                  setConfirmReplace(null)
-                  action()
-                }}
-                className="rounded bg-amber-500 px-2 py-1 font-medium text-white transition hover:bg-amber-400"
-              >
-                {t('projects.confirm')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {state.kind === 'loading' && (
-            <p className="text-muted p-4 text-center text-xs">{t('projects.loading')}</p>
-          )}
-          {state.kind === 'error' && (
-            <p className="p-4 text-center text-xs text-red-400">{t('projects.error')}</p>
-          )}
-          {state.kind === 'ready' && entries.length === 0 && (
-            <p className="text-muted p-4 text-center text-xs">{t('projects.empty')}</p>
-          )}
-          {state.kind === 'ready' && entries.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              {entries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className={`bg-panel overflow-hidden rounded-lg border ${
-                    entry.id === projectId ? 'border-accent-line' : 'border-line'
-                  }`}
-                >
-                  <Tooltip label={t('projects.open')}>
-                    <button type="button" onClick={() => openEntry(entry)} className="block w-full">
-                      {entry.thumbnail ? (
-                        <img
-                          src={entry.thumbnail}
-                          alt=""
-                          className="aspect-[4/3] w-full object-contain"
-                        />
-                      ) : (
-                        <div className="bg-chip aspect-[4/3] w-full" />
-                      )}
-                    </button>
-                  </Tooltip>
-                  <div className="flex flex-col gap-1.5 p-2">
-                    <div className="flex items-center gap-1.5">
-                      {renaming?.id === entry.id ? (
-                        <input
-                          autoFocus
-                          type="text"
-                          value={renaming.value}
-                          onChange={(e) => setRenaming({ id: entry.id, value: e.target.value })}
-                          onBlur={() => void renameEntry(entry.id, renaming.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') void renameEntry(entry.id, renaming.value)
-                            if (e.key === 'Escape') setRenaming(null)
-                          }}
-                          className="border-accent-line bg-chip text-body w-full min-w-0 flex-1 rounded border px-1.5 py-0.5 text-xs outline-none"
-                        />
-                      ) : (
-                        <Tooltip label={t('projects.rename')}>
-                          <button
-                            type="button"
-                            onClick={() => setRenaming({ id: entry.id, value: entryName(entry) })}
-                            className="text-body hover:bg-chip-active min-w-0 flex-1 truncate rounded px-0.5 text-left text-xs font-medium transition"
-                          >
-                            {entryName(entry)}
-                          </button>
-                        </Tooltip>
-                      )}
-                      {entry.id === projectId && (
-                        <span className="border-accent-line text-accent-text text-overline shrink-0 rounded border px-1 py-px">
-                          {t('projects.current')}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-muted text-overline">{fmtDate(entry.updatedAt)}</span>
-                    <div className="text-label flex gap-1">
-                      <Tooltip label={t('projects.open')}>
-                        <button
-                          type="button"
-                          onClick={() => openEntry(entry)}
-                          className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition"
-                        >
-                          {t('projects.open')}
-                        </button>
-                      </Tooltip>
-                      <Tooltip label={t('projects.duplicate')}>
-                        <button
-                          type="button"
-                          onClick={() => void duplicateEntry(entry)}
-                          className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition"
-                        >
-                          {t('projects.duplicate')}
-                        </button>
-                      </Tooltip>
-                      <Tooltip label={t('projects.delete')}>
-                        <button
-                          type="button"
-                          onClick={() => setDeleting(entry.id)}
-                          className="border-line flex-1 rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400"
-                        >
-                          {t('projects.delete')}
-                        </button>
-                      </Tooltip>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+  return (
+    <div className={shell}>
+      <div className={card}>{content}</div>
     </div>
   )
 }

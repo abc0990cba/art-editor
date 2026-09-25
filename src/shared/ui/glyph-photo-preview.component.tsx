@@ -1,0 +1,130 @@
+import { useEffect, useRef, useState } from 'react'
+
+import { ditherImageWithGlyph } from '../../engine/glyph-preview.ts'
+import { type GlyphTileSet } from '../../engine/glyph-tiles.ts'
+import { useI18n } from '../i18n/i18n.provider.tsx'
+import { Chip } from './index.tsx'
+
+const DEFAULT_PHOTO_URL = '/glyph-sample.jpg'
+const MAX_SOURCE_DIM = 1200
+const GRID_OPTIONS = [32, 48, 64, 96, 128]
+
+/** Decode an image source into ImageData, downscaling so the longest side stays bounded. */
+function toImageData(img: CanvasImageSource, srcW: number, srcH: number): ImageData | null {
+  const scale = Math.min(1, MAX_SOURCE_DIM / Math.max(srcW, srcH))
+  const w = Math.max(1, Math.round(srcW * scale))
+  const h = Math.max(1, Math.round(srcH * scale))
+  const off = document.createElement('canvas')
+  off.width = w
+  off.height = h
+  const ctx = off.getContext('2d')
+  if (!ctx) return null
+  ctx.drawImage(img, 0, 0, w, h)
+  return ctx.getImageData(0, 0, w, h)
+}
+
+/** Procedural fallback so the preview keeps working even without the bundled photo. */
+function fallbackImage(): ImageData | null {
+  const c = document.createElement('canvas')
+  c.width = 640
+  c.height = 400
+  const g = c.getContext('2d')
+  if (!g) return null
+  const grad = g.createLinearGradient(0, 0, 640, 400)
+  grad.addColorStop(0, '#14181d')
+  grad.addColorStop(1, '#e8e8ee')
+  g.fillStyle = grad
+  g.fillRect(0, 0, 640, 400)
+  g.fillStyle = '#f4c542'
+  for (let i = 0; i < 4; i++) {
+    g.beginPath()
+    g.arc(110 + i * 140, 200, 55, 0, Math.PI * 2)
+    g.fill()
+  }
+  return g.getImageData(0, 0, 640, 400)
+}
+
+/**
+ * Live photo preview for the glyph gallery: a bundled public-domain sample photo (replaceable on
+ * the fly) dithered through the hovered/selected glyph set on a chosen cell grid — the bigger the
+ * grid, the finer the dithering.
+ */
+export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
+  const { t } = useI18n()
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [source, setSource] = useState<ImageData | null>(null)
+  const [cols, setCols] = useState(64)
+
+  // load the bundled sample once; on failure fall back to a procedural gradient
+  useEffect(() => {
+    let cancelled = false
+    const img = new Image()
+    img.onload = () => {
+      if (cancelled) return
+      setSource(toImageData(img, img.width, img.height))
+    }
+    img.onerror = () => {
+      if (cancelled) return
+      setSource(fallbackImage())
+    }
+    img.src = DEFAULT_PHOTO_URL
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // redraw whenever the hovered set or the grid changes
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || !source) return
+    canvas.width = source.width
+    canvas.height = source.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const out = ditherImageWithGlyph(source, set, cols)
+    ctx.putImageData(new ImageData(out.data, out.width, out.height), 0, 0)
+  }, [source, set, cols])
+
+  const replaceFile = (file: File) => {
+    createImageBitmap(file)
+      .then((bitmap) => {
+        const next = toImageData(bitmap, bitmap.width, bitmap.height)
+        bitmap.close()
+        if (next) setSource(next)
+      })
+      .catch(() => {})
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="border-line bg-chip relative overflow-hidden rounded-lg border">
+        <canvas ref={canvasRef} className="block max-h-[280px] w-full object-contain" />
+        <span className="text-label absolute top-2 left-2 rounded bg-black/50 px-1.5 py-0.5 text-white/80">
+          {set.name}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-muted text-overline">{t('glyph.preview.grid')}</span>
+        {GRID_OPTIONS.map((n) => (
+          <Chip key={n} active={cols === n} onClick={() => setCols(n)}>
+            {n}
+          </Chip>
+        ))}
+        <span className="flex-1" />
+        <Chip onClick={() => fileRef.current?.click()}>{t('glyph.preview.replace')}</Chip>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) replaceFile(file)
+            e.target.value = ''
+          }}
+        />
+      </div>
+    </div>
+  )
+}

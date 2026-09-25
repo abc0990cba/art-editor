@@ -66,6 +66,9 @@ export const ru: Dict = {
   'glyph.overwrite': 'Перезаписать',
   'glyph.custom': 'Свой',
   'glyph.applyHint': 'Клик по клетке — вкл/выкл. Лента уровней: тон → тайл.',
+  'glyph.preview.grid': 'Сетка превью',
+  'glyph.preview.replace': 'Заменить фото…',
+  'glyph.preview.hint': 'Наведите на набор — превью покажет его на фото. Фото можно заменить.',
   'glyph.gallery': 'Галерея глифов',
   'glyph.gallery.search': 'Поиск по названию…',
   'glyph.gallery.user': 'Свои наборы',
@@ -619,11 +622,13 @@ export const ru: Dict = {
   'top.redo': 'Повторить',
 
   'theme.dark': 'Тёмная тема',
-  'theme.light': 'Светлая тема',
+  'theme.paper': 'Бумажный блокнот (светлая)',
   'theme.auto': 'Авто по системе',
   'theme.oled': 'OLED (чёрный)',
   'theme.nord': 'Nord',
-  'theme.sepia': 'Сепия',
+  'theme.tokyo-night': 'Tokyo Night Light',
+  'theme.vscode': 'VS Code (тёмная)',
+  'theme.catppuccin': 'Catppuccin Mocha',
 
   'view.fit': 'Вписать',
   'view.scrollX': 'Горизонтальная прокрутка',
@@ -1138,6 +1143,8 @@ export const ru: Dict = {
   'import.pixelScale': 'Размер пикселя',
   'import.pixelScale.desc':
     'Каждый импортированный пиксель занимает N×N ячеек — более крупный рисунок.',
+  'import.split.desc':
+    'Тяните, чтобы сравнить оригинал и результат — слева оригинал, справа результат',
   'import.original': 'Оригинал',
   'import.result': 'Результат',
   'import.apply': 'Импортировать',
