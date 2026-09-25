@@ -100,11 +100,7 @@ export function NodePresetsPanel() {
   const { t } = useI18n()
   const applyGraphPreset = useStore((s) => s.applyGraphPreset)
   return (
-    <Section
-      title={t('graph.presets')}
-      icon="nodes"
-      contentClassName="max-h-64 overflow-y-auto"
-    >
+    <Section title={t('graph.presets')} icon="nodes" contentClassName="max-h-64 overflow-y-auto">
       <div className="grid grid-cols-2 gap-1">
         {GRAPH_PRESETS.map((p) => (
           <Tooltip key={p.id} label={p.description}>

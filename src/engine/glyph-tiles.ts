@@ -1,5 +1,5 @@
 /**
- * User-editable glyph tile sets for tone-mapped dithering.
+ * User-editable glyph tile sets for tone-mapped dithering — core model.
  *
  * A tile set is a ramp of boolean tiles: `levels[0]` is the empty (white) tile and `levels[N - 1]`
  * is the full (black) tile; every level in between is a free-form, user-editable pattern of w×h
@@ -7,14 +7,15 @@
  * repeating tile grid — the classic pattern-image workflow (pixel-art-maker style) with live
  * editing.
  *
- * Built-in sets are generated here (from ordered matrices, growing dots, lines); user sets persist
- * in IndexedDB via storage/glyph-tiles.ts and mirror the brush preset lifecycle.
+ * Procedural ramp generators and the built-in registry live in glyph-generators.ts /
+ * glyph-builtins.ts; user sets persist in IndexedDB via storage/glyph-tiles.ts, mirroring the brush
+ * preset lifecycle.
  */
 
-import { BAYER2, BAYER4, BAYER8, type OrderedMatrix } from './dither-matrices.ts'
+import type { OrderedMatrix } from './dither-matrices.ts'
 
 const MIN_GLYPH_TILE = 1
-const MAX_GLYPH_TILE = 8
+const MAX_GLYPH_TILE = 16
 const MIN_GLYPH_LEVELS = 3
 const MAX_GLYPH_LEVELS = 65
 
@@ -127,71 +128,7 @@ export function glyphSetFromMatrix(m: OrderedMatrix, name: string): GlyphTileSet
   return { name, w: n, h: n, levels: levelsOut }
 }
 
-/** Growing dot: each level inks the cells whose center lies inside radius r(t). */
-export function glyphSetDots(n: number, levels: number, name = 'Точки'): GlyphTileSet {
-  const levelsOut: GlyphTileCells[] = []
-  const cx = (n - 1) / 2
-  const cy = (n - 1) / 2
-  const maxR = Math.hypot(cx + 0.5, cy + 0.5)
-  for (let t = 0; t < levels; t++) {
-    const r = (t / (levels - 1)) * maxR
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) {
-        cells.push(Math.hypot(x - cx, y - cy) <= r + 0.15)
-      }
-    }
-    levelsOut.push(cells)
-  }
-  return { name, w: n, h: n, levels: levelsOut }
-}
-
-/** Straight lines: horizontal, vertical or 45° diagonal; thickness grows with tone. */
-export function glyphSetLines(
-  dir: 'h' | 'v' | 'diag',
-  n: number,
-  levels: number,
-  name: string,
-): GlyphTileSet {
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) {
-        let on: boolean
-        if (dir === 'h') on = y < Math.round((t / (levels - 1)) * n)
-        else if (dir === 'v') on = x < Math.round((t / (levels - 1)) * n)
-        else on = (x + y) % n < Math.round((t / (levels - 1)) * n)
-        cells.push(on)
-      }
-    }
-    levelsOut.push(cells)
-  }
-  return { name, w: n, h: n, levels: levelsOut }
-}
-
-/** Checkerboard: ink share grows by switching the phase of filled cells. */
-export function glyphSetChecker(n: number, levels: number, name = 'Шахматка'): GlyphTileSet {
-  const levelsOut: GlyphTileCells[] = []
-  const total = n * n
-  for (let t = 0; t < levels; t++) {
-    const share = t / (levels - 1)
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) {
-        const phase = (x + y) % 2
-        cells.push(phase === 0 ? share > 0 : share > 0.5 ? (x + y * 3) % 3 !== 0 : false)
-      }
-    }
-    // guarantee monotone coverage
-    if (tileCoverage(cells) > share + 1 / total) {
-      levelsOut.push(levelsOut[levelsOut.length - 1] ?? cells)
-    } else {
-      levelsOut.push(cells)
-    }
-  }
-  return { name, w: n, h: n, levels: levelsOut }
-}
+/* ------------------------------ transforms ------------------------------ */
 
 /** Recolor/resample a set to a new tile size via nearest-neighbor. */
 export function resizeGlyphSet(set: GlyphTileSet, w: number, h: number): GlyphTileSet {
@@ -233,168 +170,14 @@ export function glyphSetToField(set: GlyphTileSet): (x: number, y: number) => nu
   }
 }
 
-
-/** Growing diamond (Manhattan ball) — the classic azulejo diamond tile. */
-export function glyphSetDiamonds(n: number, levels: number, name = 'Ромбы'): GlyphTileSet {
-  const cx = (n - 1) / 2
-  const cy = (n - 1) / 2
-  const maxR = cx + cy + 1
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const r = (t / (levels - 1)) * maxR
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) cells.push(Math.abs(x - cx) + Math.abs(y - cy) < r)
-    }
-    levelsOut.push(cells)
+/**
+ * Sample a horizontal tone ramp through the set for previews: tone falls left (full ink) to right
+ * (empty), row-major w×h cells. This is how the gallery and pickers show a set "in use".
+ */
+export function glyphRampField(set: GlyphTileSet, w: number, h: number): GlyphTileCells {
+  const out: GlyphTileCells = []
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) out.push(glyphCellAt(set, x, y, 1 - x / Math.max(1, w - 1)))
   }
-  return { name, w: n, h: n, levels: levelsOut }
-}
-
-/** Concentric square rings growing outward from the center. */
-export function glyphSetSquares(n: number, levels: number, name = 'Квадраты кольцами'): GlyphTileSet {
-  const cx = (n - 1) / 2
-  const cy = (n - 1) / 2
-  const maxR = Math.ceil(n / 2)
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const r = (t / (levels - 1)) * maxR
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) cells.push(Math.max(Math.abs(x - cx), Math.abs(y - cy)) < r)
-    }
-    levelsOut.push(cells)
-  }
-  return { name, w: n, h: n, levels: levelsOut }
-}
-
-/** Diagonal slope filling from the top-left corner (triangle half-tile). */
-export function glyphSetCorner(n: number, levels: number, name = 'Диагональный склон'): GlyphTileSet {
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const cut = (t / (levels - 1)) * (2 * n - 1)
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) cells.push(x + y < cut)
-    }
-    levelsOut.push(cells)
-  }
-  return { name, w: n, h: n, levels: levelsOut }
-}
-
-/** Lattice of dots at every other cell, dot radius grows with tone. */
-export function glyphSetGridDots(n: number, levels: number, name = 'Точечная решётка'): GlyphTileSet {
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const u = t / (levels - 1)
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) {
-        // quarter-dot grows from each 2×2 block corner: tiled = a dotted lattice
-        const ax = x - Math.floor(x / 2) * 2
-        const ay = y - Math.floor(y / 2) * 2
-        cells.push(Math.hypot(ax, ay) < u * 1.5)
-      }
-    }
-    levelsOut.push(cells)
-  }
-  return { name, w: n, h: n, levels: levelsOut }
-}
-
-/** Growing plus/cross. */
-export function glyphSetCross(n: number, levels: number, name = 'Крест'): GlyphTileSet {
-  const c = n / 2
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const arm = (t / (levels - 1)) * (n / 2)
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) cells.push(Math.abs(x + 0.5 - c) < arm || Math.abs(y + 0.5 - c) < arm)
-    }
-    levelsOut.push(cells)
-  }
-  return { name, w: n, h: n, levels: levelsOut }
-}
-
-/** Four-fold medallion: center diamond + four petals on the edge midpoints. */
-export function glyphSetMedallion(n: number, levels: number, name = 'Медальон'): GlyphTileSet {
-  const cx = (n - 1) / 2
-  const cy = (n - 1) / 2
-  const maxR = cx + 1
-  const petal = n / 2
-  // petal diamonds at the four edge midpoints, half a step behind the center
-  const petals: ReadonlyArray<readonly [number, number]> = [
-    [cx, -1 + petal],
-    [cx, n - petal],
-    [-1 + petal, cy],
-    [n - petal, cy],
-  ]
-  const cellOn = (x: number, y: number, r: number): boolean => {
-    if (Math.abs(x - cx) + Math.abs(y - cy) < r) return true
-    return petals.some(([px, py]) => Math.abs(x - px) + Math.abs(y - py) < r * 0.8)
-  }
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const r = (t / (levels - 1)) * maxR
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) cells.push(cellOn(x, y, r))
-    }
-    levelsOut.push(cells)
-  }
-  return { name, w: n, h: n, levels: levelsOut }
-}
-
-/** Chevron stripes: a zigzag front sweeps the tile top-to-bottom with tone. */
-export function glyphSetChevron(n: number, levels: number, name = 'Ёлочка'): GlyphTileSet {
-  const period = Math.max(4, 2 * Math.floor(n / 2))
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const u = t / (levels - 1)
-    const cells: GlyphTileCells = []
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) {
-        const phase = (x % period) / period
-        const tri = 1 - Math.abs(phase * 2 - 1) // 0..1 triangle wave
-        // front sweeps from above the tile to below it; the zigzag bends the front
-        const front = u * (n + 1 + 0.4 * n * tri) - 0.5
-        cells.push(y <= front)
-      }
-    }
-    levelsOut.push(cells)
-  }
-  return { name, w: n, h: n, levels: levelsOut }
-}
-
-/* ------------------------------ built-ins ------------------------------ */
-
-export interface BuiltInGlyphSet {
-  id: string
-  set: GlyphTileSet
-}
-
-export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
-  { id: 'glyph-bayer2', set: glyphSetFromMatrix(BAYER2, 'Байер 2×2') },
-  { id: 'glyph-bayer4', set: glyphSetFromMatrix(BAYER4, 'Байер 4×4') },
-  { id: 'glyph-bayer8', set: glyphSetFromMatrix(BAYER8, 'Байер 8×8') },
-  { id: 'glyph-dots4', set: glyphSetDots(4, 17, 'Точки 4×4') },
-  { id: 'glyph-dots8', set: glyphSetDots(8, 17, 'Точки 8×8') },
-  { id: 'glyph-hlines', set: glyphSetLines('h', 4, 9, 'Линии — горизонталь') },
-  { id: 'glyph-vlines', set: glyphSetLines('v', 4, 9, 'Линии — вертикаль') },
-  { id: 'glyph-diag', set: glyphSetLines('diag', 4, 9, 'Линии — диагональ') },
-  { id: 'glyph-checker', set: glyphSetChecker(4, 9, 'Шахматка') },
-  { id: 'glyph-diamonds4', set: glyphSetDiamonds(4, 17, 'Ромбы 4×4') },
-  { id: 'glyph-diamonds8', set: glyphSetDiamonds(8, 17, 'Ромбы 8×8') },
-  { id: 'glyph-squares8', set: glyphSetSquares(8, 17, 'Квадраты кольцами') },
-  { id: 'glyph-corner', set: glyphSetCorner(4, 9, 'Диагональный склон') },
-  { id: 'glyph-griddots4', set: glyphSetGridDots(4, 9, 'Точечная решётка') },
-  { id: 'glyph-griddots8', set: glyphSetGridDots(8, 17, 'Точечная решётка 8×8') },
-  { id: 'glyph-cross4', set: glyphSetCross(4, 9, 'Крест 4×4') },
-  { id: 'glyph-cross8', set: glyphSetCross(8, 17, 'Крест 8×8') },
-  { id: 'glyph-medallion8', set: glyphSetMedallion(8, 17, 'Медальон') },
-  { id: 'glyph-chevron', set: glyphSetChevron(6, 9, 'Ёлочка') },
-]
-
-export function builtInGlyphSetById(id: string): GlyphTileSet | null {
-  return BUILT_IN_GLYPH_SETS.find((b) => b.id === id)?.set ?? null
+  return out
 }

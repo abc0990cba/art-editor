@@ -151,7 +151,7 @@ export function BrushSection() {
                 void deleteBrushPreset(p.id)
                 setDeleting(null)
               }}
-              className="rounded border border-red-500/60 bg-red-500/10 px-1 text-overline text-red-400"
+              className="text-overline rounded border border-red-500/60 bg-red-500/10 px-1 text-red-400"
             >
               {t('brush.confirmDelete')}
             </button>
@@ -261,7 +261,7 @@ export function BrushSection() {
         <span className="text-muted flex items-center gap-2 text-xs">
           {t('brush.presets')}
           {brushId === null && (
-            <span className="border-accent-line text-accent-text rounded border px-1 text-overline">
+            <span className="border-accent-line text-accent-text text-overline rounded border px-1">
               {t('brush.custom')}
             </span>
           )}

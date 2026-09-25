@@ -1044,7 +1044,7 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
       <>
         <div className="fixed inset-0 z-40" onClick={onClose} />
         <div className="border-line bg-panel fixed inset-x-2 bottom-2 z-50 max-h-[72dvh] overflow-y-auto rounded-xl border p-3 shadow-2xl">
-          <div className="text-muted mb-1 text-overline font-semibold tracking-widest uppercase">
+          <div className="text-muted text-overline mb-1 font-semibold tracking-widest uppercase">
             {t('tool.settings')}
           </div>
           <div className="text-body mb-2.5 flex items-center gap-1.5">
@@ -1084,7 +1084,7 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
         y={anchor.y}
         className="border-line bg-panel fixed z-50 w-80 rounded-xl border p-3 shadow-xl"
       >
-        <div className="text-muted mb-1 text-overline font-semibold tracking-widest uppercase">
+        <div className="text-muted text-overline mb-1 font-semibold tracking-widest uppercase">
           {t('tool.settings')}
         </div>
         <div className="text-body mb-2.5 flex items-center gap-1.5">

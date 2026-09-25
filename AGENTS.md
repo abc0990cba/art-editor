@@ -33,7 +33,7 @@ src/
   engine/    # чистый домен (без React!): doc, scene, shapes, brush, grids, nodes…
   state/     # editor.store.ts (zustand) — единый стор приложения
   storage/   # IndexedDB-персистенция (projects, presets, brushes, db)
-  shared/    # кросс-срезовое: ui/ (примитивы), lib/ (утилиты), i18n/
+  shared/    # кросс-срезовое: ui/ (примитивы + vendored shadcn), lib/ (утилиты), i18n/
 ```
 
 Правила зависимостей (`.dependency-cruiser.cjs`):
@@ -47,6 +47,29 @@ src/
 Куда что класть: чистая логика пикселей/геометрии/сериализации → `engine`; доступ к IndexedDB →
 `storage`; глобальное состояние UI и документа → `state/editor.store.ts`; экранные модули →
 `features/<фича>/`; переиспользуемые виджеты → `shared/ui/`.
+
+## UI-слой: shadcn/ui (основа) + дизерлабовские обёртки
+
+Основа UI-слоя — **shadcn/ui** (Tailwind v4, radix-ui, `cn()` из `shared/lib/utils.ts`).
+
+- `shared/ui/shadcn/` — vendored shadcn-компоненты (`button.tsx`, `dialog.tsx`, …) с
+  апстрим-именами файлов. Добавление нового: `npx shadcn@latest add <component>` (алиасы в
+  `components.json`: ui → `@/shared/ui/shadcn`, utils → `@/shared/lib/utils`). Папка исключена
+  из knip (`knip.json`) и нейминг-правил; oxlint-override глушит апстрим-стиль
+  (prop-spreading, namespace-imports). Правки вручную — только задокументированные адаптации:
+  `bg-muted` → `bg-chip` (у нас `--muted` — цвет вторичного текста), импорт `cn` уже переписан
+  на `@/shared/lib/utils`.
+- `shared/ui/index.tsx` и соседние `*.component.tsx` — **публичные примитивы проекта**
+  (`Chip`, `IconButton`, `Tooltip`, `Slider`, `CheckRow`, `TextField`, `ConfirmDialog`,
+  `Section`): фичи используют только их, не shadcn напрямую. Обёртки фиксируют
+  дизерлабовские размеры (чипы 28px, тип 10–11px) поверх shadcn-примитивов.
+- Темы: дизерлабовские токены (`--app`, `--panel`, `--chip`, …) — источник истины; shadcn-имена
+  (`--background`, `--card`, `--primary`, `--ring`, …) выведены из них в каждом из пяти
+  тематических блоков `src/index.css` (`@theme inline` маппит оба набора). Новый цвет —
+  добавляй в оба набора во всех пяти темах.
+- Новые модалки — на shadcn `Dialog` (Escape/фон/фокус-ловушка из коробки); подтверждения —
+  `ConfirmDialog` (рендерится поверх модалок, z-60). `TooltipProvider` смонтирован один раз в
+  `main.tsx`.
 
 ## Именование файлов (проверяется `unicorn/filename-case` = kebabCase)
 
@@ -65,6 +88,8 @@ src/
 | `index.ts(x)` | баррель (единственное имя без суффикса) | `shared/ui/index.tsx` |
 
 Модули `engine` (кроме нод) — просто kebab-case без суффикса: `shapes.ts`, `doc.ts`.
+Исключение из суффиксов: `shared/ui/shadcn/*` — vendored файлы shadcn/ui сохраняют апстрим-имена
+(`button.tsx`, `dialog.tsx`); их имена не редактируем (перегенерация CLI).
 
 ## Лимиты размера кода (ratchet)
 

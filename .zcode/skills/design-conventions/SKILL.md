@@ -54,6 +54,29 @@ in React and `lg:`/`max-lg:` in classes — never invent other structural breakp
 `red-400/500` only for destructive actions. All colors flow from the theme (light/dark) —
 a raw hex in JSX is a bug (the only exceptions are canvas-drawn pixels and logo gradients).
 
+The shadcn/ui token names (`bg-background`, `bg-card`, `bg-popover`, `bg-primary`,
+`text-muted-foreground`, `border-input`, `ring-ring`, `bg-destructive`, …) are bridged to the
+same ditherlab values per theme in `src/index.css` — both sets are valid and follow the active
+theme automatically. Note: here `--muted` is the secondary TEXT color, so in vendored shadcn
+components replace `bg-muted` → `bg-chip` (documented adaptation).
+
+## 4a. shadcn/ui — the component foundation
+
+- Vendored shadcn components live in `src/shared/ui/shadcn/` with upstream file names
+  (`button.tsx`, `dialog.tsx`, …) and upstream authoring style; they are excluded from the
+  project naming suffixes and knip. Add new ones with `npx shadcn@latest add <component>`
+  (aliases configured in `components.json`). Do not hand-edit them except the documented
+  adaptations (above) and the `cn` import (already `@/shared/lib/utils`).
+- Features must use the project wrappers in `shared/ui/index.tsx` — `Chip`, `IconButton`,
+  `Tooltip`, `Slider`, `CheckRow`, `TextField`, `ConfirmDialog` — never shadcn directly. The
+  wrappers pin ditherlab sizing (28px chips, 10-11px type) and the token look on top of the
+  shadcn primitives. Merge conditional classes with `cn()` from `@/shared/lib/utils`.
+- New modals are built on the shadcn `Dialog` (Escape, backdrop, focus trap and body portal are
+  handled — no hand-rolled fixed overlays). Confirmations use `ConfirmDialog`; a confirm renders
+  above other modals (`z-60`). `TooltipProvider` is mounted once in `main.tsx`.
+- Radix Slider/Checkbox are keyboard- and touch-accessible by default; keep the visible thumb.
+- Update vendored components only through regeneration + re-applying the documented adaptations.
+
 ## 5. Z-index scale
 
 `z-10` in-panel floats → `z-20` banners/status → `z-30` node editor overlay → `z-40`

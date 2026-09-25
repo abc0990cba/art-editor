@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { deserialize } from '../../engine/project.ts'
 import { renderThumbnailDataURL } from '../../engine/png.ts'
+import { deserialize } from '../../engine/project.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog.component.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
@@ -27,7 +27,7 @@ export function ProjectsDialog({
   onClose: () => void
   /** 'home' = full-screen startup catalog (no backdrop close, no save row) */
   variant?: 'modal' | 'home'
-  /** home variant: primary "new project" action handed over to the caller */
+  /** Home variant: primary "new project" action handed over to the caller */
   onNewProject?: () => void
 }) {
   const { t, lang } = useI18n()
@@ -191,18 +191,18 @@ export function ProjectsDialog({
           </div>
         )}
         {variant === 'modal' && (
-        <div className="flex items-center justify-between">
-          <h2 className="text-body text-sm font-semibold tracking-wide">{t('projects.title')}</h2>
-          <Tooltip label={t('dialog.close')}>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
-            >
-              ✕
-            </button>
-          </Tooltip>
-        </div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-body text-sm font-semibold tracking-wide">{t('projects.title')}</h2>
+            <Tooltip label={t('dialog.close')}>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
+              >
+                ✕
+              </button>
+            </Tooltip>
+          </div>
         )}
 
         {variant === 'home' && (
@@ -217,16 +217,20 @@ export function ProjectsDialog({
 
         {variant === 'home' && hasContent && (
           <div>
-            <p className="text-muted mb-1.5 text-overline font-semibold uppercase tracking-widest">
+            <p className="text-muted text-overline mb-1.5 font-semibold tracking-widest uppercase">
               {t('home.lastOpened')}
             </p>
             <button
               type="button"
               onClick={onClose}
-              className="border-accent-line bg-panel flex w-full items-center gap-3 rounded-lg border p-2 text-left transition hover:border-accent-text"
+              className="border-accent-line bg-panel hover:border-accent-text flex w-full items-center gap-3 rounded-lg border p-2 text-left transition"
             >
               {thumb ? (
-                <img src={thumb} alt="" className="border-line h-16 w-20 rounded border object-contain" />
+                <img
+                  src={thumb}
+                  alt=""
+                  className="border-line h-16 w-20 rounded border object-contain"
+                />
               ) : (
                 <div className="border-line bg-chip h-16 w-20 rounded border" />
               )}
@@ -234,7 +238,7 @@ export function ProjectsDialog({
                 <span className="text-body block truncate text-sm font-medium">
                   {projectName.trim() || t('project.untitled')}
                 </span>
-                <span className="text-muted block text-overline">{t('home.lastSaved')}</span>
+                <span className="text-muted text-overline block">{t('home.lastSaved')}</span>
               </span>
               <span className="border-accent-line text-accent-text rounded border px-2 py-1 text-xs">
                 {t('home.continue')}
@@ -243,33 +247,33 @@ export function ProjectsDialog({
           </div>
         )}
 
-{variant === 'modal' && (
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={name}
-            placeholder={t('projects.savePlaceholder')}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void saveCurrent()
-            }}
-            className="border-line bg-chip text-body focus:border-accent-line flex-1 rounded-md border px-2 py-1.5 text-xs outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => void saveCurrent()}
-            className="rounded-md bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400"
-          >
-            {t('projects.save')}
-          </button>
-          <button
-            type="button"
-            onClick={newProject}
-            className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition"
-          >
-            {t('projects.new')}
-          </button>
-        </div>
+        {variant === 'modal' && (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={name}
+              placeholder={t('projects.savePlaceholder')}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void saveCurrent()
+              }}
+              className="border-line bg-chip text-body focus:border-accent-line flex-1 rounded-md border px-2 py-1.5 text-xs outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => void saveCurrent()}
+              className="rounded-md bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400"
+            >
+              {t('projects.save')}
+            </button>
+            <button
+              type="button"
+              onClick={newProject}
+              className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition"
+            >
+              {t('projects.new')}
+            </button>
+          </div>
         )}
 
         {deleting && (
@@ -369,13 +373,13 @@ export function ProjectsDialog({
                         </Tooltip>
                       )}
                       {entry.id === projectId && (
-                        <span className="border-accent-line text-accent-text shrink-0 rounded border px-1 py-px text-overline">
+                        <span className="border-accent-line text-accent-text text-overline shrink-0 rounded border px-1 py-px">
                           {t('projects.current')}
                         </span>
                       )}
                     </div>
                     <span className="text-muted text-overline">{fmtDate(entry.updatedAt)}</span>
-                    <div className="flex gap-1 text-label">
+                    <div className="text-label flex gap-1">
                       <Tooltip label={t('projects.open')}>
                         <button
                           type="button"
@@ -398,7 +402,7 @@ export function ProjectsDialog({
                         <button
                           type="button"
                           onClick={() => setDeleting(entry.id)}
-                          className="border-line hover:border-red-500/60 hover:text-red-400 flex-1 rounded border py-0.5 transition"
+                          className="border-line flex-1 rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400"
                         >
                           {t('projects.delete')}
                         </button>

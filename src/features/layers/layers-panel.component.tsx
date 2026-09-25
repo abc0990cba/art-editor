@@ -140,14 +140,10 @@ export function LayersPanel() {
   }
 
   return (
-    <Section
-      title={t('panel.layers')}
-      icon="layers"
-      contentClassName="max-h-72 overflow-y-auto"
-    >
+    <Section title={t('panel.layers')} icon="layers" contentClassName="max-h-72 overflow-y-auto">
       <div className="flex flex-col gap-0.5">
         {rows.length > 0 && layers.every((l) => l.children.length === 0) && (
-          <p className="text-muted px-1 pb-1 text-label leading-snug">{t('layers.empty')}</p>
+          <p className="text-muted text-label px-1 pb-1 leading-snug">{t('layers.empty')}</p>
         )}
         {rows.map(({ node, depth }) => {
           const isObj = node.kind === 'obj'
@@ -236,7 +232,7 @@ export function LayersPanel() {
               {node.kind === 'layer' && confirmDelete === node.id ? (
                 <button
                   type="button"
-                  className="shrink-0 rounded border border-red-400 bg-red-500/10 px-1 text-overline text-red-400"
+                  className="text-overline shrink-0 rounded border border-red-400 bg-red-500/10 px-1 text-red-400"
                   onClick={() => {
                     deleteLayer(node.id)
                     setConfirmDelete(null)
@@ -345,7 +341,7 @@ export function LayersPanel() {
         />
         <span>
           {t('layers.fuse')}
-          <span className="text-muted mt-0.5 block text-label leading-snug">
+          <span className="text-muted text-label mt-0.5 block leading-snug">
             {t('layers.fuse.desc')}
           </span>
         </span>

@@ -24,6 +24,11 @@
       "vite/client",
       "vitest/globals"
     ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "forceConsistentCasingInFileNames": true

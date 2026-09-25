@@ -1,9 +1,17 @@
-import { useEffect } from 'react'
+import { Button } from './shadcn/button.tsx'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './shadcn/dialog.tsx'
 
 /**
- * Confirmation modal for destructive actions (Photoshop/Figma pattern): dimmed backdrop,
- * title + explanation, muted cancel and a red confirm. Escape cancels; the confirm
- * action runs only from the explicit button.
+ * Confirmation modal for destructive actions (Photoshop/Figma pattern) on the shadcn dialog: dimmed
+ * backdrop, title + explanation, muted cancel and a red confirm. Escape and the backdrop cancel;
+ * the confirm action runs only from the explicit button. Renders above other modals (z-60).
  */
 export function ConfirmDialog({
   title,
@@ -20,45 +28,47 @@ export function ConfirmDialog({
   onConfirm: () => void
   onClose: () => void
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   return (
-    <div
-      className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
     >
-      <div
-        className="border-line bg-app w-full max-w-sm rounded-xl border p-4 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+      <DialogContent
+        showCloseButton={false}
+        className="z-60 max-w-sm gap-4 rounded-xl p-4 sm:max-w-sm"
       >
-        <h2 className="text-body mb-1.5 text-sm font-semibold tracking-wide">{title}</h2>
-        <p className="text-muted mb-4 text-xs leading-relaxed">{message}</p>
-        <div className="flex items-center justify-end gap-2">
-          <button
+        <DialogHeader className="text-left">
+          <DialogTitle className="text-body text-sm font-semibold tracking-wide">
+            {title}
+          </DialogTitle>
+          <DialogDescription className="text-muted text-xs leading-relaxed">
+            {message}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2">
+          <Button
             type="button"
+            variant="ghost"
             onClick={onClose}
-            className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition"
+            className="text-body border-line bg-chip hover:border-chip-line hover:bg-chip dark:border-line dark:bg-chip dark:text-body dark:hover:bg-chip h-auto px-3 py-1.5 text-xs font-normal"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="destructive"
             onClick={() => {
               onConfirm()
               onClose()
             }}
-            className="rounded-md bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-400"
+            className="h-auto px-3 py-1.5 text-xs"
           >
             {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -7,7 +7,6 @@ import { ImportDialog } from '../features/import/import-dialog.component.tsx'
 import { NodeEditorCanvas } from '../features/nodes-editor/node-editor-canvas.component.tsx'
 import { ProjectDialog } from '../features/projects/project-dialog.component.tsx'
 import { ProjectsDialog } from '../features/projects/projects-dialog.component.tsx'
-import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
 import { SettingsPanel } from '../features/settings-panel/settings-panel.component.tsx'
 import {
   allOrder,
@@ -17,6 +16,7 @@ import {
   type SettingsAnchor,
 } from '../features/tools/tool-rail.component.tsx'
 import { I18nProvider, useI18n } from '../shared/i18n/i18n.provider.tsx'
+import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
 import { IconButton } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
 import {

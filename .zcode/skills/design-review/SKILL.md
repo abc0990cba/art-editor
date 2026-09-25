@@ -31,12 +31,18 @@ it defines every token referenced here.
    - per-component focus hacks (`focus:ring`, `focus:outline`) instead of the global `:focus-visible` rule in index.css;
    - `space-x/space-y` (separation must be `gap-*`);
    - icon-only `<button>` without aria-label/title;
-   - raw hex that bypasses theme tokens (`bg-[#…]`, `text-[#…]`) — replace with tokens.
+   - raw hex that bypasses theme tokens (`bg-[#…]`, `text-[#…]`) — replace with tokens;
+   - new modals NOT built on the shadcn `Dialog` (hand-rolled fixed overlays are a violation —
+     Escape/backdrop/focus-trap must come from the primitive);
+   - features importing from `shared/ui/shadcn/*` directly instead of the `shared/ui` wrappers
+     (vendored dir is exempt from the project naming/knip checks, not from layering).
 3. **Dynamic checks** (browser skill, in-app browser on localhost:5199):
    - desktop ≥1024px: panel widths (192 rail / 256 right), uniform 28px top-bar plates, one visual axis;
    - 390×720 (resize or emulate): 44px targets, bottom tool strip, right drawer sections collapsed, no horizontal scroll of the top bar;
    - dialogs open centered, Escape + backdrop close (except startup home), z-order correct (confirm dialog above modals);
-   - hover/disabled states exist for every interactive control.
+   - hover/disabled states exist for every interactive control;
+   - switch the theme (top bar) and re-check every touched surface: both ditherlab tokens and the
+     shadcn bridge variables must follow the theme in all five themes.
 4. **Report** findings in three buckets: block (violates a hard rule), fix (deviates from a measured token), note (advisory, e.g. hooks-deps-level). Fix the "fix" bucket in the same change — do not hand the user a known-deviating UI.
 
 ## Common violations in this codebase (history)

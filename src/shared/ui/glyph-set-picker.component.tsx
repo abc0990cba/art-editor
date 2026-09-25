@@ -1,15 +1,17 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
-import { BUILT_IN_GLYPH_SETS, type GlyphTileSet } from '../../engine/glyph-tiles.ts'
+import { BUILT_IN_GLYPH_SETS } from '../../engine/glyph-builtins.ts'
+import type { GlyphTileSet } from '../../engine/glyph-tiles.ts'
 import { useStore } from '../../state/editor.store.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
+import { GlyphGallery } from './glyph-gallery.component.tsx'
 import { GlyphRampStrip } from './glyph-ramp-strip.component.tsx'
 import { Chip } from './index.tsx'
 
 /**
- * Compact glyph-set picker: user sets from the library, built-ins, plus a live ramp preview of the
- * selected set. Used by the import dialog and the fill pattern controls; full editing lives in the
- * right panel's glyph editor section.
+ * Compact glyph-set picker: user sets from the library, built-ins, a gallery button for browsing
+ * every set at full size, plus a live ramp preview of the selected set. Used by the import dialog
+ * and the fill pattern controls; full editing lives in the right panel's glyph editor section.
  */
 export function GlyphSetPicker({
   value,
@@ -21,6 +23,7 @@ export function GlyphSetPicker({
   const { t } = useI18n()
   const glyphSets = useStore((s) => s.glyphSets)
   const glyphDraftId = useStore((s) => s.glyphDraftId)
+  const [galleryOpen, setGalleryOpen] = useState(false)
 
   const selected = useMemo(() => {
     if (value) return value
@@ -41,9 +44,12 @@ export function GlyphSetPicker({
 
   return (
     <div className="flex flex-col gap-1.5">
+      <Chip title={t('glyph.gallery.hint')} onClick={() => setGalleryOpen(true)}>
+        ▦ {t('glyph.gallery')}
+      </Chip>
       <div className="border-line bg-chip flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1">
         {glyphSets.length === 0 && (
-          <p className="text-muted px-1 py-0.5 text-label">{t('glyph.noUserSets')}</p>
+          <p className="text-muted text-label px-1 py-0.5">{t('glyph.noUserSets')}</p>
         )}
         {glyphSets.map((entry) => (
           <Chip key={entry.id} active={activeId === entry.id} onClick={() => onChange(entry.set)}>
@@ -58,6 +64,15 @@ export function GlyphSetPicker({
       </div>
       {selected && <GlyphRampStrip set={selected} size={5} />}
       <p className="text-muted text-overline leading-snug">{t('glyph.pickerHint')}</p>
+      {galleryOpen && (
+        <GlyphGallery
+          onClose={() => setGalleryOpen(false)}
+          onPick={(set) => {
+            onChange(set)
+            setGalleryOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

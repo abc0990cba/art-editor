@@ -1,22 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
 import { BAYER2, BAYER4 } from './dither-matrices.ts'
+import { BUILT_IN_GLYPH_SETS, builtInGlyphSetById } from './glyph-builtins.ts'
 import {
-  BUILT_IN_GLYPH_SETS,
-  builtInGlyphSetById,
   glyphSetChevron,
+  glyphSetChecker,
+  glyphSetCorner,
   glyphSetCross,
   glyphSetDiamonds,
+  glyphSetDots,
   glyphSetGridDots,
+  glyphSetLines,
   glyphSetMedallion,
   glyphSetSquares,
-  glyphSetCorner,
+} from './glyph-generators.ts'
+import {
   emptyGlyphSet,
   glyphCellAt,
-  glyphSetChecker,
-  glyphSetDots,
   glyphSetFromMatrix,
-  glyphSetLines,
   glyphSetToField,
   invertGlyphSet,
   normalizeGlyphTileSet,
@@ -30,7 +31,7 @@ describe('glyph tile sets', basics)
 function basics() {
   it('normalize fills missing levels with false and clamps sizes', () => {
     const set = normalizeGlyphTileSet({ name: 'T', w: 99, h: 1, levels: [] })
-    expect(set.w).toBe(8)
+    expect(set.w).toBe(16)
     expect(set.h).toBe(1)
     expect(set.levels.length).toBe(9)
     for (const cells of set.levels) expect(cells.every((v) => v === false)).toBe(true)
@@ -182,9 +183,16 @@ function azulejo() {
 
   it('all new built-ins are registered', () => {
     for (const id of [
-      'glyph-diamonds4', 'glyph-diamonds8', 'glyph-squares8', 'glyph-corner',
-      'glyph-griddots4', 'glyph-griddots8', 'glyph-cross4', 'glyph-cross8',
-      'glyph-medallion8', 'glyph-chevron',
+      'glyph-diamonds4',
+      'glyph-diamonds8',
+      'glyph-squares8',
+      'glyph-corner',
+      'glyph-griddots4',
+      'glyph-griddots8',
+      'glyph-cross4',
+      'glyph-cross8',
+      'glyph-medallion8',
+      'glyph-chevron',
     ]) {
       expect(builtInGlyphSetById(id)).not.toBeNull()
     }

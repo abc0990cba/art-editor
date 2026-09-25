@@ -1,6 +1,12 @@
 import { useId, type ReactNode } from 'react'
 
+import { cn } from '../lib/utils.ts'
 import { DragNumber } from './drag-number.component.tsx'
+import { Button } from './shadcn/button.tsx'
+import { Checkbox } from './shadcn/checkbox.tsx'
+import { Input } from './shadcn/input.tsx'
+import { Label } from './shadcn/label.tsx'
+import { Slider as SliderPrimitive } from './shadcn/slider.tsx'
 import { Tooltip } from './tooltip.component.tsx'
 
 export { useMediaQuery } from './use-media-query.hook.ts'
@@ -8,7 +14,7 @@ export { useMediaQuery } from './use-media-query.hook.ts'
 /** Small stroke glyphs shown next to section titles for faster scanning. */
 const SECTION_GLYPHS: Record<string, ReactNode> = {
   grid: (
-    <path d="M1.5 1.5h4.2v4.2H1.5zM8.3 1.5h4.2v4.2H8.3zM1.5 8.3h4.2v4.2H1.5zM8.3 8.3h4.2v4.2H8.3z" />
+    <path d="M1.5 1.5h4.2v4.2H1.5zM8.3 1.5h4.2v4.2H8.3zM1.5 8.3h4.2v4.2H1.5zM8.3 8.3h4.2v4.2H1.5z" />
   ),
   presets: <path d="M7 1.5l1.4 4.1L12.5 7l-4.1 1.4L7 12.5 5.6 8.4 1.5 7l4.1-1.4z" />,
   color: <path d="M7 1.8C4.8 4.8 3.4 6.9 3.4 8.7a3.6 3.6 0 007.2 0c0-1.8-1.4-3.9-3.6-6.9z" />,
@@ -76,7 +82,7 @@ export function Section({
     <details open={defaultOpen} className={`border-line group border-b ${className ?? ''}`}>
       <summary
         aria-controls={id}
-        className="text-muted hover:text-body flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-label font-semibold tracking-widest uppercase [&::-webkit-details-marker]:hidden"
+        className="text-muted hover:text-body text-label flex cursor-pointer list-none items-center justify-between px-3 py-2.5 font-semibold tracking-widest uppercase [&::-webkit-details-marker]:hidden"
       >
         <span className="flex items-center gap-2">
           {icon && (
@@ -112,6 +118,85 @@ export function Section({
   )
 }
 
+/** Ditherlab chip look layered over the shadcn button: compact plate, themed borders. */
+const CHIP_CLASS =
+  'text-body h-auto rounded-md border px-2 py-1 text-xs font-normal dark:text-body dark:hover:text-body'
+
+export function Chip({
+  active,
+  onClick,
+  title,
+  disabled,
+  children,
+}: {
+  active?: boolean
+  onClick: () => void
+  title?: string
+  disabled?: boolean
+  children: ReactNode
+}) {
+  return (
+    <Tooltip label={title}>
+      <Button
+        type="button"
+        variant="ghost"
+        disabled={disabled}
+        onClick={onClick}
+        className={cn(
+          CHIP_CLASS,
+          active
+            ? 'border-accent-line bg-accent-soft hover:bg-accent-soft'
+            : 'border-line bg-chip hover:border-chip-line hover:bg-chip dark:border-line dark:bg-chip dark:hover:bg-chip',
+        )}
+      >
+        {children}
+      </Button>
+    </Tooltip>
+  )
+}
+
+export function IconButton({
+  title,
+  onClick,
+  disabled,
+  className,
+  plate,
+  big,
+  children,
+}: {
+  title: string
+  onClick?: () => void
+  disabled?: boolean
+  /** Extra classes on the button, e.g. an accent tint for an active save state */
+  className?: string
+  /** Chip plate behind the icon (top-bar style, like the import/export buttons) */
+  plate?: boolean
+  /** 44px touch target (HIG/Material) — mobile bars */
+  big?: boolean
+  children: ReactNode
+}) {
+  return (
+    <Tooltip label={title}>
+      <Button
+        type="button"
+        variant="ghost"
+        disabled={disabled}
+        onClick={onClick}
+        className={cn(
+          'text-body px-0 py-0 dark:text-body dark:hover:text-body',
+          big ? 'h-10 w-10' : 'h-7 w-7',
+          plate
+            ? 'border-line bg-chip hover:bg-chip dark:border-line dark:bg-chip dark:hover:bg-chip'
+            : 'hover:bg-chip-active dark:hover:bg-chip-active',
+          className,
+        )}
+      >
+        {children}
+      </Button>
+    </Tooltip>
+  )
+}
+
 export function Slider({
   label,
   value,
@@ -144,7 +229,7 @@ export function Slider({
 }) {
   return (
     <Tooltip label={title}>
-      <label className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         <span className="text-muted flex justify-between text-xs">
           <span>{label}</span>
           {editable ? (
@@ -165,16 +250,15 @@ export function Slider({
             <span className="text-body">{display ? display(value) : value}</span>
           )}
         </span>
-        <input
-          type="range"
+        <SliderPrimitive
+          aria-label={label}
+          value={[value]}
           min={min}
           max={max}
           step={step}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="bg-chip-active h-1 w-full cursor-pointer appearance-none rounded-full accent-indigo-400"
+          onValueChange={(v) => onChange(v[0] ?? value)}
         />
-      </label>
+      </div>
     </Tooltip>
   )
 }
@@ -190,87 +274,47 @@ export function CheckRow({
   title?: string
   onChange: (v: boolean) => void
 }) {
+  const id = useId()
   return (
     <Tooltip label={title}>
-      <label className="text-body flex cursor-pointer items-center justify-between text-xs">
-        <span>{label}</span>
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="h-3.5 w-3.5 accent-indigo-400"
-        />
-      </label>
+      <div className="text-body flex cursor-pointer items-center justify-between gap-2 text-xs">
+        <Label htmlFor={id} className="text-xs font-normal">
+          {label}
+        </Label>
+        <Checkbox checked={checked} onCheckedChange={(v) => onChange(v === true)} id={id} />
+      </div>
     </Tooltip>
   )
 }
 
-export function Chip({
-  active,
-  onClick,
-  title,
-  disabled,
-  children,
-}: {
-  active?: boolean
-  onClick: () => void
-  title?: string
-  disabled?: boolean
-  children: ReactNode
-}) {
-  return (
-    <Tooltip label={title}>
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className={`disabled:hover:border-line rounded-md border px-2 py-1 text-xs transition disabled:cursor-not-allowed disabled:opacity-40 ${
-          active
-            ? 'border-accent-line bg-accent-soft text-accent-text'
-            : 'border-line bg-chip text-body hover:border-chip-line'
-        }`}
-      >
-        {children}
-      </button>
-    </Tooltip>
-  )
-}
-
-export function IconButton({
-  title,
-  onClick,
-  disabled,
+/** Themed text field on the shadcn input: compact ditherlab sizing. */
+export function TextField({
+  value,
+  placeholder,
+  onChange,
+  ariaLabel,
+  autoFocus,
   className,
-  plate,
-  big,
-  children,
 }: {
-  title: string
-  onClick?: () => void
-  disabled?: boolean
-  /** Extra classes on the button, e.g. an accent tint for an active save state */
+  value: string
+  placeholder?: string
+  ariaLabel?: string
+  autoFocus?: boolean
+  onChange: (v: string) => void
   className?: string
-  /** Chip plate behind the icon (top-bar style, like the import/export buttons) */
-  plate?: boolean
-  /** 44px touch target (HIG/Material) — mobile bars */
-  big?: boolean
-  children: ReactNode
 }) {
   return (
-    <Tooltip label={title}>
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className={`text-body flex items-center justify-center rounded-md transition disabled:opacity-30 ${big ? 'h-10 w-10' : 'h-7 w-7'} ${
-          plate
-            ? 'border-line bg-chip hover:border-chip-line disabled:hover:border-line border'
-            : 'hover:bg-chip-active disabled:hover:bg-transparent'
-        } ${className ?? ''}`}
-      >
-        {children}
-      </button>
-    </Tooltip>
+    <Input
+      value={value}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      autoFocus={autoFocus}
+      onChange={(e) => onChange(e.target.value)}
+      className={cn(
+        'border-line bg-chip h-auto min-w-0 px-2 py-1 text-xs dark:border-line dark:bg-chip md:text-xs',
+        className,
+      )}
+    />
   )
 }
 

@@ -4,20 +4,32 @@ import { ExportPopover } from '../features/export/export-popover.component.tsx'
 import { ProjectDialog } from '../features/projects/project-dialog.component.tsx'
 import { ProjectsDialog } from '../features/projects/projects-dialog.component.tsx'
 import { useI18n } from '../shared/i18n/i18n.provider.tsx'
+import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
 import { IconButton, useMediaQuery } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
 import { useStore, undo, redo, useCanUndoRedo } from '../state/editor.store.ts'
-import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
 
 /** Overflow-menu icons (16px stroke set, matches the toolbar's icon language). */
 const MORE_ICONS = {
   projects: (
-    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0 opacity-80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    >
       <path d="M1.5 4.5a1 1 0 011-1h3l1.5 1.5h6a1 1 0 011 1v6a1 1 0 01-1 1h-10a1 1 0 01-1-1v-7.5z" />
     </svg>
   ),
   nodes: (
-    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0 opacity-80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    >
       <circle cx="3.4" cy="3.4" r="1.7" />
       <circle cx="11.6" cy="7" r="1.7" />
       <circle cx="4.6" cy="11.4" r="1.7" />
@@ -25,36 +37,72 @@ const MORE_ICONS = {
     </svg>
   ),
   import: (
-    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0 opacity-80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    >
       <rect x="2" y="2.5" width="12" height="11" rx="1.2" />
       <circle cx="5.7" cy="6.2" r="1.1" />
       <path d="M2.5 11.5l3.5-3.5 2 2 2.5-2.5 3 3" />
     </svg>
   ),
   export: (
-    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0 opacity-80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    >
       <path d="M8 2v7.5M8 9.5L5.4 6.9M8 9.5l2.6-2.6M2.5 11.5v1.5a1 1 0 001 1h9a1 1 0 001-1v-1.5" />
     </svg>
   ),
   settings: (
-    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0 opacity-80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    >
       <circle cx="8" cy="8" r="2.2" />
       <path d="M13.2 9.8a5.4 5.4 0 000-3.6l1.5-1a.5.5 0 00-.1-.7l-1.9-1.4a.5.5 0 00-.6 0l-1.6 1a5.6 5.6 0 00-1.6-.9l-.3-1.9a.5.5 0 00-.5-.4h-2.2a.5.5 0 00-.5.4l-.3 1.9a5.6 5.6 0 00-1.6.9l-1.6-1a.5.5 0 00-.6 0L1.4 4.5a.5.5 0 00-.1.7l1.5 1a5.4 5.4 0 000 3.6l-1.5 1a.5.5 0 00.1.7l1.9 1.4a.5.5 0 00.6 0l1.6-1a5.6 5.6 0 001.6.9l.3 1.9a.5.5 0 00.5.4h2.2a.5.5 0 00.5-.4l.3-1.9a5.6 5.6 0 001.6-.9l1.6 1a.5.5 0 00.6 0z" />
     </svg>
   ),
   theme: (
-    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0 opacity-80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    >
       <path d="M10.5 2.5a5.5 5.5 0 00-6 8.9A5.5 5.5 0 1010.5 2.5z" />
     </svg>
   ),
   lang: (
-    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.2">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0 opacity-80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+    >
       <circle cx="8" cy="8" r="6.2" />
       <path d="M1.8 8h12.4M8 1.8c-4.4 4-4.4 8.4 0 12.4M8 1.8c4.4 4 4.4 8.4 0 12.4" />
     </svg>
   ),
   clear: (
-    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0 opacity-80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    >
       <path d="M3 4.5h10M6.5 4.5v-1a1 1 0 011-1h1a1 1 0 011 1v1M5 4.5l.6 8a1 1 0 001 .9h2.8a1 1 0 001-.9l.6-8" />
     </svg>
   ),
@@ -209,7 +257,17 @@ export function TopBar({
               {row(t('project.settings'), MORE_ICONS.settings, () => setSetupOpen(true))}
               {row(`${t('top.theme')}: ${themeLabel}`, MORE_ICONS.theme, () =>
                 setThemePref(
-                  themePref === 'dark' ? 'light' : themePref === 'light' ? 'oled' : themePref === 'oled' ? 'nord' : themePref === 'nord' ? 'sepia' : themePref === 'sepia' ? 'auto' : 'dark',
+                  themePref === 'dark'
+                    ? 'light'
+                    : themePref === 'light'
+                      ? 'oled'
+                      : themePref === 'oled'
+                        ? 'nord'
+                        : themePref === 'nord'
+                          ? 'sepia'
+                          : themePref === 'sepia'
+                            ? 'auto'
+                            : 'dark',
                 ),
               )}
               {row(`${t('lang.switch')}: ${lang === 'ru' ? 'RU' : 'EN'}`, MORE_ICONS.lang, () =>
@@ -595,6 +653,16 @@ export function TopBar({
       {projectsOpen && <ProjectsDialog onClose={() => setProjectsOpen(false)} />}
       {setupOpen && <ProjectDialog mode="edit" onClose={() => setSetupOpen(false)} />}
       {exportOpen && <ExportPopover onClose={() => setExportOpen(false)} />}
+      {clearConfirm && (
+        <ConfirmDialog
+          title={t('confirm.clear.title')}
+          message={t('confirm.clear.msg')}
+          confirmLabel={t('confirm.clear')}
+          cancelLabel={t('projects.cancel')}
+          onConfirm={() => clear()}
+          onClose={() => setClearConfirm(false)}
+        />
+      )}
     </header>
   )
 }

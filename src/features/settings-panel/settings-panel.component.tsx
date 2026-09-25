@@ -425,7 +425,9 @@ export function SettingsPanel({
               </Chip>
             </div>
           </div>
-          {!elementMode && <p className="text-muted text-overline">{t('style.scope.global.hint')}</p>}
+          {!elementMode && (
+            <p className="text-muted text-overline">{t('style.scope.global.hint')}</p>
+          )}
           {targetSelection && (
             <div className="border-accent-line bg-accent-soft text-accent-text flex items-center justify-between rounded-md border px-2 py-1 text-xs">
               <span>

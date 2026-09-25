@@ -574,7 +574,15 @@ export type ResolvedTheme = Exclude<ThemePref, 'auto'>
 function initialThemePref(): ThemePref {
   try {
     const v = localStorage.getItem(THEME_KEY)
-    if (v === 'dark' || v === 'light' || v === 'oled' || v === 'nord' || v === 'sepia' || v === 'auto') return v
+    if (
+      v === 'dark' ||
+      v === 'light' ||
+      v === 'oled' ||
+      v === 'nord' ||
+      v === 'sepia' ||
+      v === 'auto'
+    )
+      return v
   } catch {
     /* ignore */
   }

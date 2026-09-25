@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { BAYER2 } from './dither-matrices.ts'
 import { patternAt } from './fillpatterns.ts'
-import { glyphSetFromMatrix, glyphSetLines, type GlyphTileSet } from './glyph-tiles.ts'
+import { glyphSetLines } from './glyph-generators.ts'
+import { glyphSetFromMatrix, type GlyphTileSet } from './glyph-tiles.ts'
 
 const bayer2Set = glyphSetFromMatrix(BAYER2, 'b2')
 const lineSet: GlyphTileSet = {
