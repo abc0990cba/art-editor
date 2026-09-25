@@ -102,13 +102,13 @@ export function GlyphEditor() {
           </Chip>
         </div>
         <GlyphTileGrid set={glyphDraft} level={safeLevel} cell={18} onToggle={toggleCell} />
-        <p className="text-muted text-[10px] leading-snug">{t('glyph.applyHint')}</p>
-        <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
+        <p className="text-muted text-overline leading-snug">{t('glyph.applyHint')}</p>
+        <div className="text-muted text-overline font-semibold tracking-wider uppercase">
           {t('glyph.tileSize')}
         </div>
         <div className="flex flex-wrap gap-1">{[2, 3, 4, 5, 6, 8].map((n) => sizeChip(n))}</div>
 
-        <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
+        <div className="text-muted text-overline font-semibold tracking-wider uppercase">
           {t('glyph.generators')}
         </div>
         <div className="flex flex-wrap gap-1">
@@ -152,7 +152,7 @@ export function GlyphEditor() {
           </Chip>
         </div>
 
-        <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
+        <div className="text-muted text-overline font-semibold tracking-wider uppercase">
           {t('glyph.library')}
         </div>
         <div className="border-line bg-chip flex max-h-44 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1">

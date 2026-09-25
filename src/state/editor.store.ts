@@ -369,7 +369,7 @@ export interface State {
   importLayering: ImportLayering
   lang: 'en' | 'ru'
   themePref: ThemePref
-  resolvedTheme: 'dark' | 'light'
+  resolvedTheme: ResolvedTheme
   /** PNG export size in px; null = auto (canvas × 8, clamped) */
   pngWidth: number | null
   pngHeight: number | null
@@ -568,12 +568,13 @@ const PROJECT_NAME_KEY = 'glyph.projectName'
 const PROJECT_ID_KEY = 'glyph.projectId'
 const RAIL_KEY = 'glyph.rail'
 
-export type ThemePref = 'dark' | 'light' | 'auto'
+export type ThemePref = 'dark' | 'light' | 'oled' | 'nord' | 'sepia' | 'auto'
+export type ResolvedTheme = Exclude<ThemePref, 'auto'>
 
 function initialThemePref(): ThemePref {
   try {
     const v = localStorage.getItem(THEME_KEY)
-    if (v === 'dark' || v === 'light' || v === 'auto') return v
+    if (v === 'dark' || v === 'light' || v === 'oled' || v === 'nord' || v === 'sepia' || v === 'auto') return v
   } catch {
     /* ignore */
   }
@@ -589,7 +590,7 @@ export function hasAutosave(): boolean {
   }
 }
 
-export function resolvedTheme(pref: ThemePref): 'dark' | 'light' {
+export function resolvedTheme(pref: ThemePref): ResolvedTheme {
   if (pref !== 'auto') return pref
   try {
     return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'

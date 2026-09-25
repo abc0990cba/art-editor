@@ -126,7 +126,7 @@ export function ShapePaintControls({ fillable }: { fillable: boolean }) {
         </>
       )}
       {paint.fill === 'pattern' && (
-        <p className="text-muted text-[10px]">{t('paint.patternHint')}</p>
+        <p className="text-muted text-overline">{t('paint.patternHint')}</p>
       )}
     </div>
   )

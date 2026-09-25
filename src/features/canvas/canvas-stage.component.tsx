@@ -46,7 +46,7 @@ import {
 } from '../../engine/symmetry.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
-import { useStore } from '../../state/editor.store.ts'
+import { useStore, type ResolvedTheme } from '../../state/editor.store.ts'
 
 /** Safety cap: one stamp event writes at most this many buffer cells */
 const MAX_STAMPS = 20_000
@@ -251,8 +251,8 @@ function drawGuides(
 }
 
 /** 1×1 doc-unit tile with four 0.5-unit checker halves, per theme. */
-const checkerTiles: Partial<Record<'dark' | 'light', HTMLCanvasElement>> = {}
-function checkerTileFor(theme: 'dark' | 'light', stage: StageTheme): HTMLCanvasElement {
+const checkerTiles: Partial<Record<ResolvedTheme, HTMLCanvasElement>> = {}
+function checkerTileFor(theme: ResolvedTheme, stage: StageTheme): HTMLCanvasElement {
   let tile = checkerTiles[theme]
   if (!tile) {
     tile = document.createElement('canvas')
@@ -2310,7 +2310,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       />
       <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 touch-none" />
       {pendingLink && (
-        <div className="text-accent-text pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs backdrop-blur">
+        <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full border border-line bg-panel px-3 py-1 text-xs text-body backdrop-blur">
           {t('view.linkPending')}
         </div>
       )}
@@ -2346,7 +2346,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
           </button>
         </div>
       )}
-      <div className="text-body absolute right-3 bottom-3 flex items-center gap-2 rounded-lg bg-black/50 px-2 py-1 text-xs backdrop-blur">
+      <div className="absolute right-3 bottom-3 flex items-center gap-2 rounded-lg border border-line bg-panel px-2 py-1 text-xs text-body shadow-sm backdrop-blur">
         <Tooltip label={t('view.cursor.desc')}>
           <span className="text-muted font-mono">
             {hover
@@ -2366,7 +2366,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         type="button"
         onClick={fit}
         title={`${t('top.fit')} (F)`}
-        className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-md bg-black/50 px-2.5 py-1.5 text-[11px] text-white/80 backdrop-blur-sm transition hover:bg-black/70 hover:text-white"
+        className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-md bg-black/50 px-2.5 py-1.5 text-label text-white/80 backdrop-blur-sm transition hover:bg-black/70 hover:text-white"
       >
         <svg
           viewBox="0 0 16 16"

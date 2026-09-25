@@ -749,7 +749,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       {importState?.warnings && importState.warnings.length > 0 && (
-        <div className="border-line bg-panel text-muted border-b px-3 py-1 text-[10px]">
+        <div className="border-line bg-panel text-muted border-b px-3 py-1 text-overline">
           {importState.warnings.join(' · ')}
         </div>
       )}
@@ -895,7 +895,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                     <Tooltip label={t('editor.baseNode.desc')}>
                       <div className="flex items-center gap-1.5 px-2 py-1.5">
                         <span className="bg-muted h-2 w-2 shrink-0 rounded-full" />
-                        <span className="text-muted min-w-0 flex-1 truncate text-[11px]">
+                        <span className="text-muted min-w-0 flex-1 truncate text-label">
                           {t('editor.baseNode')}
                         </span>
                         <span className="text-[8px] font-semibold text-indigo-300 uppercase">
@@ -995,7 +995,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                       className={`h-2 w-2 shrink-0 rounded-full ${kind ? KIND_DOT[kind] : 'bg-muted'}`}
                     />
                     <span
-                      className={`min-w-0 flex-1 truncate text-[11px] font-medium ${
+                      className={`min-w-0 flex-1 truncate text-label font-medium ${
                         node.unknown ? 'text-muted line-through' : 'text-body'
                       }`}
                     >
@@ -1012,7 +1012,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                     <button
                       type="button"
                       aria-label={t('graph.remove')}
-                      className="text-muted rounded px-1 text-[11px] transition hover:text-red-400"
+                      className="text-muted rounded px-1 text-label transition hover:text-red-400"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -1058,7 +1058,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                       Object.entries(def.params).map(([pkey, spec]) => (
                         <div
                           key={pkey}
-                          className="text-muted flex items-center justify-between gap-1.5 text-[10px]"
+                          className="text-muted flex items-center justify-between gap-1.5 text-overline"
                         >
                           <span className="shrink-0">{pkey}</span>
                           <ParamInput
@@ -1070,7 +1070,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
                         </div>
                       ))
                     ) : (
-                      <span className="text-[10px]">{t('graph.unknown')}</span>
+                      <span className="text-overline">{t('graph.unknown')}</span>
                     )}
                   </div>
                 </div>
@@ -1124,7 +1124,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
             )
           })()}
         {/* hint bar with the socket color legend */}
-        <div className="pointer-events-none absolute bottom-2 left-1/2 flex max-w-full -translate-x-1/2 items-center gap-2 overflow-hidden rounded-md bg-black/50 px-2.5 py-1 text-[10px] whitespace-nowrap text-white/80 backdrop-blur-sm">
+        <div className="pointer-events-none absolute bottom-2 left-1/2 flex max-w-full -translate-x-1/2 items-center gap-2 overflow-hidden rounded-md bg-black/50 px-2.5 py-1 text-overline whitespace-nowrap text-white/80 backdrop-blur-sm">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full border border-amber-300 bg-amber-400/60" />
             {t('editor.legend.in')}
@@ -1199,7 +1199,7 @@ function ParamInput({
       <select
         value={String(value)}
         onChange={(e) => onChange(e.target.value)}
-        className="border-line bg-chip text-body focus:border-accent-line w-24 cursor-pointer rounded border px-1 py-0.5 text-[10px] outline-none"
+        className="border-line bg-chip text-body focus:border-accent-line w-24 cursor-pointer rounded border px-1 py-0.5 text-overline outline-none"
       >
         {spec.options.map((o) => (
           <option key={o} value={o}>

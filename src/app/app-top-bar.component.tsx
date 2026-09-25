@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type JSX } from 'react'
 
 import { ExportPopover } from '../features/export/export-popover.component.tsx'
 import { ProjectDialog } from '../features/projects/project-dialog.component.tsx'
@@ -7,6 +7,58 @@ import { useI18n } from '../shared/i18n/i18n.provider.tsx'
 import { IconButton, useMediaQuery } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
 import { useStore, undo, redo, useCanUndoRedo } from '../state/editor.store.ts'
+import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
+
+/** Overflow-menu icons (16px stroke set, matches the toolbar's icon language). */
+const MORE_ICONS = {
+  projects: (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <path d="M1.5 4.5a1 1 0 011-1h3l1.5 1.5h6a1 1 0 011 1v6a1 1 0 01-1 1h-10a1 1 0 01-1-1v-7.5z" />
+    </svg>
+  ),
+  nodes: (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <circle cx="3.4" cy="3.4" r="1.7" />
+      <circle cx="11.6" cy="7" r="1.7" />
+      <circle cx="4.6" cy="11.4" r="1.7" />
+      <path d="M4.8 4.4l5 1.9M10.2 8.4L6 10.7" />
+    </svg>
+  ),
+  import: (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <rect x="2" y="2.5" width="12" height="11" rx="1.2" />
+      <circle cx="5.7" cy="6.2" r="1.1" />
+      <path d="M2.5 11.5l3.5-3.5 2 2 2.5-2.5 3 3" />
+    </svg>
+  ),
+  export: (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <path d="M8 2v7.5M8 9.5L5.4 6.9M8 9.5l2.6-2.6M2.5 11.5v1.5a1 1 0 001 1h9a1 1 0 001-1v-1.5" />
+    </svg>
+  ),
+  settings: (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <circle cx="8" cy="8" r="2.2" />
+      <path d="M13.2 9.8a5.4 5.4 0 000-3.6l1.5-1a.5.5 0 00-.1-.7l-1.9-1.4a.5.5 0 00-.6 0l-1.6 1a5.6 5.6 0 00-1.6-.9l-.3-1.9a.5.5 0 00-.5-.4h-2.2a.5.5 0 00-.5.4l-.3 1.9a5.6 5.6 0 00-1.6.9l-1.6-1a.5.5 0 00-.6 0L1.4 4.5a.5.5 0 00-.1.7l1.5 1a5.4 5.4 0 000 3.6l-1.5 1a.5.5 0 00.1.7l1.9 1.4a.5.5 0 00.6 0l1.6-1a5.6 5.6 0 001.6.9l.3 1.9a.5.5 0 00.5.4h2.2a.5.5 0 00.5-.4l.3-1.9a5.6 5.6 0 001.6-.9l1.6 1a.5.5 0 00.6 0z" />
+    </svg>
+  ),
+  theme: (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <path d="M10.5 2.5a5.5 5.5 0 00-6 8.9A5.5 5.5 0 1010.5 2.5z" />
+    </svg>
+  ),
+  lang: (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.2">
+      <circle cx="8" cy="8" r="6.2" />
+      <path d="M1.8 8h12.4M8 1.8c-4.4 4-4.4 8.4 0 12.4M8 1.8c4.4 4 4.4 8.4 0 12.4" />
+    </svg>
+  ),
+  clear: (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <path d="M3 4.5h10M6.5 4.5v-1a1 1 0 011-1h1a1 1 0 011 1v1M5 4.5l.6 8a1 1 0 001 .9h2.8a1 1 0 001-.9l.6-8" />
+    </svg>
+  ),
+}
 
 export function TopBar({
   onImportFile,
@@ -36,6 +88,7 @@ export function TopBar({
   const [exportOpen, setExportOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [clearConfirm, setClearConfirm] = useState(false)
   // phones/tablets swap the full bar for the mobile composition (nav + overflow menu)
   const isNarrow = useMediaQuery('(max-width: 1023px)')
   const [themeOpen, setThemeOpen] = useState(false)
@@ -55,18 +108,24 @@ export function TopBar({
   if (isNarrow) {
     // mobile: nav + document state only (Photoshop/Procreate pattern) — the tools
     // live in the bottom strip (App), rare actions hide behind the overflow menu
-    const themeLabel = { dark: t('theme.dark'), light: t('theme.light'), auto: t('theme.auto') }[
-      themePref
-    ]
-    const row = (label: string, action: () => void) => (
+    const themeLabel = {
+      dark: t('theme.dark'),
+      light: t('theme.light'),
+      oled: t('theme.oled'),
+      nord: t('theme.nord'),
+      sepia: t('theme.sepia'),
+      auto: t('theme.auto'),
+    }[themePref]
+    const row = (label: string, icon: JSX.Element, action: () => void) => (
       <button
         type="button"
         onClick={() => {
           setMoreOpen(false)
           action()
         }}
-        className="text-body hover:bg-chip-active flex h-11 w-full items-center rounded-lg px-3 text-left text-sm transition"
+        className="text-body hover:bg-chip-active flex h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm transition"
       >
+        {icon}
         {label}
       </button>
     )
@@ -141,27 +200,37 @@ export function TopBar({
           <>
             <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
             <div className="border-line bg-raised fixed top-15 right-2 z-50 w-64 rounded-xl border p-1.5 shadow-2xl">
-              {row(t('projects.title'), () => setProjectsOpen(true))}
-              {row(nodeEditorOpen ? t('editor.close') : t('editor.open'), () =>
+              {row(t('projects.title'), MORE_ICONS.projects, () => setProjectsOpen(true))}
+              {row(nodeEditorOpen ? t('editor.close') : t('editor.open'), MORE_ICONS.nodes, () =>
                 nodeEditorOpen ? closeNodeEditor() : openNodeEditor(),
               )}
-              {row(t('import.open'), () => importFileRef.current?.click())}
-              {row(t('export.open'), () => setExportOpen(true))}
-              {row(t('project.settings'), () => setSetupOpen(true))}
-              {row(`${t('top.theme')}: ${themeLabel}`, () =>
+              {row(t('import.open'), MORE_ICONS.import, () => importFileRef.current?.click())}
+              {row(t('export.open'), MORE_ICONS.export, () => setExportOpen(true))}
+              {row(t('project.settings'), MORE_ICONS.settings, () => setSetupOpen(true))}
+              {row(`${t('top.theme')}: ${themeLabel}`, MORE_ICONS.theme, () =>
                 setThemePref(
-                  themePref === 'dark' ? 'light' : themePref === 'light' ? 'auto' : 'dark',
+                  themePref === 'dark' ? 'light' : themePref === 'light' ? 'oled' : themePref === 'oled' ? 'nord' : themePref === 'nord' ? 'sepia' : themePref === 'sepia' ? 'auto' : 'dark',
                 ),
               )}
-              {row(`${t('lang.switch')}: ${lang === 'ru' ? 'RU' : 'EN'}`, () =>
+              {row(`${t('lang.switch')}: ${lang === 'ru' ? 'RU' : 'EN'}`, MORE_ICONS.lang, () =>
                 setLang(lang === 'ru' ? 'en' : 'ru'),
               )}
               <div className="bg-line my-1 h-px" />
-              {row(t('export.clear'), () => clear())}
+              {row(t('export.clear'), MORE_ICONS.clear, () => setClearConfirm(true))}
             </div>
           </>
         )}
         {projectsOpen && <ProjectsDialog onClose={() => setProjectsOpen(false)} />}
+        {clearConfirm && (
+          <ConfirmDialog
+            title={t('confirm.clear.title')}
+            message={t('confirm.clear.msg')}
+            confirmLabel={t('confirm.clear')}
+            cancelLabel={t('projects.cancel')}
+            onConfirm={() => clear()}
+            onClose={() => setClearConfirm(false)}
+          />
+        )}
         {setupOpen && <ProjectDialog mode="edit" onClose={() => setSetupOpen(false)} />}
         {exportOpen && <ExportPopover onClose={() => setExportOpen(false)} />}
       </>
@@ -311,7 +380,7 @@ export function TopBar({
         <IconButton
           plate
           title={`${t('export.clear')} — ${t('export.clear.desc')}`}
-          onClick={clear}
+          onClick={() => setClearConfirm(true)}
         >
           <svg
             viewBox="0 0 16 16"
@@ -440,6 +509,9 @@ export function TopBar({
                   [
                     ['dark', 'theme.dark'],
                     ['light', 'theme.light'],
+                    ['oled', 'theme.oled'],
+                    ['nord', 'theme.nord'],
+                    ['sepia', 'theme.sepia'],
                     ['auto', 'theme.auto'],
                   ] as const
                 ).map(([pref, key]) => (

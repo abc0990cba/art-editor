@@ -16,6 +16,54 @@
   --accent-text: #c7d2fe;
 }
 
+[data-theme='oled'] {
+  color-scheme: dark;
+  --app: #000000;
+  --panel: #0b0b0d;
+  --raised: #141417;
+  --body: #e8e8ec;
+  --muted: #8f8f9a;
+  --line: rgba(255, 255, 255, 0.14);
+  --chip: rgba(255, 255, 255, 0.06);
+  --chip-line: rgba(255, 255, 255, 0.14);
+  --chip-active: rgba(255, 255, 255, 0.1);
+  --accent-soft: rgba(129, 140, 248, 0.18);
+  --accent-line: rgba(129, 140, 248, 0.7);
+  --accent-text: #c7d2fe;
+}
+
+[data-theme='nord'] {
+  color-scheme: dark;
+  --app: #2e3440;
+  --panel: #333b4a;
+  --raised: #3b4252;
+  --body: #eceff4;
+  --muted: #9ba5b4;
+  --line: rgba(236, 239, 244, 0.12);
+  --chip: rgba(236, 239, 244, 0.06);
+  --chip-line: rgba(236, 239, 244, 0.14);
+  --chip-active: rgba(236, 239, 244, 0.1);
+  --accent-soft: rgba(136, 192, 208, 0.15);
+  --accent-line: rgba(136, 192, 208, 0.65);
+  --accent-text: #8fbcbb;
+}
+
+[data-theme='sepia'] {
+  color-scheme: light;
+  --app: #f6f1e7;
+  --panel: #efe9dc;
+  --raised: #fdfaf3;
+  --body: #3a362e;
+  --muted: #857d6d;
+  --line: rgba(80, 68, 45, 0.15);
+  --chip: rgba(80, 68, 45, 0.05);
+  --chip-line: rgba(80, 68, 45, 0.16);
+  --chip-active: rgba(80, 68, 45, 0.1);
+  --accent-soft: rgba(154, 124, 88, 0.15);
+  --accent-line: rgba(154, 124, 88, 0.6);
+  --accent-text: #7a5c33;
+}
+
 [data-theme='light'] {
   color-scheme: light;
   --app: #eef0f4;
@@ -33,6 +81,8 @@
 }
 
 @theme inline {
+  --text-overline: 10px;
+  --text-label: 11px;
   --color-app: var(--app);
   --color-panel: var(--panel);
   --color-raised: var(--raised);
@@ -51,6 +101,14 @@ html,
 body,
 #root {
   height: 100%;
+}
+
+/* uniform keyboard focus for every interactive element (Tailwind best practice:
+   one focus-visible convention instead of per-component focus:border tweaks) */
+:where(button, a, input, select, textarea, summary, [role='button']):focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+  border-radius: 4px;
 }
 
 body {

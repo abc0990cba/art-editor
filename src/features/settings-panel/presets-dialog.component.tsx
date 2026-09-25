@@ -168,16 +168,16 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
                           </button>
                         </Tooltip>
                       )}
-                      <span className="text-muted truncate text-[10px]">
+                      <span className="text-muted truncate text-overline">
                         {builtin ? `${t('presets.builtin')} · ` : ''}
                         {summary(p)}
                       </span>
                       {!builtin && (
-                        <span className="text-muted text-[10px]">
+                        <span className="text-muted text-overline">
                           {fmtDate((p as PresetEntry).updatedAt)}
                         </span>
                       )}
-                      <div className="grid grid-cols-2 gap-1 text-[11px]">
+                      <div className="grid grid-cols-2 gap-1 text-label">
                         <Tooltip label={t('presets.apply')}>
                           <button
                             type="button"

@@ -137,7 +137,7 @@ export interface StageTheme {
   frame: string
 }
 
-export const STAGE_THEMES: Record<'dark' | 'light', StageTheme> = {
+export const STAGE_THEMES: Record<'dark' | 'light' | 'oled' | 'nord' | 'sepia', StageTheme> = {
   dark: {
     checkerA: '#26262b',
     checkerB: '#1e1e23',
@@ -148,6 +148,26 @@ export const STAGE_THEMES: Record<'dark' | 'light', StageTheme> = {
     hoverHalo: 'rgba(0,0,0,0.65)',
     frame: 'rgba(255,255,255,0.15)',
   },
+  oled: {
+    checkerA: '#0c0c0e',
+    checkerB: '#050506',
+    gridLine: 'rgba(255,255,255,0.05)',
+    pixelLine: 'rgba(255,255,255,0.10)',
+    guide: 'rgba(129,140,248,0.55)',
+    hover: 'rgba(255,255,255,0.95)',
+    hoverHalo: 'rgba(0,0,0,0.65)',
+    frame: 'rgba(255,255,255,0.12)',
+  },
+  nord: {
+    checkerA: '#3b4252',
+    checkerB: '#333a47',
+    gridLine: 'rgba(236,239,244,0.08)',
+    pixelLine: 'rgba(236,239,244,0.16)',
+    guide: 'rgba(136,192,208,0.60)',
+    hover: 'rgba(236,239,244,0.95)',
+    hoverHalo: 'rgba(46,52,64,0.70)',
+    frame: 'rgba(236,239,244,0.15)',
+  },
   light: {
     checkerA: '#dfe2e8',
     checkerB: '#cdd1da',
@@ -157,6 +177,16 @@ export const STAGE_THEMES: Record<'dark' | 'light', StageTheme> = {
     hover: 'rgba(255,255,255,0.95)',
     hoverHalo: 'rgba(20,20,35,0.70)',
     frame: 'rgba(20,20,35,0.20)',
+  },
+  sepia: {
+    checkerA: '#efe8d8',
+    checkerB: '#e4dcc9',
+    gridLine: 'rgba(80,68,45,0.10)',
+    pixelLine: 'rgba(80,68,45,0.20)',
+    guide: 'rgba(122,92,51,0.60)',
+    hover: 'rgba(255,255,255,0.95)',
+    hoverHalo: 'rgba(58,54,46,0.70)',
+    frame: 'rgba(80,68,45,0.20)',
   },
 }
 

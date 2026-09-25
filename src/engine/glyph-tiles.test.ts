@@ -4,6 +4,13 @@ import { BAYER2, BAYER4 } from './dither-matrices.ts'
 import {
   BUILT_IN_GLYPH_SETS,
   builtInGlyphSetById,
+  glyphSetChevron,
+  glyphSetCross,
+  glyphSetDiamonds,
+  glyphSetGridDots,
+  glyphSetMedallion,
+  glyphSetSquares,
+  glyphSetCorner,
   emptyGlyphSet,
   glyphCellAt,
   glyphSetChecker,
@@ -120,6 +127,67 @@ function generators() {
     expect(BUILT_IN_GLYPH_SETS.length).toBeGreaterThanOrEqual(9)
     expect(builtInGlyphSetById('glyph-bayer4')?.w).toBe(4)
     expect(builtInGlyphSetById('nope')).toBeNull()
+  })
+}
+
+describe('azulejo generators', azulejo)
+
+function azulejo() {
+  const MONO_SETS: Array<[string, ReturnType<typeof glyphSetDiamonds>]> = [
+    ['diamonds', glyphSetDiamonds(4, 9)],
+    ['squares', glyphSetSquares(6, 9)],
+    ['corner', glyphSetCorner(4, 9)],
+    ['griddots', glyphSetGridDots(4, 9)],
+    ['cross', glyphSetCross(4, 9)],
+    ['medallion', glyphSetMedallion(6, 9)],
+    ['chevron', glyphSetChevron(6, 9)],
+  ]
+
+  for (const [name, set] of MONO_SETS) {
+    it(`${name}: coverage is monotone across levels`, () => {
+      let prev = -1
+      for (const cells of set.levels) {
+        const cov = tileCoverage(cells)
+        expect(cov).toBeGreaterThanOrEqual(prev - 1e-9)
+        prev = cov
+      }
+      expect(set.levels[0].some(Boolean)).toBe(false)
+    })
+  }
+
+  it('corner ramp reaches full diagonal at tone 1', () => {
+    const set = glyphSetCorner(4, 9)
+    expect(set.levels[8].every(Boolean)).toBe(true)
+    expect(set.levels[4].filter(Boolean).length).toBeGreaterThan(0)
+  })
+
+  it('cross arms reach the borders at full tone', () => {
+    const set = glyphSetCross(4, 9)
+    expect(set.levels[8].every(Boolean)).toBe(true)
+  })
+
+  it('medallion is 4-fold symmetric at mid tone', () => {
+    const set = glyphSetMedallion(6, 9)
+    const mid = set.levels[4]
+    const n = 6
+    const at = (x: number, y: number) => mid[y * n + x]
+    // vertical mirror
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        expect(at(x, y)).toBe(at(n - 1 - x, y))
+        expect(at(x, y)).toBe(at(x, n - 1 - y))
+      }
+    }
+  })
+
+  it('all new built-ins are registered', () => {
+    for (const id of [
+      'glyph-diamonds4', 'glyph-diamonds8', 'glyph-squares8', 'glyph-corner',
+      'glyph-griddots4', 'glyph-griddots8', 'glyph-cross4', 'glyph-cross8',
+      'glyph-medallion8', 'glyph-chevron',
+    ]) {
+      expect(builtInGlyphSetById(id)).not.toBeNull()
+    }
   })
 }
 

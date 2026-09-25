@@ -113,7 +113,7 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
         style={{ width: 288 }}
       >
         <div className="flex items-center justify-between">
-          <span className="text-muted text-[11px] font-semibold tracking-widest uppercase">
+          <span className="text-muted text-label font-semibold tracking-widest uppercase">
             {t('panel.export')}
           </span>
           <Tooltip label={t('dialog.close')}>
@@ -191,7 +191,7 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
             </svg>
           </Chip>
         </div>
-        <p className="text-muted text-[10px]">
+        <p className="text-muted text-overline">
           {pngW}×{pngH} px · {t('export.maxSide')}
         </p>
         <Tooltip label={t('export.svg.desc')}>

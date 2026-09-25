@@ -76,7 +76,7 @@ export function Section({
     <details open={defaultOpen} className={`border-line group border-b ${className ?? ''}`}>
       <summary
         aria-controls={id}
-        className="text-muted hover:text-body flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-[11px] font-semibold tracking-widest uppercase [&::-webkit-details-marker]:hidden"
+        className="text-muted hover:text-body flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-label font-semibold tracking-widest uppercase [&::-webkit-details-marker]:hidden"
       >
         <span className="flex items-center gap-2">
           {icon && (

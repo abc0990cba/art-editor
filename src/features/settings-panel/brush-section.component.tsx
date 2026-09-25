@@ -138,7 +138,7 @@ export function BrushSection() {
           <button
             type="button"
             onClick={() => void overwriteBrush(p.id)}
-            className="text-muted hover:text-body text-[10px] transition"
+            className="text-muted hover:text-body text-overline transition"
           >
             ↻
           </button>
@@ -151,7 +151,7 @@ export function BrushSection() {
                 void deleteBrushPreset(p.id)
                 setDeleting(null)
               }}
-              className="rounded border border-red-500/60 bg-red-500/10 px-1 text-[10px] text-red-400"
+              className="rounded border border-red-500/60 bg-red-500/10 px-1 text-overline text-red-400"
             >
               {t('brush.confirmDelete')}
             </button>
@@ -161,7 +161,7 @@ export function BrushSection() {
             <button
               type="button"
               onClick={() => setDeleting(p.id)}
-              className="text-muted text-[10px] transition hover:text-red-400"
+              className="text-muted text-overline transition hover:text-red-400"
             >
               ✕
             </button>
@@ -247,7 +247,7 @@ export function BrushSection() {
           </div>
         </div>
       ) : (
-        <p className="text-muted text-[11px]">{t('brush.squareOnly')}</p>
+        <p className="text-muted text-label">{t('brush.squareOnly')}</p>
       )}
 
       <CheckRow
@@ -261,7 +261,7 @@ export function BrushSection() {
         <span className="text-muted flex items-center gap-2 text-xs">
           {t('brush.presets')}
           {brushId === null && (
-            <span className="border-accent-line text-accent-text rounded border px-1 text-[10px]">
+            <span className="border-accent-line text-accent-text rounded border px-1 text-overline">
               {t('brush.custom')}
             </span>
           )}
@@ -283,7 +283,7 @@ export function BrushSection() {
                 {t(brushNameKey(id))}
               </span>
               <Tooltip label={t('brush.builtin')}>
-                <span className="text-muted text-[10px]">★</span>
+                <span className="text-muted text-overline">★</span>
               </Tooltip>
             </button>
           ))}

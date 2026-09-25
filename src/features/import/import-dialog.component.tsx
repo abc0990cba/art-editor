@@ -254,7 +254,7 @@ export function ImportDialog({
                   </Chip>
                 </div>
                 {result && (
-                  <span className="text-muted text-[10px]">
+                  <span className="text-muted text-overline">
                     {result.cols}×{result.rows} {t('import.info.cells')} · {colorsUsed}{' '}
                     {t('import.info.colors')}
                   </span>

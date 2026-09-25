@@ -175,7 +175,6 @@ export function SettingsPanel({
         <Section
           title={t('panel.color')}
           icon="color"
-          defaultOpen
           className="flex max-h-[60vh] flex-col overflow-hidden"
           contentClassName="min-h-0 overflow-y-auto"
         >
@@ -224,7 +223,7 @@ export function SettingsPanel({
             </div>
             <div className="flex min-w-0 flex-col">
               <span className="text-body truncate font-mono text-xs">{color}</span>
-              <span className="text-muted text-[10px]">
+              <span className="text-muted text-overline">
                 {tool === 'eraser' ? t('tool.eraser') : t('picker.brush')}
               </span>
             </div>
@@ -373,7 +372,7 @@ export function SettingsPanel({
                     <span className="text-body flex-1 truncate text-left text-xs">
                       {presetName(p)}
                     </span>
-                    {builtin && <span className="text-muted text-[10px]">★</span>}
+                    {builtin && <span className="text-muted text-overline">★</span>}
                   </button>
                 </Tooltip>
               )
@@ -396,7 +395,7 @@ export function SettingsPanel({
                 fillSelection()
               }}
             />
-            <p className="text-muted text-[10px]">{t('fill.selection.hint')}</p>
+            <p className="text-muted text-overline">{t('fill.selection.hint')}</p>
           </Section>
         )}
 
@@ -426,7 +425,7 @@ export function SettingsPanel({
               </Chip>
             </div>
           </div>
-          {!elementMode && <p className="text-muted text-[10px]">{t('style.scope.global.hint')}</p>}
+          {!elementMode && <p className="text-muted text-overline">{t('style.scope.global.hint')}</p>}
           {targetSelection && (
             <div className="border-accent-line bg-accent-soft text-accent-text flex items-center justify-between rounded-md border px-2 py-1 text-xs">
               <span>
@@ -441,7 +440,7 @@ export function SettingsPanel({
               </button>
             </div>
           )}
-          <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
+          <div className="text-muted text-overline font-semibold tracking-wider uppercase">
             {t('style.group.mode')}
           </div>
           <div className="flex gap-1.5">
@@ -554,7 +553,7 @@ export function SettingsPanel({
           )}
           {modeView === 'pixels' && (
             <>
-              <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
+              <div className="text-muted text-overline font-semibold tracking-wider uppercase">
                 {t('style.group.size')}
               </div>
               <Slider
@@ -577,7 +576,7 @@ export function SettingsPanel({
                 display={pct}
                 onChange={(v) => applyStyle({ sizeY: v })}
               />
-              <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
+              <div className="text-muted text-overline font-semibold tracking-wider uppercase">
                 {t('style.group.rounding')}
               </div>
               <div className="flex gap-1.5">
@@ -675,7 +674,7 @@ export function SettingsPanel({
           )}
           {modeView === 'metaball' && (
             <>
-              <div className="text-muted text-[10px] font-semibold tracking-wider uppercase">
+              <div className="text-muted text-overline font-semibold tracking-wider uppercase">
                 {t('style.group.metaball')}
               </div>
               <Slider
@@ -848,7 +847,7 @@ export function SettingsPanel({
                       max={100}
                       onChange={(v) => applyTexture({ ramp: v })}
                     />
-                    <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
+                    <div className="text-muted text-label font-medium tracking-wider uppercase">
                       {t('texture.distress')}
                     </div>
                     <Slider
@@ -963,7 +962,7 @@ export function SettingsPanel({
         )}
 
         <Section title={t('panel.symmetry')} icon="symmetry">
-          <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
+          <div className="text-muted text-label font-medium tracking-wider uppercase">
             {t('sym.basic')}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
@@ -979,7 +978,7 @@ export function SettingsPanel({
             ))}
           </div>
 
-          <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
+          <div className="text-muted text-label font-medium tracking-wider uppercase">
             {t('sym.rosette')}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
@@ -1031,9 +1030,9 @@ export function SettingsPanel({
             </>
           )}
 
-          {!isSquare && <p className="text-muted text-[11px]">{t('sym.squareOnlyHint')}</p>}
+          {!isSquare && <p className="text-muted text-label">{t('sym.squareOnlyHint')}</p>}
 
-          <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
+          <div className="text-muted text-label font-medium tracking-wider uppercase">
             {t('sym.wallpaper')}
           </div>
           <div className="grid grid-cols-4 gap-1.5">
@@ -1050,7 +1049,7 @@ export function SettingsPanel({
             ))}
           </div>
 
-          <div className="text-muted text-[11px] font-medium tracking-wider uppercase">
+          <div className="text-muted text-label font-medium tracking-wider uppercase">
             {t('sym.repeat')}
           </div>
           <div className="grid grid-cols-2 gap-1.5">

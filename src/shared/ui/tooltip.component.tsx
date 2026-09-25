@@ -147,7 +147,7 @@ export function Tooltip({ label, children }: { label?: ReactNode; children: Reac
           <div
             ref={bubbleRef}
             role="tooltip"
-            className="pointer-events-none fixed z-50 max-w-56 rounded-md border border-neutral-700 bg-neutral-900/95 px-2 py-1 text-left text-[11px] leading-snug text-neutral-100 shadow-lg"
+            className="pointer-events-none fixed z-50 max-w-56 rounded-md border border-neutral-700 bg-neutral-900/95 px-2 py-1 text-left text-label leading-snug text-neutral-100 shadow-lg"
             style={{
               left: pos.x + shift,
               top: pos.y,

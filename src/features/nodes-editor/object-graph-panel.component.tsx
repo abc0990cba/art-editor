@@ -103,7 +103,6 @@ export function NodePresetsPanel() {
     <Section
       title={t('graph.presets')}
       icon="nodes"
-      defaultOpen
       contentClassName="max-h-64 overflow-y-auto"
     >
       <div className="grid grid-cols-2 gap-1">
@@ -119,7 +118,7 @@ export function NodePresetsPanel() {
           </Tooltip>
         ))}
       </div>
-      <p className="text-muted text-[10px] leading-snug">{t('graph.presets.hint')}</p>
+      <p className="text-muted text-overline leading-snug">{t('graph.presets.hint')}</p>
     </Section>
   )
 }
@@ -214,7 +213,7 @@ export function ObjectGraphPanel() {
               />
             )}
             {graph.nodes.length === 0 && (
-              <p className="text-muted text-[11px] leading-snug">{t('graph.empty')}</p>
+              <p className="text-muted text-label leading-snug">{t('graph.empty')}</p>
             )}
             {graph.nodes.map((node) => {
               const def = nodeDef(node.op)
@@ -242,7 +241,7 @@ export function ObjectGraphPanel() {
                     </span>
                     {node.unknown && (
                       <Tooltip label={t('graph.unknown')}>
-                        <span className="text-[10px] text-amber-400">?</span>
+                        <span className="text-overline text-amber-400">?</span>
                       </Tooltip>
                     )}
                     <Tooltip label={t('graph.up')}>
@@ -352,7 +351,7 @@ export function ObjectGraphPanel() {
           </div>
           {importState?.error && <p className="text-xs text-red-400">{t('graph.import.bad')}</p>}
           {importState?.warnings && importState.warnings.length > 0 && (
-            <p className="text-muted text-[10px] leading-snug">
+            <p className="text-muted text-overline leading-snug">
               {importState.warnings.join(' · ')}
             </p>
           )}

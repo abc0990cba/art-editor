@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { deserialize } from '../../engine/project.ts'
+import { renderThumbnailDataURL } from '../../engine/png.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+import { ConfirmDialog } from '../../shared/ui/confirm-dialog.component.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import {
@@ -17,7 +19,17 @@ import {
 
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; entries: ProjectEntry[] }
 
-export function ProjectsDialog({ onClose }: { onClose: () => void }) {
+export function ProjectsDialog({
+  onClose,
+  variant = 'modal',
+  onNewProject,
+}: {
+  onClose: () => void
+  /** 'home' = full-screen startup catalog (no backdrop close, no save row) */
+  variant?: 'modal' | 'home'
+  /** home variant: primary "new project" action handed over to the caller */
+  onNewProject?: () => void
+}) {
   const { t, lang } = useI18n()
   const doc = useStore((s) => s.doc)
   const projectName = useStore((s) => s.projectName)
@@ -51,13 +63,21 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && variant === 'modal') onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, variant])
 
   const hasContent = doc.cells.some((v) => v !== 0) || doc.links.length > 0
+  const thumb = useMemo(() => {
+    void doc.cols
+    try {
+      return renderThumbnailDataURL(doc, 160)
+    } catch {
+      return null
+    }
+  }, [doc])
 
   const replaceGuard = (action: () => void) => {
     if (hasContent) setConfirmReplace(() => action)
@@ -140,15 +160,37 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
   const entryName = (entry: ProjectEntry) =>
     entry.id === projectId && projectName.trim() ? projectName : entry.name
 
+  const shell =
+    variant === 'home'
+      ? 'bg-app fixed inset-0 z-50 flex flex-col overflow-y-auto p-5'
+      : 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'
+  const card =
+    variant === 'home'
+      ? 'border-line bg-app mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-4 overflow-hidden rounded-xl border p-4'
+      : 'border-line bg-app flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl border p-4 shadow-2xl'
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="border-line bg-app flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl border p-4 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className={shell} onClick={variant === 'modal' ? onClose : undefined}>
+      <div className={card} onClick={(e) => e.stopPropagation()}>
+        {variant === 'home' && (
+          <div className="flex items-center gap-3">
+            <svg viewBox="0 0 20 20" className="h-6 w-6 shrink-0" aria-hidden>
+              <defs>
+                <linearGradient id="home-logo" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#818cf8" />
+                  <stop offset="100%" stopColor="#e879f9" />
+                </linearGradient>
+              </defs>
+              <rect width="20" height="20" rx="5.5" fill="url(#home-logo)" />
+              <rect x="3.5" y="3.5" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".95" />
+              <rect x="10.9" y="3.5" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".7" />
+              <rect x="3.5" y="10.9" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".55" />
+              <circle cx="13.7" cy="13.7" r="2.8" fill="#fff" opacity=".85" />
+            </svg>
+            <h2 className="text-body text-base font-semibold tracking-wide">{t('home.title')}</h2>
+          </div>
+        )}
+        {variant === 'modal' && (
         <div className="flex items-center justify-between">
           <h2 className="text-body text-sm font-semibold tracking-wide">{t('projects.title')}</h2>
           <Tooltip label={t('dialog.close')}>
@@ -161,7 +203,47 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
             </button>
           </Tooltip>
         </div>
+        )}
 
+        {variant === 'home' && (
+          <button
+            type="button"
+            onClick={() => (onNewProject ? onNewProject() : newProject())}
+            className="rounded-md bg-indigo-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-indigo-400"
+          >
+            + {t('home.new')}
+          </button>
+        )}
+
+        {variant === 'home' && hasContent && (
+          <div>
+            <p className="text-muted mb-1.5 text-overline font-semibold uppercase tracking-widest">
+              {t('home.lastOpened')}
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="border-accent-line bg-panel flex w-full items-center gap-3 rounded-lg border p-2 text-left transition hover:border-accent-text"
+            >
+              {thumb ? (
+                <img src={thumb} alt="" className="border-line h-16 w-20 rounded border object-contain" />
+              ) : (
+                <div className="border-line bg-chip h-16 w-20 rounded border" />
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="text-body block truncate text-sm font-medium">
+                  {projectName.trim() || t('project.untitled')}
+                </span>
+                <span className="text-muted block text-overline">{t('home.lastSaved')}</span>
+              </span>
+              <span className="border-accent-line text-accent-text rounded border px-2 py-1 text-xs">
+                {t('home.continue')}
+              </span>
+            </button>
+          </div>
+        )}
+
+{variant === 'modal' && (
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -188,7 +270,18 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
             {t('projects.new')}
           </button>
         </div>
+        )}
 
+        {deleting && (
+          <ConfirmDialog
+            title={t('confirm.deleteProject.title')}
+            message={t('confirm.deleteProject.msg')}
+            confirmLabel={t('confirm.deleteProject')}
+            cancelLabel={t('projects.cancel')}
+            onConfirm={() => void deleteEntry(deleting)}
+            onClose={() => setDeleting(null)}
+          />
+        )}
         {confirmReplace && (
           <div className="text-body flex items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
             <span>{t('projects.replaceWarn')}</span>
@@ -276,13 +369,13 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
                         </Tooltip>
                       )}
                       {entry.id === projectId && (
-                        <span className="border-accent-line text-accent-text shrink-0 rounded border px-1 py-px text-[10px]">
+                        <span className="border-accent-line text-accent-text shrink-0 rounded border px-1 py-px text-overline">
                           {t('projects.current')}
                         </span>
                       )}
                     </div>
-                    <span className="text-muted text-[10px]">{fmtDate(entry.updatedAt)}</span>
-                    <div className="flex gap-1 text-[11px]">
+                    <span className="text-muted text-overline">{fmtDate(entry.updatedAt)}</span>
+                    <div className="flex gap-1 text-label">
                       <Tooltip label={t('projects.open')}>
                         <button
                           type="button"
@@ -301,27 +394,15 @@ export function ProjectsDialog({ onClose }: { onClose: () => void }) {
                           {t('projects.duplicate')}
                         </button>
                       </Tooltip>
-                      {deleting === entry.id ? (
-                        <Tooltip label={t('projects.confirmDelete')}>
-                          <button
-                            type="button"
-                            onClick={() => void deleteEntry(entry.id)}
-                            className="flex-1 rounded border border-red-500/60 bg-red-500/10 py-0.5 text-red-400 transition hover:bg-red-500/20"
-                          >
-                            {t('projects.confirmDelete')}
-                          </button>
-                        </Tooltip>
-                      ) : (
-                        <Tooltip label={t('projects.delete')}>
-                          <button
-                            type="button"
-                            onClick={() => setDeleting(entry.id)}
-                            className="border-line flex-1 rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400"
-                          >
-                            {t('projects.delete')}
-                          </button>
-                        </Tooltip>
-                      )}
+                      <Tooltip label={t('projects.delete')}>
+                        <button
+                          type="button"
+                          onClick={() => setDeleting(entry.id)}
+                          className="border-line hover:border-red-500/60 hover:text-red-400 flex-1 rounded border py-0.5 transition"
+                        >
+                          {t('projects.delete')}
+                        </button>
+                      </Tooltip>
                     </div>
                   </div>
                 </div>

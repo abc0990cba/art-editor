@@ -124,7 +124,7 @@ export function DragNumber({
           // deferred so the browser's caret placement from the click doesn't win
           if (d && !d.moved) setTimeout(() => inputRef.current?.select(), 0)
         }}
-        className={`border-line bg-chip text-body focus:border-accent-line cursor-ew-resize rounded border px-1 py-0.5 text-right text-[10px] outline-none select-none ${className}`}
+        className={`border-line bg-chip text-body focus:border-accent-line cursor-ew-resize rounded border px-1 py-0.5 text-right text-overline outline-none select-none ${className}`}
       />
     </Tooltip>
   )

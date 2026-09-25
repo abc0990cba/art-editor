@@ -6,6 +6,8 @@ import { CanvasStage } from '../features/canvas/canvas-stage.component.tsx'
 import { ImportDialog } from '../features/import/import-dialog.component.tsx'
 import { NodeEditorCanvas } from '../features/nodes-editor/node-editor-canvas.component.tsx'
 import { ProjectDialog } from '../features/projects/project-dialog.component.tsx'
+import { ProjectsDialog } from '../features/projects/projects-dialog.component.tsx'
+import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
 import { SettingsPanel } from '../features/settings-panel/settings-panel.component.tsx'
 import {
   allOrder,
@@ -216,9 +218,13 @@ function Editor() {
       })
   }, [])
   const nodeEditorOpen = useStore((s) => s.nodeEditorOpen)
+  const doc = useStore((s) => s.doc)
   const tool = useStore((s) => s.tool)
   // fresh users (no autosave) see the project creation dialog first
+  // previously opened app: land on the project catalog, not the canvas (Photoshop home)
+  const [homeOpen, setHomeOpen] = useState(() => hasAutosave())
   const [setupOpen, setSetupOpen] = useState(() => !hasAutosave())
+  const [newGuard, setNewGuard] = useState(false)
   // phones/tablets: the right panel lives in a slide-over drawer instead of a column
   const [panelOpen, setPanelOpen] = useState(false)
   // mobile: the active tool's settings open as a bottom sheet from the strip's gear
@@ -268,6 +274,34 @@ function Editor() {
         <ToolRail />
         <div ref={editorPaneRef} className="relative flex min-w-0 flex-1">
           <CanvasStage onDropFile={openImportFile} />
+          {homeOpen && (
+            <ProjectsDialog
+              variant="home"
+              onClose={() => setHomeOpen(false)}
+              onNewProject={() => {
+                const busy = doc.cells.some((v) => v !== 0) || doc.links.length > 0
+                if (busy) setNewGuard(true)
+                else {
+                  setHomeOpen(false)
+                  setSetupOpen(true)
+                }
+              }}
+            />
+          )}
+          {newGuard && (
+            <ConfirmDialog
+              title={t('projects.replaceWarnTitle')}
+              message={t('projects.replaceWarn')}
+              confirmLabel={t('projects.confirm')}
+              cancelLabel={t('projects.cancel')}
+              onConfirm={() => {
+                setNewGuard(false)
+                setHomeOpen(false)
+                setSetupOpen(true)
+              }}
+              onClose={() => setNewGuard(false)}
+            />
+          )}
           {setupOpen && <ProjectDialog mode="create" onClose={() => setSetupOpen(false)} />}
           {nodeEditorOpen && (
             <>

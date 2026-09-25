@@ -43,7 +43,7 @@ export function GlyphSetPicker({
     <div className="flex flex-col gap-1.5">
       <div className="border-line bg-chip flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1">
         {glyphSets.length === 0 && (
-          <p className="text-muted px-1 py-0.5 text-[11px]">{t('glyph.noUserSets')}</p>
+          <p className="text-muted px-1 py-0.5 text-label">{t('glyph.noUserSets')}</p>
         )}
         {glyphSets.map((entry) => (
           <Chip key={entry.id} active={activeId === entry.id} onClick={() => onChange(entry.set)}>
@@ -57,7 +57,7 @@ export function GlyphSetPicker({
         ))}
       </div>
       {selected && <GlyphRampStrip set={selected} size={5} />}
-      <p className="text-muted text-[10px] leading-snug">{t('glyph.pickerHint')}</p>
+      <p className="text-muted text-overline leading-snug">{t('glyph.pickerHint')}</p>
     </div>
   )
 }
