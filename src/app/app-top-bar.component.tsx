@@ -35,7 +35,6 @@ export function TopBar({
   const [projectsOpen, setProjectsOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
   const [clearConfirm, setClearConfirm] = useState(false)
   // phones/tablets swap the full bar for the mobile composition (nav + overflow menu)
   const isNarrow = useMediaQuery('(max-width: 1023px)')
@@ -75,18 +74,16 @@ export function TopBar({
         <MobileHeader
           onSettings={() => setSetupOpen(true)}
           onTogglePanel={onTogglePanel}
-          onMore={() => setMoreOpen((v) => !v)}
+          more={
+            <TopBarMoreMenu
+              onProjects={() => setProjectsOpen(true)}
+              onImport={() => importFileRef.current?.click()}
+              onExport={() => setExportOpen(true)}
+              onSettings={() => setSetupOpen(true)}
+              onClear={() => setClearConfirm(true)}
+            />
+          }
         />
-        {moreOpen && (
-          <TopBarMoreMenu
-            onClose={() => setMoreOpen(false)}
-            onProjects={() => setProjectsOpen(true)}
-            onImport={() => importFileRef.current?.click()}
-            onExport={() => setExportOpen(true)}
-            onSettings={() => setSetupOpen(true)}
-            onClear={() => setClearConfirm(true)}
-          />
-        )}
         {hiddenFileInput}
         {dialogs}
       </>

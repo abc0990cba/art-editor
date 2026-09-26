@@ -42,6 +42,7 @@ import {
 import { BrushSection } from './brush-section.component.tsx'
 import { PresetsDialog } from './presets-dialog.component.tsx'
 import { PixelStylePreview, TexturePreview } from './style-previews.component.tsx'
+import { SymmetryPreviewDialog } from './symmetry-preview-dialog.component.tsx'
 
 const QUICK_COLORS = [
   '#f5f5f0',
@@ -88,6 +89,8 @@ export function SettingsPanel({
   const setConnectivity = useStore((s) => s.setConnectivity)
   const recent = useStore((s) => s.recent)
   const applyPalette = useStore((s) => s.applyPalette)
+  const paletteAutoApply = useStore((s) => s.paletteAutoApply)
+  const setPaletteAutoApply = useStore((s) => s.setPaletteAutoApply)
   const replacePalette = useStore((s) => s.replacePalette)
   const applyPreset = useStore((s) => s.applyPreset)
   const requestFit = useStore((s) => s.requestFit)
@@ -99,6 +102,10 @@ export function SettingsPanel({
   const paletteFileRef = useRef<HTMLInputElement>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [presetsOpen, setPresetsOpen] = useState(false)
+  // modal preview shown when a symmetry mode is picked
+  const [symPreviewOpen, setSymPreviewOpen] = useState(false)
+  // colors offered for painting when a palette is picked without recoloring the canvas
+  const [availableColors, setAvailableColors] = useState<string[]>([])
   const pct = (v: number) => `${Math.round(v * 100)}%`
 
   const importPaletteFile = async (file: File) => {
@@ -229,6 +236,22 @@ export function SettingsPanel({
             </div>
           </div>
           {pickerOpen && <ColorPicker color={color} onChange={applyColor} />}
+          {availableColors.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-muted text-xs">{t('palette.available')}</span>
+              <div className="grid grid-cols-6 gap-1">
+                {availableColors.map((c) => (
+                  <ColorSwatch
+                    key={c}
+                    hex={c}
+                    active={color.toLowerCase() === c}
+                    label={c}
+                    onPick={() => applyColor(c)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           {recent.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="text-muted text-xs">{t('picker.recent')}</span>
@@ -268,13 +291,26 @@ export function SettingsPanel({
               </svg>
             </summary>
             <div className="flex flex-col gap-1 px-2 pb-2">
+              <CheckRow
+                label={t('palette.applyToCanvas')}
+                title={t('palette.applyToCanvas.desc')}
+                checked={paletteAutoApply}
+                onChange={setPaletteAutoApply}
+              />
               {PALETTES.map((p) => {
                 const active = matchedPresetId(doc.palette) === p.id
                 return (
                   <Tooltip key={p.id} label={t(`palette.${p.id}.desc` as 'palette.classic12.desc')}>
                     <button
                       type="button"
-                      onClick={() => applyPalette(p)}
+                      onClick={() => {
+                        if (paletteAutoApply) {
+                          applyPalette(p)
+                          setAvailableColors([])
+                        } else {
+                          setAvailableColors(p.colors)
+                        }
+                      }}
                       className={`flex w-full items-center gap-2 rounded-md border px-2 py-1 transition ${
                         active
                           ? 'border-accent-line bg-accent-soft'
@@ -973,7 +1009,11 @@ export function SettingsPanel({
                 key={mode}
                 active={symmetry.mode === mode}
                 title={t(`sym.${mode}.desc` as 'sym.none.desc')}
-                onClick={() => patchSymmetry({ mode })}
+                onClick={() => {
+                  const changed = symmetry.mode !== mode
+                  patchSymmetry({ mode })
+                  if (changed) setSymPreviewOpen(true)
+                }}
               >
                 {t(`sym.${mode}`)}
               </Chip>
@@ -989,7 +1029,11 @@ export function SettingsPanel({
                 key={mode}
                 active={symmetry.mode === mode}
                 title={t(`sym.${mode}.desc` as 'sym.radial.desc')}
-                onClick={() => patchSymmetry({ mode })}
+                onClick={() => {
+                  const changed = symmetry.mode !== mode
+                  patchSymmetry({ mode })
+                  if (changed) setSymPreviewOpen(true)
+                }}
               >
                 {t(`sym.${mode}`)}
               </Chip>
@@ -1044,7 +1088,11 @@ export function SettingsPanel({
                 active={symmetry.mode === mode}
                 disabled={!isSquare}
                 title={t(`sym.${mode}.desc` as 'sym.p1.desc')}
-                onClick={() => patchSymmetry({ mode })}
+                onClick={() => {
+                  const changed = symmetry.mode !== mode
+                  patchSymmetry({ mode })
+                  if (changed) setSymPreviewOpen(true)
+                }}
               >
                 {mode}
               </Chip>
@@ -1061,7 +1109,11 @@ export function SettingsPanel({
                 active={symmetry.mode === mode}
                 disabled={!isSquare}
                 title={t(`sym.${mode}.desc` as 'sym.brick.desc')}
-                onClick={() => patchSymmetry({ mode })}
+                onClick={() => {
+                  const changed = symmetry.mode !== mode
+                  patchSymmetry({ mode })
+                  if (changed) setSymPreviewOpen(true)
+                }}
               >
                 {t(`sym.${mode}`)}
               </Chip>
@@ -1102,6 +1154,11 @@ export function SettingsPanel({
             checked={symmetry.showGuides}
             onChange={(v) => patchSymmetry({ showGuides: v })}
           />
+
+          <Chip title={t('sym.preview.desc')} onClick={() => setSymPreviewOpen(true)}>
+            {t('sym.preview')}
+          </Chip>
+          {symPreviewOpen && <SymmetryPreviewDialog onClose={() => setSymPreviewOpen(false)} />}
         </Section>
 
         <Section title={t('panel.canvas')} icon="canvas">

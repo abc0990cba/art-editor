@@ -106,7 +106,7 @@ Tooltips and dropdown bubbles always portal to body. Anything above `z-50` needs
 - **Flex text**: a truncating child needs `min-w-0` + `truncate`; fixed-width icons/plates need `shrink-0`. Every flex child that overflows and breaks layout forgot one of these.
 - **Arbitrary values policy**: `text-overline` (10px) and `text-label` (11px) are theme tokens (`@theme inline` in index.css) — never write `text-[10px]/[11px]` again. Remaining bracket values (`max-w-[88vw]`, `max-h-[85vh]`, `w-[168px]`) are measured one-offs; a bracket value that appears 3+ times must become an `@theme` token.
 - **Focus**: one global `:focus-visible` outline lives in index.css — do not add per-component `focus:ring`/`focus:outline`; keep the existing `focus:border-accent-line` for inputs only.
-- **Dialog width ladder**: `max-w-sm` (confirm) → `max-w-md` (create/project dialog) → `max-w-3xl` (projects catalog) → `max-w-4xl` (import). A new dialog picks the nearest rung.
+- **Dialog width ladder**: `max-w-sm` (confirm) → `max-w-md` (create/project dialog) → `max-w-3xl` (projects catalog) → `max-w-4xl` (import) → `max-w-5xl` (glyph gallery — needs room for the photo preview). A new dialog picks the nearest rung.
 - **Layered styling**: theme colors via `@theme inline` CSS variables (`--app/--panel/--raised/…`) → utilities (`bg-app`, `text-muted`…). Adding a theme color = add the variable in both `:root` and `[data-theme='light']` + one `@theme inline` line.
 
 ## 9. Hard rules (violation = change request)

@@ -112,10 +112,13 @@ src/
 override, когда файл вписывается в глобальные пороги). Исключения: `*.messages.ts`
 (файлы-данные локализации) — свободный лимит; тесты — cap по фактическому размеру.
 
-При рефакторинге гигантов (`canvas-stage` 2437 → цель ≤400, `editor.store` 2177,
-`shapes` 1310, `tool-rail` 1287, `node-editor-canvas` 1233, `settings-panel` 1170,
-`import-image` 1136) — разбивай по фичам/слоям согласно структуре выше, не выбирай
-исключения из правил.
+Разбитые (не увеличивать!): `editor.store` → слайсы `state/*.slice.ts` (в сторе осталась
+только композиция), `shapes` → фасад + `shape-*.ts`, `import-image` → фасад +
+`import-*.ts`, `texture` → баррель + `texture-*.ts`, `presets` → `preset-*.ts`,
+`app-top-bar` → `top-bar-*.component.tsx`. Ещё ждут разделения: `canvas-stage` 2439,
+`tool-rail` 1334, `node-editor-canvas` 1233, `settings-panel` 1170, `geometry` 827,
+`scene` 802, `symmetry` 619, `fillpatterns` 559, `grids` 549, `doc` 527, `project` 485,
+`palettes` 455, `app.component` 482 — разбивай по фичам/слоям согласно структуре выше.
 
 ## TypeScript — жёсткий профиль
 

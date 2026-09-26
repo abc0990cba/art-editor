@@ -1232,7 +1232,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       paintCells(new Map<number, number | null>(), '', st.links)
     }
     bumpStaging()
-  }, [paintCells, paintCellsValues, selectElements, color, tool])
+    // shapePaint/toolOpts decide whether the commit becomes a parametric node or
+    // per-cell fill+stroke values — a stale closure here would drop the user's style
+  }, [paintCells, paintCellsValues, selectElements, color, tool, shapePaint, toolOpts])
 
   // Finish a drag no matter where the pointer ends up: window-level pointerup,
   // pointercancel and blur all clear the in-flight stroke so a lost pointerup

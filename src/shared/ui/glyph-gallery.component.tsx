@@ -103,7 +103,7 @@ export function GlyphGallery({
     >
       <DialogContent
         showCloseButton={false}
-        className="z-60 flex h-auto max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl p-4 sm:max-w-3xl"
+        className="z-60 flex h-auto max-h-[90vh] w-full max-w-5xl flex-col gap-3 overflow-hidden rounded-xl p-4 sm:max-w-5xl"
       >
         <div className="flex items-center justify-between">
           <DialogTitle className="text-body text-sm font-semibold tracking-wide">

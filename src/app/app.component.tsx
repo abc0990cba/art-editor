@@ -395,7 +395,7 @@ function Editor() {
           >
             <svg
               viewBox="0 0 16 16"
-              className="h-5 w-5 -scale-x-100"
+              className="h-5 w-5"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.4"
@@ -431,22 +431,22 @@ function Editor() {
         <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setPanelOpen(false)}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <aside
-            className="border-line bg-panel absolute inset-y-0 right-0 flex w-72 max-w-[88vw] flex-col border-l shadow-2xl"
+            className="border-line bg-panel absolute inset-0 flex flex-col shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-line flex items-center justify-between border-b px-3 py-2">
-              <span className="text-muted text-xs font-semibold tracking-wider uppercase">
+            <div className="border-line flex items-center justify-between border-b px-4 py-3">
+              <span className="text-muted text-sm font-semibold tracking-wider uppercase">
                 {t('top.panel')}
               </span>
               <button
                 type="button"
                 onClick={() => setPanelOpen(false)}
                 aria-label={t('preview.close')}
-                className="text-muted hover:text-body transition"
+                className="text-muted hover:bg-chip-active hover:text-body flex h-11 w-11 items-center justify-center rounded-lg transition"
               >
                 <svg
                   viewBox="0 0 16 16"
-                  className="h-4 w-4"
+                  className="h-5 w-5"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.5"

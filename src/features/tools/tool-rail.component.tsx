@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react'
+import { useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 
 import { useStore, type Tool, type ToolOpts } from '../../state/editor.store.ts'
 
@@ -1038,27 +1038,26 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
   }
 
   if (narrow) {
-    // phones/tablets: the settings become a bottom sheet — an anchored 320px
-    // popover would leave no canvas visible beside it
+    // phones/tablets: the settings take the whole screen — roomy paddings and large
+    // touch targets make the controls comfortable on small displays
     return (
       <>
-        <div className="fixed inset-0 z-40" onClick={onClose} />
-        <div className="border-line bg-panel fixed inset-x-2 bottom-2 z-50 max-h-[72dvh] overflow-y-auto rounded-xl border p-3 shadow-2xl">
-          <div className="text-muted text-overline mb-1 font-semibold tracking-widest uppercase">
-            {t('tool.settings')}
-          </div>
-          <div className="text-body mb-2.5 flex items-center gap-1.5">
-            <ToolIcon id={tool} className="h-4 w-4" />
-            <span className="flex-1 text-xs font-medium">{t(`tool.${tool}`)}</span>
+        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="bg-panel fixed inset-0 z-50 flex flex-col">
+          <div className="border-line flex items-center justify-between border-b px-4 py-3">
+            <div className="text-body flex items-center gap-2">
+              <ToolIcon id={tool} className="h-4 w-4" />
+              <span className="text-sm font-semibold">{t(`tool.${tool}`)}</span>
+            </div>
             <button
               type="button"
               onClick={onClose}
               aria-label={t('preview.close')}
-              className="text-muted hover:text-body transition"
+              className="text-muted hover:bg-chip-active hover:text-body flex h-11 w-11 items-center justify-center rounded-lg transition"
             >
               <svg
                 viewBox="0 0 16 16"
-                className="h-3.5 w-3.5"
+                className="h-5 w-5"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -1068,7 +1067,12 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
               </svg>
             </button>
           </div>
-          {body}
+          <div className="text-body flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+            <div className="text-muted text-overline font-semibold tracking-widest uppercase">
+              {t('tool.settings')}
+            </div>
+            {body}
+          </div>
         </div>
       </>
     )
@@ -1176,6 +1180,51 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
   )
 }
 
+/**
+ * Scrollable rail list without a visible scrollbar (a fat bar next to the icon strip looks clumsy).
+ * Instead, subtle gradient fades appear at the clipped edges hinting that the list continues — they
+ * show only while there is content beyond the edge.
+ */
+function RailList({ className, children }: { className: string; children: ReactNode }) {
+  const listRef = useRef<HTMLDivElement>(null)
+  const [fadeTop, setFadeTop] = useState(false)
+  const [fadeBottom, setFadeBottom] = useState(false)
+
+  const update = useCallback(() => {
+    const el = listRef.current
+    if (!el) return
+    setFadeTop(el.scrollTop > 4)
+    setFadeBottom(el.scrollTop < el.scrollHeight - el.clientHeight - 4)
+  }, [])
+
+  useEffect(() => {
+    update()
+    const el = listRef.current
+    if (!el) return
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [update])
+
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div
+        ref={listRef}
+        onScroll={update}
+        className={`rail-list flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-auto ${className}`}
+      >
+        {children}
+      </div>
+      {fadeTop && (
+        <div className="from-app pointer-events-none absolute inset-x-0 top-0 h-5 bg-gradient-to-b to-transparent" />
+      )}
+      {fadeBottom && (
+        <div className="from-app pointer-events-none absolute inset-x-0 bottom-0 h-5 bg-gradient-to-t to-transparent" />
+      )}
+    </div>
+  )
+}
+
 export function ToolRail() {
   const { t } = useI18n()
   const tool = useStore((s) => s.tool)
@@ -1238,9 +1287,7 @@ export function ToolRail() {
   if (railOpen) {
     return (
       <nav className="border-line flex w-48 shrink-0 flex-col border-r">
-        <div className="rail-list flex min-h-0 flex-1 flex-col gap-0.5 overflow-x-hidden overflow-y-auto px-2 py-2">
-          {allOrder.map((id) => row(id, true))}
-        </div>
+        <RailList className="gap-0.5 px-2 py-2">{allOrder.map((id) => row(id, true))}</RailList>
         <div className="border-line border-t p-2">
           <Tooltip label={t('panel.railCollapse')}>
             <button
@@ -1263,9 +1310,9 @@ export function ToolRail() {
 
   return (
     <nav className="border-line flex w-12 shrink-0 flex-col border-r">
-      <div className="rail-list flex min-h-0 flex-1 flex-col items-center gap-1 overflow-x-hidden overflow-y-auto py-2">
+      <RailList className="items-center gap-1 py-2">
         {allOrder.map((id) => row(id, false))}
-      </div>
+      </RailList>
       <div className="border-line flex justify-center border-t py-2">
         <Tooltip label={t('panel.railExpand')}>
           <button

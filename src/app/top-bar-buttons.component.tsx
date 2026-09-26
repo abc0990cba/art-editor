@@ -1,3 +1,5 @@
+import { type ReactNode } from 'react'
+
 import { ExportPopover } from '../features/export/export-popover.component.tsx'
 import { ProjectDialog } from '../features/projects/project-dialog.component.tsx'
 import { ProjectsDialog } from '../features/projects/projects-dialog.component.tsx'
@@ -74,11 +76,12 @@ export function ExportPillButton({ open, onToggle }: { open: boolean; onToggle: 
 export function MobileHeader({
   onSettings,
   onTogglePanel,
-  onMore,
+  more,
 }: {
   onSettings: () => void
   onTogglePanel?: () => void
-  onMore: () => void
+  /** Overflow menu element (DropdownMenu trigger + content) rendered as the last header item */
+  more?: ReactNode
 }) {
   const { t } = useI18n()
   const projectName = useStore((s) => s.projectName)
@@ -154,13 +157,7 @@ export function MobileHeader({
           <path d="M10.5 2.5v3M10.5 9.5v3" />
         </svg>
       </IconButton>
-      <IconButton big plate title={t('top.more')} onClick={onMore}>
-        <svg viewBox="0 0 16 16" className="h-5 w-5" fill="currentColor">
-          <circle cx="3.2" cy="8" r="1.4" />
-          <circle cx="8" cy="8" r="1.4" />
-          <circle cx="12.8" cy="8" r="1.4" />
-        </svg>
-      </IconButton>
+      {more}
     </header>
   )
 }

@@ -4,6 +4,7 @@ import { cn } from '../lib/utils.ts'
 import { DragNumber } from './drag-number.component.tsx'
 import { Button } from './shadcn/button.tsx'
 import { Checkbox } from './shadcn/checkbox.tsx'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './shadcn/collapsible.tsx'
 import { Input } from './shadcn/input.tsx'
 import { Label } from './shadcn/label.tsx'
 import { Slider as SliderPrimitive } from './shadcn/slider.tsx'
@@ -57,6 +58,14 @@ const SECTION_GLYPHS: Record<string, ReactNode> = {
     </>
   ),
   export: <path d="M7 1.8v7.4M7 9.2L4.4 6.6M7 9.2l2.6-2.6M2.2 12.2h9.6" />,
+  glyph: (
+    <g fill="currentColor" stroke="none">
+      <rect x="1.5" y="1.5" width="4.6" height="4.6" rx="0.8" />
+      <rect x="7.9" y="1.5" width="4.6" height="4.6" rx="0.8" opacity=".35" />
+      <rect x="1.5" y="7.9" width="4.6" height="4.6" rx="0.8" opacity=".35" />
+      <rect x="7.9" y="7.9" width="4.6" height="4.6" rx="0.8" />
+    </g>
+  ),
 }
 
 export function Section({
@@ -77,13 +86,12 @@ export function Section({
   contentClassName?: string
   children: ReactNode
 }) {
-  const id = useId()
   return (
-    <details open={defaultOpen} className={`border-line group border-b ${className ?? ''}`}>
-      <summary
-        aria-controls={id}
-        className="text-muted hover:text-body text-label flex cursor-pointer list-none items-center justify-between px-3 py-2.5 font-semibold tracking-widest uppercase [&::-webkit-details-marker]:hidden"
-      >
+    <Collapsible
+      defaultOpen={defaultOpen}
+      className={`border-line group border-b ${className ?? ''}`}
+    >
+      <CollapsibleTrigger className="text-muted hover:text-body text-label flex w-full cursor-pointer list-none items-center justify-between px-3 py-2.5 font-semibold tracking-widest uppercase select-none">
         <span className="flex items-center gap-2">
           {icon && (
             <svg
@@ -103,18 +111,18 @@ export function Section({
         </span>
         <svg
           viewBox="0 0 16 16"
-          className="h-3 w-3 transition-transform group-open:rotate-180"
+          className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
         >
           <path d="M4 6l4 4 4-4" />
         </svg>
-      </summary>
-      <div id={id} className={`flex flex-col gap-2.5 px-3 pb-3 ${contentClassName ?? ''}`}>
+      </CollapsibleTrigger>
+      <CollapsibleContent className={`flex flex-col gap-2.5 px-3 pb-3 ${contentClassName ?? ''}`}>
         {children}
-      </div>
-    </details>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 

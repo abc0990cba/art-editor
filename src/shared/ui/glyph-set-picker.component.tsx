@@ -7,11 +7,20 @@ import { useI18n } from '../i18n/i18n.provider.tsx'
 import { GlyphGallery } from './glyph-gallery.component.tsx'
 import { GlyphRampStrip } from './glyph-ramp-strip.component.tsx'
 import { Chip } from './index.tsx'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from './shadcn/select.tsx'
 
 /**
- * Compact glyph-set picker: user sets from the library, built-ins, a gallery button for browsing
- * every set at full size, plus a live ramp preview of the selected set. Used by the import dialog
- * and the fill pattern controls; full editing lives in the right panel's glyph editor section.
+ * Compact glyph-set picker: one select (own library + built-ins), a ramp preview of the chosen set,
+ * and a gallery button for browsing every set at full size on a real photo. Used by the import
+ * dialog and the fill pattern controls; full editing lives in the glyph editor section.
  */
 export function GlyphSetPicker({
   value,
@@ -22,48 +31,65 @@ export function GlyphSetPicker({
 }) {
   const { t } = useI18n()
   const glyphSets = useStore((s) => s.glyphSets)
-  const glyphDraftId = useStore((s) => s.glyphDraftId)
   const [galleryOpen, setGalleryOpen] = useState(false)
 
-  const selected = useMemo(() => {
-    if (value) return value
-    return BUILT_IN_GLYPH_SETS[1]?.set ?? null
-  }, [value])
+  const selected = value ?? BUILT_IN_GLYPH_SETS[1]?.set ?? null
 
-  const activeId = useMemo(() => {
-    if (glyphDraftId && value === null) return null
-    // identity match against library entries/built-ins
-    for (const b of BUILT_IN_GLYPH_SETS) {
-      if (b.set === selected) return b.id
-    }
-    for (const e of glyphSets) {
-      if (e.set === selected) return e.id
-    }
+  // identity match against library entries/built-ins
+  const currentId = useMemo(() => {
+    for (const b of BUILT_IN_GLYPH_SETS) if (b.set === selected) return b.id
+    for (const e of glyphSets) if (e.set === selected) return e.id
     return null
-  }, [glyphSets, glyphDraftId, selected, value])
+  }, [glyphSets, selected])
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Chip title={t('glyph.gallery.hint')} onClick={() => setGalleryOpen(true)}>
-        ▦ {t('glyph.gallery')}
-      </Chip>
-      <div className="border-line bg-chip flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1">
-        {glyphSets.length === 0 && (
-          <p className="text-muted text-label px-1 py-0.5">{t('glyph.noUserSets')}</p>
-        )}
-        {glyphSets.map((entry) => (
-          <Chip key={entry.id} active={activeId === entry.id} onClick={() => onChange(entry.set)}>
-            {entry.name}
-          </Chip>
-        ))}
-        {BUILT_IN_GLYPH_SETS.map((b) => (
-          <Chip key={b.id} active={activeId === b.id} onClick={() => onChange(b.set)}>
-            ★ {b.set.name}
-          </Chip>
-        ))}
+      <div className="flex items-center gap-1.5">
+        <Select
+          value={currentId ?? undefined}
+          onValueChange={(id) => {
+            const builtin = BUILT_IN_GLYPH_SETS.find((b) => b.id === id)
+            if (builtin) {
+              onChange(builtin.set)
+              return
+            }
+            const entry = glyphSets.find((e) => e.id === id)
+            if (entry) onChange(entry.set)
+          }}
+        >
+          <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto min-w-0 flex-1 rounded-md px-2 py-1 text-xs">
+            <SelectValue placeholder={t('glyph.picker.placeholder')} />
+          </SelectTrigger>
+          <SelectContent>
+            {glyphSets.length > 0 && (
+              <SelectGroup>
+                <SelectLabel className="text-muted text-overline">
+                  {t('glyph.gallery.user')}
+                </SelectLabel>
+                {glyphSets.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.set.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+            <SelectGroup>
+              <SelectLabel className="text-muted text-overline">
+                {t('glyph.picker.builtin')}
+              </SelectLabel>
+              {BUILT_IN_GLYPH_SETS.map((b) => (
+                <SelectItem key={b.id} value={b.id}>
+                  {b.set.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <Chip title={t('glyph.gallery.hint')} onClick={() => setGalleryOpen(true)}>
+          ▦
+        </Chip>
       </div>
       {selected && <GlyphRampStrip set={selected} size={5} />}
-      <p className="text-muted text-overline leading-snug">{t('glyph.pickerHint')}</p>
       {galleryOpen && (
         <GlyphGallery
           onClose={() => setGalleryOpen(false)}

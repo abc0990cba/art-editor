@@ -109,6 +109,7 @@ export function ImportDialog({
   useEffect(() => setBitmap(initialBitmap), [initialBitmap])
 
   const [opts, setOpts] = useState<ImportOptions>(DEFAULT_IMPORT_OPTIONS)
+  const [presetSel, setPresetSel] = useState('')
   const [paletteSel, setPaletteSel] = useState('auto')
   const [autoColors, setAutoColors] = useState(16)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -200,8 +201,9 @@ export function ImportDialog({
           }}
         />
 
+        {/* картинка зафиксирована; скроллится только колонка настроек (на мобилке — всё тело) */}
         {square ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md:flex-row">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md:flex-row md:overflow-hidden">
             <div className="flex min-h-0 flex-1 flex-col gap-2">
               <div className="border-line bg-panel min-h-[240px] flex-1 overflow-hidden rounded-lg border p-2">
                 <BeforeAfterPreview
@@ -225,23 +227,34 @@ export function ImportDialog({
               </div>
             </div>
 
-            <div className="flex w-full shrink-0 flex-col gap-2.5 md:w-64">
+            <div className="flex w-full shrink-0 flex-col gap-2.5 md:w-64 md:overflow-y-auto md:pr-1">
               <div className="flex flex-col gap-1">
                 <span className="text-muted text-xs">{t('import.presets')}</span>
-                <div className="flex flex-wrap gap-1">
-                  {IMPORT_PRESETS.map((p) => (
-                    <Chip
-                      key={p.id}
-                      title={t(`import.preset.${p.id}.desc` as 'import.preset.gameboy.desc')}
-                      onClick={() => {
-                        setOpts(p.opts)
-                        setPaletteSel(p.paletteId ?? 'auto')
-                      }}
-                    >
-                      {t(`import.preset.${p.id}` as 'import.preset.gameboy')}
-                    </Chip>
-                  ))}
-                </div>
+                <Select
+                  value={presetSel || undefined}
+                  onValueChange={(v) => {
+                    const preset = IMPORT_PRESETS.find((x) => x.id === v)
+                    if (!preset) return
+                    setPresetSel(v)
+                    setOpts(preset.opts)
+                    setPaletteSel(preset.paletteId ?? 'auto')
+                  }}
+                >
+                  <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs">
+                    <SelectValue placeholder={t('import.presets')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {IMPORT_PRESETS.map((p) => (
+                      <SelectItem
+                        key={p.id}
+                        value={p.id}
+                        title={t(`import.preset.${p.id}.desc` as 'import.preset.gameboy.desc')}
+                      >
+                        {t(`import.preset.${p.id}` as 'import.preset.gameboy')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -357,33 +370,40 @@ export function ImportDialog({
                 />
               )}
 
-              <Slider
-                label={t('import.brightness')}
-                title={t('import.brightness.desc')}
-                min={-100}
-                max={100}
-                value={opts.brightness}
-                display={signed}
-                onChange={(v) => patch({ brightness: v })}
-              />
-              <Slider
-                label={t('import.contrast')}
-                title={t('import.contrast.desc')}
-                min={-100}
-                max={100}
-                value={opts.contrast}
-                display={signed}
-                onChange={(v) => patch({ contrast: v })}
-              />
-              <Slider
-                label={t('import.saturation')}
-                title={t('import.saturation.desc')}
-                min={-100}
-                max={100}
-                value={opts.saturation}
-                display={signed}
-                onChange={(v) => patch({ saturation: v })}
-              />
+              <details className="border-line rounded-md border px-2 py-1">
+                <summary className="text-muted cursor-pointer text-xs select-none">
+                  {t('import.section.adjust')}
+                </summary>
+                <div className="mt-1.5 flex flex-col gap-2">
+                  <Slider
+                    label={t('import.brightness')}
+                    title={t('import.brightness.desc')}
+                    min={-100}
+                    max={100}
+                    value={opts.brightness}
+                    display={signed}
+                    onChange={(v) => patch({ brightness: v })}
+                  />
+                  <Slider
+                    label={t('import.contrast')}
+                    title={t('import.contrast.desc')}
+                    min={-100}
+                    max={100}
+                    value={opts.contrast}
+                    display={signed}
+                    onChange={(v) => patch({ contrast: v })}
+                  />
+                  <Slider
+                    label={t('import.saturation')}
+                    title={t('import.saturation.desc')}
+                    min={-100}
+                    max={100}
+                    value={opts.saturation}
+                    display={signed}
+                    onChange={(v) => patch({ saturation: v })}
+                  />
+                </div>
+              </details>
 
               <details className="border-line rounded-md border px-2 py-1">
                 <summary className="text-muted cursor-pointer text-xs select-none">

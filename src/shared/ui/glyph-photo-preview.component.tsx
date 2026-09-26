@@ -1,13 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { ditherImageWithGlyph } from '../../engine/glyph-preview.ts'
+import { ditherImageWithGlyph, type DitherStyle } from '../../engine/glyph-preview.ts'
 import { type GlyphTileSet } from '../../engine/glyph-tiles.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { Chip } from './index.tsx'
 
-const DEFAULT_PHOTO_URL = '/glyph-sample.jpg'
+const DEFAULT_PHOTO_URL = '/glyph-photo-sample.jpg'
 const MAX_SOURCE_DIM = 1200
-const GRID_OPTIONS = [32, 48, 64, 96, 128]
+const GRID_OPTIONS = [24, 32, 48, 64, 96, 128, 160]
+
+/** Color modes of the preview: mono print, photo colors, or tinted phosphor/paper pairs. */
+const COLOR_MODES: { id: string; style: DitherStyle }[] = [
+  { id: 'glyph.preview.mono', style: {} },
+  { id: 'glyph.preview.photo', style: { original: true, paper: { r: 250, g: 250, b: 248 } } },
+  {
+    id: 'glyph.preview.green',
+    style: { ink: { r: 15, g: 56, b: 15 }, paper: { r: 155, g: 188, b: 15 } },
+  },
+  {
+    id: 'glyph.preview.amber',
+    style: { ink: { r: 255, g: 176, b: 0 }, paper: { r: 32, g: 18, b: 2 } },
+  },
+  {
+    id: 'glyph.preview.blue',
+    style: { ink: { r: 223, g: 239, b: 255 }, paper: { r: 29, g: 78, b: 137 } },
+  },
+]
 
 /** Decode an image source into ImageData, downscaling so the longest side stays bounded. */
 function toImageData(img: CanvasImageSource, srcW: number, srcH: number): ImageData | null {
@@ -55,6 +73,7 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [source, setSource] = useState<ImageData | null>(null)
   const [cols, setCols] = useState(64)
+  const [mode, setMode] = useState(COLOR_MODES[0])
 
   // load the bundled sample once; on failure fall back to a procedural gradient
   useEffect(() => {
@@ -82,9 +101,9 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
     canvas.height = source.height
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const out = ditherImageWithGlyph(source, set, cols)
+    const out = ditherImageWithGlyph(source, set, cols, mode.style)
     ctx.putImageData(new ImageData(out.data, out.width, out.height), 0, 0)
-  }, [source, set, cols])
+  }, [source, set, cols, mode])
 
   const replaceFile = (file: File) => {
     createImageBitmap(file)
@@ -99,10 +118,18 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="border-line bg-chip relative overflow-hidden rounded-lg border">
-        <canvas ref={canvasRef} className="block max-h-[280px] w-full object-contain" />
+        <canvas ref={canvasRef} className="block max-h-[460px] w-full object-contain" />
         <span className="text-label absolute top-2 left-2 rounded bg-black/50 px-1.5 py-0.5 text-white/80">
           {set.name}
         </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-muted text-overline">{t('glyph.preview.color')}</span>
+        {COLOR_MODES.map((m) => (
+          <Chip key={m.id} active={mode.id === m.id} onClick={() => setMode(m)}>
+            {t(m.id as 'glyph.preview.mono')}
+          </Chip>
+        ))}
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-muted text-overline">{t('glyph.preview.grid')}</span>

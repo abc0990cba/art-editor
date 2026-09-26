@@ -16,7 +16,19 @@ export interface Raster {
   data: Uint8ClampedArray<ArrayBuffer>
 }
 
-/** Ink and paper of the preview render (canvas-drawn, fixed like a print). */
+export interface RGB {
+  r: number
+  g: number
+  b: number
+}
+
+/** Ink/paper colors of the render, or `original: true` to keep the photo colors under the pattern. */
+export interface DitherStyle {
+  ink?: RGB
+  paper?: RGB
+  original?: boolean
+}
+
 const INK = { r: 26, g: 26, b: 30 }
 const PAPER = { r: 242, g: 242, b: 240 }
 
@@ -25,7 +37,12 @@ const PAPER = { r: 242, g: 242, b: 240 }
  * Returns a new raster of the same size: each grid cell shows the set's tile with its w×h
  * sub-cells, inked by the cell's average luminance.
  */
-export function ditherImageWithGlyph(src: Raster, set: GlyphTileSet, cols: number): Raster {
+export function ditherImageWithGlyph(
+  src: Raster,
+  set: GlyphTileSet,
+  cols: number,
+  style: DitherStyle = {},
+): Raster {
   const cols1 = Math.max(1, Math.min(Math.round(cols), src.width))
   const cellW = src.width / cols1
   const rows = Math.max(1, Math.round(src.height / cellW))
@@ -46,6 +63,8 @@ export function ditherImageWithGlyph(src: Raster, set: GlyphTileSet, cols: numbe
     }
   }
 
+  const inkC = style.ink ?? INK
+  const paperC = style.paper ?? PAPER
   const out = new Uint8ClampedArray(src.data.length)
   const levelCount = set.levels.length
   for (let y = 0; y < src.height; y++) {
@@ -59,8 +78,13 @@ export function ditherImageWithGlyph(src: Raster, set: GlyphTileSet, cols: numbe
       const tone = 1 - lum
       const idx = Math.min(levelCount - 1, Math.max(0, Math.round(tone * (levelCount - 1))))
       const on = set.levels[idx][sy * set.w + sx]
-      const c = on ? INK : PAPER
       const o = (y * src.width + x) * 4
+      // "original" keeps the photo color for inked pixels: the glyph pattern overlays the photo
+      const c: RGB = on
+        ? style.original
+          ? { r: data[o], g: data[o + 1], b: data[o + 2] }
+          : inkC
+        : paperC
       out[o] = c.r
       out[o + 1] = c.g
       out[o + 2] = c.b

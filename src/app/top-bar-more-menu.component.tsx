@@ -1,7 +1,19 @@
-import { useEffect, type JSX } from 'react'
+import { type JSX } from 'react'
 
 import { useI18n } from '../shared/i18n/i18n.provider.tsx'
-import { nextThemePref, useStore } from '../state/editor.store.ts'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '../shared/ui/shadcn/dropdown-menu.tsx'
+import { type ThemePref, useStore } from '../state/editor.store.ts'
 
 /** Overflow-menu icons (16px stroke set, matches the toolbar's icon language). */
 const MORE_ICONS = {
@@ -102,20 +114,20 @@ const MORE_ICONS = {
   ),
 }
 
+const itemClass = 'text-body h-11 gap-2.5 rounded-lg px-3 text-sm'
+
 /**
- * Phone/tablet overflow menu (the "…" in the mobile top bar): document actions, project dialogs,
- * theme/language cycling. Escape and the invisible backdrop close it; every row closes the menu
- * before running its action.
+ * Phone/tablet overflow menu (the "…" in the mobile top bar) on the shadcn dropdown menu: document
+ * actions, project dialogs, theme/language cycling, canvas clear. Selecting an item runs its action
+ * — the menu closes itself.
  */
 export function TopBarMoreMenu({
-  onClose,
   onProjects,
   onImport,
   onExport,
   onSettings,
   onClear,
 }: {
-  onClose: () => void
   onProjects: () => void
   /** Import hands the picked file back to the top bar's hidden input flow */
   onImport: () => void
@@ -132,59 +144,84 @@ export function TopBarMoreMenu({
   const openNodeEditor = useStore((s) => s.openNodeEditor)
   const closeNodeEditor = useStore((s) => s.closeNodeEditor)
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  const row = (label: string, icon: JSX.Element, action: () => void) => (
-    <button
-      type="button"
-      onClick={() => {
-        onClose()
-        action()
-      }}
-      className="text-body hover:bg-chip-active flex h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm transition"
-    >
+  const row = (icon: JSX.Element, label: string, action: () => void) => (
+    <DropdownMenuItem className={itemClass} onSelect={action}>
       {icon}
       {label}
-    </button>
+    </DropdownMenuItem>
   )
 
-  const themeLabel = {
-    dark: t('theme.dark'),
-    paper: t('theme.paper'),
-    oled: t('theme.oled'),
-    nord: t('theme.nord'),
-    'tokyo-night': t('theme.tokyo-night'),
-    vscode: t('theme.vscode'),
-    catppuccin: t('theme.catppuccin'),
-    auto: t('theme.auto'),
-  }[themePref]
-
   return (
-    <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="border-line bg-raised fixed top-15 right-2 z-50 w-64 rounded-xl border p-1.5 shadow-2xl">
-        {row(t('projects.title'), MORE_ICONS.projects, onProjects)}
-        {row(nodeEditorOpen ? t('editor.close') : t('editor.open'), MORE_ICONS.nodes, () =>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={t('top.more')}
+          className="text-body hover:bg-chip-active flex h-10 w-10 items-center justify-center rounded-lg transition"
+        >
+          <svg viewBox="0 0 16 16" className="h-5 w-5" fill="currentColor">
+            <circle cx="3.2" cy="8" r="1.4" />
+            <circle cx="8" cy="8" r="1.4" />
+            <circle cx="12.8" cy="8" r="1.4" />
+          </svg>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={10} className="w-64 rounded-xl border p-1.5">
+        {row(MORE_ICONS.projects, t('projects.title'), onProjects)}
+        {row(MORE_ICONS.nodes, nodeEditorOpen ? t('editor.close') : t('editor.open'), () =>
           nodeEditorOpen ? closeNodeEditor() : openNodeEditor(),
         )}
-        {row(t('import.open'), MORE_ICONS.import, onImport)}
-        {row(t('export.open'), MORE_ICONS.export, onExport)}
-        {row(t('project.settings'), MORE_ICONS.settings, onSettings)}
-        {row(`${t('top.theme')}: ${themeLabel}`, MORE_ICONS.theme, () =>
-          setThemePref(nextThemePref(themePref)),
-        )}
-        {row(`${t('lang.switch')}: ${lang === 'ru' ? 'RU' : 'EN'}`, MORE_ICONS.lang, () =>
-          setLang(lang === 'ru' ? 'en' : 'ru'),
-        )}
-        <div className="bg-line my-1 h-px" />
-        {row(t('export.clear'), MORE_ICONS.clear, onClear)}
-      </div>
-    </>
+        {row(MORE_ICONS.import, t('import.open'), onImport)}
+        {row(MORE_ICONS.export, t('export.open'), onExport)}
+        {row(MORE_ICONS.settings, t('project.settings'), onSettings)}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className={itemClass}>
+            {MORE_ICONS.theme}
+            {t('top.theme')}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-56 rounded-xl border p-1.5">
+            <DropdownMenuRadioGroup
+              value={themePref}
+              onValueChange={(v) => setThemePref(v as ThemePref)}
+            >
+              {(
+                [
+                  ['dark', 'theme.dark'],
+                  ['vscode', 'theme.vscode'],
+                  ['oled', 'theme.oled'],
+                  ['nord', 'theme.nord'],
+                  ['catppuccin', 'theme.catppuccin'],
+                  ['paper', 'theme.paper'],
+                  ['tokyo-night', 'theme.tokyo-night'],
+                  ['auto', 'theme.auto'],
+                ] as const
+              ).map(([pref, key]) => (
+                <DropdownMenuRadioItem key={pref} value={pref} className={itemClass}>
+                  {t(key as 'theme.dark')}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className={itemClass}>
+            {MORE_ICONS.lang}
+            {t('lang.switch')}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-40 rounded-xl border p-1.5">
+            <DropdownMenuRadioGroup value={lang} onValueChange={(v) => setLang(v as 'en' | 'ru')}>
+              <DropdownMenuRadioItem value="en" className={itemClass}>
+                English
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="ru" className={itemClass}>
+                Русский
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSeparator className="bg-line" />
+        {row(MORE_ICONS.clear, t('export.clear'), onClear)}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
