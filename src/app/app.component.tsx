@@ -384,7 +384,7 @@ function Editor() {
         <ToolSettings anchor={mobileSettings} onClose={() => setMobileSettings(null)} />
       )}
       {/* mobile: undo/redo floating pair above the strip — thumb reach, Procreate-style */}
-      <div className="fixed bottom-[4.5rem] left-2 z-20 flex flex-col gap-2 lg:hidden">
+      <div className="fixed right-2 bottom-[4.5rem] z-20 flex flex-col gap-2 lg:hidden">
         <Tooltip label={`${t('top.undo')} (Ctrl+Z)`}>
           <button
             type="button"

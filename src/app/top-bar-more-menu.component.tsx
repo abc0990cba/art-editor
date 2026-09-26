@@ -1,26 +1,14 @@
-import { type JSX } from 'react'
+import { useEffect, useState, type JSX } from 'react'
 
 import { useI18n } from '../shared/i18n/i18n.provider.tsx'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '../shared/ui/shadcn/dropdown-menu.tsx'
-import { type ThemePref, useStore } from '../state/editor.store.ts'
+import { useStore, type ThemePref } from '../state/editor.store.ts'
 
 /** Overflow-menu icons (16px stroke set, matches the toolbar's icon language). */
 const MORE_ICONS = {
   projects: (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4 shrink-0 opacity-80"
+      className="h-5 w-5 shrink-0 opacity-80"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.3"
@@ -31,7 +19,7 @@ const MORE_ICONS = {
   nodes: (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4 shrink-0 opacity-80"
+      className="h-5 w-5 shrink-0 opacity-80"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.3"
@@ -45,7 +33,7 @@ const MORE_ICONS = {
   import: (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4 shrink-0 opacity-80"
+      className="h-5 w-5 shrink-0 opacity-80"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.3"
@@ -58,7 +46,7 @@ const MORE_ICONS = {
   export: (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4 shrink-0 opacity-80"
+      className="h-5 w-5 shrink-0 opacity-80"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.3"
@@ -69,7 +57,7 @@ const MORE_ICONS = {
   settings: (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4 shrink-0 opacity-80"
+      className="h-5 w-5 shrink-0 opacity-80"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.3"
@@ -81,7 +69,7 @@ const MORE_ICONS = {
   theme: (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4 shrink-0 opacity-80"
+      className="h-5 w-5 shrink-0 opacity-80"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.3"
@@ -92,7 +80,7 @@ const MORE_ICONS = {
   lang: (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4 shrink-0 opacity-80"
+      className="h-5 w-5 shrink-0 opacity-80"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.2"
@@ -104,7 +92,7 @@ const MORE_ICONS = {
   clear: (
     <svg
       viewBox="0 0 16 16"
-      className="h-4 w-4 shrink-0 opacity-80"
+      className="h-5 w-5 shrink-0 text-red-400 opacity-90"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.3"
@@ -114,12 +102,38 @@ const MORE_ICONS = {
   ),
 }
 
-const itemClass = 'text-body h-11 gap-2.5 rounded-lg px-3 text-sm'
+const THEME_PREFS: readonly (readonly [
+  ThemePref,
+  (
+    | 'theme.dark'
+    | 'theme.vscode'
+    | 'theme.oled'
+    | 'theme.nord'
+    | 'theme.catppuccin'
+    | 'theme.paper'
+    | 'theme.tokyo-night'
+    | 'theme.auto'
+  ),
+])[] = [
+  ['dark', 'theme.dark'],
+  ['vscode', 'theme.vscode'],
+  ['oled', 'theme.oled'],
+  ['nord', 'theme.nord'],
+  ['catppuccin', 'theme.catppuccin'],
+  ['paper', 'theme.paper'],
+  ['tokyo-night', 'theme.tokyo-night'],
+  ['auto', 'theme.auto'],
+]
+
+const chipClass = (active: boolean): string =>
+  `h-11 rounded-lg border px-3 text-sm transition ${
+    active ? 'border-accent-line bg-accent-soft text-accent-text' : 'border-line bg-chip text-body'
+  }`
 
 /**
- * Phone/tablet overflow menu (the "…" in the mobile top bar) on the shadcn dropdown menu: document
- * actions, project dialogs, theme/language cycling, canvas clear. Selecting an item runs its action
- * — the menu closes itself.
+ * Phone/tablet overflow «…» button with a full-screen menu: large rows for document actions,
+ * project dialogs and canvas clear, plus dedicated theme and language pickers — sized for thumbs.
+ * Escape, the ✕ and the backdrop close it; picking an action closes it first.
  */
 export function TopBarMoreMenu({
   onProjects,
@@ -143,85 +157,135 @@ export function TopBarMoreMenu({
   const nodeEditorOpen = useStore((s) => s.nodeEditorOpen)
   const openNodeEditor = useStore((s) => s.openNodeEditor)
   const closeNodeEditor = useStore((s) => s.closeNodeEditor)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
+  const rowClass =
+    'text-body hover:bg-chip-active flex h-14 w-full shrink-0 items-center gap-4 rounded-xl px-4 text-left text-base transition'
 
   const row = (icon: JSX.Element, label: string, action: () => void) => (
-    <DropdownMenuItem className={itemClass} onSelect={action}>
+    <button
+      type="button"
+      onClick={() => {
+        setOpen(false)
+        action()
+      }}
+      className={rowClass}
+    >
       {icon}
       {label}
-    </DropdownMenuItem>
+    </button>
   )
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={t('top.more')}
-          className="text-body hover:bg-chip-active flex h-10 w-10 items-center justify-center rounded-lg transition"
-        >
-          <svg viewBox="0 0 16 16" className="h-5 w-5" fill="currentColor">
-            <circle cx="3.2" cy="8" r="1.4" />
-            <circle cx="8" cy="8" r="1.4" />
-            <circle cx="12.8" cy="8" r="1.4" />
-          </svg>
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={10} className="w-64 rounded-xl border p-1.5">
-        {row(MORE_ICONS.projects, t('projects.title'), onProjects)}
-        {row(MORE_ICONS.nodes, nodeEditorOpen ? t('editor.close') : t('editor.open'), () =>
-          nodeEditorOpen ? closeNodeEditor() : openNodeEditor(),
-        )}
-        {row(MORE_ICONS.import, t('import.open'), onImport)}
-        {row(MORE_ICONS.export, t('export.open'), onExport)}
-        {row(MORE_ICONS.settings, t('project.settings'), onSettings)}
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className={itemClass}>
-            {MORE_ICONS.theme}
-            {t('top.theme')}
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-56 rounded-xl border p-1.5">
-            <DropdownMenuRadioGroup
-              value={themePref}
-              onValueChange={(v) => setThemePref(v as ThemePref)}
-            >
-              {(
-                [
-                  ['dark', 'theme.dark'],
-                  ['vscode', 'theme.vscode'],
-                  ['oled', 'theme.oled'],
-                  ['nord', 'theme.nord'],
-                  ['catppuccin', 'theme.catppuccin'],
-                  ['paper', 'theme.paper'],
-                  ['tokyo-night', 'theme.tokyo-night'],
-                  ['auto', 'theme.auto'],
-                ] as const
-              ).map(([pref, key]) => (
-                <DropdownMenuRadioItem key={pref} value={pref} className={itemClass}>
-                  {t(key as 'theme.dark')}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className={itemClass}>
-            {MORE_ICONS.lang}
-            {t('lang.switch')}
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-40 rounded-xl border p-1.5">
-            <DropdownMenuRadioGroup value={lang} onValueChange={(v) => setLang(v as 'en' | 'ru')}>
-              <DropdownMenuRadioItem value="en" className={itemClass}>
-                English
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="ru" className={itemClass}>
-                Русский
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSeparator className="bg-line" />
-        {row(MORE_ICONS.clear, t('export.clear'), onClear)}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <button
+        type="button"
+        aria-label={t('top.more')}
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        className="text-body hover:bg-chip-active flex h-10 w-10 items-center justify-center rounded-lg transition"
+      >
+        <svg viewBox="0 0 16 16" className="h-5 w-5" fill="currentColor">
+          <circle cx="3.2" cy="8" r="1.4" />
+          <circle cx="8" cy="8" r="1.4" />
+          <circle cx="12.8" cy="8" r="1.4" />
+        </svg>
+      </button>
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+          <div className="bg-panel fixed inset-0 z-50 flex flex-col gap-5 overflow-y-auto p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-body text-base font-semibold tracking-wide">
+                {t('top.more')}
+              </span>
+              <button
+                type="button"
+                aria-label={t('dialog.close')}
+                onClick={() => setOpen(false)}
+                className="text-muted hover:bg-chip-active hover:text-body flex h-11 w-11 items-center justify-center rounded-lg transition"
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                >
+                  <path d="M4 4l8 8M12 4l-8 8" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              {row(MORE_ICONS.projects, t('projects.title'), onProjects)}
+              {row(MORE_ICONS.nodes, nodeEditorOpen ? t('editor.close') : t('editor.open'), () =>
+                nodeEditorOpen ? closeNodeEditor() : openNodeEditor(),
+              )}
+              {row(MORE_ICONS.import, t('import.open'), onImport)}
+              {row(MORE_ICONS.export, t('export.open'), onExport)}
+              {row(MORE_ICONS.settings, t('project.settings'), onSettings)}
+            </div>
+
+            <div className="border-line flex flex-col gap-2 border-t pt-4">
+              <span className="text-muted text-overline font-semibold tracking-wider uppercase">
+                {t('top.theme')}
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {THEME_PREFS.map(([pref, key]) => (
+                  <button
+                    key={pref}
+                    type="button"
+                    onClick={() => setThemePref(pref)}
+                    className={chipClass(themePref === pref)}
+                  >
+                    {t(key)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-muted text-overline font-semibold tracking-wider uppercase">
+                {t('lang.switch')}
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setLang('en')}
+                  className={chipClass(lang === 'en')}
+                >
+                  English
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLang('ru')}
+                  className={chipClass(lang === 'ru')}
+                >
+                  Русский
+                </button>
+              </div>
+            </div>
+
+            <div className="border-line mt-auto flex flex-col gap-1 border-t pt-3">
+              {row(MORE_ICONS.clear, t('export.clear'), onClear)}
+            </div>
+          </div>
+        </>
+      )}
+    </>
   )
 }
