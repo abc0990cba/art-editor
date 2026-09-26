@@ -76,6 +76,11 @@ const DEFAULT_IMPORT_LAYERING: ImportLayering = {
 }
 
 /** Geometry knobs of the shape tools, edited via the rail's per-tool settings. */
+/** ToolOpts keys that hold numbers — the sliders' writable keys. */
+export type NumericOptKey = {
+  [K in keyof ToolOpts]: ToolOpts[K] extends number ? K : never
+}[keyof ToolOpts]
+
 export interface ToolOpts {
   starRays: number
   starInner: number

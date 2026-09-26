@@ -649,6 +649,9 @@ export const ru: Dict = {
   'theme.catppuccin': 'Catppuccin Mocha',
 
   'view.fit': 'Вписать',
+  'view.zoomOut': 'Уменьшить масштаб',
+  'view.zoomIn': 'Увеличить масштаб',
+  'view.zoomReset': 'Сбросить масштаб к 100%',
   'view.scrollX': 'Горизонтальная прокрутка',
   'view.scrollY': 'Вертикальная прокрутка',
   'view.linkPending': 'Кликните вторую ячейку · Esc — отмена',
@@ -692,6 +695,9 @@ export const ru: Dict = {
 
   'panel.railCollapse': 'Свернуть панель',
   'panel.railExpand': 'Развернуть панель',
+  'panel.fab': 'Быстрые настройки',
+  'panel.fabExpand': 'Показать быстрые настройки',
+  'panel.fabCollapse': 'Скрыть быстрые настройки',
 
   'tool.settings': 'Настройки инструмента',
   'tool.settings.desc': 'Двойной клик по инструменту в панели открывает его настройки.',

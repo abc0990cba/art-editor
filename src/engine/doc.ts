@@ -4,6 +4,9 @@ import { docSize, type GridType } from './grids'
 import { CLASSIC_12 } from './palettes'
 import type { SceneLayer } from './scene'
 
+export { elementFromDoc, sameElementStyle, withStyleScope } from './doc-style.ts'
+export { STAGE_THEMES, type StageTheme } from './stage-themes.ts'
+
 export type SubDetail = 1 | 2 | 3
 
 export type { GridType }
@@ -125,98 +128,6 @@ export interface ElementStyle {
 export type Connectivity = 'edge' | 'corner' | 'corner-bridge'
 
 /** Colors of the canvas stage that follow the editor theme. */
-export interface StageTheme {
-  checkerA: string
-  checkerB: string
-  gridLine: string
-  pixelLine: string
-  guide: string
-  hover: string
-  /** Dark outline drawn under the hover stroke so it reads on any cell color */
-  hoverHalo: string
-  frame: string
-}
-
-export const STAGE_THEMES: Record<
-  'dark' | 'paper' | 'oled' | 'nord' | 'tokyo-night' | 'vscode' | 'catppuccin',
-  StageTheme
-> = {
-  dark: {
-    checkerA: '#26262b',
-    checkerB: '#1e1e23',
-    gridLine: 'rgba(255,255,255,0.07)',
-    pixelLine: 'rgba(255,255,255,0.14)',
-    guide: 'rgba(129,140,248,0.55)',
-    hover: 'rgba(255,255,255,0.95)',
-    hoverHalo: 'rgba(0,0,0,0.65)',
-    frame: 'rgba(255,255,255,0.15)',
-  },
-  oled: {
-    checkerA: '#0c0c0e',
-    checkerB: '#050506',
-    gridLine: 'rgba(255,255,255,0.05)',
-    pixelLine: 'rgba(255,255,255,0.10)',
-    guide: 'rgba(129,140,248,0.55)',
-    hover: 'rgba(255,255,255,0.95)',
-    hoverHalo: 'rgba(0,0,0,0.65)',
-    frame: 'rgba(255,255,255,0.12)',
-  },
-  nord: {
-    checkerA: '#3b4252',
-    checkerB: '#333a47',
-    gridLine: 'rgba(236,239,244,0.08)',
-    pixelLine: 'rgba(236,239,244,0.16)',
-    guide: 'rgba(136,192,208,0.60)',
-    hover: 'rgba(236,239,244,0.95)',
-    hoverHalo: 'rgba(46,52,64,0.70)',
-    frame: 'rgba(236,239,244,0.15)',
-  },
-  paper: {
-    // Paper Notebook Light (Flexoki-paper): warm paper, ink lines — soft on the eyes
-    checkerA: '#f1ecdd',
-    checkerB: '#e7e2d1',
-    gridLine: 'rgba(60, 55, 40, 0.1)',
-    pixelLine: 'rgba(60, 55, 40, 0.2)',
-    guide: 'rgba(32, 93, 149, 0.55)',
-    hover: 'rgba(255, 255, 255, 0.95)',
-    hoverHalo: 'rgba(40, 36, 28, 0.7)',
-    frame: 'rgba(60, 55, 40, 0.2)',
-  },
-  'tokyo-night': {
-    // Tokyo Night Light: cool misty blue-gray with the Tokyo Night blue as the guide
-    checkerA: '#d9dbe3',
-    checkerB: '#cfd2db',
-    gridLine: 'rgba(55, 60, 85, 0.1)',
-    pixelLine: 'rgba(55, 60, 85, 0.2)',
-    guide: 'rgba(46, 125, 233, 0.55)',
-    hover: 'rgba(255, 255, 255, 0.95)',
-    hoverHalo: 'rgba(27, 27, 41, 0.7)',
-    frame: 'rgba(55, 60, 85, 0.2)',
-  },
-  vscode: {
-    // VS Code Dark Modern
-    checkerA: '#242424',
-    checkerB: '#1c1c1c',
-    gridLine: 'rgba(255,255,255,0.07)',
-    pixelLine: 'rgba(255,255,255,0.14)',
-    guide: 'rgba(38,141,252,0.55)',
-    hover: 'rgba(255,255,255,0.95)',
-    hoverHalo: 'rgba(0,0,0,0.65)',
-    frame: 'rgba(255,255,255,0.14)',
-  },
-  catppuccin: {
-    // Catppuccin Mocha
-    checkerA: '#26263b',
-    checkerB: '#202033',
-    gridLine: 'rgba(205,214,244,0.07)',
-    pixelLine: 'rgba(205,214,244,0.14)',
-    guide: 'rgba(180,190,254,0.55)',
-    hover: 'rgba(205,214,244,0.95)',
-    hoverHalo: 'rgba(17,17,27,0.70)',
-    frame: 'rgba(205,214,244,0.14)',
-  },
-}
-
 export interface Doc {
   gridType: GridType
   cols: number
@@ -324,94 +235,6 @@ export function makeCells(cols: number, rows: number, sub: SubDetail): Uint16Arr
 }
 
 /** Snapshot of the document's current drawing style, for freezing into a new element. */
-export function elementFromDoc(doc: Doc): ElementStyle {
-  return {
-    style: { ...doc.style, corners: { ...doc.style.corners } },
-    renderMode: doc.renderMode,
-    connectivity: doc.connectivity,
-    metaball: { ...doc.metaball },
-    texture: { ...doc.texture },
-  }
-}
-
-/** Deep equality of two frozen element styles (render grouping merges equal elements). */
-export function sameElementStyle(a: ElementStyle, b: ElementStyle): boolean {
-  return (
-    a.renderMode === b.renderMode &&
-    a.connectivity === b.connectivity &&
-    samePixelStyle(a.style, b.style) &&
-    a.metaball.strength === b.metaball.strength &&
-    a.metaball.perColor === b.metaball.perColor &&
-    a.metaball.quality === b.metaball.quality &&
-    a.metaball.squareEdges === b.metaball.squareEdges &&
-    a.texture.effect === b.texture.effect &&
-    a.texture.amount === b.texture.amount &&
-    a.texture.scale === b.texture.scale &&
-    a.texture.sizeMin === b.texture.sizeMin &&
-    a.texture.sizeMax === b.texture.sizeMax &&
-    a.texture.shape === b.texture.shape &&
-    a.texture.edge === b.texture.edge &&
-    a.texture.dist === b.texture.dist &&
-    a.texture.gap === b.texture.gap &&
-    a.texture.angle === b.texture.angle &&
-    a.texture.seed === b.texture.seed &&
-    a.texture.jitter === b.texture.jitter &&
-    a.texture.variation === b.texture.variation &&
-    a.texture.wobble === b.texture.wobble &&
-    a.texture.merge === b.texture.merge &&
-    a.texture.dropout === b.texture.dropout &&
-    a.texture.spray === b.texture.spray &&
-    a.texture.ramp === b.texture.ramp
-  )
-}
-
-function samePixelStyle(a: PixelStyle, b: PixelStyle): boolean {
-  return (
-    a.radius === b.radius &&
-    a.sizeX === b.sizeX &&
-    a.sizeY === b.sizeY &&
-    a.convexRadius === b.convexRadius &&
-    a.concaveRadius === b.concaveRadius &&
-    a.cornerStyle === b.cornerStyle &&
-    a.squareEdges === b.squareEdges &&
-    a.corners.tl === b.corners.tl &&
-    a.corners.tr === b.corners.tr &&
-    a.corners.br === b.corners.br &&
-    a.corners.bl === b.corners.bl
-  )
-}
-
-/**
- * Flip the style scope. Entering element mode attributes all painted cells and unattributed
- * connectors to a single frozen element carrying a snapshot of the current global style, so the
- * rendered picture does not change. Leaving element mode keeps the element data intact.
- */
-export function withStyleScope(doc: Doc, scope: StyleScope): Doc {
-  if (doc.styleScope === scope) return doc
-  // scene docs own every cell through their objects, so a scope flip needs no
-  // materialization pass — hidden legacy globals just render through the tree
-  if (doc.layers) return { ...doc, styleScope: scope }
-  if (scope === 'global') return { ...doc, styleScope: scope }
-  const snapshot = elementFromDoc(doc)
-  const elements = [...doc.elements]
-  let id = elements.findIndex((el) => sameElementStyle(el, snapshot)) + 1
-  if (id === 0) {
-    elements.push(snapshot)
-    id = elements.length
-  }
-  let cellObj = doc.cellObj
-  if (doc.cells.some((v) => v !== 0)) {
-    cellObj = (cellObj ?? new Uint32Array(doc.cells.length)).slice()
-    for (let i = 0; i < cellObj.length; i++) {
-      if (doc.cells[i] !== 0 && cellObj[i] === 0) cellObj[i] = id
-    }
-  }
-  const links = doc.links.some((l) => !l.obj)
-    ? doc.links.map((l) => (l.obj ? l : { ...l, obj: id }))
-    : doc.links
-  return { ...doc, styleScope: scope, elements, cellObj, links }
-}
-
 export function defaultDoc(): Doc {
   return {
     gridType: 'square',

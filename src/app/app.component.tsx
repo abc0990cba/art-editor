@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { ImportBitmap } from '../engine/import-image.ts'
-import { shiftTarget } from '../engine/scene.ts'
 import { CanvasStage } from '../features/canvas/canvas-stage.component.tsx'
+import { decodeImageFile } from '../features/import/decode-image.util.ts'
 import { ImportDialog } from '../features/import/import-dialog.component.tsx'
 import { NodeEditorCanvas } from '../features/nodes-editor/node-editor-canvas.component.tsx'
 import { ProjectDialog } from '../features/projects/project-dialog.component.tsx'
@@ -11,187 +11,17 @@ import {
   PANEL_SECTIONS,
   SettingsPanel,
 } from '../features/settings-panel/settings-panel.component.tsx'
-import {
-  allOrder,
-  ToolIcon,
-  ToolRail,
-  ToolSettings,
-  type SettingsAnchor,
-} from '../features/tools/tool-rail.component.tsx'
+import { FabPanel } from '../features/tools/fab-panel.component.tsx'
+import { allOrder, ToolIcon } from '../features/tools/tool-icons.component.tsx'
+import { ToolRail } from '../features/tools/tool-rail.component.tsx'
+import { ToolSettings, type SettingsAnchor } from '../features/tools/tool-settings.component.tsx'
 import { I18nProvider, useI18n } from '../shared/i18n/i18n.provider.tsx'
 import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
 import { IconButton, SectionGlyph } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
-import { useStore, undo, redo, type Tool, hasAutosave } from '../state/editor.store.ts'
+import { useStore, hasAutosave } from '../state/editor.store.ts'
 import { TopBar } from './app-top-bar.component.tsx'
-
-const toolKeys: Record<string, Tool> = {
-  v: 'select',
-  b: 'pencil',
-  e: 'eraser',
-  g: 'fill',
-  i: 'picker',
-  l: 'line',
-  r: 'rect',
-  o: 'ellipse',
-  c: 'connector',
-  s: 'star',
-  n: 'polygon',
-  d: 'diamond',
-  h: 'heart',
-  q: 'spiral',
-  a: 'arrow',
-  k: 'lightning',
-  m: 'moon',
-  w: 'wave',
-  x: 'cross',
-  j: 'flower',
-  u: 'gear',
-  z: 'zigzag',
-  t: 'ring',
-  y: 'arc',
-  p: 'drop',
-  '1': 'chevron',
-  '2': 'concentric',
-  '3': 'concentricRect',
-  '4': 'sun',
-  '5': 'bento',
-}
-
-function useHotkeys(): void {
-  useEffect(() => {
-    // the standard editors' guard: warn before closing the tab with unsaved changes
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!useStore.getState().projectDirty) return
-      e.preventDefault()
-      e.returnValue = ''
-    }
-    window.addEventListener('beforeunload', onBeforeUnload)
-    return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [])
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement | null
-      if (
-        el &&
-        (el.tagName === 'INPUT' ||
-          el.tagName === 'TEXTAREA' ||
-          el.tagName === 'SELECT' ||
-          el.isContentEditable)
-      ) {
-        return
-      }
-      const mod = e.ctrlKey || e.metaKey
-      const key = e.key.toLowerCase()
-      if (mod && key === 'z') {
-        e.preventDefault()
-        if (e.shiftKey) redo()
-        else undo()
-        return
-      }
-      if (mod && key === 'y') {
-        e.preventDefault()
-        redo()
-        return
-      }
-      if (mod && key === 'a') {
-        e.preventDefault()
-        useStore.getState().selectAllElements()
-        return
-      }
-      if (mod && key === 'g') {
-        e.preventDefault()
-        if (e.shiftKey) useStore.getState().ungroupSelection()
-        else useStore.getState().groupSelection()
-        return
-      }
-      if (mod && key === 's') {
-        e.preventDefault()
-        const s = useStore.getState()
-        // a no-op when everything is saved: skip the pointless library write
-        if (s.projectDirty) void s.saveToLibrary()
-        return
-      }
-      if (mod && (key === '[' || key === ']')) {
-        e.preventDefault()
-        // stack order: ] brings the node one slot up, [ sends it down (tree order)
-        const s = useStore.getState()
-        if (!s.doc.layers) return
-        const ids =
-          s.selection.length > 0 ? s.selection : s.activeLayerId == null ? [] : [s.activeLayerId]
-        const dir = key === ']' ? 'after' : 'before'
-        for (const id of ids) {
-          const st = useStore.getState()
-          if (!st.doc.layers) break
-          const target = shiftTarget(st.doc.layers, id, dir)
-          if (target) st.reorderNode(id, target.targetId, target.place)
-        }
-        return
-      }
-      if (!mod && (key === 'delete' || key === 'backspace')) {
-        const s = useStore.getState()
-        if (s.selection.length > 0) {
-          e.preventDefault()
-          s.deleteSelection()
-        }
-        return
-      }
-      if (!mod && key === 'f') {
-        e.preventDefault()
-        useStore.getState().requestFit()
-        return
-      }
-      if (!mod && toolKeys[key]) {
-        useStore.getState().setTool(toolKeys[key])
-        return
-      }
-      if (!mod && (key === '[' || key === ']')) {
-        e.preventDefault()
-        const s = useStore.getState()
-        s.patchBrush({ size: s.brush.size + (key === ']' ? 1 : -1) })
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-}
-
-/** Decode an image file into an ImportBitmap, capped so the import pipeline stays fast. */
-async function decodeImageFile(file: Blob, maxSide = 2048): Promise<ImportBitmap> {
-  let source: ImageBitmap | HTMLImageElement
-  try {
-    source = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  } catch {
-    source = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image()
-      const url = URL.createObjectURL(file)
-      img.onload = () => {
-        URL.revokeObjectURL(url)
-        resolve(img)
-      }
-      img.onerror = () => {
-        URL.revokeObjectURL(url)
-        reject(new Error('image decode failed'))
-      }
-      img.src = url
-    })
-  }
-  const w = source instanceof HTMLImageElement ? source.naturalWidth : source.width
-  const h = source instanceof HTMLImageElement ? source.naturalHeight : source.height
-  const scale = Math.min(1, maxSide / Math.max(1, Math.max(w, h)))
-  const dw = Math.max(1, Math.round(w * scale))
-  const dh = Math.max(1, Math.round(h * scale))
-  const canvas = document.createElement('canvas')
-  canvas.width = dw
-  canvas.height = dh
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx) throw new Error('no 2d context')
-  ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
-  ctx.drawImage(source, 0, 0, dw, dh)
-  if (source instanceof ImageBitmap) source.close()
-  return { width: dw, height: dh, data: ctx.getImageData(0, 0, dw, dh).data }
-}
+import { useHotkeys } from './use-hotkeys.hook.ts'
 
 function Editor() {
   const { t } = useI18n()
@@ -273,6 +103,7 @@ function Editor() {
         <ToolRail />
         <div ref={editorPaneRef} className="relative flex min-w-0 flex-1">
           <CanvasStage onDropFile={openImportFile} />
+          <FabPanel />
           {homeOpen && (
             <ProjectsDialog
               variant="home"
@@ -330,25 +161,48 @@ function Editor() {
           )}
         </div>
         {panelCollapsed ? (
-          <div
-            aria-label={t('panel.expand')}
-            className="border-line bg-panel hidden w-12 shrink-0 flex-col items-center gap-1 border-l py-2 lg:flex"
-          >
-            {PANEL_SECTIONS.map((x) => (
-              <Tooltip key={x.id} label={t(x.titleKey as 'panel.color')}>
+          // collapsed: section shortcuts on top, dedicated expand chevron pinned to the
+          // bottom — mirrors the tool rail's collapse toggle (arrow points where it expands)
+          <div className="border-line bg-panel hidden w-12 shrink-0 flex-col items-center border-l lg:flex">
+            <div className="flex flex-col items-center gap-1 py-2">
+              {PANEL_SECTIONS.map((x) => (
+                <Tooltip key={x.id} label={t(x.titleKey as 'panel.color')}>
+                  <button
+                    type="button"
+                    aria-label={t(x.titleKey as 'panel.color')}
+                    onClick={() => {
+                      togglePanelCollapsed()
+                      setPanelSection(x.id)
+                    }}
+                    className="text-muted hover:bg-chip-active hover:text-body flex h-10 w-10 items-center justify-center rounded-lg transition"
+                  >
+                    <SectionGlyph icon={x.icon} />
+                  </button>
+                </Tooltip>
+              ))}
+            </div>
+            <div className="border-line mt-auto flex w-full justify-center border-t py-2">
+              <Tooltip label={t('panel.expand')}>
                 <button
                   type="button"
-                  aria-label={t(x.titleKey as 'panel.color')}
-                  onClick={() => {
-                    togglePanelCollapsed()
-                    setPanelSection(x.id)
-                  }}
-                  className="text-muted hover:bg-chip-active hover:text-body flex h-10 w-10 items-center justify-center rounded-lg transition"
+                  aria-label={t('panel.expand')}
+                  onClick={togglePanelCollapsed}
+                  className="text-muted hover:bg-chip hover:text-body flex h-7 w-7 items-center justify-center rounded-lg transition"
                 >
-                  <SectionGlyph icon={x.icon} />
+                  <svg
+                    viewBox="0 0 16 16"
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9.5 4L5.5 8l4 4" />
+                  </svg>
                 </button>
               </Tooltip>
-            ))}
+            </div>
           </div>
         ) : (
           <div className="border-line bg-panel hidden w-64 shrink-0 flex-col border-l lg:flex">
@@ -356,24 +210,29 @@ function Editor() {
               className="flex min-h-0 w-full flex-1 flex-col"
               openSection={panelSection}
             />
-            <div className="border-line border-t p-1.5">
-              <IconButton
-                title={t('panel.collapse')}
-                onClick={togglePanelCollapsed}
-                className="mx-auto rotate-180"
-              >
-                <svg
-                  viewBox="0 0 16 16"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
+            {/* collapse row styled like the tool rail's: chevron + text, arrow pointing
+                at the right edge the panel collapses into */}
+            <div className="border-line border-t p-2">
+              <Tooltip label={t('panel.collapse')}>
+                <button
+                  type="button"
+                  onClick={togglePanelCollapsed}
+                  className="text-muted hover:bg-chip hover:text-body flex h-8 w-full items-center gap-2 rounded-lg px-2 transition"
                 >
-                  <path d="M6.5 4L3 7.5 6.5 11" />
-                  <path d="M3 7.5h6a4 4 0 010 8H6" />
-                </svg>
-              </IconButton>
+                  <svg
+                    viewBox="0 0 16 16"
+                    className="h-3.5 w-3.5 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M6.5 4l4 4-4 4" />
+                  </svg>
+                  <span className="flex-1 truncate text-left text-xs">{t('panel.collapse')}</span>
+                </button>
+              </Tooltip>
             </div>
           </div>
         )}

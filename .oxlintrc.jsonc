@@ -694,7 +694,7 @@
       "eslint/max-lines": [
         "error",
         {
-          "max": 2439,
+          "max": 1299,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -893,7 +893,7 @@
         "error",
         {
           // 1172→1196: symmetry preview modal; 1196→1226: panel collapse strip (2026-09)
-          "max": 1226,
+          "max": 437,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -970,7 +970,7 @@
       "eslint/max-lines": [
         "error",
         {
-          "max": 1289,
+          "max": 157,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -1058,5 +1058,205 @@
       ]
     }
   },
+  {
+    "files": [
+      "src/features/settings-panel/style-section.component.tsx",
+      "src/features/settings-panel/texture-section.component.tsx",
+      "src/features/settings-panel/symmetry-section.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 358,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/symmetry-radial.ts",
+      "src/engine/symmetry-repeat.ts"
+    ],
+    "rules": {
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 8
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 5
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/app/use-hotkeys.hook.ts"
+    ],
+    "rules": {
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 44
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 90
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/project-parse.ts",
+      "src/engine/doc-style.ts",
+      "src/engine/palettes-data.ts"
+    ],
+    "rules": {
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 28
+        }
+      ],
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 444,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/geometry-shape.ts",
+      "src/engine/geometry-metaball.ts",
+      "src/engine/geometry-elements.ts"
+    ],
+    "rules": {
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 39
+        }
+      ],
+      "eslint/max-params": [
+        "error",
+        {
+          "max": 6
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/tools/tool-settings-body.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 574,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 567,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 33
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/tools/tool-settings-skull.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 220,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/tools/tool-settings.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 176,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/canvas/use-canvas-staging.hook.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 795,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          "max": 749,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ],
+      "eslint/complexity": [
+        "error",
+        {
+          "max": 70
+        }
+      ],
+      "eslint/max-statements": [
+        "error",
+        {
+          "max": 152
+        }
+      ],
+      "eslint/max-depth": [
+        "error",
+        {
+          "max": 8
+        }
+      ]
+    }
+  }
 ]
 }

@@ -77,6 +77,8 @@ export interface State {
   railOpen: boolean
   /** Right settings panel collapsed to a section-icon strip (desktop only) */
   panelCollapsed: boolean
+  /** Quick-settings fab panel next to the tool rail is expanded (desktop only) */
+  fabOpen: boolean
   /** Per-tool shape settings (star rays, gear teeth, rotation, …) */
   toolOpts: ToolOpts
   /**
@@ -252,6 +254,7 @@ export interface State {
   setPaletteAutoApply: (v: boolean) => void
   toggleRail: () => void
   togglePanelCollapsed: () => void
+  toggleFab: () => void
   patchToolOpts: (patch: Partial<ToolOpts>) => void
   /** Override the tool-settings preview grid; null returns to the automatic size */
   setPreviewGrid: (grid: { cols: number; rows: number } | null) => void

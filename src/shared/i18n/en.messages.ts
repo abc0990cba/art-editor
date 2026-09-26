@@ -644,6 +644,9 @@ export const en = {
   'theme.catppuccin': 'Catppuccin Mocha',
 
   'view.fit': 'Fit',
+  'view.zoomOut': 'Zoom out',
+  'view.zoomIn': 'Zoom in',
+  'view.zoomReset': 'Reset zoom to 100%',
   'view.scrollX': 'Horizontal scroll',
   'view.scrollY': 'Vertical scroll',
   'view.linkPending': 'Click the second cell · Esc to cancel',
@@ -686,6 +689,9 @@ export const en = {
 
   'panel.railCollapse': 'Collapse toolbar',
   'panel.railExpand': 'Expand toolbar',
+  'panel.fab': 'Quick settings',
+  'panel.fabExpand': 'Show quick settings',
+  'panel.fabCollapse': 'Hide quick settings',
 
   'tool.settings': 'Tool settings',
   'tool.settings.desc': 'Double-click a tool in the toolbar to tune its shape.',

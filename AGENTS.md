@@ -23,6 +23,23 @@ npm test               # vitest, все тесты зелёные
 типонебезопасна (история: спред `Uint16Array` → `number[]`, `.at(-1)` → `T | undefined`,
 выедание `undefined`-аргументов). Правила-вредители выключены в `.oxlintrc.jsonc` с пометкой.
 
+## Коммиты — Conventional Commits (проверяется на `commit-msg`)
+
+Формат: `<type>(<scope>)?: <subject>` + пустая строка + тело/футер по необходимости.
+Пресет `@commitlint/config-conventional`, конфиг `commitlint.config.js`, хук `commit-msg`
+(lefthook, конфиг `lefthook.yml`; хуки в `.git/hooks` ставятся `prepare`-скриптом
+`lefthook install`).
+
+- Типы: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- Заголовок ≤ 100 символов, тема без точки в конце; case-правила темы выключены
+  (латиноцентричные, ложно ругаются на кириллицу) — причина в комментарии конфига.
+- Ручная проверка текста до коммита: `git log -1 --pretty=%B | npm run --silent commit:check`
+  (или `npx commitlint --edit <файл-с-сообщением>`).
+
+Рабочее правило для агентов: **после каждого изменения агент сам предлагает готовый текст
+коммита** (тип + тема + тело с описанием того, что произошло) — но коммит делает человек:
+агент не запускает `git commit`.
+
 ## Структура и границы (проверяется `arch:check`)
 
 ```

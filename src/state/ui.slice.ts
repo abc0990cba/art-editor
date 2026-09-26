@@ -44,6 +44,7 @@ const THEME_KEY = 'glyph.theme'
 const RECENT_KEY = 'glyph.recent'
 const RAIL_KEY = 'glyph.rail'
 const PANEL_KEY = 'glyph.panel'
+const FAB_KEY = 'glyph.fab'
 
 function initialThemePref(): ThemePref {
   try {
@@ -72,6 +73,15 @@ function initialPanelCollapsed(): boolean {
     /* ignore */
   }
   return false
+}
+
+function initialFabOpen(): boolean {
+  try {
+    return localStorage.getItem(FAB_KEY) !== '0'
+  } catch {
+    /* ignore */
+  }
+  return true
 }
 
 function initialRailOpen(): boolean {
@@ -106,6 +116,8 @@ export interface UiSlice {
   railOpen: boolean
   /** Right settings panel collapsed to a section-icon strip (desktop only) */
   panelCollapsed: boolean
+  /** Quick-settings fab panel next to the tool rail is expanded (desktop only) */
+  fabOpen: boolean
   /** PNG export size in px; null = auto (canvas × 8, clamped) */
   pngWidth: number | null
   pngHeight: number | null
@@ -129,6 +141,7 @@ export interface UiSlice {
   setShowGrid: (v: boolean) => void
   toggleRail: () => void
   togglePanelCollapsed: () => void
+  toggleFab: () => void
   setPngWidth: (v: number | null) => void
   setPngHeight: (v: number | null) => void
   setExportBg: (v: boolean) => void
@@ -159,6 +172,7 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
     showGrid: true,
     railOpen: initialRailOpen(),
     panelCollapsed: initialPanelCollapsed(),
+    fabOpen: initialFabOpen(),
     pngWidth: null,
     pngHeight: null,
     exportBg: true,
@@ -195,6 +209,16 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
           /* ignore */
         }
         return { panelCollapsed }
+      }),
+    toggleFab: () =>
+      set((s) => {
+        const fabOpen = !s.fabOpen
+        try {
+          localStorage.setItem(FAB_KEY, fabOpen ? '1' : '0')
+        } catch {
+          /* ignore */
+        }
+        return { fabOpen }
       }),
     toggleRail: () =>
       set((s) => {
