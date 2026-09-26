@@ -22,14 +22,7 @@ import { I18nProvider, useI18n } from '../shared/i18n/i18n.provider.tsx'
 import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
 import { IconButton, SectionGlyph } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
-import {
-  useCanUndoRedo,
-  useStore,
-  undo,
-  redo,
-  type Tool,
-  hasAutosave,
-} from '../state/editor.store.ts'
+import { useStore, undo, redo, type Tool, hasAutosave } from '../state/editor.store.ts'
 import { TopBar } from './app-top-bar.component.tsx'
 
 const toolKeys: Record<string, Tool> = {
@@ -236,7 +229,6 @@ function Editor() {
   const [panelSection, setPanelSection] = useState<string | null>(null)
   // mobile: the active tool's settings open as a bottom sheet from the strip's gear
   const [mobileSettings, setMobileSettings] = useState<SettingsAnchor | null>(null)
-  const { canUndo, canRedo } = useCanUndoRedo()
   const stripRef = useRef<HTMLDivElement>(null)
   const nodeEditorMode = useStore((s) => s.nodeEditorMode)
   const nodeEditorSplit = useStore((s) => s.nodeEditorSplit)
@@ -435,49 +427,6 @@ function Editor() {
       {mobileSettings && (
         <ToolSettings anchor={mobileSettings} onClose={() => setMobileSettings(null)} />
       )}
-      {/* mobile: undo/redo floating pair above the strip — thumb reach, Procreate-style */}
-      <div className="fixed right-2 bottom-[4.5rem] z-20 flex flex-col gap-2 lg:hidden">
-        <Tooltip label={`${t('top.undo')} (Ctrl+Z)`}>
-          <button
-            type="button"
-            onClick={() => undo()}
-            disabled={!canUndo}
-            aria-label={t('top.undo')}
-            className="border-line bg-chip/90 text-body hover:border-chip-line flex h-11 w-11 items-center justify-center rounded-full border shadow-lg backdrop-blur transition disabled:opacity-30"
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.4"
-            >
-              <path d="M6.5 4L3 7.5 6.5 11" />
-              <path d="M3 7.5h6a4 4 0 010 8H6" />
-            </svg>
-          </button>
-        </Tooltip>
-        <Tooltip label={`${t('top.redo')} (Ctrl+Shift+Z)`}>
-          <button
-            type="button"
-            onClick={() => redo()}
-            disabled={!canRedo}
-            aria-label={t('top.redo')}
-            className="border-line bg-chip/90 text-body hover:border-chip-line flex h-11 w-11 items-center justify-center rounded-full border shadow-lg backdrop-blur transition disabled:opacity-30"
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.4"
-            >
-              <path d="M9.5 4L13 7.5 9.5 11" />
-              <path d="M13 7.5H7a4 4 0 000 8h1" />
-            </svg>
-          </button>
-        </Tooltip>
-      </div>
 
       {panelOpen && (
         <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setPanelOpen(false)}>

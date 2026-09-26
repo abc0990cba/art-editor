@@ -72,7 +72,7 @@ export function ExportPillButton({ open, onToggle }: { open: boolean; onToggle: 
   )
 }
 
-/** Mobile header: logo, project identity, save + settings + overflow (below lg only). */
+/** Mobile header: logo, undo/redo, save + settings + overflow (below lg only). */
 export function MobileHeader({
   onSettings,
   onTogglePanel,
@@ -84,9 +84,9 @@ export function MobileHeader({
   more?: ReactNode
 }) {
   const { t } = useI18n()
-  const projectName = useStore((s) => s.projectName)
   const projectDirty = useStore((s) => s.projectDirty)
   const saveToLibrary = useStore((s) => s.saveToLibrary)
+  const { canUndo, canRedo } = useCanUndoRedo()
   return (
     <header className="border-line flex h-14 shrink-0 items-center gap-1.5 border-b px-2">
       <svg viewBox="0 0 20 20" className="h-6 w-6 shrink-0" aria-hidden>
@@ -102,14 +102,30 @@ export function MobileHeader({
         <rect x="3.5" y="10.9" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".55" />
         <circle cx="13.7" cy="13.7" r="2.8" fill="#fff" opacity=".85" />
       </svg>
-      <button
-        type="button"
-        onClick={onSettings}
-        aria-label={t('project.name')}
-        className="border-line bg-chip text-body hover:border-chip-line flex h-10 min-w-0 flex-1 items-center rounded-md border px-2.5 text-left text-xs transition"
-      >
-        <span className="truncate">{projectName || t('project.untitled')}</span>
-      </button>
+      <IconButton big plate title={t('top.undo')} onClick={undo} disabled={!canUndo}>
+        <svg
+          viewBox="0 0 16 16"
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+        >
+          <path d="M6.5 4L3 7.5 6.5 11" />
+          <path d="M3 7.5h6a4 4 0 010 8H6" />
+        </svg>
+      </IconButton>
+      <IconButton big plate title={t('top.redo')} onClick={redo} disabled={!canRedo}>
+        <svg
+          viewBox="0 0 16 16"
+          className="h-5 w-5 -scale-x-100"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+        >
+          <path d="M6.5 4L3 7.5 6.5 11" />
+          <path d="M3 7.5h6a4 4 0 010 8H6" />
+        </svg>
+      </IconButton>
       <IconButton
         big
         plate
