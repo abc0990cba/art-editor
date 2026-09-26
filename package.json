@@ -14,6 +14,7 @@
     "format:check": "oxfmt --check src vite.config.ts index.html",
     "lint:ai": "oxlint -f agent src",
     "arch:check": "depcruise src --config .dependency-cruiser.cjs",
+    "bench": "vitest bench --run",
     "commit:check": "commitlint",
     "knip": "knip",
     "prepare": "lefthook install"

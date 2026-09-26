@@ -1,0 +1,15 @@
+{
+  "startedAt": "2026-09-26T21:05:23.588Z",
+  "finishedAt": "2026-09-26T21:05:55.470Z",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ZCode/3.14.3 Chrome/146.0.7680.80 Electron/41.0.3 Safari/537.36",
+  "dpr": 2, "cores": 8, "deviceMemoryGb": 8, "viewport": "1280×720",
+  "framesLive": true,
+  "note": "checkpoint after M1 limits + M2a run-merging + M2b imperative stroke frames + M4a orbit limit/blob cache; view refit per load (requestFit)",
+  "medians": {
+    "loadDoc": { "512": 12.5, "2048": 47.3, "4096": 158 },
+    "commit2000": { "512": 14.3, "2048": 47.0, "4096": 130.4 },
+    "wheelZoomStep": { "512": 3.6, "2048": 3.2, "4096": 2.9 },
+    "strokeE2e60": { "512": 2009.3, "2048": 2043.8, "4096": 2132.7 },
+    "undo": { "512": 8.5, "2048": 46.1, "4096": 122.2 }
+  }
+}

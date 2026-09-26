@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 import { brushAnchor, brushOffsets } from '../../engine/brush.ts'
 import {
@@ -47,6 +47,12 @@ export interface CanvasStagingParams {
   fillStyle: State['fillStyle']
   /** Resolved active layer + protection, kept fresh by the stage */
   activeLayerState: () => { id: number | null; locked: boolean }
+  /**
+   * Direct per-frame redraw of the stage (base layer + overlay), called on the rAF tick after
+   * staging mutations. Replaces the old reducer bump: stroke frames draw imperatively and never
+   * re-render the stage component.
+   */
+  onStagingFrame: () => void
 }
 
 /**
@@ -67,6 +73,7 @@ export function useCanvasStaging({
   shapePaint,
   fillStyle,
   activeLayerState,
+  onStagingFrame,
 }: CanvasStagingParams) {
   const paintCells = useStore((s) => s.paintCells)
   const paintCellsValues = useStore((s) => s.paintCellsValues)
@@ -106,17 +113,24 @@ export function useCanvasStaging({
   // set by stampShape for shape strokes: the pre-resolved doc (palette may gain the fill
   // and stroke colors) that commitStaging must pass to paintCellsValues, then cleared
   const shapeResolvedRef = useRef<Doc | null>(null)
-  const [stagingVersion, bumpStaging] = useReducer((x: number) => x + 1, 0)
+  const onFrameRef = useRef(onStagingFrame)
+  onFrameRef.current = onStagingFrame
   const rafRef = useRef(0)
+  // rAF-coalesced imperative frame: staging mutations coalesce into at most one direct
+  // draw per frame — React renders only when the stroke commits (or the view/doc changes)
   const scheduleStaging = useCallback(() => {
     if (!rafRef.current) {
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = 0
-        bumpStaging()
+        onFrameRef.current()
       })
     }
   }, [])
   useEffect(() => () => cancelAnimationFrame(rafRef.current), [])
+  /** Immediate imperative frame (staging canceled / cleared). */
+  const bumpStaging = useCallback(() => {
+    onFrameRef.current()
+  }, [])
 
   const ensureStaging = () => {
     // links stays undefined: paint strokes preview over the committed connectors, and only
@@ -300,6 +314,9 @@ export function useCanvasStaging({
         const bx = idx % bw
         const by = Math.floor(idx / bw)
         const [ax, ay] = brushAnchor(bx, by, brush.size, brushSnap && !free)
+        // keep orbit × tip within the stamp budget on huge repeat lattices: the limit
+        // short-circuits the lattice enumeration instead of slicing a 4K-point orbit after
+        const cap = Math.max(64, Math.floor(MAX_STAMPS / tipOffsets.length))
         const orbit = symmetryPoints(
           ax,
           ay,
@@ -309,10 +326,9 @@ export function useCanvasStaging({
           symmetry.n,
           symmetry.cell,
           radialOpts,
+          cap,
         )
-        // keep orbit × tip within the stamp budget on huge repeat lattices
-        const cap = Math.max(64, Math.floor(MAX_STAMPS / tipOffsets.length))
-        for (const [ox, oy] of orbit.slice(0, cap)) {
+        for (const [ox, oy] of orbit) {
           for (const [dx, dy] of tipOffsets) {
             const x = ox + dx
             const y = oy + dy
@@ -844,7 +860,6 @@ export function useCanvasStaging({
 
   return {
     stagingRef,
-    stagingVersion,
     bumpStaging,
     scheduleStaging,
     ensureStaging,

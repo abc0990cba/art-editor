@@ -214,8 +214,22 @@ export interface SymmetryState {
   twist: number
 }
 
-export const MAX_SIZE = 512
+export const MAX_SIZE = 4096
 export const MIN_SIZE = 1
+/**
+ * Hard ceiling for buffer cells (cols·sub × rows·sub): at Uint16 cells + Uint32 element ids this is
+ * ~96 MB of live buffers per composite rebuild, the ceiling the render pipeline is dimensioned
+ * for.
+ */
+export const MAX_CELLS = 16_777_216
+
+/** Largest sub detail that fits a cols×rows grid under the MAX_CELLS ceiling (sub steps 3→2→1). */
+export function fitSub(cols: number, rows: number, sub: SubDetail): SubDetail {
+  const cells = cols * rows
+  let s = sub
+  while (s > 1 && cells * s * s > MAX_CELLS) s = s === 3 ? 2 : 1
+  return s
+}
 
 export function bufferWidth(doc: Pick<Doc, 'cols' | 'sub'>): number {
   return doc.cols * doc.sub
@@ -300,13 +314,21 @@ export function cellColor(doc: Doc, v: number): string | null {
 export function resizeDoc(doc: Doc, cols: number, rows: number): Doc {
   const c = Math.max(MIN_SIZE, Math.min(MAX_SIZE, Math.round(cols)))
   const r = Math.max(MIN_SIZE, Math.min(MAX_SIZE, Math.round(rows)))
-  if (c === doc.cols && r === doc.rows) return doc
-  const next = makeCells(c, r, doc.sub)
+  // a resize can push the buffer past MAX_CELLS at the current detail: step sub down first
+  const sub = fitSub(c, r, doc.sub)
+  const base =
+    c === doc.cols && r === doc.rows && sub === doc.sub ? doc : resizeBuffer(doc, c, r, doc.sub)
+  return sub === base.sub ? base : changeSub(base, sub)
+}
+
+/** 1:1 buffer copy into a c×r grid at the current sub, content anchored at the top-left. */
+function resizeBuffer(doc: Doc, c: number, r: number, sub: SubDetail): Doc {
+  const next = makeCells(c, r, sub)
   const nextObj = doc.cellObj ? new Uint32Array(next.length) : null
   const bw = doc.cols * doc.sub
   const bh = doc.rows * doc.sub
-  const nbw = c * doc.sub
-  const nbh = r * doc.sub
+  const nbw = c * sub
+  const nbh = r * sub
   for (let y = 0; y < Math.min(bh, nbh); y++) {
     for (let x = 0; x < Math.min(bw, nbw); x++) {
       next[y * nbw + x] = doc.cells[y * bw + x]
@@ -315,12 +337,14 @@ export function resizeDoc(doc: Doc, cols: number, rows: number): Doc {
   }
   // drop connectors that fall outside the new grid
   const links = doc.links.filter((l) => l.ax < c && l.bx < c && l.ay < r && l.by < r)
-  return { ...doc, cols: c, rows: r, cells: next, cellObj: nextObj, links }
+  return { ...doc, cols: c, rows: r, sub, cells: next, cellObj: nextObj, links }
 }
 
 /** Change sub-cell detail, resampling the buffer nearest-neighbor so content stays in place. */
 export function changeSub(doc: Doc, sub: SubDetail): Doc {
-  if (sub === doc.sub) return doc
+  const fitted = fitSub(doc.cols, doc.rows, sub)
+  if (fitted === doc.sub) return doc
+  sub = fitted
   const oldSub = doc.sub
   const oldBw = doc.cols * oldSub
   const oldBh = doc.rows * oldSub

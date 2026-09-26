@@ -32,13 +32,14 @@ const squares = (ns: number[]): SizeOption[] => ns.flatMap((n) => pair(n, n))
 const rects = (rs: [number, number][]): SizeOption[] => rs.flatMap(([c, r]) => pair(c, r))
 
 export const SIZE_GROUPS: SizeGroup[] = [
-  { ratio: '1:1', sizes: squares([16, 32, 48, 64, 128, 256, 512]) },
+  { ratio: '1:1', sizes: squares([16, 32, 48, 64, 128, 256, 512, 1024, 2048, 4096]) },
   {
     ratio: '4:3',
     sizes: rects([
       [64, 48],
       [128, 96],
       [256, 192],
+      [1024, 768],
     ]),
   },
   {
@@ -55,6 +56,8 @@ export const SIZE_GROUPS: SizeGroup[] = [
       [64, 36],
       [128, 72],
       [256, 144],
+      [1024, 576],
+      [2048, 1152],
     ]),
   },
   {

@@ -33,6 +33,8 @@ export function symmetryPoints(
   n: number,
   cell: number = 16,
   radial?: RadialOpts,
+  /** Hard cap on returned points (repeat lattices can enumerate thousands of copies). */
+  limit: number = Infinity,
 ): [number, number][] {
   if (mode === 'none') return [[x, y]]
   if ((mode === 'radial' || mode === 'kaleido') && !inFilledWedge(x, y, bw, bh, n, radial)) {
@@ -49,7 +51,7 @@ export function symmetryPoints(
 
   const def = isRepeat(mode) ? repeatDef(mode) : null
   if (def) {
-    repeatPoints(x, y, bw, bh, def, Math.max(2, Math.min(cell, bw, bh)), seen, push)
+    repeatPoints(x, y, bw, bh, def, Math.max(2, Math.min(cell, bw, bh)), seen, push, limit)
     return out
   }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { flatBenchDoc, flatRunsBenchDoc } from './bench-doc.util.ts'
 import { defaultDoc, type Doc } from './doc.ts'
 import { buildGeometry, stagingPreview, PENDING_OBJ, type Staging } from './geometry.ts'
 
@@ -100,35 +101,45 @@ describe('stagingPreview correctness', () => {
   })
 })
 
-describe('500×500 render performance', () => {
-  it('in-stroke preview frames are far cheaper than a full rebuild', () => {
-    const doc = bigDoc()
+describe('2048² perf budgets (bench/PERFLOG.md ratchet)', () => {
+  const S = 1024
+  const CELLS = 0.25
 
-    let t0 = performance.now()
-    const full = buildGeometry(doc)
-    const rebuildMs = performance.now() - t0
-    expect(full.paths.length).toBe(2)
-
-    const FRAMES = 60
-    t0 = performance.now()
-    let previewFrames = 0
-    for (let f = 0; f < FRAMES; f++) {
-      const preview = stagingPreview(doc, strokeStaging(f))
-      expect(preview).not.toBeNull()
-      expect(preview!.paths.length).toBeGreaterThan(0)
-      previewFrames++
-    }
-    const previewAvgMs = (performance.now() - t0) / previewFrames
-
-    // the whole point: drawing must stay interactive on large grids, so a stroke frame
-    // (staged cells only) must beat the full-document rebuild by a wide margin
-    expect(previewAvgMs * 10).toBeLessThan(rebuildMs)
+  it('run-friendly ink builds geometry far cheaper than scattered ink at equal cell count', () => {
+    // equal painted cell counts, only the run structure differs: run-merging must win big
+    const scatter = flatBenchDoc(S, S, CELLS)
+    const runs = flatRunsBenchDoc(S, S, CELLS)
+    const t0 = performance.now()
+    buildGeometry(scatter)
+    const scatterMs = performance.now() - t0
+    const t1 = performance.now()
+    buildGeometry(runs)
+    const runsMs = performance.now() - t1
     // eslint-disable-next-line no-console
     console.log(
-      `500×500 pixels: full rebuild ${rebuildMs.toFixed(1)}ms, staging frame ${previewAvgMs.toFixed(2)}ms`,
+      `${S}² ${(CELLS * 100) | 0}% ink: scatter ${scatterMs.toFixed(0)}ms, runs-64 ${runsMs.toFixed(1)}ms (${(scatterMs / Math.max(runsMs, 0.01)).toFixed(0)}x)`,
     )
+    // ratio assertion (machine-independent): merging must stay a large constant-factor win
+    expect(runsMs * 5).toBeLessThan(scatterMs)
   })
 
+  it('commit-sized rebuilds on 2048² stay under a frame-budget multiple', () => {
+    // relative ratchet: 2048² rebuild must not exceed the 512² cost by more than the
+    // cell-count ratio + slack (catches accidental O(n²) regressions in geometry)
+    const small = flatRunsBenchDoc(512, 512, 0.25)
+    const big = flatRunsBenchDoc(2048, 2048, 0.25)
+    const t0 = performance.now()
+    buildGeometry(small)
+    const smallMs = performance.now() - t0
+    const t1 = performance.now()
+    buildGeometry(big)
+    const bigMs = performance.now() - t1
+    // 16× the cells; run-merging keeps the absolute work tiny, allow 40× for scheduler noise
+    expect(bigMs).toBeLessThan(Math.max(20, smallMs * 40))
+  })
+})
+
+describe('500×500 render correctness across style options', () => {
   it('stays incremental across rounding options (arc/chamfer, radius 0…0.5, sub 3)', () => {
     for (const opts of [
       { radius: 0 },

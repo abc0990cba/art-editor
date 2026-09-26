@@ -39,11 +39,22 @@ export interface DocPoint {
 }
 
 /**
+ * Memoized blob shapes: the greedy growth is deterministic per (grid, anchor, count), and stamps
+ * re-hit the same anchors constantly (hover + every pointermove inside one cell). Keyed per grid
+ * geometry, capped to keep memory bounded (each entry holds ≤ size² cell indices).
+ */
+const blobCache = new Map<string, number[]>()
+const BLOB_CACHE_MAX = 1024
+
+/**
  * A compact lattice blob of `count` cells around the anchor: brush tips are square-grid concepts,
  * so on hex/triangle/radial grids a size-N brush paints the N² nearest cells (greedy
  * nearest-frontier growth, deterministic).
  */
 export function blobCells(grid: Grid, anchor: number, count: number): number[] {
+  const key = `${grid.type}|${grid.cols}|${grid.rows}|${anchor}|${count}`
+  const hit = blobCache.get(key)
+  if (hit) return hit
   const set = new Set<number>([anchor])
   if (count <= 1 || anchor < 0) return [...set]
   const c0 = grid.center(anchor)
@@ -64,7 +75,10 @@ export function blobCells(grid: Grid, anchor: number, count: number): number[] {
     if (best < 0) break
     set.add(best)
   }
-  return [...set]
+  const blob = [...set]
+  if (blobCache.size >= BLOB_CACHE_MAX) blobCache.clear()
+  blobCache.set(key, blob)
+  return blob
 }
 
 export function polyPath(p: Path2D, poly: Pt[]): void {

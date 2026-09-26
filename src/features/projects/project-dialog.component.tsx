@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { MAX_SIZE } from '../../engine/doc.ts'
 import { GRID_TYPES, type GridType } from '../../engine/grids.ts'
 import { SIZE_GROUPS } from '../../engine/sizes.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
@@ -102,10 +103,10 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
             <input
               type="number"
               min={1}
-              max={512}
+              max={MAX_SIZE}
               value={cols}
               onChange={(e) =>
-                setCols(Math.max(1, Math.min(512, Math.round(Number(e.target.value) || 1))))
+                setCols(Math.max(1, Math.min(MAX_SIZE, Math.round(Number(e.target.value) || 1))))
               }
               className={fieldClass}
             />
@@ -116,10 +117,10 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
             <input
               type="number"
               min={1}
-              max={512}
+              max={MAX_SIZE}
               value={rows}
               onChange={(e) =>
-                setRows(Math.max(1, Math.min(512, Math.round(Number(e.target.value) || 1))))
+                setRows(Math.max(1, Math.min(MAX_SIZE, Math.round(Number(e.target.value) || 1))))
               }
               className={fieldClass}
             />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc } from './doc.ts'
+import { MAX_SIZE, defaultDoc } from './doc.ts'
 import {
   BUILTIN_PRESETS,
   configMatchesState,
@@ -74,7 +74,7 @@ describe('normalizePresetConfig', () => {
       style: { radius: 9, sizeX: -1 },
       metaball: { strength: 1000, quality: 99 },
     })
-    expect(cfg.cols).toBe(512)
+    expect(cfg.cols).toBe(MAX_SIZE)
     expect(cfg.rows).toBe(1)
     expect(cfg.connectorWidth).toBe(1)
     expect(cfg.style.radius).toBe(0.5)

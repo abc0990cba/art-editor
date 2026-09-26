@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { defaultDoc } from '../engine/doc.ts'
+import { MAX_SIZE, defaultDoc } from '../engine/doc.ts'
 import { BUILTIN_PRESETS, presetFromDoc } from '../engine/presets.ts'
 import {
   clearPresetsForTests,
@@ -74,7 +74,7 @@ describe('preset store (in-memory fallback)', () => {
     }
     await savePreset(broken)
     const loaded = await loadPreset('bad')
-    expect(loaded?.config.cols).toBe(512)
+    expect(loaded?.config.cols).toBe(MAX_SIZE)
     expect(loaded?.config.renderMode).toBe('pixels')
     expect(loaded?.config.palette.length).toBeGreaterThan(0)
   })

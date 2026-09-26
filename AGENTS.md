@@ -168,3 +168,24 @@ z-index, брейкпоинты, редакторские паттерны (вс
 `.oxfmtrc.json` закрепляет всё: 100 колонок, 2 пробела, без точек с запятой, одинарные
 кавычки, trailing comma, `sortImports`, `sortTailwindcss`, `jsdoc`, `sortPackageJson`.
 Порядок импортов не правится руками — только через oxfmt.
+
+## Производительность: bench + PERFLOG
+
+Baseline и журнал изменений производительности — `bench/PERFLOG.md`. Каждое перф-изменение
+обязано оставить там строку: метрика → до → после → Δ% → причина (коммит/файлы).
+
+```bash
+npm run bench        # vitest bench по движу → bench/results/engine-bench.json
+npx vitest bench --run --compare bench/results/engine-bench.json   # + колонки дельт
+```
+
+Браузерный харнесс реальных кадров: `npm run dev` → `http://localhost:5174/?bench=1&autorun=1`
+(CanvasStage на живом сторе: loadDoc / commit / zoom / e2e-штрих / undo; отчёт —
+`window.__benchReport`, кнопки copy/download на панели). Метрика — dispatch → effects complete
+(устойчива к окклюзии окна), флаг `framesLive` помечает прогоны без живых кадров.
+
+Лимиты холста: `MAX_SIZE = 4096`, буфер ≤ `MAX_CELLS = 16_777_216` ячеек — `fitSub` понижает
+суб-детализацию при превышении произведения `size × sub`. Пиксельная геометрия (радиусы 0, без
+текстуры, sizeX/Y = 1) автоматически сливает прогоны в RLE-прямоугольники (`geometry-shape.ts`);
+округлённые/текстурные стили идут прежним per-cell путём. Рэгресс-рэтчеты —
+`perf-stress.test.ts` (отношения стоимости, не абсолютные времена).

@@ -72,6 +72,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   // ants dash phase (screen px); driven by a rAF loop without re-rendering React
   const antsOffsetRef = useRef(0)
   const drawOverlayRef = useRef<() => void>(() => {})
+  // kept fresh for the staging rAF loop, which draws without a React re-render
+  const drawBaseRef = useRef<() => void>(() => {})
   // lazily-initialized prefers-reduced-motion (null = not queried yet)
   const reducedMotionRef = useRef<boolean | null>(null)
   // image file dragged over the stage — shows the import drop hint
@@ -155,7 +157,6 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
   const {
     stagingRef,
-    stagingVersion,
     bumpStaging,
     scheduleStaging,
     ensureStaging,
@@ -190,6 +191,11 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     shapePaint,
     fillStyle,
     activeLayerState,
+    // stroke frames draw imperatively: staging rAF → direct base + overlay redraw, no React
+    onStagingFrame: () => {
+      drawBaseRef.current()
+      drawOverlayRef.current()
+    },
   })
 
   // committed geometry only: during strokes the base layer composites the staged delta
@@ -431,8 +437,11 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     }
     const p = toDoc(e)
     const idx = toIndex(e)
-    if (idx >= 0) setHover({ idx })
-    else setHover(null)
+    // skip redundant updates: a fresh object here re-renders the whole stage on every move
+    setHover((prev) => {
+      if (idx >= 0) return prev?.idx === idx ? prev : { idx }
+      return prev === null ? prev : null
+    })
     const d = drag.current
     if (!d) {
       // connector preview follows the pointer between the two clicks, with its symmetry copies
@@ -760,7 +769,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const hoverObj = hover && tool === 'select' ? (doc.cellObj?.[hover.idx] ?? 0) : 0
 
   // ---- base layer render: cached artwork blit + staged delta composite + grid lines ----
-  useEffect(() => {
+  const drawBase = useCallback(() => {
     const canvas = canvasRef.current
     const wrap = wrapRef.current
     if (!canvas || !wrap) return
@@ -913,8 +922,13 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     gridOverlayPath,
     gridLinePaths,
     extent,
-    stagingVersion,
   ])
+
+  useEffect(() => {
+    drawBase()
+  }, [drawBase])
+  // kept fresh for the staging rAF loop, which draws without a React re-render
+  drawBaseRef.current = drawBase
 
   // ---- overlay render: symmetry guides, selection ants, ghost preview, hover brush ----
   const drawOverlay = useCallback(() => {

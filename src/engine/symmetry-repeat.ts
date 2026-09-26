@@ -181,6 +181,8 @@ export function repeatPoints(
   c: number,
   seen: Set<number>,
   push: (px: number, py: number) => void,
+  /** Hard cap on accepted points (orbit budget); default keeps the old MAX_ORBIT ceiling. */
+  limit: number = MAX_ORBIT,
 ): void {
   const [ax, ay] = def.A
   const [bx, by] = def.B
@@ -221,7 +223,7 @@ export function repeatPoints(
       const jHi = Math.ceil(vMax - vc) + 1
       for (let i = iLo; i <= iHi; i++) {
         for (let j = jLo; j <= jHi; j++) {
-          if (seen.size >= MAX_ORBIT) return
+          if (seen.size >= limit) return
           const px = Math.round((uc + i) * ax * c + (vc + j) * bx * c)
           const py = Math.round((uc + i) * ay * c + (vc + j) * by * c)
           push(px, py)

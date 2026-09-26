@@ -16,7 +16,8 @@
 
 import type { Doc, ElementStyle, Link } from './doc'
 import { elementFromDoc } from './doc-style.ts'
-import { evalGraph, graphColors, type Graph } from './nodes'
+import { graphColors, type Graph } from './nodes'
+import { evalGraphMemo } from './nodes/eval-memo.ts'
 export interface SceneObj {
   kind: 'obj'
   id: number
@@ -250,7 +251,7 @@ function buildComposite(doc: Doc, dims: string): Composite {
       if (obj.graph) {
         // single eval pass: the raster nodes fill the map, the style nodes write the
         // style clone — the evaluated appearance becomes the object's element style
-        const { cells: ink, style } = evalGraph(
+        const { cells: ink, style } = evalGraphMemo(
           obj.graph,
           {
             bw: doc.cols * doc.sub,
@@ -260,6 +261,7 @@ function buildComposite(doc: Doc, dims: string): Composite {
             baseStyle: obj.style,
           },
           obj.cells,
+          doc.palette,
         )
         for (const [i, v] of ink) {
           if (i < 0 || i >= length) continue

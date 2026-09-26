@@ -4,7 +4,7 @@ import { elementStyleKey, elementGeometry } from './geometry-elements.ts'
 import { metaballGeometry } from './geometry-metaball.ts'
 import { borderRadii, mergedCells, roundedRectPath, shapeGeometry } from './geometry-shape.ts'
 import { gridBuildGeometry } from './grid-geometry.ts'
-import { evalGraph } from './nodes'
+import { evalGraphMemo } from './nodes/eval-memo.ts'
 import { outlineGeometry } from './outline'
 import { visibleObjs } from './scene'
 
@@ -57,7 +57,7 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
     const links: Link[] = []
     for (const o of objs) {
       const { cells: ink } = o.graph
-        ? evalGraph(
+        ? evalGraphMemo(
             o.graph,
             {
               bw: doc.cols * doc.sub,
@@ -67,6 +67,7 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
               baseStyle: o.style,
             },
             o.cells,
+            doc.palette,
           )
         : { cells: o.cells }
       for (const [i, v] of ink) cells[i] = v

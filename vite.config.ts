@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { fileURLToPath } from 'node:url'
 
 import tailwindcss from '@tailwindcss/vite'
@@ -12,4 +13,10 @@ export default defineConfig({
     },
   },
   server: { port: 5173 },
+  test: {
+    benchmark: {
+      include: ['src/**/*.bench.ts'],
+      outputJson: './bench/results/engine-bench.json',
+    },
+  },
 })

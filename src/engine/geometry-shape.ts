@@ -55,6 +55,13 @@ export function mergedCells(doc: Doc, staging?: Staging): Uint16Array {
 
 /* ---------------------------------- shape mode ---------------------------------- */
 
+/** End index (exclusive) of the same-value run starting at `row + bx`. */
+function runEnd(cells: Uint16Array, row: number, bx: number, bw: number, v: number): number {
+  let end = bx + 1
+  while (end < bw && cells[row + end] === v) end++
+  return end
+}
+
 /** Order: [tl, tr, br, bl]. Zero the corners whose sides face the canvas border. */
 export const borderRadii = (
   radii: number[],
@@ -91,19 +98,32 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
   const texCells = textured ? new Map<number, TextureCell[]>() : undefined
 
   const groups = new Map<number, string[]>()
+  // Horizontal runs of same-value cells collapse into one rect fragment when every per-cell
+  // fragment would be a plain square (zero radii, no texture, no size scaling): classic pixel-art
+  // ink then builds orders of magnitude fewer path fragments. Any rounding, texture effect or
+  // sizeX/sizeY scaling keeps the exact per-cell loop — fragments stop being plain rects there.
+  const runMerge =
+    !textured && radii.every((r) => r === 0) && doc.style.sizeX === 1 && doc.style.sizeY === 1
   for (let by = 0; by < bh; by++) {
-    for (let bx = 0; bx < bw; bx++) {
-      const v = cells[by * bw + bx]
-      if (v === 0) continue
-      let frags = groups.get(v)
-      if (!frags) groups.set(v, (frags = []))
+    const row = by * bw
+    for (let bx = 0; bx < bw;) {
+      const v = cells[row + bx]
+      if (v === 0) {
+        bx++
+        continue
+      }
+      const end = runMerge ? runEnd(cells, row, bx, bw, v) : bx + 1
       const x = bx / doc.sub + (1 / doc.sub - cw) / 2
       const y = by / doc.sub + (1 / doc.sub - ch) / 2
+      const w = (end - bx) * cw
+      const onBorder = squareEdges && (bx === 0 || by === 0 || bx === bw - 1 || by === bh - 1)
       const radiiHere =
-        squareEdges && (bx === 0 || by === 0 || bx === bw - 1 || by === bh - 1)
-          ? borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
-          : radii
-      frags.push(roundedRectPath(x, y, cw, ch, radiiHere, chamfer))
+        runMerge || !onBorder
+          ? radii
+          : borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
+      let frags = groups.get(v)
+      if (!frags) groups.set(v, (frags = []))
+      frags.push(roundedRectPath(x, y, w, ch, radiiHere, chamfer))
       if (texCells) {
         const same = (xx: number, yy: number) =>
           xx >= 0 && yy >= 0 && xx < bw && yy < bh && cells[yy * bw + xx] === v
@@ -126,6 +146,7 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
           connectedB: same(bx, by + 1),
         })
       }
+      bx = end
     }
   }
   if (texCells) {
