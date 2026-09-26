@@ -33,10 +33,25 @@ export function radialPolylines(tool: RadialShapeId, opts: ShapeOpts, steps: num
   }
 }
 
+/**
+ * Radii the concentric tools fall back to when `circles` is not given. Shared with the tool state
+ * default and the parametric-commit gate: a shape node regenerates from these unless the commit
+ * passes custom radii.
+ */
+export const DEFAULT_CONCENTRIC_RADII: readonly number[] = [1, 0.66, 0.33]
+
 /** Normalized radii of the concentric tools, sorted descending and clamped. */
 function concentricRadii(opts: ShapeOpts): number[] {
-  const list = opts.circles?.length ? opts.circles : [1, 0.66, 0.33]
+  const list = opts.circles?.length ? opts.circles : DEFAULT_CONCENTRIC_RADII
   return list.map((r) => clamp(r, 0.05, 1)).sort((a, b) => b - a)
+}
+
+/** True when the radii equal the engine fallback, so a shape node reproduces them without params. */
+export function hasDefaultConcentricRadii(radii: readonly number[]): boolean {
+  return (
+    radii.length === DEFAULT_CONCENTRIC_RADII.length &&
+    radii.every((r, i) => r === DEFAULT_CONCENTRIC_RADII[i])
+  )
 }
 
 function sunPolylines(opts: ShapeOpts, steps: number): Polyline[] {

@@ -7,6 +7,7 @@ import type { ShapeOpts, ShapeToolId } from './shape-tools.ts'
 import type { Polyline } from './shape-util.ts'
 
 export { ellipsePoints, linePoints, rectPoints } from './shape-lines.ts'
+export { DEFAULT_CONCENTRIC_RADII, hasDefaultConcentricRadii } from './shape-radial.ts'
 export { isShapeTool, SHAPE_TOOLS } from './shape-tools.ts'
 export type { ShapeOpts, ShapeToolId } from './shape-tools.ts'
 

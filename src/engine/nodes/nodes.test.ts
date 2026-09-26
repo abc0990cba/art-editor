@@ -98,6 +98,40 @@ describe('raster evaluation', () => {
     expect(cells.size).toBeGreaterThan(12)
   })
 
+  it('fill=false keeps stroke-only ink: outline without the interior', () => {
+    // the stroke-only style of the shape tools: what the drag preview shows is what the
+    // committed parametric object must regenerate — no interior cells anywhere
+    const center = 8 * 16 + 8
+    const shape = run([{ op: 'source.shape', params: { shape: 'star', x: 2, y: 2, w: 12, h: 12 } }])
+    const shapeRing = run([
+      { op: 'source.shape', params: { shape: 'star', x: 2, y: 2, w: 12, h: 12, fill: false } },
+    ])
+    expect(shape.get(center)).toBeDefined()
+    expect(shapeRing.has(center)).toBe(false)
+    expect(shapeRing.size).toBeGreaterThan(0)
+    expect(shapeRing.size).toBeLessThan(shape.size)
+
+    const rect = run([{ op: 'source.rect', params: { x: 2, y: 2, w: 8, h: 8, fill: false } }])
+    expect(rect.size).toBe(28) // 8×4 sides − 4 shared corners
+    expect(rect.has(5 * 16 + 5)).toBe(false)
+
+    const ellipse = run([
+      { op: 'source.ellipse', params: { cx: 8, cy: 8, rx: 5, ry: 5, fill: false } },
+    ])
+    expect(ellipse.has(center)).toBe(false)
+    expect(ellipse.size).toBeGreaterThan(0)
+  })
+
+  it('source.rect honors shapeCorner like the rect tool preview', () => {
+    const sharp = run([{ op: 'source.rect', params: { x: 1, y: 1, w: 12, h: 12, fill: false } }])
+    const rounded = run([
+      { op: 'source.rect', params: { x: 1, y: 1, w: 12, h: 12, fill: false, shapeCorner: 0.5 } },
+    ])
+    expect(rounded.size).toBeLessThan(sharp.size)
+    expect(sharp.has(1 * 16 + 1)).toBe(true)
+    expect(rounded.has(1 * 16 + 1)).toBe(false)
+  })
+
   it('mod.offset shifts the accumulated cells', () => {
     const cells = run([
       { op: 'source.rect', params: { x: 0, y: 0, w: 4, h: 4 } },
@@ -368,7 +402,8 @@ describe('every node has a visible effect', () => {
     const b = run([{ op: 'source.ellipse', params: { cx: 8, cy: 8, rx: 5, ry: 5 } }])
     expect(a.size).toBe(64)
     expect(b.size).toBeGreaterThan(40)
-    expect(b.size).toBeLessThanOrEqual(81)
+    // the ring + fill stays inside the 11×11 bounding box (same rasterizer as the tool preview)
+    expect(b.size).toBeLessThanOrEqual(121)
   })
 
   it('style.pixel: rounding changes the path data', () => {

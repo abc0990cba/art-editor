@@ -1374,7 +1374,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
                   ? `x:${Math.floor((hover.idx % bw) / doc.sub)} y:${Math.floor(Math.floor(hover.idx / bw) / doc.sub)} · `
                   : ''
               }i:${hover.idx}`
-            : '—'
+            : null
         }
         zoom={view.zoom}
         setView={setView}

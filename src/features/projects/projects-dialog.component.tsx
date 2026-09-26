@@ -4,6 +4,7 @@ import { renderThumbnailDataURL } from '../../engine/png.ts'
 import { deserialize } from '../../engine/project.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog.component.tsx'
+import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
@@ -179,13 +180,13 @@ export function ProjectsDialog({
       )}
 
       {variant === 'home' && (
-        <button
+        <Button
           type="button"
           onClick={() => (onNewProject ? onNewProject() : newProject())}
-          className="rounded-md bg-indigo-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-indigo-400"
+          className="h-auto px-4 py-2 text-xs"
         >
           + {t('home.new')}
-        </button>
+        </Button>
       )}
 
       {variant === 'home' && hasContent && (
@@ -232,13 +233,13 @@ export function ProjectsDialog({
             }}
             className="border-line bg-chip text-body focus:border-accent-line flex-1 rounded-md border px-2 py-1.5 text-xs outline-none"
           />
-          <button
+          <Button
             type="button"
             onClick={() => void saveCurrent()}
-            className="rounded-md bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400"
+            className="h-auto px-3 py-1.5 text-xs"
           >
             {t('projects.save')}
-          </button>
+          </Button>
           <button
             type="button"
             onClick={newProject}
@@ -272,17 +273,18 @@ export function ProjectsDialog({
             >
               {t('projects.cancel')}
             </button>
-            <button
+            <Button
               type="button"
+              variant="destructive"
               onClick={() => {
                 const action = confirmReplace
                 setConfirmReplace(null)
                 action()
               }}
-              className="rounded bg-amber-500 px-2 py-1 font-medium text-white transition hover:bg-amber-400"
+              className="h-auto px-2 py-1 text-xs"
             >
               {t('projects.confirm')}
-            </button>
+            </Button>
           </div>
         </div>
       )}

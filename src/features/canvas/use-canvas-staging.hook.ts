@@ -31,6 +31,7 @@ import {
 } from '../../engine/symmetry.ts'
 import { useStore, type State } from '../../state/editor.store.ts'
 import { MAX_STAMPS, blobCells, type DocPoint, type DragState } from './canvas-stage.util.ts'
+import { shapeParametric, type ParametricSpec } from './shape-commit.util.ts'
 
 /** Inputs the in-stroke staging subsystem reads from the stage. */
 export interface CanvasStagingParams {
@@ -99,6 +100,9 @@ export function useCanvasStaging({
   // shape drag endpoints for the parametric auto-graph (start from pointerdown, last from move)
   const shapeStartRef = useRef<[number, number] | null>(null)
   const shapeLastRef = useRef<[number, number] | null>(null)
+  // free-drag flag of the shape stroke in progress: the commit must quantize the endpoints
+  // with the same snapping rule the preview stamped with
+  const shapeFreeRef = useRef<boolean>(false)
 
   const colorValueFor = useCallback(
     (hex: string) => {
@@ -381,6 +385,7 @@ export function useCanvasStaging({
 
   const stampShape = useCallback(
     (start: DocPoint, end: DocPoint, free: boolean) => {
+      shapeFreeRef.current = free
       const st = ensureStaging()
       st.cells.clear()
       st.objs!.clear()
@@ -773,70 +778,29 @@ export function useCanvasStaging({
       shapeResolvedRef.current = null
       if (resolved) {
         // shape stroke: fill + stroke committed as one object with per-cell values;
-        // single-color shapes commit as a parametric source node (live geometry)
+        // single-color shapes commit as a parametric source node (live geometry) whenever
+        // the node reproduces the preview exactly, and as plain pixels otherwise
         useStore.getState().pushRecent(color)
-        let parametric:
-          | { op: string; params: Record<string, number | string | boolean> }
-          | undefined
         const start = shapeStartRef.current
         const last = shapeLastRef.current
+        let parametric: ParametricSpec | undefined
         if (start && last) {
-          const minX = Math.min(start[0], last[0])
-          const minY = Math.min(start[1], last[1])
-          const maxX = Math.max(start[0], last[0])
-          const maxY = Math.max(start[1], last[1])
-          const inkColor = shapePaint.stroke ? shapePaint.strokeColor || color : color
-          const singleColor =
-            shapePaint.fill === 'none' ? Boolean(shapePaint.stroke) : !shapePaint.stroke
-          if (singleColor) {
-            const base = { color: inkColor }
-            if (tool === 'rect')
-              parametric = {
-                op: 'source.rect',
-                params: {
-                  ...base,
-                  x: Math.round(minX),
-                  y: Math.round(minY),
-                  w: Math.max(1, Math.round(maxX - minX)),
-                  h: Math.max(1, Math.round(maxY - minY)),
-                },
-              }
-            else if (tool === 'ellipse')
-              parametric = {
-                op: 'source.ellipse',
-                params: {
-                  ...base,
-                  cx: (minX + maxX) / 2,
-                  cy: (minY + maxY) / 2,
-                  rx: Math.max(0.5, (maxX - minX) / 2),
-                  ry: Math.max(0.5, (maxY - minY) / 2),
-                },
-              }
-            else if (tool === 'line')
-              parametric = {
-                op: 'source.line',
-                params: {
-                  ...base,
-                  x0: Math.round(start[0]),
-                  y0: Math.round(start[1]),
-                  x1: Math.round(last[0]),
-                  y1: Math.round(last[1]),
-                },
-              }
-            else if (isShapeTool(tool))
-              parametric = {
-                op: 'source.shape',
-                params: {
-                  ...base,
-                  shape: tool,
-                  x: Math.round(minX),
-                  y: Math.round(minY),
-                  w: Math.max(3, Math.round(maxX - minX)),
-                  h: Math.max(3, Math.round(maxY - minY)),
-                  ...toolOpts,
-                },
-              }
-          }
+          const strokeOnly = shapePaint.fill === 'none'
+          parametric = shapeParametric({
+            tool,
+            isSquare,
+            sub: doc.sub,
+            brushSize: brush.size,
+            brushSnap,
+            free: shapeFreeRef.current,
+            strokeOnly,
+            singleColor: strokeOnly ? Boolean(shapePaint.stroke) : !shapePaint.stroke,
+            inkColor: shapePaint.stroke ? shapePaint.strokeColor || color : color,
+            start,
+            last,
+            concentricRadii,
+            toolOpts,
+          })
         }
         paintCellsValues(st.cells as Map<number, number>, resolved, parametric)
         // in element scope the fresh shape selects itself, Illustrator-style: move or
@@ -856,7 +820,21 @@ export function useCanvasStaging({
     bumpStaging()
     // shapePaint/toolOpts decide whether the commit becomes a parametric node or
     // per-cell fill+stroke values — a stale closure here would drop the user's style
-  }, [paintCells, paintCellsValues, selectElements, color, tool, shapePaint, toolOpts])
+  }, [
+    paintCells,
+    paintCellsValues,
+    selectElements,
+    color,
+    tool,
+    shapePaint,
+    toolOpts,
+    doc.sub,
+    brush.size,
+    brushSnap,
+    isSquare,
+    concentricRadii,
+    bumpStaging,
+  ])
 
   return {
     stagingRef,

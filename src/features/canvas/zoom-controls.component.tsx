@@ -21,7 +21,8 @@ interface View {
  * Bottom-right status plate: the cursor readout plus the zoom cluster. «−»/«+» step the zoom
  * multiplicatively (×1.25) around the viewport center; holding a button repeats the step, so
  * sweeping big ranges is fast while single clicks tune finely. Clicking the percentage resets to
- * 100%.
+ * 100%. The readout only renders while the pointer is over the canvas — an idle placeholder read as
+ * a dead «−» button.
  */
 export function ZoomControls({
   hoverText,
@@ -29,7 +30,8 @@ export function ZoomControls({
   setView,
   wrap,
 }: {
-  hoverText: string
+  /** Cursor coordinates, or null when the pointer is off the canvas */
+  hoverText: string | null
   zoom: number
   setView: (updater: (v: View) => View) => void
   /** The canvas viewport element — zoom stays anchored to its center */
@@ -91,10 +93,14 @@ export function ZoomControls({
 
   return (
     <div className="border-line bg-panel text-body absolute right-3 bottom-3 flex items-center gap-1 rounded-lg border px-2 py-1 text-xs shadow-sm backdrop-blur">
-      <Tooltip label={t('view.cursor.desc')}>
-        <span className="text-muted font-mono">{hoverText}</span>
-      </Tooltip>
-      <span className="bg-line mx-1 h-4 w-px shrink-0" />
+      {hoverText !== null && (
+        <>
+          <Tooltip label={t('view.cursor.desc')}>
+            <span className="text-muted font-mono">{hoverText}</span>
+          </Tooltip>
+          <span className="bg-line mx-1 h-4 w-px shrink-0" />
+        </>
+      )}
       {stepButton(
         1 / ZOOM_STEP,
         t('view.zoomOut'),

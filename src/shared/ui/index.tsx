@@ -153,12 +153,15 @@ export function Chip({
   onClick,
   title,
   disabled,
+  className,
   children,
 }: {
   active?: boolean
   onClick: () => void
   title?: string
   disabled?: boolean
+  /** Extra classes on the button, e.g. 44px touch sizing in floating panels */
+  className?: string
   children: ReactNode
 }) {
   return (
@@ -170,6 +173,7 @@ export function Chip({
         onClick={onClick}
         className={cn(
           CHIP_CLASS,
+          className,
           active
             ? 'border-accent-line bg-accent-soft hover:bg-accent-soft'
             : 'border-line bg-chip hover:border-chip-line hover:bg-chip dark:border-line dark:bg-chip dark:hover:bg-chip',
@@ -391,11 +395,14 @@ export function ColorSwatch({
   active,
   label,
   onPick,
+  className,
 }: {
   hex: string
   active?: boolean
   label: string
   onPick: () => void
+  /** Extra classes on the button, e.g. 44px touch sizing in floating panels */
+  className?: string
 }) {
   const inner = hexLuminance(hex) > 0.55 ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.75)'
   return (
@@ -404,7 +411,7 @@ export function ColorSwatch({
         type="button"
         aria-pressed={active}
         onClick={onPick}
-        className={`relative h-5 w-full rounded transition ${
+        className={`relative h-5 w-full rounded transition ${className ?? ''} ${
           active
             ? 'ring-accent-text ring-offset-panel z-10 ring-2 ring-offset-2'
             : 'ring-line hover:ring-chip-line ring-1'

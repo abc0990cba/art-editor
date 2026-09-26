@@ -17,6 +17,7 @@ import { PALETTES } from '../../engine/palettes.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { GlyphSetPicker } from '../../shared/ui/glyph-set-picker.component.tsx'
 import { Chip, CheckRow, Slider } from '../../shared/ui/index.tsx'
+import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
 import {
   Select,
@@ -589,14 +590,14 @@ export function ImportDialog({
             >
               {t('import.cancel')}
             </button>
-            <button
+            <Button
               type="button"
               onClick={apply}
               disabled={!square || !result}
-              className="rounded-md bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-auto px-3 py-1.5 text-xs"
             >
               {t('import.apply')}
-            </button>
+            </Button>
           </div>
         </div>
       </DialogContent>

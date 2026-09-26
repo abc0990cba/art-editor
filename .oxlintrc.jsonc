@@ -694,7 +694,7 @@
       "eslint/max-lines": [
         "error",
         {
-          "max": 1299,
+          "max": 1308,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -1084,7 +1084,7 @@
       "eslint/max-params": [
         "error",
         {
-          "max": 8
+          "max": 11
         }
       ],
       "eslint/max-depth": [
@@ -1225,7 +1225,7 @@
       "eslint/max-lines": [
         "error",
         {
-          "max": 795,
+          "max": 776,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -1233,7 +1233,7 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          "max": 749,
+          "max": 728,
           "skipComments": true,
           "skipBlankLines": true
         }

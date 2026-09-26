@@ -2,6 +2,7 @@ import type { Brush } from '../engine/brush.ts'
 import { normalizeBrush, resizeBrush, squareBrush } from '../engine/brush.ts'
 import type { SymmetryState } from '../engine/doc.ts'
 import { DEFAULT_FILL_STYLE, type FillStyle } from '../engine/fillpatterns.ts'
+import { DEFAULT_CONCENTRIC_RADII } from '../engine/shapes.ts'
 import type { State } from './editor.store.ts'
 
 export type Tool =
@@ -306,7 +307,7 @@ export function createToolsSlice({ set }: SliceApi): ToolsSlice {
     toolOpts: { ...DEFAULT_TOOL_OPTS },
     previewGrid: null,
     importLayering: { ...DEFAULT_IMPORT_LAYERING },
-    concentricRadii: [1, 0.66, 0.33],
+    concentricRadii: [...DEFAULT_CONCENTRIC_RADII],
 
     setTool: (tool) =>
       set((s) => {

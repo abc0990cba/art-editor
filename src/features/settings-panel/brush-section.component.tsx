@@ -10,6 +10,7 @@ import {
 } from '../../engine/brush.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
+import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import type { BrushPresetEntry } from '../../storage/brushes.ts'
@@ -300,13 +301,9 @@ export function BrushSection() {
             }}
             className="border-line bg-chip text-body focus:border-accent-line min-w-0 flex-1 rounded-md border px-2 py-1 text-xs outline-none"
           />
-          <button
-            type="button"
-            onClick={saveCurrent}
-            className="rounded-md bg-indigo-500 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-indigo-400"
-          >
+          <Button type="button" onClick={saveCurrent} className="h-auto px-2.5 py-1 text-xs">
             {t('brush.save')}
-          </button>
+          </Button>
         </div>
       </div>
     </Section>

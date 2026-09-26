@@ -8,6 +8,7 @@ import {
   type EditorPreset,
 } from '../../engine/presets.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
@@ -98,13 +99,9 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
             }}
             className="border-line bg-chip text-body focus:border-accent-line flex-1 rounded-md border px-2 py-1.5 text-xs outline-none"
           />
-          <button
-            type="button"
-            onClick={saveCurrent}
-            className="rounded-md bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400"
-          >
+          <Button type="button" onClick={saveCurrent} className="h-auto px-3 py-1.5 text-xs">
             {t('presets.save')}
-          </button>
+          </Button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">

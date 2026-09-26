@@ -8,6 +8,7 @@ import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { download, stamp } from '../../shared/lib/file-download.util.ts'
 import { FloatingPanel } from '../../shared/ui/floating-panel.component.tsx'
 import { CheckRow, Chip } from '../../shared/ui/index.tsx'
+import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 
@@ -195,13 +196,9 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
           {pngW}×{pngH} px · {t('export.maxSide')}
         </p>
         <Tooltip label={t('export.svg.desc')}>
-          <button
-            type="button"
-            onClick={onExportSvg}
-            className="w-full rounded-md bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400"
-          >
+          <Button type="button" onClick={onExportSvg} className="h-auto w-full px-3 py-1.5 text-xs">
             {t('export.svg')}
-          </button>
+          </Button>
         </Tooltip>
         <Tooltip label={t('export.png.desc')}>
           <button

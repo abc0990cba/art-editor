@@ -2,7 +2,9 @@
 
 import { fillCellsEvenOdd, regionCells } from '../shapefill.ts'
 import {
+  ellipsePoints,
   linePoints,
+  rectPoints,
   shapeHasHoles,
   shapePathLoops,
   shapePathPoints,
@@ -186,6 +188,27 @@ function shapeOptsFrom(p: Resolved): ShapeOpts {
   }
 }
 
+/**
+ * Paint an outline ring plus, when `fill` is on, its interior. The same construction the shape
+ * tools use in their drag preview, so a committed parametric shape regenerates exactly the pixels
+ * the user saw while drawing — including the fill-off (stroke-only) style.
+ */
+function paintRingWithFill(
+  cells: Cells,
+  ctx: { bw: number; bh: number },
+  v: number,
+  ring: readonly (readonly [number, number])[],
+  fill: boolean,
+): void {
+  const ringSet = new Set<number>()
+  for (const [x, y] of ring) {
+    if (x >= 0 && y >= 0 && x < ctx.bw && y < ctx.bh) ringSet.add(y * ctx.bw + x)
+  }
+  for (const i of ringSet) cells.set(i, v)
+  if (!fill) return
+  for (const i of regionCells(ringSet, ctx.bw, ctx.bh).inside) cells.set(i, v)
+}
+
 export const SOURCE_NODES = [
   defineNode({
     id: 'source.rect',
@@ -200,16 +223,23 @@ export const SOURCE_NODES = [
       w: { kind: 'int', min: 1, max: 2048, default: 8, span: 'size' },
       h: { kind: 'int', min: 1, max: 2048, default: 8, span: 'size' },
       color: { kind: 'hex', default: '#e63946' },
+      shapeCorner: { kind: 'number', min: 0, max: 0.5, default: 0 },
+      shapeBulge: { kind: 'number', min: -1, max: 1, default: 0 },
+      fill: { kind: 'bool', default: true },
       mode: MODE,
     },
     evaluate: (ctx, p, input) => {
       const cells: Cells = new Map()
       const v = ctx.hexValue(p.str('color'))
-      const x0 = Math.max(0, p.int('x'))
-      const y0 = Math.max(0, p.int('y'))
-      const x1 = Math.min(ctx.bw, p.int('x') + p.int('w'))
-      const y1 = Math.min(ctx.bh, p.int('y') + p.int('h'))
-      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) cells.set(y * ctx.bw + x, v)
+      // the rect tool's own rasterizer, so rounding and bulge match the drag preview
+      const ring = rectPoints(
+        p.int('x'),
+        p.int('y'),
+        p.int('x') + p.int('w') - 1,
+        p.int('y') + p.int('h') - 1,
+        { shapeCorner: p.num('shapeCorner'), shapeBulge: p.num('shapeBulge') },
+      )
+      paintRingWithFill(cells, ctx, v, ring, p.bool('fill'))
       return combineCells(input, cells, p.str('mode'))
     },
   }),
@@ -250,6 +280,8 @@ export const SOURCE_NODES = [
       rx: { kind: 'number', min: 0.5, max: 1024, default: 4, span: 'size' },
       ry: { kind: 'number', min: 0.5, max: 1024, default: 4, span: 'size' },
       color: { kind: 'hex', default: '#e63946' },
+      ellipsePower: { kind: 'number', min: 0.5, max: 8, default: 2 },
+      fill: { kind: 'bool', default: true },
       mode: MODE,
     },
     evaluate: (ctx, p, input) => {
@@ -259,21 +291,11 @@ export const SOURCE_NODES = [
       const cy = p.num('cy')
       const rx = p.num('rx')
       const ry = p.num('ry')
-      for (
-        let y = Math.max(0, Math.floor(cy - ry));
-        y <= Math.min(ctx.bh - 1, Math.ceil(cy + ry));
-        y++
-      ) {
-        for (
-          let x = Math.max(0, Math.floor(cx - rx));
-          x <= Math.min(ctx.bw - 1, Math.ceil(cx + rx));
-          x++
-        ) {
-          const nx = (x + 0.5 - cx) / rx
-          const ny = (y + 0.5 - cy) / ry
-          if (nx * nx + ny * ny <= 1) cells.set(y * ctx.bw + x, v)
-        }
-      }
+      // the ellipse tool's own rasterizer, so the superellipse power matches the preview
+      const ring = ellipsePoints(cx - rx, cy - ry, cx + rx, cy + ry, {
+        ellipsePower: p.num('ellipsePower'),
+      })
+      paintRingWithFill(cells, ctx, v, ring, p.bool('fill'))
       return combineCells(input, cells, p.str('mode'))
     },
   }),
@@ -336,6 +358,7 @@ export const SOURCE_NODES = [
       w: { kind: 'number', min: 3, max: 2048, default: 10, span: 'size' },
       h: { kind: 'number', min: 3, max: 2048, default: 10, span: 'size' },
       color: { kind: 'hex', default: '#e63946' },
+      fill: { kind: 'bool', default: true },
       ...SHAPE_TOOL_PARAMS,
       mode: MODE,
     },
@@ -353,12 +376,19 @@ export const SOURCE_NODES = [
         if (x >= 0 && y >= 0 && x < ctx.bw && y < ctx.bh) outlineSet.add(y * ctx.bw + x)
       }
       // hole-bearing shapes (skull) fill even-odd across their loops, so sockets
-      // and the mouth stay empty; every other shape keeps the flood-fill inside
-      const fill = shapeHasHoles(shape)
-        ? fillCellsEvenOdd(shapePathLoops(shape, x0, y0, x1, y1, shapeOptsFrom(p)), ctx.bw, ctx.bh)
-        : regionCells(outlineSet, ctx.bw, ctx.bh).inside
+      // and the mouth stay empty; every other shape keeps the flood-fill inside.
+      // fill off = the tool's stroke-only style: the outline is the whole ink
+      if (p.bool('fill')) {
+        const fill = shapeHasHoles(shape)
+          ? fillCellsEvenOdd(
+              shapePathLoops(shape, x0, y0, x1, y1, shapeOptsFrom(p)),
+              ctx.bw,
+              ctx.bh,
+            )
+          : regionCells(outlineSet, ctx.bw, ctx.bh).inside
+        for (const i of fill) cells.set(i, v)
+      }
       for (const i of outlineSet) cells.set(i, v)
-      for (const i of fill) cells.set(i, v)
       return combineCells(input, cells, p.str('mode'))
     },
   }),
