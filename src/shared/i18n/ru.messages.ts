@@ -413,6 +413,8 @@ export const ru: Dict = {
   'lang.switch': 'Переключить язык',
   'dialog.close': 'Закрыть',
   'panel.style': 'Стиль пикселей',
+  'panel.collapse': 'Свернуть панель',
+  'panel.expand': 'Развернуть панель',
   'panel.symmetry': 'Симметрия',
   'panel.canvas': 'Холст и ячейки',
   'panel.export': 'Экспорт и сохранение',

@@ -409,6 +409,8 @@ export const en = {
   'lang.switch': 'Switch language',
   'dialog.close': 'Close',
   'panel.style': 'Pixel Style',
+  'panel.collapse': 'Collapse panel',
+  'panel.expand': 'Expand panel',
   'panel.symmetry': 'Symmetry',
   'panel.canvas': 'Canvas & Cells',
   'panel.export': 'Export & Save',

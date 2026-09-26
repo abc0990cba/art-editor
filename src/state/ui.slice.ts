@@ -43,6 +43,7 @@ const LANG_KEY = 'glyph.lang'
 const THEME_KEY = 'glyph.theme'
 const RECENT_KEY = 'glyph.recent'
 const RAIL_KEY = 'glyph.rail'
+const PANEL_KEY = 'glyph.panel'
 
 function initialThemePref(): ThemePref {
   try {
@@ -62,6 +63,15 @@ function initialLang(): 'en' | 'ru' {
     /* ignore */
   }
   return 'ru'
+}
+
+function initialPanelCollapsed(): boolean {
+  try {
+    return localStorage.getItem(PANEL_KEY) === '1'
+  } catch {
+    /* ignore */
+  }
+  return false
 }
 
 function initialRailOpen(): boolean {
@@ -94,6 +104,8 @@ export interface UiSlice {
   showGrid: boolean
   /** Left tool rail is expanded (names shown); false = collapsed to icon-only strip */
   railOpen: boolean
+  /** Right settings panel collapsed to a section-icon strip (desktop only) */
+  panelCollapsed: boolean
   /** PNG export size in px; null = auto (canvas × 8, clamped) */
   pngWidth: number | null
   pngHeight: number | null
@@ -116,6 +128,7 @@ export interface UiSlice {
   setThemePref: (pref: ThemePref) => void
   setShowGrid: (v: boolean) => void
   toggleRail: () => void
+  togglePanelCollapsed: () => void
   setPngWidth: (v: number | null) => void
   setPngHeight: (v: number | null) => void
   setExportBg: (v: boolean) => void
@@ -145,6 +158,7 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
     resolvedTheme: resolvedTheme(initialThemePref()),
     showGrid: true,
     railOpen: initialRailOpen(),
+    panelCollapsed: initialPanelCollapsed(),
     pngWidth: null,
     pngHeight: null,
     exportBg: true,
@@ -172,6 +186,16 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
       set({ themePref: pref, resolvedTheme: resolvedTheme(pref) })
     },
     setShowGrid: (showGrid) => set({ showGrid }),
+    togglePanelCollapsed: () =>
+      set((s) => {
+        const panelCollapsed = !s.panelCollapsed
+        try {
+          localStorage.setItem(PANEL_KEY, panelCollapsed ? '1' : '0')
+        } catch {
+          /* ignore */
+        }
+        return { panelCollapsed }
+      }),
     toggleRail: () =>
       set((s) => {
         const railOpen = !s.railOpen

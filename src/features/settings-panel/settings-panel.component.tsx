@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { PixelStyle } from '../../engine/doc.ts'
 import { serializeGpl, serializeHex } from '../../engine/palette-io.ts'
@@ -59,9 +59,27 @@ const QUICK_COLORS = [
   '#ff9f1c',
 ]
 
+export const PANEL_SECTIONS: readonly { id: string; titleKey: string; icon: string }[] = [
+  { id: 'color', titleKey: 'panel.color', icon: 'color' },
+  { id: 'layers', titleKey: 'panel.layers', icon: 'layers' },
+  { id: 'nodes', titleKey: 'panel.nodePresets', icon: 'nodes' },
+  { id: 'brush', titleKey: 'panel.brush', icon: 'brush' },
+  { id: 'glyphs', titleKey: 'glyph.editor', icon: 'glyph' },
+  { id: 'presets', titleKey: 'panel.presets', icon: 'presets' },
+  { id: 'style', titleKey: 'panel.style', icon: 'style' },
+  { id: 'texture', titleKey: 'panel.texture', icon: 'texture' },
+  { id: 'symmetry', titleKey: 'panel.symmetry', icon: 'symmetry' },
+  { id: 'canvas', titleKey: 'panel.canvas', icon: 'canvas' },
+]
+
 export function SettingsPanel({
-  className = 'flex w-64 shrink-0 flex-col border-l border-line bg-panel',
+  openSection,
+  onOpenSection,
+  className = 'flex min-h-0 w-full flex-1 flex-col',
 }: {
+  /** Reveal + scroll to this section when the panel mounts/updates */
+  openSection?: string | null
+  onOpenSection?: (id: string) => void
   className?: string
 }) {
   const { t } = useI18n()
@@ -106,6 +124,7 @@ export function SettingsPanel({
   const [symPreviewOpen, setSymPreviewOpen] = useState(false)
   // colors offered for painting when a palette is picked without recoloring the canvas
   const [availableColors, setAvailableColors] = useState<string[]>([])
+
   const pct = (v: number) => `${Math.round(v * 100)}%`
 
   const importPaletteFile = async (file: File) => {
@@ -171,6 +190,22 @@ export function SettingsPanel({
 
   // shown on the collapsed palette-library header: which preset the document palette is
   const activePalette = PALETTES.find((p) => matchedPresetId(doc.palette) === p.id)
+
+  useEffect(() => {
+    if (!openSection) return
+    const meta = PANEL_SECTIONS.find((x) => x.id === openSection)
+    if (!meta) return
+    const sum = [...document.querySelectorAll('summary')].find(
+      (x) => x.textContent?.trim() === t(meta.titleKey as 'panel.color'),
+    )
+    if (sum) {
+      const det = sum.closest('details')
+      if (det && !det.open) sum.click()
+      sum.scrollIntoView({ block: 'start' })
+    }
+    onOpenSection?.(openSection)
+    // t is stable per language; the lookup is intentionally DOM-based (sections are plain details)
+  }, [openSection, t, onOpenSection])
 
   return (
     <aside className={className}>

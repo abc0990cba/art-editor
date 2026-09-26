@@ -75,6 +75,8 @@ export interface State {
   paletteAutoApply: boolean
   /** Left tool rail is expanded (names shown); false = collapsed to icon-only strip */
   railOpen: boolean
+  /** Right settings panel collapsed to a section-icon strip (desktop only) */
+  panelCollapsed: boolean
   /** Per-tool shape settings (star rays, gear teeth, rotation, …) */
   toolOpts: ToolOpts
   /**
@@ -249,6 +251,7 @@ export interface State {
   setShowGrid: (v: boolean) => void
   setPaletteAutoApply: (v: boolean) => void
   toggleRail: () => void
+  togglePanelCollapsed: () => void
   patchToolOpts: (patch: Partial<ToolOpts>) => void
   /** Override the tool-settings preview grid; null returns to the automatic size */
   setPreviewGrid: (grid: { cols: number; rows: number } | null) => void

@@ -7,7 +7,10 @@ import { ImportDialog } from '../features/import/import-dialog.component.tsx'
 import { NodeEditorCanvas } from '../features/nodes-editor/node-editor-canvas.component.tsx'
 import { ProjectDialog } from '../features/projects/project-dialog.component.tsx'
 import { ProjectsDialog } from '../features/projects/projects-dialog.component.tsx'
-import { SettingsPanel } from '../features/settings-panel/settings-panel.component.tsx'
+import {
+  PANEL_SECTIONS,
+  SettingsPanel,
+} from '../features/settings-panel/settings-panel.component.tsx'
 import {
   allOrder,
   ToolIcon,
@@ -17,7 +20,7 @@ import {
 } from '../features/tools/tool-rail.component.tsx'
 import { I18nProvider, useI18n } from '../shared/i18n/i18n.provider.tsx'
 import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
-import { IconButton } from '../shared/ui/index.tsx'
+import { IconButton, SectionGlyph } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
 import {
   useCanUndoRedo,
@@ -227,6 +230,10 @@ function Editor() {
   const [newGuard, setNewGuard] = useState(false)
   // phones/tablets: the right panel lives in a slide-over drawer instead of a column
   const [panelOpen, setPanelOpen] = useState(false)
+  const panelCollapsed = useStore((s) => s.panelCollapsed)
+  const togglePanelCollapsed = useStore((s) => s.togglePanelCollapsed)
+  // секция правой панели, которую нужно раскрыть при разворачивании из полосы
+  const [panelSection, setPanelSection] = useState<string | null>(null)
   // mobile: the active tool's settings open as a bottom sheet from the strip's gear
   const [mobileSettings, setMobileSettings] = useState<SettingsAnchor | null>(null)
   const { canUndo, canRedo } = useCanUndoRedo()
@@ -330,9 +337,54 @@ function Editor() {
             </>
           )}
         </div>
-        <div className="hidden lg:contents">
-          <SettingsPanel />
-        </div>
+        {panelCollapsed ? (
+          <div
+            aria-label={t('panel.expand')}
+            className="border-line bg-panel hidden w-12 shrink-0 flex-col items-center gap-1 border-l py-2 lg:flex"
+          >
+            {PANEL_SECTIONS.map((x) => (
+              <Tooltip key={x.id} label={t(x.titleKey as 'panel.color')}>
+                <button
+                  type="button"
+                  aria-label={t(x.titleKey as 'panel.color')}
+                  onClick={() => {
+                    togglePanelCollapsed()
+                    setPanelSection(x.id)
+                  }}
+                  className="text-muted hover:bg-chip-active hover:text-body flex h-10 w-10 items-center justify-center rounded-lg transition"
+                >
+                  <SectionGlyph icon={x.icon} />
+                </button>
+              </Tooltip>
+            ))}
+          </div>
+        ) : (
+          <div className="border-line bg-panel hidden w-64 shrink-0 flex-col border-l lg:flex">
+            <SettingsPanel
+              className="flex min-h-0 w-full flex-1 flex-col"
+              openSection={panelSection}
+            />
+            <div className="border-line border-t p-1.5">
+              <IconButton
+                title={t('panel.collapse')}
+                onClick={togglePanelCollapsed}
+                className="mx-auto rotate-180"
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                >
+                  <path d="M6.5 4L3 7.5 6.5 11" />
+                  <path d="M3 7.5h6a4 4 0 010 8H6" />
+                </svg>
+              </IconButton>
+            </div>
+          </div>
+        )}
       </div>
       {/* mobile: tools in the thumb zone — a horizontally scrollable strip under the
           canvas, plus a settings shortcut for the active tool (Photoshop iOS layout) */}

@@ -233,10 +233,11 @@
       "src/app/app.component.tsx"
     ],
     "rules": {
+      // 464→516 / 267→321: right-panel collapse strip (2026-09)
       "eslint/max-lines": [
         "error",
         {
-          "max": 464,
+          "max": 516,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -244,7 +245,7 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          "max": 267,
+          "max": 321,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -891,8 +892,8 @@
       "eslint/max-lines": [
         "error",
         {
-          // 1172→1196: symmetry preview modal wiring (2026-09)
-          "max": 1196,
+          // 1172→1196: symmetry preview modal; 1196→1226: panel collapse strip (2026-09)
+          "max": 1226,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -900,8 +901,8 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          // 1119→1138: symmetry preview modal wiring (2026-09)
-          "max": 1138,
+          // 1119→1138: symmetry preview modal; 1138→1168: panel collapse strip (2026-09)
+          "max": 1168,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -915,8 +916,8 @@
       "eslint/max-statements": [
         "error",
         {
-          // 64→66: palette apply-mode checkbox (2026-09)
-          "max": 66
+          // 64→66: palette apply-mode checkbox; 66→70: collapse strip (2026-09)
+          "max": 70
         }
       ]
     }

@@ -68,6 +68,24 @@ const SECTION_GLYPHS: Record<string, ReactNode> = {
   ),
 }
 
+/** Section icon rendered standalone (collapsed settings-panel strip buttons). */
+export function SectionGlyph({ icon, className }: { icon: string; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 14 14"
+      className={className ?? 'h-4.5 w-4.5'}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {SECTION_GLYPHS[icon]}
+    </svg>
+  )
+}
+
 export function Section({
   title,
   icon,
