@@ -233,11 +233,11 @@
       "src/app/app.component.tsx"
     ],
     "rules": {
-      // 464→516 / 267→321: right-panel collapse strip (2026-09)
+      // 464→516 / 267→321: right-panel collapse strip (2026-09); →352: drawer header (2026-09)
       "eslint/max-lines": [
         "error",
         {
-          "max": 516,
+          "max": 352,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -756,8 +756,8 @@
       "eslint/max-lines": [
         "error",
         {
-          // 597→601: shadcn migration; →577: presets→Select, fixed preview (2026-09)
-          "max": 577,
+          // 597→601: shadcn migration; →577: presets→Select; →576: SliderGroup (2026-09)
+          "max": 576,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -943,7 +943,8 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          "max": 154,
+          // 154→146: connector/tip painting extracted to module helpers (2026-09)
+          "max": 146,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -957,7 +958,7 @@
       "eslint/max-statements": [
         "error",
         {
-          "max": 68
+          "max": 60
         }
       ]
     }
@@ -1196,21 +1197,6 @@
         "error",
         {
           "max": 220,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ]
-    }
-  },
-  {
-    "files": [
-      "src/features/tools/tool-settings.component.tsx"
-    ],
-    "rules": {
-      "eslint/max-lines-per-function": [
-        "error",
-        {
-          "max": 176,
           "skipComments": true,
           "skipBlankLines": true
         }

@@ -36,6 +36,7 @@ export function ConfirmDialog({
       }}
     >
       <DialogContent
+        centered
         showCloseButton={false}
         className="z-60 max-w-sm gap-4 rounded-xl p-4 sm:max-w-sm"
       >
@@ -52,7 +53,7 @@ export function ConfirmDialog({
             type="button"
             variant="ghost"
             onClick={onClose}
-            className="text-body border-line bg-chip hover:border-chip-line hover:bg-chip dark:border-line dark:bg-chip dark:text-body dark:hover:bg-chip h-auto px-3 py-1.5 text-xs font-normal"
+            className="text-body border-line bg-chip hover:border-chip-line hover:bg-chip dark:border-line dark:bg-chip dark:text-body dark:hover:bg-chip h-auto px-3 py-1.5 text-xs font-normal max-lg:min-h-11"
           >
             {cancelLabel}
           </Button>
@@ -63,7 +64,7 @@ export function ConfirmDialog({
               onConfirm()
               onClose()
             }}
-            className="h-auto px-3 py-1.5 text-xs"
+            className="h-auto px-3 py-1.5 text-xs max-lg:min-h-11"
           >
             {confirmLabel}
           </Button>

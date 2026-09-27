@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { MAX_SIZE } from '../../engine/doc.ts'
 import { GRID_TYPES, type GridType } from '../../engine/grids.ts'
@@ -19,6 +19,28 @@ import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 
 const sizeKey = (cols: number, rows: number) => `${cols}×${rows}`
+
+/** Labeled field row: caption above the control; captions grow with the mobile type scale. */
+function Field({
+  label,
+  className,
+  children,
+}: {
+  label: string
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <label className={className ?? 'block'}>
+      <span className="text-muted mb-1 block text-xs max-lg:text-sm">{label}</span>
+      {children}
+    </label>
+  )
+}
+
+/** Chip-plate select trigger; phones get 44px touch targets (max-lg). */
+const TRIGGER_CLS =
+  'border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1.5 text-xs max-lg:min-h-11 max-lg:px-3 max-lg:py-2.5 max-lg:text-sm'
 
 /**
  * Project creation/editing dialog (Photoshop/Photopea-style) on the shadcn dialog: on startup the
@@ -58,7 +80,7 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
   }
 
   const fieldClass =
-    'w-full rounded-md border border-line bg-chip px-2 py-1.5 text-xs text-body outline-none focus:border-accent-line'
+    'w-full rounded-md border border-line bg-chip px-2 py-1.5 text-xs text-body outline-none focus:border-accent-line max-lg:min-h-11 max-lg:px-3 max-lg:text-base'
 
   return (
     <Dialog
@@ -67,7 +89,7 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
         if (!open) onClose()
       }}
     >
-      <DialogContent showCloseButton={false} className="max-w-md gap-3 rounded-xl p-4 sm:max-w-md">
+      <DialogContent showCloseButton={false} className="gap-3 p-4 lg:max-w-md lg:rounded-xl">
         <div className="flex items-center justify-between">
           <DialogTitle className="text-body text-sm font-semibold tracking-wide">
             {mode === 'create' ? t('project.new') : t('project.settings')}
@@ -76,15 +98,14 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
             <button
               type="button"
               onClick={onClose}
-              className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
+              className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition max-lg:h-11 max-lg:w-11 max-lg:text-base"
             >
               ✕
             </button>
           </Tooltip>
         </div>
 
-        <label className="block">
-          <span className="text-muted mb-1 block text-xs">{t('project.name')}</span>
+        <Field label={t('project.name')}>
           <input
             type="text"
             value={name}
@@ -95,11 +116,10 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
             }}
             className={fieldClass}
           />
-        </label>
+        </Field>
 
         <div className="flex items-end gap-2">
-          <label className="min-w-0 flex-1">
-            <span className="text-muted mb-1 block text-xs">{t('top.width')}</span>
+          <Field className="min-w-0 flex-1" label={t('top.width')}>
             <input
               type="number"
               min={1}
@@ -110,10 +130,9 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
               }
               className={fieldClass}
             />
-          </label>
+          </Field>
           <span className="text-muted pb-1.5 text-xs">×</span>
-          <label className="min-w-0 flex-1">
-            <span className="text-muted mb-1 block text-xs">{t('top.height')}</span>
+          <Field className="min-w-0 flex-1" label={t('top.height')}>
             <input
               type="number"
               min={1}
@@ -124,11 +143,10 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
               }
               className={fieldClass}
             />
-          </label>
+          </Field>
         </div>
 
-        <label className="block">
-          <span className="text-muted mb-1 block text-xs">{t('top.sizePreset')}</span>
+        <Field label={t('top.sizePreset')}>
           <Select
             value={isPreset ? currentKey : ''}
             onValueChange={(v) => {
@@ -139,7 +157,7 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
               }
             }}
           >
-            <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1.5 text-xs">
+            <SelectTrigger className={TRIGGER_CLS}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -162,12 +180,11 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
               ))}
             </SelectContent>
           </Select>
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="text-muted mb-1 block text-xs">{t('project.grid')}</span>
+        <Field label={t('project.grid')}>
           <Select value={gridType} onValueChange={(v) => setGridTypeLocal(v as GridType)}>
-            <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1.5 text-xs">
+            <SelectTrigger className={TRIGGER_CLS}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -178,9 +195,9 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
               ))}
             </SelectContent>
           </Select>
-        </label>
+        </Field>
         {gridType === 'radial' && (
-          <label className="text-body flex cursor-pointer items-center gap-2 text-xs">
+          <label className="text-body flex cursor-pointer items-center gap-2 text-xs max-lg:min-h-11 max-lg:text-sm">
             <input
               type="checkbox"
               checked={even}
@@ -191,16 +208,20 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
           </label>
         )}
 
-        <div className="flex items-center justify-end gap-2 pt-1">
+        <div className="flex items-center justify-end gap-2 pt-1 max-lg:gap-3">
           <Button
             type="button"
             variant="ghost"
             onClick={onClose}
-            className="text-body border-line bg-chip hover:border-chip-line hover:bg-chip dark:border-line dark:bg-chip dark:text-body dark:hover:bg-chip h-auto px-3 py-1.5 text-xs font-normal"
+            className="text-body border-line bg-chip hover:border-chip-line hover:bg-chip dark:border-line dark:bg-chip dark:text-body dark:hover:bg-chip h-auto px-3 py-1.5 text-xs font-normal max-lg:min-h-11 max-lg:flex-1"
           >
             {t('projects.cancel')}
           </Button>
-          <Button type="button" onClick={apply} className="h-auto px-3 py-1.5 text-xs">
+          <Button
+            type="button"
+            onClick={apply}
+            className="h-auto px-3 py-1.5 text-xs max-lg:min-h-11 max-lg:flex-1"
+          >
             {mode === 'create' ? t('project.create') : t('project.apply')}
           </Button>
         </div>

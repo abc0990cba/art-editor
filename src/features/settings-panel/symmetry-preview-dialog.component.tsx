@@ -103,7 +103,7 @@ export function SymmetryPreviewDialog({ onClose }: { onClose: () => void }) {
         if (!open) onClose()
       }}
     >
-      <DialogContent showCloseButton={false} className="max-w-md gap-3 rounded-xl p-4 sm:max-w-md">
+      <DialogContent showCloseButton={false} className="gap-3 p-4 lg:max-w-md lg:rounded-xl">
         <div className="flex items-center justify-between">
           <DialogTitle className="text-body text-sm font-semibold tracking-wide">
             {t(`sym.${symmetry.mode}` as 'sym.none')}

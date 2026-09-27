@@ -67,7 +67,7 @@ export function ExpandablePreview({
         title={t('preview.expand')}
         aria-label={t('preview.expand')}
         aria-pressed={Boolean(pos)}
-        className="border-line bg-panel/85 text-muted hover:text-body absolute top-1.5 right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border transition"
+        className="border-line bg-panel/85 text-muted hover:text-body absolute top-1.5 right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border transition max-lg:h-9 max-lg:w-9"
       >
         <svg
           viewBox="0 0 16 16"

@@ -1381,12 +1381,12 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         wrap={wrapRef.current}
       />
 
-      {/* fit canvas — bottom-left overlay (moved from the top bar) */}
+      {/* fit canvas — bottom-left overlay, styled like the zoom plate next to which it sits */}
       <button
         type="button"
         onClick={fit}
         title={`${t('top.fit')} (F)`}
-        className="text-label absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-md bg-black/50 px-2.5 py-1.5 text-white/80 backdrop-blur-sm transition hover:bg-black/70 hover:text-white"
+        className="border-line bg-panel text-body hover:border-chip-line absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs shadow-sm backdrop-blur transition max-lg:min-h-11 max-lg:px-3"
       >
         <svg
           viewBox="0 0 16 16"

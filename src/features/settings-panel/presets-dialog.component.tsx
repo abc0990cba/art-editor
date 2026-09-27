@@ -71,7 +71,7 @@ export function PresetsDialog({ onClose }: { onClose: () => void }) {
     >
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-3 overflow-hidden rounded-xl p-4 sm:max-w-3xl"
+        className="flex w-full flex-col gap-3 overflow-hidden p-4 lg:max-h-[85vh] lg:max-w-3xl lg:rounded-xl"
       >
         <div className="flex items-center justify-between">
           <DialogTitle className="text-body text-sm font-semibold tracking-wide">

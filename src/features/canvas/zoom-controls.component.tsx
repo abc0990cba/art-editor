@@ -84,7 +84,7 @@ export function ZoomControls({
           e.preventDefault()
           startRepeat(factor)
         }}
-        className="text-muted hover:bg-chip-active hover:text-body flex h-6 w-6 items-center justify-center rounded-md transition"
+        className="text-muted hover:bg-chip-active hover:text-body flex h-6 w-6 items-center justify-center rounded-md transition max-lg:h-11 max-lg:w-11"
       >
         {glyph}
       </button>
@@ -92,7 +92,7 @@ export function ZoomControls({
   )
 
   return (
-    <div className="border-line bg-panel text-body absolute right-3 bottom-3 flex items-center gap-1 rounded-lg border px-2 py-1 text-xs shadow-sm backdrop-blur">
+    <div className="border-line bg-panel text-body absolute right-3 bottom-3 flex items-center gap-1 rounded-lg border px-2 py-1 text-xs shadow-sm backdrop-blur max-lg:gap-1.5">
       {hoverText !== null && (
         <>
           <Tooltip label={t('view.cursor.desc')}>
@@ -106,7 +106,7 @@ export function ZoomControls({
         t('view.zoomOut'),
         <svg
           viewBox="0 0 16 16"
-          className="h-3 w-3"
+          className="h-3 w-3 max-lg:h-4 max-lg:w-4"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
@@ -120,7 +120,7 @@ export function ZoomControls({
           type="button"
           aria-label={t('view.zoomReset')}
           onClick={() => anchoredZoom(1 / zoom)}
-          className="text-muted hover:bg-chip-active hover:text-body min-w-11 rounded-md px-1 py-0.5 text-center font-mono tabular-nums transition"
+          className="text-muted hover:bg-chip-active hover:text-body min-w-11 rounded-md px-1 py-0.5 text-center font-mono tabular-nums transition max-lg:min-h-11 max-lg:text-sm"
         >
           {Math.round(zoom * 100)}%
         </button>
@@ -130,7 +130,7 @@ export function ZoomControls({
         t('view.zoomIn'),
         <svg
           viewBox="0 0 16 16"
-          className="h-3 w-3"
+          className="h-3 w-3 max-lg:h-4 max-lg:w-4"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"

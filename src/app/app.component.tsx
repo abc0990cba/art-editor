@@ -323,7 +323,7 @@ function Editor() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-line flex items-center justify-between border-b px-4 py-3">
-              <span className="text-muted text-sm font-semibold tracking-wider uppercase">
+              <span className="text-body text-base font-semibold tracking-wide">
                 {t('top.panel')}
               </span>
               <button

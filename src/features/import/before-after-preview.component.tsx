@@ -1,7 +1,66 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
-import type { ImportBitmap, ImportResult } from '../../engine/import-image.ts'
+import type { ImportBitmap, ImportFit, ImportResult } from '../../engine/import-image.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+
+interface Rgb {
+  r: number
+  g: number
+  b: number
+}
+
+/**
+ * Draw the source photo into the result's geometry — the same cover-crop / contain-letterbox /
+ * stretch mapping convertImage used — so both preview sides cover the same picture regions.
+ */
+function drawFittedOriginal(
+  ctx: CanvasRenderingContext2D,
+  src: HTMLCanvasElement,
+  w: number,
+  h: number,
+  fit: ImportFit,
+): void {
+  const W = src.width
+  const H = src.height
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.clearRect(0, 0, w, h)
+  if (fit === 'cover') {
+    // crop the source to the target aspect, centered — same as fitToGrid
+    const s = Math.max(w / W, h / H)
+    ctx.drawImage(src, (W - w / s) / 2, (H - h / s) / 2, w / s, h / s, 0, 0, w, h)
+  } else if (fit === 'contain') {
+    // letterbox a scaled-to-fit copy inside the grid
+    const s = Math.min(w / W, h / H)
+    ctx.drawImage(src, (w - W * s) / 2, (h - H * s) / 2, W * s, H * s)
+  } else {
+    // stretch — and 'resize', whose grid already matches the photo proportions
+    ctx.drawImage(src, 0, 0, W, H, 0, 0, w, h)
+  }
+}
+
+/** Paint the converted cells at 1:1 (cols×sub, rows×sub); empty cells stay transparent. */
+function paintResult(
+  ctx: CanvasRenderingContext2D,
+  result: ImportResult,
+  rgbOf: Map<string, Rgb>,
+  sub: number,
+): void {
+  const w = result.cols * sub
+  const h = result.rows * sub
+  const img = ctx.createImageData(w, h)
+  for (let i = 0; i < result.cells.length; i++) {
+    const v = result.cells[i]
+    if (v === 0) continue
+    const rgb = rgbOf.get(result.palette[(v - 1) % result.palette.length])
+    if (!rgb) continue
+    img.data[i * 4] = rgb.r
+    img.data[i * 4 + 1] = rgb.g
+    img.data[i * 4 + 2] = rgb.b
+    img.data[i * 4 + 3] = 255
+  }
+  ctx.putImageData(img, 0, 0)
+}
 
 /**
  * Before/after comparison preview, the photo-editor standard: the original sits under the result,
@@ -13,14 +72,17 @@ export function BeforeAfterPreview({
   result,
   rgbOf,
   sub,
+  fit,
   backgroundStyle,
 }: {
   bitmap: ImportBitmap
   result: ImportResult | null
   /** Result palette hex → rgb, kept in the dialog */
-  rgbOf: Map<string, { r: number; g: number; b: number }>
+  rgbOf: Map<string, Rgb>
   /** Result cell size in screen pixels (doc.sub) */
   sub: number
+  /** Placement option — both sides are mapped with it, so the divider compares like with like */
+  fit: ImportFit
   /** Checkerboard style for transparent pixels */
   backgroundStyle: CSSProperties
 }) {
@@ -31,20 +93,39 @@ export function BeforeAfterPreview({
   const [split, setSplit] = useState(50)
   const dragging = useRef(false)
 
-  // the original renders at its own pixel size; CSS letterboxes it like the old single view
+  // source pixels cached on a canvas so drawImage can resample them per geometry change
+  const srcCanvas = useMemo(() => {
+    const src = document.createElement('canvas')
+    src.width = bitmap.width
+    src.height = bitmap.height
+    src
+      .getContext('2d')
+      ?.putImageData(
+        new ImageData(new Uint8ClampedArray(bitmap.data), bitmap.width, bitmap.height),
+        0,
+        0,
+      )
+    return src
+  }, [bitmap])
+
+  // both sides render in the RESULT's geometry — same canvas size (cols×sub, rows×sub) and the
+  // same placement mapping — so the divider always compares like with like
   useEffect(() => {
     const canvas = originalRef.current
     if (!canvas) return
-    canvas.width = bitmap.width
-    canvas.height = bitmap.height
+    const w = result ? result.cols * sub : bitmap.width
+    const h = result ? result.rows * sub : bitmap.height
+    canvas.width = w
+    canvas.height = h
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    ctx.putImageData(
-      new ImageData(new Uint8ClampedArray(bitmap.data), bitmap.width, bitmap.height),
-      0,
-      0,
-    )
-  }, [bitmap])
+    if (result) {
+      drawFittedOriginal(ctx, srcCanvas, w, h, fit)
+    } else {
+      // no conversion yet: the original at its own pixel size, letterboxed by CSS
+      ctx.drawImage(srcCanvas, 0, 0)
+    }
+  }, [bitmap, srcCanvas, result, sub, fit])
 
   // the result renders at grid resolution; cells paint 1:1, CSS scales with crisp pixels
   useEffect(() => {
@@ -56,18 +137,7 @@ export function BeforeAfterPreview({
     canvas.height = h
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const img = ctx.createImageData(w, h)
-    for (let i = 0; i < result.cells.length; i++) {
-      const v = result.cells[i]
-      if (v === 0) continue
-      const rgb = rgbOf.get(result.palette[(v - 1) % result.palette.length])
-      if (!rgb) continue
-      img.data[i * 4] = rgb.r
-      img.data[i * 4 + 1] = rgb.g
-      img.data[i * 4 + 2] = rgb.b
-      img.data[i * 4 + 3] = 255
-    }
-    ctx.putImageData(img, 0, 0)
+    paintResult(ctx, result, rgbOf, sub)
   }, [result, rgbOf, sub])
 
   const updateFromClientX = useCallback((clientX: number) => {

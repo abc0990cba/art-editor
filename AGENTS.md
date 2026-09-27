@@ -77,7 +77,13 @@ src/
   `bg-muted` → `bg-chip` (у нас `--muted` — цвет вторичного текста), в `tooltip.tsx`
   инвертированный `bg-foreground`/`text-background` → `bg-popover`/`text-popover-foreground`
   (инверсия выглядит как белые плашки на тёмных темах), импорт `cn` уже переписан
-  на `@/shared/lib/utils`.
+  на `@/shared/lib/utils`; в `dialog.tsx` контент ниже `lg` — полноэкранный лист (нативные
+  мобильные модалки), `lg:` возвращает центрированную модалку, проп `centered` выключает лист
+  для мелких подтверждений; в `slider.tsx` и `select.tsx` на `max-lg` увеличены бегунок/трек
+  и строки списков (правило 44px).
+- Мобильные модалки: контентные диалоги на телефонах/планшетах (<1024px) всегда полноэкранные —
+  десктоп-габариты (max-w/max-h/rounded) задаются только `lg:`-классами. `ConfirmDialog` —
+  исключение (центрированный алерт).
 - `shared/ui/index.tsx` и соседние `*.component.tsx` — **публичные примитивы проекта**
   (`Chip`, `IconButton`, `Tooltip`, `Slider`, `CheckRow`, `TextField`, `ConfirmDialog`,
   `Section`): фичи используют только их, не shadcn напрямую. Обёртки фиксируют

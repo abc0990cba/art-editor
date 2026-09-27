@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { hexToRgb } from '../../engine/color.ts'
 import {
@@ -33,6 +33,10 @@ import { useStore } from '../../state/editor.store.ts'
 import { BeforeAfterPreview } from './before-after-preview.component.tsx'
 
 const FITS: ImportFit[] = ['cover', 'contain', 'stretch', 'resize']
+
+// chip-plate select trigger; phones get 44px touch targets (max-lg)
+const SELECT_TRIGGER =
+  'border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs max-lg:min-h-11 max-lg:px-3 max-lg:py-2.5 max-lg:text-sm'
 const DITHER_GROUPS: {
   label:
     | 'import.ditherGroup.off'
@@ -86,6 +90,18 @@ const checkerStyle: React.CSSProperties = {
   backgroundImage:
     'conic-gradient(rgba(128,128,128,0.25) 25%, rgba(128,128,128,0.08) 0 50%, rgba(128,128,128,0.25) 0 75%, rgba(128,128,128,0.08) 0)',
   backgroundSize: '16px 16px',
+}
+
+/** Collapsible slider group (Adjust / Pre / Post); rows grow to 44px touch targets on phones. */
+function SliderGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <details className="border-line rounded-md border px-2 py-1">
+      <summary className="text-muted cursor-pointer text-xs select-none max-lg:flex max-lg:min-h-11 max-lg:items-center max-lg:text-sm">
+        {title}
+      </summary>
+      <div className="mt-1.5 flex flex-col gap-2">{children}</div>
+    </details>
+  )
 }
 
 const signed = (v: number): string => (v > 0 ? `+${v}` : `${v}`)
@@ -164,7 +180,7 @@ export function ImportDialog({
     >
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[85vh] w-full max-w-4xl flex-col gap-3 overflow-hidden rounded-xl p-4 sm:max-w-4xl"
+        className="flex w-full flex-col gap-3 overflow-hidden p-4 lg:h-auto lg:max-h-[85vh] lg:max-w-4xl lg:rounded-xl"
       >
         <div className="flex items-center justify-between">
           <DialogTitle className="text-body text-sm font-semibold tracking-wide">
@@ -174,7 +190,7 @@ export function ImportDialog({
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-2 py-1 text-xs transition"
+              className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-2 py-1 text-xs transition max-lg:min-h-11 max-lg:px-3 max-lg:text-sm"
             >
               {t('import.change')}
             </button>
@@ -182,7 +198,7 @@ export function ImportDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
+                className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition max-lg:h-11 max-lg:w-11 max-lg:text-base"
               >
                 ✕
               </button>
@@ -204,14 +220,15 @@ export function ImportDialog({
 
         {/* картинка зафиксирована; скроллится только колонка настроек (на мобилке — всё тело) */}
         {square ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto md:flex-row md:overflow-hidden">
-            <div className="flex min-h-0 flex-1 flex-col gap-2">
-              <div className="border-line bg-panel min-h-[240px] flex-1 overflow-hidden rounded-lg border p-2">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto lg:flex-row lg:overflow-hidden">
+            <div className="flex shrink-0 flex-col gap-2 lg:min-h-0 lg:flex-1">
+              <div className="border-line bg-panel h-64 overflow-hidden rounded-lg border p-2 lg:h-auto lg:min-h-[240px] lg:flex-1">
                 <BeforeAfterPreview
                   bitmap={bitmap}
                   result={result}
                   rgbOf={rgbOf}
                   sub={doc.sub}
+                  fit={opts.fit}
                   backgroundStyle={checkerStyle}
                 />
               </div>
@@ -228,7 +245,7 @@ export function ImportDialog({
               </div>
             </div>
 
-            <div className="flex w-full shrink-0 flex-col gap-2.5 md:w-64 md:overflow-y-auto md:pr-1">
+            <div className="flex w-full shrink-0 flex-col gap-2.5 lg:w-64 lg:overflow-y-auto lg:pr-1">
               <div className="flex flex-col gap-1">
                 <span className="text-muted text-xs">{t('import.presets')}</span>
                 <Select
@@ -241,7 +258,7 @@ export function ImportDialog({
                     setPaletteSel(preset.paletteId ?? 'auto')
                   }}
                 >
-                  <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs">
+                  <SelectTrigger className={SELECT_TRIGGER}>
                     <SelectValue placeholder={t('import.presets')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -261,7 +278,7 @@ export function ImportDialog({
               <div className="flex flex-col gap-1">
                 <span className="text-muted text-xs">{t('import.fit')}</span>
                 <Select value={opts.fit} onValueChange={(v) => patch({ fit: v as ImportFit })}>
-                  <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs">
+                  <SelectTrigger className={SELECT_TRIGGER}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -283,7 +300,7 @@ export function ImportDialog({
                     patch({ palette: paletteChoice(v, autoColors) })
                   }}
                 >
-                  <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs">
+                  <SelectTrigger className={SELECT_TRIGGER}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -325,7 +342,7 @@ export function ImportDialog({
                   value={opts.dither}
                   onValueChange={(v) => patch({ dither: v as ImportDither })}
                 >
-                  <SelectTrigger className="border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs">
+                  <SelectTrigger className={SELECT_TRIGGER}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -371,139 +388,124 @@ export function ImportDialog({
                 />
               )}
 
-              <details className="border-line rounded-md border px-2 py-1">
-                <summary className="text-muted cursor-pointer text-xs select-none">
-                  {t('import.section.adjust')}
-                </summary>
-                <div className="mt-1.5 flex flex-col gap-2">
-                  <Slider
-                    label={t('import.brightness')}
-                    title={t('import.brightness.desc')}
-                    min={-100}
-                    max={100}
-                    value={opts.brightness}
-                    display={signed}
-                    onChange={(v) => patch({ brightness: v })}
-                  />
-                  <Slider
-                    label={t('import.contrast')}
-                    title={t('import.contrast.desc')}
-                    min={-100}
-                    max={100}
-                    value={opts.contrast}
-                    display={signed}
-                    onChange={(v) => patch({ contrast: v })}
-                  />
-                  <Slider
-                    label={t('import.saturation')}
-                    title={t('import.saturation.desc')}
-                    min={-100}
-                    max={100}
-                    value={opts.saturation}
-                    display={signed}
-                    onChange={(v) => patch({ saturation: v })}
-                  />
-                </div>
-              </details>
+              <SliderGroup title={t('import.section.adjust')}>
+                <Slider
+                  label={t('import.brightness')}
+                  title={t('import.brightness.desc')}
+                  min={-100}
+                  max={100}
+                  value={opts.brightness}
+                  display={signed}
+                  onChange={(v) => patch({ brightness: v })}
+                />
+                <Slider
+                  label={t('import.contrast')}
+                  title={t('import.contrast.desc')}
+                  min={-100}
+                  max={100}
+                  value={opts.contrast}
+                  display={signed}
+                  onChange={(v) => patch({ contrast: v })}
+                />
+                <Slider
+                  label={t('import.saturation')}
+                  title={t('import.saturation.desc')}
+                  min={-100}
+                  max={100}
+                  value={opts.saturation}
+                  display={signed}
+                  onChange={(v) => patch({ saturation: v })}
+                />
+              </SliderGroup>
 
-              <details className="border-line rounded-md border px-2 py-1">
-                <summary className="text-muted cursor-pointer text-xs select-none">
-                  {t('import.section.pre')}
-                </summary>
-                <div className="mt-1.5 flex flex-col gap-2">
-                  <Slider
-                    label={t('import.blur')}
-                    title={t('import.blur.desc')}
-                    min={0}
-                    max={10}
-                    value={opts.blur}
-                    onChange={(v) => patch({ blur: v })}
-                  />
-                  <Slider
-                    label={t('import.sharpen')}
-                    title={t('import.sharpen.desc')}
-                    min={0}
-                    max={100}
-                    value={opts.sharpen}
-                    display={(v) => `${v}%`}
-                    onChange={(v) => patch({ sharpen: v })}
-                  />
-                  <Slider
-                    label={t('import.hue')}
-                    title={t('import.hue.desc')}
-                    min={-180}
-                    max={180}
-                    value={opts.hue}
-                    display={signed}
-                    onChange={(v) => patch({ hue: v })}
-                  />
-                  <Slider
-                    label={t('import.preDenoise')}
-                    title={t('import.preDenoise.desc')}
-                    min={0}
-                    max={5}
-                    value={opts.preDenoise}
-                    onChange={(v) => patch({ preDenoise: v })}
-                  />
-                  <Slider
-                    label={t('import.preSmooth')}
-                    title={t('import.preSmooth.desc')}
-                    min={0}
-                    max={5}
-                    value={opts.preSmooth}
-                    onChange={(v) => patch({ preSmooth: v })}
-                  />
-                </div>
-              </details>
+              <SliderGroup title={t('import.section.pre')}>
+                <Slider
+                  label={t('import.blur')}
+                  title={t('import.blur.desc')}
+                  min={0}
+                  max={10}
+                  value={opts.blur}
+                  onChange={(v) => patch({ blur: v })}
+                />
+                <Slider
+                  label={t('import.sharpen')}
+                  title={t('import.sharpen.desc')}
+                  min={0}
+                  max={100}
+                  value={opts.sharpen}
+                  display={(v) => `${v}%`}
+                  onChange={(v) => patch({ sharpen: v })}
+                />
+                <Slider
+                  label={t('import.hue')}
+                  title={t('import.hue.desc')}
+                  min={-180}
+                  max={180}
+                  value={opts.hue}
+                  display={signed}
+                  onChange={(v) => patch({ hue: v })}
+                />
+                <Slider
+                  label={t('import.preDenoise')}
+                  title={t('import.preDenoise.desc')}
+                  min={0}
+                  max={5}
+                  value={opts.preDenoise}
+                  onChange={(v) => patch({ preDenoise: v })}
+                />
+                <Slider
+                  label={t('import.preSmooth')}
+                  title={t('import.preSmooth.desc')}
+                  min={0}
+                  max={5}
+                  value={opts.preSmooth}
+                  onChange={(v) => patch({ preSmooth: v })}
+                />
+              </SliderGroup>
 
-              <details className="border-line rounded-md border px-2 py-1">
-                <summary className="text-muted cursor-pointer text-xs select-none">
-                  {t('import.section.post')}
-                </summary>
-                <div className="mt-1.5 flex flex-col gap-2">
-                  <Slider
-                    label={t('import.glowRadius')}
-                    title={t('import.glowRadius.desc')}
-                    min={0}
-                    max={24}
-                    value={opts.glowRadius}
-                    onChange={(v) => patch({ glowRadius: v })}
-                  />
-                  <Slider
-                    label={t('import.glowIntensity')}
-                    title={t('import.glowIntensity.desc')}
-                    min={0}
-                    max={100}
-                    value={opts.glowIntensity}
-                    display={(v) => `${v}%`}
-                    onChange={(v) => patch({ glowIntensity: v })}
-                  />
-                  <Slider
-                    label={t('import.aberration')}
-                    title={t('import.aberration.desc')}
-                    min={0}
-                    max={12}
-                    value={opts.aberration}
-                    onChange={(v) => patch({ aberration: v })}
-                  />
-                  <Slider
-                    label={t('import.postDenoise')}
-                    title={t('import.postDenoise.desc')}
-                    min={0}
-                    max={5}
-                    value={opts.postDenoise}
-                    onChange={(v) => patch({ postDenoise: v })}
-                  />
-                  <Slider
-                    label={t('import.postSmooth')}
-                    title={t('import.postSmooth.desc')}
-                    min={0}
-                    max={5}
-                    value={opts.postSmooth}
-                    onChange={(v) => patch({ postSmooth: v })}
-                  />
-                </div>
-              </details>
+              <SliderGroup title={t('import.section.post')}>
+                <Slider
+                  label={t('import.glowRadius')}
+                  title={t('import.glowRadius.desc')}
+                  min={0}
+                  max={24}
+                  value={opts.glowRadius}
+                  onChange={(v) => patch({ glowRadius: v })}
+                />
+                <Slider
+                  label={t('import.glowIntensity')}
+                  title={t('import.glowIntensity.desc')}
+                  min={0}
+                  max={100}
+                  value={opts.glowIntensity}
+                  display={(v) => `${v}%`}
+                  onChange={(v) => patch({ glowIntensity: v })}
+                />
+                <Slider
+                  label={t('import.aberration')}
+                  title={t('import.aberration.desc')}
+                  min={0}
+                  max={12}
+                  value={opts.aberration}
+                  onChange={(v) => patch({ aberration: v })}
+                />
+                <Slider
+                  label={t('import.postDenoise')}
+                  title={t('import.postDenoise.desc')}
+                  min={0}
+                  max={5}
+                  value={opts.postDenoise}
+                  onChange={(v) => patch({ postDenoise: v })}
+                />
+                <Slider
+                  label={t('import.postSmooth')}
+                  title={t('import.postSmooth.desc')}
+                  min={0}
+                  max={5}
+                  value={opts.postSmooth}
+                  onChange={(v) => patch({ postSmooth: v })}
+                />
+              </SliderGroup>
 
               <Slider
                 label={t('import.blend')}
@@ -545,7 +547,7 @@ export function ImportDialog({
           </p>
         )}
 
-        <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
+        <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:justify-end lg:gap-x-5 lg:gap-y-2">
           {/* how the converted image lands in the layers panel */}
           <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
             <CheckRow
@@ -582,11 +584,11 @@ export function ImportDialog({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 max-lg:gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition"
+              className="border-line bg-chip text-body hover:border-chip-line rounded-md border px-3 py-1.5 text-xs transition max-lg:min-h-11 max-lg:flex-1 max-lg:text-sm"
             >
               {t('import.cancel')}
             </button>
@@ -594,7 +596,7 @@ export function ImportDialog({
               type="button"
               onClick={apply}
               disabled={!square || !result}
-              className="h-auto px-3 py-1.5 text-xs"
+              className="h-auto px-3 py-1.5 text-xs max-lg:min-h-11 max-lg:flex-1 max-lg:text-sm"
             >
               {t('import.apply')}
             </Button>

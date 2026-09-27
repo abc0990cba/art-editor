@@ -41,9 +41,12 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  centered = false,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  /** Ditherlab adaptation: opt out of the mobile full-screen sheet (small confirmations) */
+  centered?: boolean
 }) {
   return (
     <DialogPortal data-slot="dialog-portal">
@@ -51,7 +54,12 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg',
+          centered
+            ? 'fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg'
+            : // Ditherlab adaptation: below lg a dialog is a full-screen sheet (native mobile
+              // modal); lg: restores the centered desktop modal. Callers size the desktop rung
+              // with lg: classes (max-w/rounded/max-h), the sheet fills the phone screen.
+              'fixed top-0 left-0 z-50 grid h-dvh w-full gap-4 overflow-y-auto rounded-none border-0 bg-background shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 lg:top-[50%] lg:left-[50%] lg:h-auto lg:max-w-[calc(100%-2rem)] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:overflow-visible lg:rounded-lg lg:border lg:data-[state=closed]:zoom-out-95 lg:data-[state=open]:zoom-in-95',
           className,
         )}
         {...props}

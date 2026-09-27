@@ -154,7 +154,7 @@ export function GlyphEditorDialog({ onClose }: { onClose: () => void }) {
     >
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[90vh] w-full max-w-xl flex-col gap-3 overflow-y-auto rounded-xl p-4 sm:max-w-xl"
+        className="flex w-full flex-col gap-3 overflow-y-auto p-4 lg:max-h-[90vh] lg:max-w-xl lg:rounded-xl"
       >
         <div className="flex items-center justify-between">
           <DialogTitle className="text-body text-sm font-semibold tracking-wide">

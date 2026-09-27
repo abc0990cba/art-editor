@@ -13,6 +13,53 @@ import {
 } from '../../engine/shapes.ts'
 import { useStore, type Tool } from '../../state/editor.store.ts'
 
+/** Per-cell style fields consumed by cellPath (mirrors doc.style). */
+type CellStyle = Parameters<typeof cellPath>[4]
+
+/**
+ * The tip tools collect stamp cells with no outline to align — paint them directly: pencil fills
+ * with the working color, eraser draws a hollow cell (a transparency hint).
+ */
+function paintTip(
+  ctx: CanvasRenderingContext2D,
+  cells: Set<number>,
+  tool: 'pencil' | 'eraser',
+  cell: number,
+  look: { cols: number; color: string; line: string; style: CellStyle },
+): void {
+  for (const i of cells) {
+    const gx = i % look.cols
+    const gy = Math.floor(i / look.cols)
+    if (tool === 'pencil') {
+      ctx.fillStyle = look.color
+      cellPath(ctx, gx, gy, cell, look.style)
+    } else {
+      ctx.strokeStyle = look.line
+      ctx.lineWidth = 1
+      ctx.strokeRect(gx * cell + 0.5, gy * cell + 0.5, cell - 1, cell - 1)
+    }
+  }
+}
+
+/** Connector preview: a round-capped segment between two cell centers with end cells. */
+function paintConnector(
+  ctx: CanvasRenderingContext2D,
+  o: { cy: number; cols: number; cell: number; color: string; width: number; style: CellStyle },
+): void {
+  const ax = 5
+  const bx = o.cols - 6
+  ctx.strokeStyle = o.color
+  ctx.lineWidth = Math.max(1, o.width * o.cell)
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(ax * o.cell + o.cell / 2, o.cy * o.cell + o.cell / 2)
+  ctx.lineTo(bx * o.cell + o.cell / 2, o.cy * o.cell + o.cell / 2)
+  ctx.stroke()
+  ctx.fillStyle = o.color
+  cellPath(ctx, ax, o.cy, o.cell, o.style)
+  cellPath(ctx, bx, o.cy, o.cell, o.style)
+}
+
 /**
  * Live sample of what the tool paints with the current settings: brush tip for the pencil family,
  * the shape's fill + aligned outline rasterized through the tip for the shape tools, a connector
@@ -142,19 +189,13 @@ export function ToolPreview({
       }
     }
 
+    // the tip tools have no outline to align: paint the collected stamps directly
+    if (tool === 'pencil' || tool === 'eraser') {
+      paintTip(ctx, cells, tool, cell, { cols, color, line: stage.pixelLine, style })
+    }
+
     if (tool === 'connector') {
-      const ax = 5
-      const bx = cols - 6
-      ctx.strokeStyle = color
-      ctx.lineWidth = Math.max(1, connectorWidth * cell)
-      ctx.lineCap = 'round'
-      ctx.beginPath()
-      ctx.moveTo(ax * cell + cell / 2, cy * cell + cell / 2)
-      ctx.lineTo(bx * cell + cell / 2, cy * cell + cell / 2)
-      ctx.stroke()
-      ctx.fillStyle = color
-      cellPath(ctx, ax, cy, cell, style)
-      cellPath(ctx, bx, cy, cell, style)
+      paintConnector(ctx, { cy, cols, cell, color, width: connectorWidth, style })
     }
   }, [
     tool,

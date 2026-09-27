@@ -72,7 +72,9 @@ components replace `bg-muted` → `bg-chip` (documented adaptation).
   wrappers pin ditherlab sizing (28px chips, 10-11px type) and the token look on top of the
   shadcn primitives. Merge conditional classes with `cn()` from `@/shared/lib/utils`.
 - New modals are built on the shadcn `Dialog` (Escape, backdrop, focus trap and body portal are
-  handled — no hand-rolled fixed overlays). Confirmations use `ConfirmDialog`; a confirm renders
+  handled — no hand-rolled fixed overlays). Below `lg` every content dialog is a full-screen sheet
+  (native mobile modal): desktop rungs (max-w/rounded/max-h) are sized with `lg:` classes only;
+  `ConfirmDialog` stays a centered alert. Confirmations use `ConfirmDialog`; a confirm renders
   above other modals (`z-60`). `TooltipProvider` is mounted once in `main.tsx`.
 - Radix Slider/Checkbox are keyboard- and touch-accessible by default; keep the visible thumb.
 - Update vendored components only through regeneration + re-applying the documented adaptations.

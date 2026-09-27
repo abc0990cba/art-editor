@@ -181,7 +181,7 @@ export function TopBarMoreMenu({
   }, [open])
 
   const rowClass =
-    'text-body hover:bg-chip-active flex h-14 w-full shrink-0 items-center gap-4 rounded-xl px-4 text-left text-base transition'
+    'text-body hover:bg-chip-active flex h-14 w-full shrink-0 items-center gap-4 rounded-xl px-3 text-left text-base transition'
 
   const row = (icon: JSX.Element, label: string, action: () => void) => (
     <button
@@ -218,7 +218,7 @@ export function TopBarMoreMenu({
             className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <div className="bg-panel fixed inset-0 z-50 flex flex-col gap-5 overflow-y-auto p-4">
+          <div className="bg-panel fixed inset-0 z-50 flex flex-col gap-4 overflow-y-auto p-4">
             <div className="flex items-center justify-between">
               <span className="text-body text-base font-semibold tracking-wide">
                 {t('top.more')}
@@ -260,7 +260,7 @@ export function TopBarMoreMenu({
               <span className="text-muted text-overline font-semibold tracking-wider uppercase">
                 {t('top.theme')}
               </span>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 {THEME_PREFS.map(([pref, key]) => (
                   <button
                     key={pref}
@@ -274,11 +274,11 @@ export function TopBarMoreMenu({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="border-line flex flex-col gap-2 border-t pt-4">
               <span className="text-muted text-overline font-semibold tracking-wider uppercase">
                 {t('lang.switch')}
               </span>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setLang('en')}
@@ -296,7 +296,7 @@ export function TopBarMoreMenu({
               </div>
             </div>
 
-            <div className="border-line mt-auto flex flex-col gap-1 border-t pt-3">
+            <div className="border-line mt-auto flex flex-col gap-1 border-t pt-4">
               {row(MORE_ICONS.clear, t('export.clear'), onClear)}
             </div>
           </div>
