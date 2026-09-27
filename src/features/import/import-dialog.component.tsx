@@ -218,9 +218,10 @@ export function ImportDialog({
           }}
         />
 
-        {/* картинка зафиксирована; скроллится только колонка настроек (на мобилке — всё тело) */}
+        {/* картинка зафиксирована на всех ширинах; скроллится только колонка настроек —
+            на телефоне превью остаётся на экране, пока листаешь опции */}
         {square ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto lg:flex-row lg:overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:overflow-hidden">
             <div className="flex shrink-0 flex-col gap-2 lg:min-h-0 lg:flex-1">
               <div className="border-line bg-panel h-64 overflow-hidden rounded-lg border p-2 lg:h-auto lg:min-h-[240px] lg:flex-1">
                 <BeforeAfterPreview
@@ -245,7 +246,7 @@ export function ImportDialog({
               </div>
             </div>
 
-            <div className="flex w-full shrink-0 flex-col gap-2.5 lg:w-64 lg:overflow-y-auto lg:pr-1">
+            <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto lg:w-64 lg:flex-none lg:pr-1">
               <div className="flex flex-col gap-1">
                 <span className="text-muted text-xs">{t('import.presets')}</span>
                 <Select

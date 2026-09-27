@@ -1,7 +1,7 @@
-/** Shared opener for the glyph-editor database: one connection, all object stores, schema v6. */
+/** Shared opener for the glyph-editor database: one connection, all object stores, schema v7. */
 
 const DB_NAME = 'glyph-editor'
-const DB_VERSION = 6
+const DB_VERSION = 7
 
 let memoryOnly = false
 let dbPromise: Promise<IDBDatabase | null> | null = null
@@ -17,7 +17,7 @@ export function openDb(): Promise<IDBDatabase | null> {
         return
       }
       const req = indexedDB.open(DB_NAME, DB_VERSION)
-      req.onupgradeneeded = () => {
+      req.onupgradeneeded = (event) => {
         const db = req.result
         if (!db.objectStoreNames.contains('projects')) {
           const projects = db.createObjectStore('projects', { keyPath: 'id' })
@@ -45,6 +45,11 @@ export function openDb(): Promise<IDBDatabase | null> {
           const presets = db.createObjectStore('vectorPresets', { keyPath: 'id' })
           presets.createIndex('by_updated', 'updatedAt')
         }
+        // v7: project entries became typed (`kind: 'pixel' | 'vector'`). Legacy flat records are
+        // pixel documents; the single legacy vector autosave slot is promoted into a library entry.
+        if (event.oldVersion > 0 && event.oldVersion < 7) {
+          migrateKindedProjects(req.transaction)
+        }
       }
       req.onsuccess = () => resolve(req.result)
       req.onerror = () => {
@@ -57,6 +62,51 @@ export function openDb(): Promise<IDBDatabase | null> {
     }
   })
   return dbPromise
+}
+
+/**
+ * V6→v7: tag legacy flat project records as pixel documents and promote the single vector autosave
+ * slot (`vectorJobs['current']`) into a real vector library entry, then drop the slot. Runs inside
+ * the versionchange transaction, so every write lands atomically with the version bump.
+ */
+function migrateKindedProjects(tx: IDBTransaction | null): void {
+  if (!tx) return
+  const projects = tx.objectStore('projects')
+  const getAll = projects.getAll()
+  getAll.onsuccess = () => {
+    for (const raw of getAll.result as Record<string, unknown>[]) {
+      if (raw && (raw['kind'] === 'pixel' || raw['kind'] === 'vector')) continue
+      projects.put({ ...raw, kind: 'pixel' })
+    }
+  }
+  let jobs: IDBObjectStore
+  try {
+    jobs = tx.objectStore('vectorJobs')
+  } catch {
+    return // pre-v5 database without the legacy slot — nothing to promote
+  }
+  const getJob = jobs.get('current')
+  getJob.onsuccess = () => {
+    const job = getJob.result as Record<string, unknown> | undefined
+    if (!job) return
+    const savedAt =
+      typeof job['savedAt'] === 'number' && job['savedAt'] > 0 ? job['savedAt'] : Date.now()
+    const sourceName = typeof job['sourceName'] === 'string' ? job['sourceName'].trim() : ''
+    projects.put({
+      id: newId(),
+      name: sourceName ? sourceName.slice(0, 40) : 'Traced image',
+      kind: 'vector',
+      createdAt: savedAt,
+      updatedAt: savedAt,
+      thumbnail: '',
+      source: job['source'] ?? null,
+      sourceName,
+      params: job['params'] ?? null,
+      svg: typeof job['svg'] === 'string' ? job['svg'] : null,
+      stats: job['stats'] ?? null,
+    })
+    jobs.delete('current')
+  }
 }
 
 export function reqToPromise<T>(req: IDBRequest<T>): Promise<T> {

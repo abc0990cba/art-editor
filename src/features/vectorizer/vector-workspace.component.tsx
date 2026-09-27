@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent } from 'react'
+import { useRef, useState, type DragEvent } from 'react'
 
 import type { TraceStats } from '../../engine/trace/trace.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
@@ -6,6 +6,7 @@ import { decodeImageFile } from '../../shared/lib/decode-image.util.ts'
 import { download, stamp } from '../../shared/lib/file-download.util.ts'
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog.component.tsx'
 import { Chip } from '../../shared/ui/index.tsx'
+import { MobileSheet } from '../../shared/ui/mobile-sheet.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import { useVectorTrace } from './use-vector-trace.hook.ts'
 import { VectorParamsPanel } from './vector-params-panel.component.tsx'
@@ -31,14 +32,6 @@ export function VectorWorkspace() {
   const [dragOver, setDragOver] = useState(false)
   const [copied, setCopied] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-
-  // a render handed over from the pixel mode's export popover lands here as the new source
-  useEffect(() => {
-    const s = useStore.getState()
-    if (!s.vectorHandoff) return
-    s.setVectorSource(s.vectorHandoff, 'canvas')
-    s.setVectorHandoff(null)
-  }, [])
 
   const openFile = (file: File | Blob, name = ''): void => {
     void decodeImageFile(file)
@@ -139,11 +132,7 @@ export function VectorWorkspace() {
           </button>
         )}
         {/* mobile: parameters in the thumb zone */}
-        <div className="border-line bg-app flex h-14 shrink-0 items-center border-t px-2 lg:hidden">
-          <Chip className="h-11 w-full" onClick={() => setPanelOpen(true)}>
-            {t('vector.params')}
-          </Chip>
-        </div>
+        <MobileParamsBar onOpen={() => setPanelOpen(true)} />
       </div>
 
       <aside className="border-line bg-panel hidden w-64 shrink-0 flex-col overflow-y-auto border-l lg:flex">
@@ -185,43 +174,53 @@ function cnEmpty(dragOver: boolean): string {
   }`
 }
 
-/** Mobile slide-over with the tracing parameters (mirrors the pixel panel drawer). */
-function ParamsDrawer({ onClose }: { onClose: () => void }) {
+/**
+ * Mobile thumb zone: a big whole-width button opening the full-screen params sheet — the vector
+ * counterpart of the pixel tool strip's settings button (same sliders glyph).
+ */
+function MobileParamsBar({ onOpen }: { onOpen: () => void }) {
   const { t } = useI18n()
   return (
-    <div className="fixed inset-0 z-40 lg:hidden" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <aside
-        className="border-line bg-panel absolute inset-0 flex flex-col shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="border-line flex items-center justify-between border-b px-4 py-3">
-          <span className="text-muted text-sm font-semibold tracking-wider uppercase">
-            {t('vector.params')}
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('preview.close')}
-            className="text-muted hover:bg-chip-active hover:text-body flex h-11 w-11 items-center justify-center rounded-lg transition"
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            >
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
-          </button>
-        </div>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <VectorParamsPanel />
-        </div>
-      </aside>
+    <div className="border-line bg-app flex h-14 shrink-0 items-center border-t px-2 lg:hidden">
+      <Chip className="h-11 w-full gap-2" onClick={onOpen}>
+        <svg
+          viewBox="0 0 16 16"
+          className="h-5 w-5 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        >
+          <path d="M3 4.5h6M12 4.5h1M3 11.5h1M7 11.5h6" />
+          <circle cx="10.5" cy="4.5" r="1.6" />
+          <circle cx="5.5" cy="11.5" r="1.6" />
+        </svg>
+        {t('vector.params')}
+      </Chip>
     </div>
+  )
+}
+
+/**
+ * Mobile slide-over with the tracing parameters (mirrors the pixel panel drawer). The live preview
+ * stays pinned above the scrolling controls, so every slider change is visible while it is made —
+ * no scrolling back and forth to check the result.
+ */
+function ParamsDrawer({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n()
+  const source = useStore((s) => s.vectorSource)
+  const svg = useStore((s) => s.vectorResult?.svg ?? null)
+  return (
+    <MobileSheet title={t('vector.params')} onClose={onClose}>
+      {source && (
+        <div className="border-line bg-panel h-48 shrink-0 border-b">
+          <VectorPreview source={source} svg={svg} showOriginal={false} controls={false} />
+        </div>
+      )}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <VectorParamsPanel />
+      </div>
+    </MobileSheet>
   )
 }
 

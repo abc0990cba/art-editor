@@ -10,6 +10,7 @@ import { Slider as SliderPrimitive } from './shadcn/slider.tsx'
 import { Tooltip } from './tooltip.component.tsx'
 
 export { Section, SectionGlyph } from './section.component.tsx'
+export { MobileSheet } from './mobile-sheet.component.tsx'
 export { useMediaQuery } from './use-media-query.hook.ts'
 
 /**

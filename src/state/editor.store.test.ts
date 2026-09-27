@@ -6,7 +6,7 @@ import { useStore } from './editor.store'
 
 const state = () => useStore.getState()
 
-describe('project save state (top-bar Save button)', () => {
+describe('project dirty state (ambient autosave)', () => {
   beforeEach(() => {
     useStore.setState({
       doc: ensureScene(defaultDoc()),
@@ -14,6 +14,7 @@ describe('project save state (top-bar Save button)', () => {
       activeLayerId: null,
       projectId: null,
       savedDoc: null,
+      boundEntry: null,
       projectDirty: true,
     })
   })
@@ -29,13 +30,11 @@ describe('project save state (top-bar Save button)', () => {
     expect(state().projectDirty).toBe(false)
     state().paintCells(new Map([[0, 1]]), '#ff0000')
     expect(state().projectDirty).toBe(true)
-    // restyling without touching the doc (palette only) does not re-dirty it
-    expect(state().projectDirty).toBe(true)
   })
 
-  it('detaching from a project (null id) means unsaved work', () => {
+  it('detaching from a project means unsaved work', () => {
     state().markProjectSaved()
-    state().setCurrentProject(null, 'test')
+    state().detachProject()
     expect(state().projectDirty).toBe(true)
   })
 

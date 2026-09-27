@@ -26,9 +26,10 @@ import type { TraceParams } from '../engine/trace/params.ts'
 import type { BrushPresetEntry } from '../storage/brushes.ts'
 import type { GlyphTileSetEntry } from '../storage/glyph-tiles.ts'
 import type { PresetEntry } from '../storage/presets.ts'
+import type { ProjectEntry, VectorProjectEntry } from '../storage/projects.ts'
 import type { VectorPresetEntry } from '../storage/vector-presets.ts'
 import { createBrushesSlice } from './brushes.slice.ts'
-import { createDocSlice, DOC_KEY } from './doc.slice.ts'
+import { createDocSlice } from './doc.slice.ts'
 import { createFillSlice } from './fill.slice.ts'
 import { createGlyphSlice } from './glyph.slice.ts'
 import { createPaintSlice } from './paint.slice.ts'
@@ -101,17 +102,16 @@ export interface State {
   pngHeight: number | null
   exportBg: boolean
   recent: string[]
-  /** Display name of the current project, shown in the top bar */
+  /** Display name of the open project, shown in the top bar */
   projectName: string
-  /** Id of the saved project currently open; null = unsaved work (Untitled) */
+  /** Id of the open project; null = nothing open (home screen) */
   projectId: string | null
-  /**
-   * True while the document holds changes not written to the projects library (or no project is
-   * bound at all): the top-bar Save button is enabled exactly when this is true, Photoshop-style.
-   */
+  /** True while the document holds changes not yet written to the library entry */
   projectDirty: boolean
   /** The doc as it was last written to / loaded from the projects library */
   savedDoc: Doc | null
+  /** The full library entry currently open (pixel or vector); null on the home screen */
+  boundEntry: ProjectEntry | null
   /** Normalized radii of the concentric-circles / concentric-rects tools */
   concentricRadii: number[]
   // preset library (user presets; built-ins come from engine/presets)
@@ -238,11 +238,15 @@ export interface State {
    * saved project in the library too
    */
   setProjectName: (name: string) => void
-  /** Bind the editor to a saved project (open/save); null detaches back to unsaved */
-  setCurrentProject: (id: string | null, name: string) => void
-  /** Photoshop-style Save: overwrite the bound project or create + bind a new one */
-  saveToLibrary: () => Promise<void>
-  /** Mark the current doc as matching the library entry (after open/save) */
+  /** Bind the editor to a library entry and remember it as the Continue candidate */
+  openProject: (entry: ProjectEntry) => void
+  /** Detach from any project (deleting the open one); the work becomes unbound */
+  detachProject: () => void
+  /** Create a pixel entry from an imported document, bind it, return its id (JSON project import) */
+  adoptPixelDoc: (doc: import('../engine/project.ts').ProjectJSON, name?: string) => Promise<string>
+  /** Write the current pixel doc into its bound entry (Ctrl+S / autosave flush) */
+  saveToLibrary: (opts?: { freshThumb?: boolean }) => Promise<void>
+  /** Mark the current doc as matching the library entry (after open/save/flush) */
   markProjectSaved: () => void
   /** Resize the radii list of the concentric tools (1..8 loops) */
   setConcentricCount: (n: number) => void
@@ -287,23 +291,20 @@ export interface State {
   closeNodeEditor: () => void
   setNodeEditorMode: (mode: 'split' | 'overlay') => void
   setNodeEditorSplit: (fraction: number) => void
-  setMode: (mode: 'pixel' | 'vector') => void
-  mode: 'pixel' | 'vector'
-  // vector workspace (independent second mode; outside undo history)
+  // vector workspace (runtime host of the open vector project; outside undo history)
   vectorSource: ImportBitmap | null
   vectorSourceName: string
   vectorParams: TraceParams
   vectorResult: VectorResult | null
   vectorStatus: VectorStatus
   vectorError: string | null
-  vectorHandoff: ImportBitmap | null
   setVectorSource: (bitmap: ImportBitmap | null, name?: string) => void
   patchVectorParams: (patch: Partial<TraceParams>) => void
   applyVectorParams: (params: TraceParams) => void
   setVectorResult: (result: VectorResult | null) => void
   setVectorStatus: (status: VectorStatus, error?: string | null) => void
-  setVectorHandoff: (bitmap: ImportBitmap | null) => void
-  loadVectorJob: () => Promise<void>
+  /** Restore the workspace from the opened project's trace session */
+  loadVectorEntry: (entry: VectorProjectEntry) => void
   // vector preset library (user presets; built-ins come from engine/trace/params)
   vectorPresets: VectorPresetEntry[]
   vectorPresetsReady: boolean
@@ -311,15 +312,6 @@ export interface State {
   createVectorPreset: (name: string) => Promise<VectorPresetEntry>
   overwriteVectorPreset: (id: string) => Promise<void>
   deleteVectorPreset: (id: string) => Promise<void>
-}
-
-/** Whether an autosaved document exists in localStorage (fresh users see the start dialog). */
-export function hasAutosave(): boolean {
-  try {
-    return Boolean(localStorage.getItem(DOC_KEY))
-  } catch {
-    return false
-  }
 }
 
 /** Trailing throttle so slider drags collapse into one history entry. */

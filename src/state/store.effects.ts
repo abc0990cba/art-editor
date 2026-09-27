@@ -1,11 +1,8 @@
 import type { ZundoOptions } from 'zundo'
 
 import type { Doc } from '../engine/doc.ts'
-import { deserialize } from '../engine/project.ts'
 import { serialize } from '../engine/project.ts'
 import { allObjs } from '../engine/scene.ts'
-import { loadAutosave, saveAutosave } from '../storage/autosave.ts'
-import { loadProject } from '../storage/projects.ts'
 import { DOC_KEY } from './doc.slice.ts'
 import type { State, useStore } from './editor.store.ts'
 import { resolvedTheme } from './ui.slice.ts'
@@ -94,68 +91,43 @@ export function setupStoreEffects(store: typeof useStore, temporalOptions: Tempo
     /* matchMedia unavailable */
   }
 
-  // Autosave (debounced) on every committed document change. Small docs keep the synchronous
-  // localStorage copy (instant boot path); every doc also lands in IndexedDB, which has no
-  // ~5 MB quota wall — the old localStorage-only autosave silently dropped large canvases.
+  // Ambient autosave: every committed document change lands in the bound library entry about two
+  // seconds after the last edit (unbound work falls back to a fresh entry on the first flush).
+  // Small docs also keep the synchronous localStorage mirror (instant boot path).
   let saveTimer: ReturnType<typeof setTimeout> | undefined
+  const flushSave = (): void => {
+    const s = store.getState()
+    if (s.doc === s.savedDoc) return
+    try {
+      const json = JSON.stringify(serialize(s.doc))
+      if (json.length <= 2_000_000) localStorage.setItem(DOC_KEY, json)
+    } catch {
+      /* storage full — the library entry still gets the document */
+    }
+    void s.saveToLibrary()
+  }
   store.subscribe((s, prev) => {
-    if (s.doc === prev.doc) return
+    if (s.doc === prev.doc || s.doc === s.savedDoc) return
     clearTimeout(saveTimer)
-    saveTimer = setTimeout(() => {
-      try {
-        const json = JSON.stringify(serialize(s.doc))
-        if (json.length <= 2_000_000) localStorage.setItem(DOC_KEY, json)
-        void saveAutosave(json)
-      } catch {
-        /* storage full or unavailable — IndexedDB copy may still have landed */
-      }
-    }, 2000)
+    saveTimer = setTimeout(flushSave, 2000)
   })
+  // hiding or closing the tab flushes immediately instead of losing the debounce window
+  // (browser only — the node test environment has no window/document)
+  const flushNow = (): void => {
+    clearTimeout(saveTimer)
+    flushSave()
+  }
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    window.addEventListener('pagehide', flushNow)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushNow()
+    })
+  }
 
-  // The Save button tracks unsaved changes: any doc that differs from the last library
-  // snapshot makes the project dirty again. Only ever flips to dirty — getting back to
-  // clean happens through an explicit save or opening a project, Photoshop-style.
+  // The dirty flag tracks unflushed changes: any doc that differs from the last library
+  // snapshot makes the project dirty again; the debounced flush marks it clean.
   store.subscribe((s, prev) => {
     if (s.doc === prev.doc || s.doc === s.savedDoc || s.projectDirty) return
     store.setState({ projectDirty: true })
   })
-
-  // A bound project boots clean only when the autosaved doc still matches its library
-  // entry — the autosave can be ahead when the tab closed right after a change. Docs past
-  // ~1M buffer cells skip the double stringify (seconds of main-thread work): they boot
-  // conservatively dirty instead.
-  const bootDoc = store.getState().doc
-  void (async () => {
-    // localStorage empty (or quota-evicted) but an IndexedDB autosave exists: restore it,
-    // unless the user already started doing something with the fresh document
-    let hasLocal = false
-    try {
-      hasLocal = Boolean(localStorage.getItem(DOC_KEY))
-    } catch {
-      /* localStorage unavailable */
-    }
-    if (!hasLocal) {
-      const json = await loadAutosave()
-      if (json && store.getState().doc === bootDoc) {
-        try {
-          store.getState().loadDoc(deserialize(JSON.parse(json)))
-        } catch {
-          /* corrupted autosave — keep the fresh document */
-        }
-        return
-      }
-    }
-    const s = store.getState()
-    if (!s.projectId) return
-    if (s.doc.cells.length > 1_000_000) return
-    try {
-      const entry = await loadProject(s.projectId)
-      if (!entry) return
-      if (JSON.stringify(serialize(s.doc)) === JSON.stringify(entry.doc)) {
-        store.getState().markProjectSaved()
-      }
-    } catch {
-      /* library unavailable — keep the conservative dirty state */
-    }
-  })()
 }

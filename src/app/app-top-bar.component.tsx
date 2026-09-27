@@ -4,9 +4,10 @@ import { useI18n } from '../shared/i18n/i18n.provider.tsx'
 import { IconButton, useMediaQuery } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
 import { useStore } from '../state/editor.store.ts'
-import { ModeSwitch } from './mode-switch.component.tsx'
+import type { ProjectKind } from '../storage/projects.ts'
 import {
   ExportPillButton,
+  HomeButton,
   ImportPillButton,
   MobileHeader,
   TopBarDialogs,
@@ -17,29 +18,33 @@ import { LangMenu, ThemeMenu } from './top-bar-menus.component.tsx'
 import { TopBarMoreMenu } from './top-bar-more-menu.component.tsx'
 
 /**
- * App top bar: document identity/actions on the left, view controls on the right. Phones/tablets
- * swap the full bar for the mobile composition (nav + overflow menu, Photoshop/Procreate pattern) —
- * the pieces live in top-bar-buttons / top-bar-menus / top-bar-more-menu. The vector mode swaps the
- * pixel-document controls for the mode switch only (the vector workspace has its own actions).
+ * App top bar: home button (to the project gallery), document identity/actions, view controls on
+ * the right. Phones/tablets swap the full bar for the mobile composition (nav + overflow menu,
+ * Photoshop/Procreate pattern) — the pieces live in top-bar-buttons / top-bar-menus /
+ * top-bar-more-menu. The open project's kind drives which controls exist: a vector project only
+ * shows identity (its workspace owns import/export/clear).
  */
 export function TopBar({
+  kind,
   onImportFile,
   onTogglePanel,
   onVectorize,
+  onOpenProject,
 }: {
+  kind: ProjectKind
   onImportFile: (file: File) => void
   /** Phones/tablets: toggles the right-panel drawer (the column is hidden below lg) */
   onTogglePanel?: () => void
-  /** Export popover: render the canvas and hand it over to the vector mode */
+  /** Export popover: create a vector project from the current canvas (pixel projects) */
   onVectorize: () => void
+  /** JSON project import: open the adopted project by id */
+  onOpenProject: (id: string) => void
 }) {
   const { t } = useI18n()
-  const mode = useStore((s) => s.mode)
-  const isVector = mode === 'vector'
+  const isVector = kind === 'vector'
   const importFileRef = useRef<HTMLInputElement>(null)
   const doc = useStore((s) => s.doc)
   const clear = useStore((s) => s.clear)
-  const [projectsOpen, setProjectsOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [clearConfirm, setClearConfirm] = useState(false)
@@ -48,12 +53,12 @@ export function TopBar({
 
   const dialogs = (
     <TopBarDialogs
-      projectsOpen={projectsOpen}
+      kind={kind}
       setupOpen={setupOpen}
       exportOpen={exportOpen}
       clearConfirm={clearConfirm}
       onVectorize={onVectorize}
-      onCloseProjects={() => setProjectsOpen(false)}
+      onOpenProject={onOpenProject}
       onCloseSetup={() => setSetupOpen(false)}
       onCloseExport={() => setExportOpen(false)}
       onCloseClearConfirm={() => setClearConfirm(false)}
@@ -74,27 +79,18 @@ export function TopBar({
     />
   )
 
-  if (isNarrow && isVector) {
-    // mobile vector mode: identity + mode switch only (actions live in the workspace)
-    return (
-      <header className="border-line flex h-14 shrink-0 items-center gap-2 border-b px-2">
-        <Logo />
-        <ModeSwitch />
-      </header>
-    )
-  }
-
   if (isNarrow) {
-    // mobile: nav + document state only — the tools live in the bottom strip (App),
-    // rare actions hide behind the overflow menu
+    // mobile: home + document state only — tools live in the bottom strip (pixel) or in the
+    // workspace (vector), rare actions hide behind the overflow menu
     return (
       <>
         <MobileHeader
+          kind={kind}
           onSettings={() => setSetupOpen(true)}
           onTogglePanel={onTogglePanel}
           more={
             <TopBarMoreMenu
-              onProjects={() => setProjectsOpen(true)}
+              kind={kind}
               onImport={() => importFileRef.current?.click()}
               onExport={() => setExportOpen(true)}
               onSettings={() => setSetupOpen(true)}
@@ -110,14 +106,15 @@ export function TopBar({
 
   return (
     <header className="border-line flex h-12 shrink-0 items-center gap-3 border-b px-3">
-      <div className="flex shrink-0 items-center gap-2">
-        <Logo />
-        <span className="text-sm font-semibold tracking-wide">{t('app.title')}</span>
+      <div className="flex shrink-0 items-center gap-1">
+        <HomeButton />
+        <div className="flex shrink-0 items-center gap-2">
+          <Logo />
+          <span className="text-sm font-semibold tracking-wide">{t('app.title')}</span>
+        </div>
       </div>
 
-      <ModeSwitch />
-
-      {!isVector && <TopBarProjectControls onSettings={() => setSetupOpen(true)} />}
+      <TopBarProjectControls onSettings={() => setSetupOpen(true)} />
 
       {!isVector && (
         <div className="flex shrink-0 items-center gap-1">
@@ -130,12 +127,7 @@ export function TopBar({
         </div>
       )}
 
-      {!isVector && (
-        <TopBarDocumentButtons
-          onProjects={() => setProjectsOpen(true)}
-          onClear={() => setClearConfirm(true)}
-        />
-      )}
+      {!isVector && <TopBarDocumentButtons onClear={() => setClearConfirm(true)} />}
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
         {!isVector && (
@@ -170,7 +162,7 @@ export function TopBar({
         {hiddenFileInput}
       </div>
 
-      {!isVector && dialogs}
+      {dialogs}
     </header>
   )
 }

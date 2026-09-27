@@ -38,16 +38,6 @@ const toolKeys: Record<string, Tool> = {
 
 export function useHotkeys(): void {
   useEffect(() => {
-    // the standard editors' guard: warn before closing the tab with unsaved changes
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!useStore.getState().projectDirty) return
-      e.preventDefault()
-      e.returnValue = ''
-    }
-    window.addEventListener('beforeunload', onBeforeUnload)
-    return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [])
-  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null
       if (
@@ -85,9 +75,8 @@ export function useHotkeys(): void {
       }
       if (mod && key === 's') {
         e.preventDefault()
-        const s = useStore.getState()
-        // a no-op when everything is saved: skip the pointless library write
-        if (s.projectDirty) void s.saveToLibrary()
+        // saving is ambient now; Ctrl+S forces an immediate write with a fresh thumbnail
+        void useStore.getState().saveToLibrary({ freshThumb: true })
         return
       }
       if (mod && (key === '[' || key === ']')) {

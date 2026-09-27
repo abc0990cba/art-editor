@@ -8,7 +8,8 @@ import { FloatingPanel } from '../../shared/ui/floating-panel.component.tsx'
  * panel is deliberately non-modal: it sits beside the settings popover or section whose sliders
  * drive the preview, so the enlarged sample can be watched while tweaking — e.g. tuning every ring
  * of a concentric-circles tool. FloatingPanel keeps it inside the viewport even when the panel is
- * taller than the space below the button.
+ * taller than the space below the button. Desktop-only: phones have no room for a floating second
+ * viewport, so there the inline preview itself grows to the screen instead.
  */
 export function ExpandablePreview({
   title,
@@ -67,7 +68,7 @@ export function ExpandablePreview({
         title={t('preview.expand')}
         aria-label={t('preview.expand')}
         aria-pressed={Boolean(pos)}
-        className="border-line bg-panel/85 text-muted hover:text-body absolute top-1.5 right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border transition max-lg:h-9 max-lg:w-9"
+        className="border-line bg-panel/85 text-muted hover:text-body absolute top-1.5 right-1.5 z-10 hidden h-5 w-5 items-center justify-center rounded border transition lg:flex"
       >
         <svg
           viewBox="0 0 16 16"

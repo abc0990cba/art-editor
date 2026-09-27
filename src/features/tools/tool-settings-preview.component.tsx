@@ -61,8 +61,10 @@ export function ToolSettingsPreview({
     setPreviewGrid({ ...(previewGrid ?? { cols: 37, rows: 24 }), [axis]: clamped })
   }
   const grid = previewGrid ?? { cols: 37, rows: 24 }
+  // mobile (big): the inline preview is the only preview — no floating expander below lg — so its
+  // cells fill the screen width (24px cap for sparse grids, 560px max height like the large copy)
   const cell = big
-    ? Math.max(2, Math.min(12, Math.floor((vw - 56) / grid.cols)))
+    ? Math.max(2, Math.min(24, Math.floor((vw - 56) / grid.cols), Math.floor(560 / grid.rows)))
     : Math.max(1, Math.min(8, Math.floor(296 / grid.cols)))
   const tipTool = tool === 'pencil' || tool === 'eraser'
   const fitCell = (cols: number, rows: number) =>

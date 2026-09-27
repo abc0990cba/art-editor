@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type ReactElement, type ReactNode } from 'react'
 
 import { MAX_SIZE } from '../../engine/doc.ts'
 import { GRID_TYPES, type GridType } from '../../engine/grids.ts'
@@ -43,11 +43,24 @@ const TRIGGER_CLS =
   'border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1.5 text-xs max-lg:min-h-11 max-lg:px-3 max-lg:py-2.5 max-lg:text-sm'
 
 /**
- * Project creation/editing dialog (Photoshop/Photopea-style) on the shadcn dialog: on startup the
- * user names the project and picks a canvas size before seeing the canvas; later the same dialog
- * opens from the top bar's gear to rename or resize the open project.
+ * Project creation/editing dialog (Photoshop/Photopea-style) on the shadcn dialog: creation (from
+ * the home screen) names the project and picks a canvas size before the canvas exists; the same
+ * dialog opens from the top bar's gear to rename or resize the open project — `scope="name"` (the
+ * vector workspace) shows the name field only.
  */
-export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onClose: () => void }) {
+export function ProjectDialog({
+  mode,
+  onClose,
+  scope = 'full',
+  onCreated,
+}: {
+  mode: 'create' | 'edit'
+  onClose: () => void
+  /** 'name' = rename-only (vector projects have no canvas size/grid) */
+  scope?: 'full' | 'name'
+  /** Create mode: called after the document is applied, with the dialog kept open for the caller */
+  onCreated?: () => void
+}) {
   const { t } = useI18n()
   const doc = useStore((s) => s.doc)
   const projectName = useStore((s) => s.projectName)
@@ -64,19 +77,19 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
   const [gridType, setGridTypeLocal] = useState<GridType>(mode === 'edit' ? doc.gridType : 'square')
   const [even, setEven] = useState(mode === 'edit' ? doc.radialEven : false)
 
-  const currentKey = sizeKey(cols, rows)
-  const isPreset = SIZE_GROUPS.some((g) =>
-    g.sizes.some((s) => sizeKey(s.cols, s.rows) === currentKey),
-  )
-
   const apply = () => {
     if (mode === 'create') newDoc()
-    setGridType(gridType)
-    if (gridType === 'radial') setRadialEven(even)
-    setSize(Math.max(1, cols), Math.max(1, rows))
+    if (scope !== 'name') {
+      setGridType(gridType)
+      if (gridType === 'radial') setRadialEven(even)
+      setSize(Math.max(1, cols), Math.max(1, rows))
+    }
     setProjectName(name.trim())
     requestFit()
-    onClose()
+    // the home screen's create flow hands over right here (entry creation + navigation);
+    // the edit mode (top-bar gear) just closes
+    if (mode === 'create' && onCreated) onCreated()
+    else onClose()
   }
 
   const fieldClass =
@@ -118,94 +131,17 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
           />
         </Field>
 
-        <div className="flex items-end gap-2">
-          <Field className="min-w-0 flex-1" label={t('top.width')}>
-            <input
-              type="number"
-              min={1}
-              max={MAX_SIZE}
-              value={cols}
-              onChange={(e) =>
-                setCols(Math.max(1, Math.min(MAX_SIZE, Math.round(Number(e.target.value) || 1))))
-              }
-              className={fieldClass}
-            />
-          </Field>
-          <span className="text-muted pb-1.5 text-xs">×</span>
-          <Field className="min-w-0 flex-1" label={t('top.height')}>
-            <input
-              type="number"
-              min={1}
-              max={MAX_SIZE}
-              value={rows}
-              onChange={(e) =>
-                setRows(Math.max(1, Math.min(MAX_SIZE, Math.round(Number(e.target.value) || 1))))
-              }
-              className={fieldClass}
-            />
-          </Field>
-        </div>
-
-        <Field label={t('top.sizePreset')}>
-          <Select
-            value={isPreset ? currentKey : ''}
-            onValueChange={(v) => {
-              const [c, r] = v.split('×').map(Number)
-              if (c && r) {
-                setCols(c)
-                setRows(r)
-              }
-            }}
-          >
-            <SelectTrigger className={TRIGGER_CLS}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {!isPreset && <SelectItem value={currentKey}>{currentKey}</SelectItem>}
-              {SIZE_GROUPS.map((g) => (
-                <SelectGroup key={g.ratio}>
-                  <SelectLabel className="text-muted text-overline">
-                    {g.name ? `${g.ratio} · ${g.name}` : g.ratio}
-                  </SelectLabel>
-                  {g.sizes.map((s) => {
-                    const key = sizeKey(s.cols, s.rows)
-                    return (
-                      <SelectItem key={key} value={key}>
-                        {key}
-                        {s.odd ? ` (${t('top.odd')})` : ''}
-                      </SelectItem>
-                    )
-                  })}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-
-        <Field label={t('project.grid')}>
-          <Select value={gridType} onValueChange={(v) => setGridTypeLocal(v as GridType)}>
-            <SelectTrigger className={TRIGGER_CLS}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {GRID_TYPES.map((gt) => (
-                <SelectItem key={gt} value={gt}>
-                  {t(`grid.${gt}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        {gridType === 'radial' && (
-          <label className="text-body flex cursor-pointer items-center gap-2 text-xs max-lg:min-h-11 max-lg:text-sm">
-            <input
-              type="checkbox"
-              checked={even}
-              onChange={(e) => setEven(e.target.checked)}
-              className="accent-indigo-500"
-            />
-            <span className="pt-0.5">{t('grid.evenCells')}</span>
-          </label>
+        {scope !== 'name' && (
+          <CanvasSetupFields
+            cols={cols}
+            rows={rows}
+            gridType={gridType}
+            even={even}
+            onCols={setCols}
+            onRows={setRows}
+            onGridType={setGridTypeLocal}
+            onEven={setEven}
+          />
         )}
 
         <div className="flex items-center justify-end gap-2 pt-1 max-lg:gap-3">
@@ -227,5 +163,128 @@ export function ProjectDialog({ mode, onClose }: { mode: 'create' | 'edit'; onCl
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** Canvas setup half of the dialog: size inputs, preset picker, grid type (pixel projects only). */
+function CanvasSetupFields({
+  cols,
+  rows,
+  gridType,
+  even,
+  onCols,
+  onRows,
+  onGridType,
+  onEven,
+}: {
+  cols: number
+  rows: number
+  gridType: GridType
+  even: boolean
+  onCols: (v: number) => void
+  onRows: (v: number) => void
+  onGridType: (v: GridType) => void
+  onEven: (v: boolean) => void
+}): ReactElement {
+  const { t } = useI18n()
+  const currentKey = sizeKey(cols, rows)
+  const isPreset = SIZE_GROUPS.some((g) =>
+    g.sizes.some((size) => sizeKey(size.cols, size.rows) === currentKey),
+  )
+  const fieldClass =
+    'w-full rounded-md border border-line bg-chip px-2 py-1.5 text-xs text-body outline-none focus:border-accent-line max-lg:min-h-11 max-lg:px-3 max-lg:text-base'
+
+  return (
+    <>
+      <div className="flex items-end gap-2">
+        <Field className="min-w-0 flex-1" label={t('top.width')}>
+          <input
+            type="number"
+            min={1}
+            max={MAX_SIZE}
+            value={cols}
+            onChange={(e) =>
+              onCols(Math.max(1, Math.min(MAX_SIZE, Math.round(Number(e.target.value) || 1))))
+            }
+            className={fieldClass}
+          />
+        </Field>
+        <span className="text-muted pb-1.5 text-xs">×</span>
+        <Field className="min-w-0 flex-1" label={t('top.height')}>
+          <input
+            type="number"
+            min={1}
+            max={MAX_SIZE}
+            value={rows}
+            onChange={(e) =>
+              onRows(Math.max(1, Math.min(MAX_SIZE, Math.round(Number(e.target.value) || 1))))
+            }
+            className={fieldClass}
+          />
+        </Field>
+      </div>
+
+      <Field label={t('top.sizePreset')}>
+        <Select
+          value={isPreset ? currentKey : ''}
+          onValueChange={(v) => {
+            const [c, r] = v.split('×').map(Number)
+            if (c && r) {
+              onCols(c)
+              onRows(r)
+            }
+          }}
+        >
+          <SelectTrigger className={TRIGGER_CLS}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {!isPreset && <SelectItem value={currentKey}>{currentKey}</SelectItem>}
+            {SIZE_GROUPS.map((g) => (
+              <SelectGroup key={g.ratio}>
+                <SelectLabel className="text-muted text-overline">
+                  {g.name ? `${g.ratio} · ${g.name}` : g.ratio}
+                </SelectLabel>
+                {g.sizes.map((s) => {
+                  const key = sizeKey(s.cols, s.rows)
+                  return (
+                    <SelectItem key={key} value={key}>
+                      {key}
+                      {s.odd ? ` (${t('top.odd')})` : ''}
+                    </SelectItem>
+                  )
+                })}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+
+      <Field label={t('project.grid')}>
+        <Select value={gridType} onValueChange={(v) => onGridType(v as GridType)}>
+          <SelectTrigger className={TRIGGER_CLS}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {GRID_TYPES.map((gt) => (
+              <SelectItem key={gt} value={gt}>
+                {t(`grid.${gt}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      {gridType === 'radial' && (
+        <label className="text-body flex cursor-pointer items-center gap-2 text-xs max-lg:min-h-11 max-lg:text-sm">
+          <input
+            type="checkbox"
+            checked={even}
+            onChange={(e) => onEven(e.target.checked)}
+            className="accent-indigo-500"
+          />
+          <span className="pt-0.5">{t('grid.evenCells')}</span>
+        </label>
+      )}
+    </>
   )
 }

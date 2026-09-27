@@ -43,9 +43,7 @@ const LANG_KEY = 'glyph.lang'
 const THEME_KEY = 'glyph.theme'
 const RECENT_KEY = 'glyph.recent'
 const RAIL_KEY = 'glyph.rail'
-const PANEL_KEY = 'glyph.panel'
 const FAB_KEY = 'glyph.fab'
-const MODE_KEY = 'glyph.mode'
 
 function initialThemePref(): ThemePref {
   try {
@@ -68,12 +66,7 @@ function initialLang(): 'en' | 'ru' {
 }
 
 function initialPanelCollapsed(): boolean {
-  try {
-    return localStorage.getItem(PANEL_KEY) === '1'
-  } catch {
-    /* ignore */
-  }
-  return false
+  return false // view-level state lives in the project route's search params, not in storage
 }
 
 function initialFabOpen(): boolean {
@@ -94,15 +87,6 @@ function initialRailOpen(): boolean {
     /* ignore */
   }
   return true
-}
-
-function initialMode(): 'pixel' | 'vector' {
-  try {
-    if (localStorage.getItem(MODE_KEY) === 'vector') return 'vector'
-  } catch {
-    /* ignore */
-  }
-  return 'pixel'
 }
 
 function initialRecent(): string[] {
@@ -146,8 +130,6 @@ export interface UiSlice {
   nodeEditorMode: 'split' | 'overlay'
   /** Editor width as a fraction of the canvas row (split mode, 0.25..0.8) */
   nodeEditorSplit: number
-  /** Which workspace fills the app: the pixel canvas or the independent vector tracer */
-  mode: 'pixel' | 'vector'
   setLang: (lang: 'en' | 'ru') => void
   setThemePref: (pref: ThemePref) => void
   setShowGrid: (v: boolean) => void
@@ -164,7 +146,6 @@ export interface UiSlice {
   closeNodeEditor: () => void
   setNodeEditorMode: (mode: 'split' | 'overlay') => void
   setNodeEditorSplit: (fraction: number) => void
-  setMode: (mode: 'pixel' | 'vector') => void
 }
 
 /** Minimal set/get surface the slice needs from the zustand store. */
@@ -195,7 +176,6 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
     nodeEditorOpen: false,
     nodeEditorMode: 'split',
     nodeEditorSplit: 0.45,
-    mode: initialMode(),
 
     setLang: (lang) => {
       try {
@@ -214,16 +194,7 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
       set({ themePref: pref, resolvedTheme: resolvedTheme(pref) })
     },
     setShowGrid: (showGrid) => set({ showGrid }),
-    togglePanelCollapsed: () =>
-      set((s) => {
-        const panelCollapsed = !s.panelCollapsed
-        try {
-          localStorage.setItem(PANEL_KEY, panelCollapsed ? '1' : '0')
-        } catch {
-          /* ignore */
-        }
-        return { panelCollapsed }
-      }),
+    togglePanelCollapsed: () => set((s) => ({ panelCollapsed: !s.panelCollapsed })),
     toggleFab: () =>
       set((s) => {
         const fabOpen = !s.fabOpen
@@ -266,13 +237,5 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
     setNodeEditorMode: (mode) => set({ nodeEditorMode: mode }),
     setNodeEditorSplit: (fraction) =>
       set({ nodeEditorSplit: Math.max(0.25, Math.min(0.8, fraction)) }),
-    setMode: (mode) => {
-      try {
-        localStorage.setItem(MODE_KEY, mode)
-      } catch {
-        /* ignore */
-      }
-      set({ mode })
-    },
   }
 }

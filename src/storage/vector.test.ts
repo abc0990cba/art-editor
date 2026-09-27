@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { DEFAULT_TRACE_PARAMS, normalizeTraceParams } from '../engine/trace/params.ts'
-import { clearVectorJob, loadVectorJob, saveVectorJob } from './vector-job.ts'
+import { normalizeTraceParams } from '../engine/trace/params.ts'
 import {
   clearVectorPresetsForTests,
   listVectorPresets,
@@ -13,22 +12,6 @@ import {
 
 beforeEach(() => {
   clearVectorPresetsForTests()
-})
-
-describe('vector job autosave', () => {
-  it('degrades gracefully when IndexedDB is unavailable (like the doc autosave)', async () => {
-    const ok = await saveVectorJob({
-      source: { width: 1, height: 2, data: new ArrayBuffer(8) },
-      sourceName: 'test.png',
-      params: DEFAULT_TRACE_PARAMS,
-      svg: '<svg/>',
-      stats: null,
-    })
-    // Node test env has no IndexedDB: the save is a no-op and loads stay empty
-    expect(ok).toBe(false)
-    expect(await loadVectorJob()).toBeNull()
-    await expect(clearVectorJob()).resolves.toBeUndefined()
-  })
 })
 
 describe('vector presets store', () => {

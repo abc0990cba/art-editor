@@ -5,17 +5,6 @@ import { useStore, type ThemePref } from '../state/editor.store.ts'
 
 /** Overflow-menu icons (16px stroke set, matches the toolbar's icon language). */
 const MORE_ICONS = {
-  projects: (
-    <svg
-      viewBox="0 0 16 16"
-      className="h-5 w-5 shrink-0 opacity-80"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.3"
-    >
-      <path d="M1.5 4.5a1 1 0 011-1h3l1.5 1.5h6a1 1 0 011 1v6a1 1 0 01-1 1h-10a1 1 0 01-1-1v-7.5z" />
-    </svg>
-  ),
   nodes: (
     <svg
       viewBox="0 0 16 16"
@@ -28,18 +17,6 @@ const MORE_ICONS = {
       <circle cx="11.6" cy="7" r="1.7" />
       <circle cx="4.6" cy="11.4" r="1.7" />
       <path d="M4.8 4.4l5 1.9M10.2 8.4L6 10.7" />
-    </svg>
-  ),
-  vector: (
-    <svg
-      viewBox="0 0 16 16"
-      className="h-5 w-5 shrink-0 opacity-80"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.3"
-    >
-      <path d="M3 13L8 3l5 10" />
-      <path d="M4.8 9.5h6.4" />
     </svg>
   ),
   import: (
@@ -145,16 +122,18 @@ const chipClass = (active: boolean): string =>
 /**
  * Phone/tablet overflow «…» button with a full-screen menu: large rows for document actions,
  * project dialogs and canvas clear, plus dedicated theme and language pickers — sized for thumbs.
- * Escape, the ✕ and the backdrop close it; picking an action closes it first.
+ * Escape, the ✕ and the backdrop close it; picking an action closes it first. Rows follow the open
+ * project's kind: a vector project only offers settings (import/export/clear live in the workspace
+ * itself).
  */
 export function TopBarMoreMenu({
-  onProjects,
+  kind,
   onImport,
   onExport,
   onSettings,
   onClear,
 }: {
-  onProjects: () => void
+  kind: 'pixel' | 'vector'
   /** Import hands the picked file back to the top bar's hidden input flow */
   onImport: () => void
   onExport: () => void
@@ -243,16 +222,17 @@ export function TopBarMoreMenu({
             </div>
 
             <div className="flex flex-col gap-1">
-              {row(MORE_ICONS.projects, t('projects.title'), onProjects)}
-              {row(MORE_ICONS.nodes, nodeEditorOpen ? t('editor.close') : t('editor.open'), () =>
-                nodeEditorOpen ? closeNodeEditor() : openNodeEditor(),
+              {kind === 'pixel' && (
+                <>
+                  {row(
+                    MORE_ICONS.nodes,
+                    nodeEditorOpen ? t('editor.close') : t('editor.open'),
+                    () => (nodeEditorOpen ? closeNodeEditor() : openNodeEditor()),
+                  )}
+                  {row(MORE_ICONS.import, t('import.open'), onImport)}
+                  {row(MORE_ICONS.export, t('export.open'), onExport)}
+                </>
               )}
-              {row(MORE_ICONS.vector, t('mode.vector'), () => {
-                useStore.getState().setMode('vector')
-                setOpen(false)
-              })}
-              {row(MORE_ICONS.import, t('import.open'), onImport)}
-              {row(MORE_ICONS.export, t('export.open'), onExport)}
               {row(MORE_ICONS.settings, t('project.settings'), onSettings)}
             </div>
 
@@ -297,7 +277,7 @@ export function TopBarMoreMenu({
             </div>
 
             <div className="border-line mt-auto flex flex-col gap-1 border-t pt-4">
-              {row(MORE_ICONS.clear, t('export.clear'), onClear)}
+              {kind === 'pixel' && row(MORE_ICONS.clear, t('export.clear'), onClear)}
             </div>
           </div>
         </>

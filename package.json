@@ -20,6 +20,7 @@
     "prepare": "lefthook install"
   },
   "dependencies": {
+    "@tanstack/react-router": "^1.170.40",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "lucide-react": "^1.48.0",

@@ -1,13 +1,14 @@
-import { type ReactNode } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { type ReactElement, type ReactNode } from 'react'
 
 import { ExportPopover } from '../features/export/export-popover.component.tsx'
 import { ProjectDialog } from '../features/projects/project-dialog.component.tsx'
-import { ProjectsDialog } from '../features/projects/projects-dialog.component.tsx'
 import { useI18n } from '../shared/i18n/i18n.provider.tsx'
 import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
 import { IconButton } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
 import { useStore, undo, redo, useCanUndoRedo } from '../state/editor.store.ts'
+import type { ProjectKind } from '../storage/projects.ts'
 
 /** Desktop import pill: labeled plate opening the hidden file input. */
 export function ImportPillButton({ onClick }: { onClick: () => void }) {
@@ -72,23 +73,49 @@ export function ExportPillButton({ open, onToggle }: { open: boolean; onToggle: 
   )
 }
 
-/** Mobile header: logo, undo/redo, save + settings + overflow (below lg only). */
+/** Home button: leaves the open project (already saved by the ambient autosave) for the gallery. */
+export function HomeButton(): ReactElement {
+  const { t } = useI18n()
+  const navigate = useNavigate()
+  return (
+    <Tooltip label={t('home.open')}>
+      <IconButton plate title={t('home.open')} onClick={() => void navigate({ to: '/' })}>
+        <svg
+          viewBox="0 0 16 16"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        >
+          <path d="M2.5 7L8 2.8 13.5 7v5.2a1 1 0 01-1 1H3.5a1 1 0 01-1-1z" />
+          <path d="M6.3 13.2V9.6h3.4v3.6" />
+        </svg>
+      </IconButton>
+    </Tooltip>
+  )
+}
+
+/** Mobile header: home, name, document state and overflow (below lg only), per project kind. */
 export function MobileHeader({
+  kind,
   onSettings,
   onTogglePanel,
   more,
 }: {
+  kind: ProjectKind
   onSettings: () => void
   onTogglePanel?: () => void
   /** Overflow menu element (DropdownMenu trigger + content) rendered as the last header item */
   more?: ReactNode
 }) {
   const { t } = useI18n()
-  const projectDirty = useStore((s) => s.projectDirty)
-  const saveToLibrary = useStore((s) => s.saveToLibrary)
+  const isVector = kind === 'vector'
+  const projectName = useStore((s) => s.projectName)
   const { canUndo, canRedo } = useCanUndoRedo()
   return (
     <header className="border-line flex h-14 shrink-0 items-center gap-1.5 border-b px-2">
+      <HomeButton />
       <svg viewBox="0 0 20 20" className="h-6 w-6 shrink-0" aria-hidden>
         <defs>
           <linearGradient id="logo-grad-m" x1="0" y1="0" x2="1" y2="1">
@@ -102,51 +129,41 @@ export function MobileHeader({
         <rect x="3.5" y="10.9" width="5.6" height="5.6" rx="1.7" fill="#fff" opacity=".55" />
         <circle cx="13.7" cy="13.7" r="2.8" fill="#fff" opacity=".85" />
       </svg>
-      <IconButton big plate title={t('top.undo')} onClick={undo} disabled={!canUndo}>
-        <svg
-          viewBox="0 0 16 16"
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        >
-          <path d="M6.5 4L3 7.5 6.5 11" />
-          <path d="M3 7.5h6a4 4 0 010 8H6" />
-        </svg>
-      </IconButton>
-      <IconButton big plate title={t('top.redo')} onClick={redo} disabled={!canRedo}>
-        <svg
-          viewBox="0 0 16 16"
-          className="h-5 w-5 -scale-x-100"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        >
-          <path d="M6.5 4L3 7.5 6.5 11" />
-          <path d="M3 7.5h6a4 4 0 010 8H6" />
-        </svg>
-      </IconButton>
-      <IconButton
-        big
-        plate
-        title={projectDirty ? `${t('project.save')} (Ctrl+S)` : t('project.saved')}
-        disabled={!projectDirty}
-        className={projectDirty ? 'text-accent-text' : undefined}
-        onClick={() => void saveToLibrary()}
+      <button
+        type="button"
+        onClick={onSettings}
+        className="text-body min-w-0 flex-1 truncate px-1 text-left text-sm font-medium"
       >
-        <svg
-          viewBox="0 0 16 16"
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinejoin="round"
-        >
-          <path d="M2.5 4A1.5 1.5 0 014 2.5h6.4L13.5 5.6V12a1.5 1.5 0 01-1.5 1.5H4A1.5 1.5 0 012.5 12z" />
-          <path d="M5.5 2.5V6h5V2.5" />
-          <path d="M5.5 13.5V9.5h5v4" />
-        </svg>
-      </IconButton>
+        {projectName.trim() || t('project.untitled')}
+      </button>
+      {!isVector && (
+        <>
+          <IconButton big plate title={t('top.undo')} onClick={undo} disabled={!canUndo}>
+            <svg
+              viewBox="0 0 16 16"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            >
+              <path d="M6.5 4L3 7.5 6.5 11" />
+              <path d="M3 7.5h6a4 4 0 010 8H6" />
+            </svg>
+          </IconButton>
+          <IconButton big plate title={t('top.redo')} onClick={redo} disabled={!canRedo}>
+            <svg
+              viewBox="0 0 16 16"
+              className="h-5 w-5 -scale-x-100"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            >
+              <path d="M6.5 4L3 7.5 6.5 11" />
+              <path d="M3 7.5h6a4 4 0 010 8H6" />
+            </svg>
+          </IconButton>
+        </>
+      )}
       <IconButton big plate title={t('project.settings')} onClick={onSettings}>
         <svg
           viewBox="0 0 16 16"
@@ -160,30 +177,30 @@ export function MobileHeader({
           <path d="M13.2 9.8a5.4 5.4 0 000-3.6l1.5-1a.5.5 0 00-.1-.7l-1.9-1.4a.5.5 0 00-.6 0l-1.6 1a5.6 5.6 0 00-1.6-.9l-.3-1.9a.5.5 0 00-.5-.4h-2.2a.5.5 0 00-.5.4l-.3 1.9a5.6 5.6 0 00-1.6.9l-1.6-1a.5.5 0 00-.6 0L1.4 4.5a.5.5 0 00-.1.7l1.5 1a5.4 5.4 0 000 3.6l-1.5 1a.5.5 0 00.1.7l1.9 1.4a.5.5 0 00.6 0l1.6-1a5.6 5.6 0 001.6.9l.3 1.9a.5.5 0 00.5.4h2.2a.5.5 0 00.5-.4l.3-1.9a5.6 5.6 0 001.6-.9l1.6 1a.5.5 0 00.6 0z" />
         </svg>
       </IconButton>
-      <IconButton big plate title={t('top.panel')} onClick={onTogglePanel}>
-        <svg
-          viewBox="0 0 16 16"
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-        >
-          <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
-          <path d="M10.5 2.5v3M10.5 9.5v3" />
-        </svg>
-      </IconButton>
+      {!isVector && (
+        <IconButton big plate title={t('top.panel')} onClick={onTogglePanel}>
+          <svg
+            viewBox="0 0 16 16"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          >
+            <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
+            <path d="M10.5 2.5v3M10.5 9.5v3" />
+          </svg>
+        </IconButton>
+      )}
       {more}
     </header>
   )
 }
 
-/** Desktop identity group: project name pill, save (dirty-gated) and settings gear. */
+/** Desktop identity group: project name pill (opens the settings) and settings gear. */
 export function TopBarProjectControls({ onSettings }: { onSettings: () => void }) {
   const { t } = useI18n()
   const projectName = useStore((s) => s.projectName)
-  const projectDirty = useStore((s) => s.projectDirty)
-  const saveToLibrary = useStore((s) => s.saveToLibrary)
   return (
     <div className="flex shrink-0 items-center gap-2">
       <Tooltip label={t('project.name.desc')}>
@@ -192,29 +209,9 @@ export function TopBarProjectControls({ onSettings }: { onSettings: () => void }
           onClick={onSettings}
           className="border-line bg-chip text-body hover:border-chip-line flex h-7 max-w-[168px] items-center truncate rounded-md border px-2 text-xs transition"
         >
-          {projectName || t('project.untitled')}
+          {projectName.trim() || t('project.untitled')}
         </button>
       </Tooltip>
-      <IconButton
-        plate
-        title={projectDirty ? `${t('project.save')} (Ctrl+S)` : t('project.saved')}
-        disabled={!projectDirty}
-        className={projectDirty ? 'text-accent-text' : undefined}
-        onClick={() => void saveToLibrary()}
-      >
-        <svg
-          viewBox="0 0 16 16"
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinejoin="round"
-        >
-          <path d="M2.5 4A1.5 1.5 0 014 2.5h6.4L13.5 5.6V12a1.5 1.5 0 01-1.5 1.5H4A1.5 1.5 0 012.5 12z" />
-          <path d="M5.5 2.5V6h5V2.5" />
-          <path d="M5.5 13.5V9.5h5v4" />
-        </svg>
-      </IconButton>
       <Tooltip label={t('project.settings')}>
         <IconButton plate title={t('project.settings')} onClick={onSettings}>
           <svg
@@ -234,14 +231,8 @@ export function TopBarProjectControls({ onSettings }: { onSettings: () => void }
   )
 }
 
-/** Desktop document group: projects, node editor, undo/redo, clear canvas. */
-export function TopBarDocumentButtons({
-  onProjects,
-  onClear,
-}: {
-  onProjects: () => void
-  onClear: () => void
-}) {
+/** Desktop document group: node editor, undo/redo, clear canvas. */
+export function TopBarDocumentButtons({ onClear }: { onClear: () => void }) {
   const { t } = useI18n()
   const nodeEditorOpen = useStore((s) => s.nodeEditorOpen)
   const openNodeEditor = useStore((s) => s.openNodeEditor)
@@ -249,17 +240,6 @@ export function TopBarDocumentButtons({
   const { canUndo, canRedo } = useCanUndoRedo()
   return (
     <div className="flex shrink-0 items-center gap-1">
-      <IconButton plate title={t('projects.title')} onClick={onProjects}>
-        <svg
-          viewBox="0 0 16 16"
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        >
-          <path d="M1.5 4.5a1 1 0 011-1h3l1.5 1.5h6a1 1 0 011 1v6a1 1 0 01-1 1h-10a1 1 0 01-1-1v-7.5z" />
-        </svg>
-      </IconButton>
       <IconButton
         plate
         title={t('editor.open')}
@@ -328,23 +308,23 @@ export function TopBarDocumentButtons({
 
 /** The dialog stack shared by the mobile and desktop bar compositions. */
 export function TopBarDialogs({
-  projectsOpen,
+  kind,
   setupOpen,
   exportOpen,
   clearConfirm,
   onVectorize,
-  onCloseProjects,
+  onOpenProject,
   onCloseSetup,
   onCloseExport,
   onCloseClearConfirm,
   onClear,
 }: {
-  projectsOpen: boolean
+  kind: ProjectKind
   setupOpen: boolean
   exportOpen: boolean
   clearConfirm: boolean
   onVectorize: () => void
-  onCloseProjects: () => void
+  onOpenProject: (id: string) => void
   onCloseSetup: () => void
   onCloseExport: () => void
   onCloseClearConfirm: () => void
@@ -353,9 +333,20 @@ export function TopBarDialogs({
   const { t } = useI18n()
   return (
     <>
-      {projectsOpen && <ProjectsDialog onClose={onCloseProjects} />}
-      {setupOpen && <ProjectDialog mode="edit" onClose={onCloseSetup} />}
-      {exportOpen && <ExportPopover onClose={onCloseExport} onVectorize={onVectorize} />}
+      {setupOpen && (
+        <ProjectDialog
+          mode="edit"
+          scope={kind === 'vector' ? 'name' : 'full'}
+          onClose={onCloseSetup}
+        />
+      )}
+      {exportOpen && kind === 'pixel' && (
+        <ExportPopover
+          onClose={onCloseExport}
+          onVectorize={onVectorize}
+          onOpenProject={onOpenProject}
+        />
+      )}
       {clearConfirm && (
         <ConfirmDialog
           title={t('confirm.clear.title')}

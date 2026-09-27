@@ -54,7 +54,8 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
 
   if (narrow) {
     // phones/tablets: the settings take the whole screen — roomy paddings and large
-    // touch targets make the controls comfortable on small displays
+    // touch targets make the controls comfortable on small displays. The live preview
+    // stays pinned above the scrolling controls, so tweaks are visible while they are made
     return (
       <>
         <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -82,11 +83,20 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
               </svg>
             </button>
           </div>
-          <div className="text-body flex flex-1 flex-col gap-3 overflow-y-auto p-4">
-            <div className="text-muted text-overline font-semibold tracking-widest uppercase">
-              {t('tool.settings')}
+          {preview && (
+            <div className="border-line flex shrink-0 flex-col gap-2 border-b px-4 pt-2 pb-3">
+              <div className="text-muted text-overline font-semibold tracking-widest uppercase">
+                {t('tool.settings')}
+              </div>
+              {preview}
             </div>
-            {preview}
+          )}
+          <div className="text-body flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+            {!preview && (
+              <div className="text-muted text-overline font-semibold tracking-widest uppercase">
+                {t('tool.settings')}
+              </div>
+            )}
             {paintControls}
             <ToolSettingsBody tool={tool} />
           </div>

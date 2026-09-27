@@ -1,31 +1,16 @@
 import type { Doc } from '../engine/doc.ts'
 import { renderThumbnailDataURL } from '../engine/png.ts'
 import { serialize, type ProjectJSON } from '../engine/project.ts'
-import { loadProject, newProjectId, normalizeName, saveProject } from '../storage/projects.ts'
+import {
+  loadProject,
+  newProjectId,
+  normalizeName,
+  rememberOpenedProject,
+  saveProject,
+  type PixelProjectEntry,
+  type ProjectEntry,
+} from '../storage/projects.ts'
 import type { State } from './editor.store.ts'
-
-const PROJECT_NAME_KEY = 'glyph.projectName'
-const PROJECT_ID_KEY = 'glyph.projectId'
-
-function initialProjectName(): string {
-  try {
-    const raw = localStorage.getItem(PROJECT_NAME_KEY)
-    if (typeof raw === 'string') return raw
-  } catch {
-    /* ignore */
-  }
-  return ''
-}
-
-function initialProjectId(): string | null {
-  try {
-    const raw = localStorage.getItem(PROJECT_ID_KEY)
-    return raw ?? null
-  } catch {
-    /* ignore */
-  }
-  return null
-}
 
 // Renaming via the top-bar input lands in the projects library as a debounced
 // background write, so typing never floods IndexedDB. updatedAt is left alone:
@@ -36,10 +21,9 @@ function scheduleProjectRename(id: string, name: string): void {
   renameTimer = setTimeout(() => {
     void loadProject(id)
       .then((entry) => {
-        const trimmed = name.trim()
         // empty mid-edit text keeps the last good name; Save applies the fallback
-        if (!entry || !trimmed || entry.name === trimmed) return
-        return saveProject({ ...entry, name: trimmed })
+        if (!entry || !name || entry.name === name) return
+        return saveProject({ ...entry, name })
       })
       .catch(() => {
         /* storage unavailable — the name still lives in the top bar */
@@ -47,29 +31,38 @@ function scheduleProjectRename(id: string, name: string): void {
   }, 400)
 }
 
-/** The project slice: library binding, display name and the Photoshop-style dirty flag. */
+// Rendering a thumbnail walks the whole scene: ambient autosave reuses the stored one and
+// re-renders at most every 30 s (explicit Ctrl+S always re-renders).
+const THUMBNAIL_MIN_INTERVAL_MS = 30_000
+let lastThumbAt = 0
+
+/**
+ * The project slice: library binding (entries of both kinds), display name and the dirty flag
+ * ("changes not yet flushed to the library"). Saving is ambient — the autosave effect calls
+ * saveToLibrary on a debounce; Ctrl+S forces an immediate write.
+ */
 export interface ProjectSlice {
-  /** Display name of the current project, shown in the top bar */
+  /** Display name of the open project, shown in the top bar */
   projectName: string
-  /** Id of the saved project currently open; null = unsaved work (Untitled) */
+  /** Id of the open project; null = nothing open (home screen) */
   projectId: string | null
-  /**
-   * True while the document holds changes not written to the projects library (or no project is
-   * bound at all): the top-bar Save button is enabled exactly when this is true, Photoshop-style.
-   */
+  /** True while the document holds changes not yet written to the library entry */
   projectDirty: boolean
   /** The doc as it was last written to / loaded from the projects library */
   savedDoc: Doc | null
-  /**
-   * Rename the current project (shown in the top bar, used in export file names); renames the open
-   * saved project in the library too
-   */
+  /** The full library entry currently open (pixel or vector); null on the home screen */
+  boundEntry: ProjectEntry | null
+  /** Rename the current project (top bar, export file names); renames the bound entry too */
   setProjectName: (name: string) => void
-  /** Bind the editor to a saved project (open/save); null detaches back to unsaved */
-  setCurrentProject: (id: string | null, name: string) => void
-  /** Photoshop-style Save: overwrite the bound project or create + bind a new one */
-  saveToLibrary: () => Promise<void>
-  /** Mark the current doc as matching the library entry (after open/save) */
+  /** Bind the editor to a library entry and remember it as the Continue candidate */
+  openProject: (entry: ProjectEntry) => void
+  /** Detach from any project (deleting the open one); the work becomes unbound */
+  detachProject: () => void
+  /** Create a pixel entry from an imported document, bind it, return its id (JSON project import) */
+  adoptPixelDoc: (doc: ProjectJSON, name?: string) => Promise<string>
+  /** Write the current pixel doc into its bound entry (or a fresh one when unbound) */
+  saveToLibrary: (opts?: { freshThumb?: boolean }) => Promise<void>
+  /** Mark the current doc as matching the library entry (after open/save/flush) */
   markProjectSaved: () => void
 }
 
@@ -85,76 +78,98 @@ interface SliceApi {
  */
 export function createProjectSlice({ set, get }: SliceApi): ProjectSlice {
   return {
-    projectName: initialProjectName(),
-    projectId: initialProjectId(),
+    projectName: '',
+    projectId: null,
     projectDirty: true,
     savedDoc: null,
+    boundEntry: null,
 
     setProjectName: (name) => {
-      try {
-        localStorage.setItem(PROJECT_NAME_KEY, name)
-      } catch {
-        /* ignore */
-      }
-      const id = get().projectId
-      // Figma-style live rename: an open saved project follows the top-bar name
-      if (id) scheduleProjectRename(id, name)
+      const entry = get().boundEntry
+      const trimmed = name.trim()
+      // Figma-style live rename: an open project follows the top-bar name
+      if (entry && trimmed && entry.name !== trimmed) scheduleProjectRename(entry.id, trimmed)
       set({ projectName: name })
     },
-    setCurrentProject: (id, name) => {
-      try {
-        if (id === null) localStorage.removeItem(PROJECT_ID_KEY)
-        else localStorage.setItem(PROJECT_ID_KEY, id)
-        localStorage.setItem(PROJECT_NAME_KEY, name)
-      } catch {
-        /* ignore */
-      }
+    openProject: (entry) => {
       clearTimeout(renameTimer)
-      // detaching (new project, JSON import, deleting the open project) leaves the
-      // work without a library entry — unsaved by definition
-      set((s) => ({
-        projectId: id,
-        projectName: name,
-        projectDirty: id === null ? true : s.projectDirty,
-      }))
+      rememberOpenedProject(entry.id)
+      set({ boundEntry: entry, projectId: entry.id, projectName: entry.name })
     },
-    saveToLibrary: async () => {
+    detachProject: () => {
+      clearTimeout(renameTimer)
+      set({ boundEntry: null, projectId: null, projectDirty: true })
+    },
+    adoptPixelDoc: async (doc, name) => {
+      const now = Date.now()
+      const entry: PixelProjectEntry = {
+        id: newProjectId(),
+        name: normalizeName(name ?? ''),
+        kind: 'pixel',
+        createdAt: now,
+        updatedAt: now,
+        thumbnail: '',
+        doc,
+      }
+      await saveProject(entry)
+      rememberOpenedProject(entry.id)
+      clearTimeout(renameTimer)
+      set({ boundEntry: entry, projectId: entry.id, projectName: entry.name })
+      return entry.id
+    },
+    saveToLibrary: async (opts) => {
       const s = get()
       const savedName = normalizeName(s.projectName)
-      const payload = serialize(s.doc) as ProjectJSON
-      let id = s.projectId
-      if (id) {
-        // Photoshop-style Save: with a project bound, overwrite that entry in place
-        const existing = await loadProject(id)
-        if (existing) {
-          await saveProject({
-            ...existing,
-            name: savedName,
-            thumbnail: renderThumbnailDataURL(s.doc),
-            doc: payload,
-            updatedAt: Date.now(),
-          })
-        } else {
-          id = null // the stored entry was deleted meanwhile — fall back to a fresh one
+      const existing = s.boundEntry
+      const wantThumb =
+        opts?.freshThumb === true || Date.now() - lastThumbAt > THUMBNAIL_MIN_INTERVAL_MS
+      let thumbnail = existing?.thumbnail ?? ''
+      if (wantThumb) {
+        try {
+          thumbnail = renderThumbnailDataURL(s.doc)
+          lastThumbAt = Date.now()
+        } catch {
+          /* rendering failed — keep the stored thumbnail */
         }
       }
-      if (!id) {
-        id = newProjectId()
-        await saveProject({
-          id,
+      const payload = serialize(s.doc) as ProjectJSON
+      const now = Date.now()
+      if (existing && existing.kind === 'pixel') {
+        const updated: PixelProjectEntry = {
+          ...existing,
           name: savedName,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          thumbnail: renderThumbnailDataURL(s.doc),
+          thumbnail,
           doc: payload,
+          updatedAt: now,
+        }
+        await saveProject(updated)
+        set({
+          boundEntry: updated,
+          projectName: savedName,
+          savedDoc: get().doc,
+          projectDirty: false,
+        })
+      } else {
+        // unbound work (JSON import before adoption, detached edits): save into a fresh entry
+        const created: PixelProjectEntry = {
+          id: newProjectId(),
+          name: savedName,
+          kind: 'pixel',
+          createdAt: now,
+          updatedAt: now,
+          thumbnail,
+          doc: payload,
+        }
+        await saveProject(created)
+        rememberOpenedProject(created.id)
+        set({
+          boundEntry: created,
+          projectId: created.id,
+          projectName: savedName,
+          savedDoc: get().doc,
+          projectDirty: false,
         })
       }
-      try {
-        localStorage.setItem(PROJECT_ID_KEY, id)
-      } catch {
-        /* ignore */
-      }
-      set({ projectId: id, projectName: savedName, savedDoc: get().doc, projectDirty: false })
     },
     markProjectSaved: () => set((s) => ({ savedDoc: s.doc, projectDirty: false })),
   }

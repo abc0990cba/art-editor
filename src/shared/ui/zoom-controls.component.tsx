@@ -1,9 +1,9 @@
 import { useRef, type ReactNode } from 'react'
 
-import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
+import { useI18n } from '../i18n/i18n.provider.tsx'
+import { Tooltip } from './tooltip.component.tsx'
 
-/** Zoom bounds and the multiplicative button step — matches the wheel/pinch limits. */
+/** Default zoom bounds; the multiplicative button step — matches the wheel/pinch limits. */
 const ZOOM_MIN = 0.5
 const ZOOM_MAX = 80
 const ZOOM_STEP = 1.25
@@ -18,24 +18,29 @@ interface View {
 }
 
 /**
- * Bottom-right status plate: the cursor readout plus the zoom cluster. «−»/«+» step the zoom
- * multiplicatively (×1.25) around the viewport center; holding a button repeats the step, so
- * sweeping big ranges is fast while single clicks tune finely. Clicking the percentage resets to
- * 100%. The readout only renders while the pointer is over the canvas — an idle placeholder read as
- * a dead «−» button.
+ * Bottom-right status plate: the cursor readout plus the zoom cluster — shared by the pixel canvas
+ * and the vector preview. «−»/«+» step the zoom multiplicatively (×1.25) around the viewport
+ * center; holding a button repeats the step, so sweeping big ranges is fast while single clicks
+ * tune finely. Clicking the percentage resets to 100%. The readout only renders while the pointer
+ * is over the canvas — an idle placeholder read as a dead «−» button.
  */
 export function ZoomControls({
-  hoverText,
+  hoverText = null,
   zoom,
   setView,
   wrap,
+  min = ZOOM_MIN,
+  max = ZOOM_MAX,
 }: {
-  /** Cursor coordinates, or null when the pointer is off the canvas */
-  hoverText: string | null
+  /** Cursor coordinates, or null to hide the readout (viewports without a cursor) */
+  hoverText?: string | null
   zoom: number
   setView: (updater: (v: View) => View) => void
   /** The canvas viewport element — zoom stays anchored to its center */
   wrap: HTMLDivElement | null
+  /** Zoom bounds of the host viewport when they differ from the pixel canvas defaults */
+  min?: number
+  max?: number
 }) {
   const { t } = useI18n()
   const delayTimer = useRef<number | null>(null)
@@ -50,7 +55,7 @@ export function ZoomControls({
 
   const anchoredZoom = (factor: number) =>
     setView((v) => {
-      const z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, v.zoom * factor))
+      const z = Math.min(max, Math.max(min, v.zoom * factor))
       const s = z / v.zoom
       const r = wrap?.getBoundingClientRect()
       const mx = (r?.width ?? 0) / 2

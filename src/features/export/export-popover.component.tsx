@@ -14,21 +14,25 @@ import { useStore } from '../../state/editor.store.ts'
 
 /**
  * Small popover anchored under the top bar's export button: SVG/PNG export with the size knobs,
- * plus project save/load. The vectorize action renders the canvas and hands it over to the vector
- * mode (scenario A of the raster↔vector pipeline). Closes on Escape, on the backdrop or on the X.
+ * plus project save/load. The vectorize action renders the canvas and creates a new vector project
+ * from it. Closes on Escape, on the backdrop or on the X.
  */
 export function ExportPopover({
   onClose,
   onVectorize,
+  onOpenProject,
 }: {
   onClose: () => void
   onVectorize: () => void
+  /** JSON project import: open the adopted project by id */
+  onOpenProject: (id: string) => void
 }) {
   const { t } = useI18n()
   const doc = useStore((s) => s.doc)
   const projectName = useStore((s) => s.projectName)
   const loadDoc = useStore((s) => s.loadDoc)
-  const setCurrentProject = useStore((s) => s.setCurrentProject)
+  const adoptPixelDoc = useStore((s) => s.adoptPixelDoc)
+  const markProjectSaved = useStore((s) => s.markProjectSaved)
   const pngWidth = useStore((s) => s.pngWidth)
   const pngHeight = useStore((s) => s.pngHeight)
   const setPngWidth = useStore((s) => s.setPngWidth)
@@ -99,11 +103,13 @@ export function ExportPopover({
   }
   const onLoad = async (file: File) => {
     try {
-      loadDoc(deserialize(JSON.parse(await file.text())))
-      // a JSON file is not the bound library project: detach so the next Save
-      // creates a fresh entry instead of overwriting the previously open one
-      setCurrentProject(null, projectName)
+      const json = JSON.parse(await file.text())
+      // validate by loading first: a corrupt file must not create a library entry
+      loadDoc(deserialize(json))
+      const id = await adoptPixelDoc(json, file.name.replace(/\.[^.]+$/, ''))
+      markProjectSaved()
       setLoadError(false)
+      onOpenProject(id)
     } catch {
       setLoadError(true)
     }
@@ -196,7 +202,7 @@ export function ExportPopover({
               <path d="M3 13L8 3l5 10" />
               <path d="M4.8 9.5h6.4" />
             </svg>
-            {t('mode.vector')}
+            {t('export.vectorize')}
           </button>
         </Tooltip>
         <div className="bg-line h-px" />

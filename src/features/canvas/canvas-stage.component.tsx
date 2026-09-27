@@ -10,6 +10,8 @@ import { scrollbarMetrics } from '../../engine/scrollbars.ts'
 import { isShapeTool } from '../../engine/shapes.ts'
 import { symmetryPoints } from '../../engine/symmetry.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+import { FitCanvasButton } from '../../shared/ui/fit-button.component.tsx'
+import { ZoomControls } from '../../shared/ui/zoom-controls.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import {
   ANTS_SPEED,
@@ -23,7 +25,6 @@ import {
   type Hover,
 } from './canvas-stage.util.ts'
 import { useCanvasStaging } from './use-canvas-staging.hook.ts'
-import { ZoomControls } from './zoom-controls.component.tsx'
 
 export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void } = {}) {
   const { t } = useI18n()
@@ -1382,28 +1383,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       />
 
       {/* fit canvas — bottom-left overlay, styled like the zoom plate next to which it sits */}
-      <button
-        type="button"
-        onClick={fit}
-        title={`${t('top.fit')} (F)`}
-        className="border-line bg-panel text-body hover:border-chip-line absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs shadow-sm backdrop-blur transition max-lg:min-h-11 max-lg:px-3"
-      >
-        <svg
-          viewBox="0 0 16 16"
-          className="h-3.5 w-3.5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-        >
-          <path d="M2 5.5v-2A1.5 1.5 0 013.5 2h2" />
-          <path d="M10.5 2h2A1.5 1.5 0 0114 3.5v2" />
-          <path d="M14 10.5v2a1.5 1.5 0 01-1.5 1.5h-2" />
-          <path d="M5.5 14h-2A1.5 1.5 0 012 12.5v-2" />
-          <path d="M6.25 6.25h3.5v3.5h-3.5z" />
-        </svg>
-        {t('top.fit')}
-      </button>
+      <FitCanvasButton onFit={fit} label={t('top.fit')} title={`${t('top.fit')} (F)`} />
       {hBar.visible && (
         <div
           aria-label={t('view.scrollX')}

@@ -1,55 +1,67 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { ImportBitmap } from '../../engine/import-image.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+import { FitCanvasButton } from '../../shared/ui/fit-button.component.tsx'
 import { Chip } from '../../shared/ui/index.tsx'
+import { ZoomControls } from '../../shared/ui/zoom-controls.component.tsx'
+import { usePanPinchGestures, type PanPinchView } from './use-pinch-pan.hook.ts'
 
 /**
- * Zoom/pan preview of the vector workspace: shows the traced SVG or the original raster, with a
- * wheel-zoom / drag-pan viewport and a fit button. The SVG lands in an <img> via a blob URL so
- * browser scaling stays smooth and the markup can't leak styles into the app.
+ * Zoom/pan preview of the vector workspace: shows the traced SVG or the original raster. Wheel and
+ * the bottom-right zoom plate step the zoom, drag / one finger pans, two fingers pinch — same pair
+ * of plates as the pixel canvas (fit bottom-left, zoom bottom-right). The SVG lands in an <img> via
+ * a blob URL so browser scaling stays smooth and the markup can't leak styles into the app.
  */
 
-const MIN_SCALE = 0.05
+const MIN_ZOOM = 0.05
+const MAX_ZOOM = 64
 
-interface View {
-  scale: number
-  tx: number
-  ty: number
-}
+const clampZoom = (zoom: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
 
 export function VectorPreview({
   source,
   svg,
   showOriginal,
+  controls = true,
 }: {
   source: ImportBitmap
   svg: string | null
   showOriginal: boolean
+  /** Zoom/fit plates; the compact preview inside the params sheet hides them */
+  controls?: boolean
 }) {
   const { t } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
-  const [view, setView] = useState<View>({ scale: 1, tx: 0, ty: 0 })
-  const dragRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null)
-  const objectUrl = useMemo(
-    () => (svg ? URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })) : null),
-    [svg],
-  )
-  useEffect(
-    () => () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    },
-    [objectUrl],
-  )
+  const [view, setView] = useState<PanPinchView>({ zoom: 1, x: 0, y: 0 })
+  const gestures = usePanPinchGestures({
+    containerRef,
+    view,
+    setView,
+    minZoom: MIN_ZOOM,
+    maxZoom: MAX_ZOOM,
+  })
+  // the blob URL is created inside the effect so every revoke is followed by a fresh create —
+  // a memoized URL dies under StrictMode's simulated remount (the sheet preview mounts with svg)
+  const [objectUrl, setObjectUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!svg) {
+      setObjectUrl(null)
+      return
+    }
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }))
+    setObjectUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [svg])
 
   const fit = (): void => {
     const box = containerRef.current?.getBoundingClientRect()
     if (!box) return
-    const scale = Math.min((box.width - 32) / source.width, (box.height - 32) / source.height)
+    const zoom = Math.min((box.width - 32) / source.width, (box.height - 32) / source.height)
     setView({
-      scale,
-      tx: (box.width - source.width * scale) / 2,
-      ty: (box.height - source.height * scale) / 2,
+      zoom,
+      x: (box.width - source.width * zoom) / 2,
+      y: (box.height - source.height * zoom) / 2,
     })
   }
   useEffect(() => {
@@ -63,35 +75,24 @@ export function VectorPreview({
   return (
     <div
       ref={containerRef}
-      className="relative min-h-0 flex-1 touch-none overflow-hidden"
+      className="relative h-full min-h-0 flex-1 touch-none overflow-hidden"
       onWheel={(e) => {
         e.preventDefault()
         const box = containerRef.current?.getBoundingClientRect()
         if (!box) return
         const factor = Math.exp(-e.deltaY * 0.0015)
         setView((v) => {
-          const scale = Math.max(MIN_SCALE, Math.min(64, v.scale * factor))
+          const zoom = clampZoom(v.zoom * factor)
           const px = e.clientX - box.left
           const py = e.clientY - box.top
           return {
-            scale,
-            tx: px - ((px - v.tx) * scale) / v.scale,
-            ty: py - ((py - v.ty) * scale) / v.scale,
+            zoom,
+            x: px - ((px - v.x) * zoom) / v.zoom,
+            y: py - ((py - v.y) * zoom) / v.zoom,
           }
         })
       }}
-      onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId)
-        dragRef.current = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty }
-      }}
-      onPointerMove={(e) => {
-        const d = dragRef.current
-        if (!d) return
-        setView((v) => ({ ...v, tx: d.tx + (e.clientX - d.x), ty: d.ty + (e.clientY - d.y) }))
-      }}
-      onPointerUp={() => {
-        dragRef.current = null
-      }}
+      {...gestures}
     >
       {/* checkerboard under the artwork (alpha visibility) — same recipe as the import dialog */}
       <div
@@ -105,7 +106,7 @@ export function VectorPreview({
       />
       <div
         className="absolute origin-top-left"
-        style={{ transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})` }}
+        style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}
       >
         {showOriginal || !objectUrl ? (
           <SourceCanvas source={source} />
@@ -120,11 +121,18 @@ export function VectorPreview({
           />
         )}
       </div>
-      <div className="absolute bottom-2 left-2 flex items-center gap-1">
-        <Chip onClick={fit} title={t('vector.fit')}>
-          {Math.round(view.scale * 100)}%
-        </Chip>
-      </div>
+      {controls && (
+        <>
+          <FitCanvasButton label={t('vector.fit')} onFit={fit} />
+          <ZoomControls
+            zoom={view.zoom}
+            setView={setView}
+            wrap={containerRef.current}
+            min={MIN_ZOOM}
+            max={MAX_ZOOM}
+          />
+        </>
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import type { ImportBitmap } from '../engine/import-image.ts'
 import { normalizeTraceParams, type TraceParams } from '../engine/trace/params.ts'
 import type { TraceStats } from '../engine/trace/trace.ts'
-import { loadVectorJob, saveVectorJob, type VectorJobRecord } from '../storage/vector-job.ts'
+import { saveProject, type VectorProjectEntry } from '../storage/projects.ts'
 import type { State } from './editor.store.ts'
 
 export type VectorStatus = 'idle' | 'tracing' | 'error'
@@ -11,25 +11,22 @@ export interface VectorResult {
   stats: TraceStats
 }
 
-/** The vector workspace slice: independent from the pixel document (outside undo history). */
+/** The vector workspace slice: runtime host of the open vector project (outside undo history). */
 export interface VectorSlice {
-  /** Traced source raster; null = empty workspace */
+  /** Traced source raster; null = empty workspace (awaits an import) */
   vectorSource: ImportBitmap | null
   vectorSourceName: string
   vectorParams: TraceParams
   vectorResult: VectorResult | null
   vectorStatus: VectorStatus
   vectorError: string | null
-  /** Raster handed over from the pixel mode's export popover; consumed by the workspace */
-  vectorHandoff: ImportBitmap | null
   setVectorSource: (bitmap: ImportBitmap | null, name?: string) => void
   patchVectorParams: (patch: Partial<TraceParams>) => void
   applyVectorParams: (params: TraceParams) => void
   setVectorResult: (result: VectorResult | null) => void
   setVectorStatus: (status: VectorStatus, error?: string | null) => void
-  setVectorHandoff: (bitmap: ImportBitmap | null) => void
-  /** Boot-time restore of the autosaved workspace (no-op when absent) */
-  loadVectorJob: () => Promise<void>
+  /** Restore the workspace from the opened project's trace session */
+  loadVectorEntry: (entry: VectorProjectEntry) => void
 }
 
 /** Minimal set/get surface the slice needs from the zustand store. */
@@ -42,11 +39,10 @@ const TRACING_THROTTLE_MS = 1500
 
 /**
  * Vector-workspace state and actions, composed into the main store. The pixel `doc` is never
- * touched here, so the workspace stays fully independent of undo history and project state.
+ * touched here, so the workspace stays fully independent of undo history. Every change is written
+ * back into the bound `VectorProjectEntry` (throttled — each save serializes a multi-MB bitmap).
  */
 export function createVectorSlice({ set, get }: SliceApi): VectorSlice {
-  // throttled autosave: tracing param drags fire many changes per second, and each save
-  // serializes a multi-MB bitmap
   let lastSave = 0
   const saveSoon = (): void => {
     const now = Date.now()
@@ -61,7 +57,6 @@ export function createVectorSlice({ set, get }: SliceApi): VectorSlice {
     vectorResult: null,
     vectorStatus: 'idle',
     vectorError: null,
-    vectorHandoff: null,
 
     setVectorSource: (bitmap, name = '') => {
       set({
@@ -88,31 +83,29 @@ export function createVectorSlice({ set, get }: SliceApi): VectorSlice {
     setVectorStatus: (status, error = null) => {
       set({ vectorStatus: status, vectorError: status === 'error' ? (error ?? 'error') : null })
     },
-    setVectorHandoff: (bitmap) => {
-      set({ vectorHandoff: bitmap })
-    },
-    loadVectorJob: async () => {
-      try {
-        const rec = await loadVectorJob()
-        if (!rec) return
-        const source = validSource(rec)
-        set({
-          vectorSource: source,
-          vectorSourceName: rec.sourceName ?? '',
-          vectorParams: normalizeTraceParams(rec.params as TraceParams),
-          vectorResult: rec.svg ? { svg: rec.svg, stats: (rec.stats ?? null) as TraceStats } : null,
-        })
-      } catch {
-        /* corrupted autosave — keep the empty workspace */
-      }
+    loadVectorEntry: (entry) => {
+      const src = entry.source
+      set({
+        vectorSource: src
+          ? { width: src.width, height: src.height, data: new Uint8ClampedArray(src.data) }
+          : null,
+        vectorSourceName: entry.sourceName,
+        vectorParams: normalizeTraceParams((entry.params ?? null) as TraceParams | null),
+        vectorResult: entry.svg ? { svg: entry.svg, stats: entry.stats as TraceStats } : null,
+      })
+      lastSave = 0
+      saveSoon()
     },
   }
 }
 
+/** Write the whole trace session into the bound vector project (also persists clearing it). */
 async function saveCurrent(s: State): Promise<void> {
-  if (!s.vectorSource && !s.vectorResult) return
+  const entry = s.boundEntry
+  if (!entry || entry.kind !== 'vector') return
   const src = s.vectorSource
-  await saveVectorJob({
+  await saveProject({
+    ...entry,
     source: src
       ? { width: src.width, height: src.height, data: src.data.slice().buffer as ArrayBuffer }
       : null,
@@ -120,16 +113,6 @@ async function saveCurrent(s: State): Promise<void> {
     params: s.vectorParams,
     svg: s.vectorResult?.svg ?? null,
     stats: s.vectorResult?.stats ?? null,
+    updatedAt: Date.now(),
   })
-}
-
-/** Validate an autosaved source before trusting it (schema drift, truncated buffers). */
-function validSource(rec: VectorJobRecord): ImportBitmap | null {
-  const src = rec.source
-  if (!src || typeof rec.svg !== 'string') return null
-  const { width, height, data } = src
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) return null
-  if (width * height > 4096 * 4096) return null
-  if (!(data instanceof ArrayBuffer) || data.byteLength !== width * height * 4) return null
-  return { width, height, data: new Uint8ClampedArray(data) }
 }
