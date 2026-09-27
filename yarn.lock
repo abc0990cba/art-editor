@@ -1927,6 +1927,11 @@
   dependencies:
     csstype "^3.2.2"
 
+"@visioncortex/vtracer@^1.0.0-alpha.4":
+  version "1.0.0-alpha.4"
+  resolved "https://registry.npmjs.org/@visioncortex/vtracer/-/vtracer-1.0.0-alpha.4.tgz"
+  integrity sha512-Hhi+vfG4ealLH1m9alrWo1lM00cWFfur4zeLEcNtzrYUjeEYTgukLNfvOXmuaGe2adugu+jl9o9IUzqHuqFO9g==
+
 "@vitejs/plugin-react@^4.6.0":
   version "4.7.0"
   resolved "https://registry.npmjs.org/@vitejs/plugin-react/-/plugin-react-4.7.0.tgz"

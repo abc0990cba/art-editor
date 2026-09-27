@@ -1257,6 +1257,14 @@
         }
       ]
     }
+  },
+  {
+    "files": ["src/features/vectorizer/trace.worker.ts"],
+    "rules": {
+      // dedicated-worker postMessage(message, transfer) has no targetOrigin parameter —
+      // the unicorn rule targets window.postMessage and is wrong inside a worker
+      "unicorn/require-post-message-target-origin": "off"
+    }
   }
 ]
 }

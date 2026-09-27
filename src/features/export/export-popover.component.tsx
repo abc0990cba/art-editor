@@ -14,9 +14,16 @@ import { useStore } from '../../state/editor.store.ts'
 
 /**
  * Small popover anchored under the top bar's export button: SVG/PNG export with the size knobs,
- * plus project save/load. Closes on Escape, on the backdrop or on the X.
+ * plus project save/load. The vectorize action renders the canvas and hands it over to the vector
+ * mode (scenario A of the raster↔vector pipeline). Closes on Escape, on the backdrop or on the X.
  */
-export function ExportPopover({ onClose }: { onClose: () => void }) {
+export function ExportPopover({
+  onClose,
+  onVectorize,
+}: {
+  onClose: () => void
+  onVectorize: () => void
+}) {
   const { t } = useI18n()
   const doc = useStore((s) => s.doc)
   const projectName = useStore((s) => s.projectName)
@@ -143,55 +150,18 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
           checked={exportBg}
           onChange={setExportBg}
         />
-        <div className="text-body flex items-center gap-1.5 text-xs">
-          <Tooltip label={t('export.pngWidth.desc')}>
-            <label className="border-line bg-chip flex min-w-0 flex-1 items-center gap-1 rounded-md border px-1.5 py-1">
-              <span className="text-muted">W</span>
-              <input
-                type="number"
-                min={1}
-                max={5000}
-                value={wText ?? pngW}
-                onChange={(e) => commitPngW(e.target.value)}
-                onBlur={() => setWText(null)}
-                className="text-body w-full min-w-0 bg-transparent text-right text-xs outline-none"
-              />
-            </label>
-          </Tooltip>
-          <span className="text-muted">×</span>
-          <Tooltip label={t('export.pngHeight.desc')}>
-            <label className="border-line bg-chip flex min-w-0 flex-1 items-center gap-1 rounded-md border px-1.5 py-1">
-              <span className="text-muted">H</span>
-              <input
-                type="number"
-                min={1}
-                max={5000}
-                value={hText ?? pngH}
-                onChange={(e) => commitPngH(e.target.value)}
-                onBlur={() => setHText(null)}
-                className="text-body w-full min-w-0 bg-transparent text-right text-xs outline-none"
-              />
-            </label>
-          </Tooltip>
-          <Chip
-            active={lockAspect}
-            title={t('export.lock.desc')}
-            onClick={() => setLockAspect((v) => !v)}
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className="h-3.5 w-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-            >
-              <path d="M6.5 9.5l3-3" />
-              <path d="M5.2 7.8L3.9 9.1a2.1 2.1 0 003 3l1.3-1.3" />
-              <path d="M10.8 8.2l1.3-1.3a2.1 2.1 0 00-3-3L7.8 5.2" />
-            </svg>
-          </Chip>
-        </div>
+        <PngSizeInputs
+          pngW={pngW}
+          pngH={pngH}
+          wText={wText}
+          hText={hText}
+          lockAspect={lockAspect}
+          onWidth={commitPngW}
+          onHeight={commitPngH}
+          onWidthBlur={() => setWText(null)}
+          onHeightBlur={() => setHText(null)}
+          onToggleLock={() => setLockAspect((v) => !v)}
+        />
         <p className="text-muted text-overline">
           {pngW}×{pngH} px · {t('export.maxSide')}
         </p>
@@ -207,6 +177,26 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
             className="border-line bg-chip hover:border-chip-line hover:text-body w-full rounded-md border px-3 py-1.5 transition"
           >
             {t('export.png')}
+          </button>
+        </Tooltip>
+        <Tooltip label={t('vector.handoff.desc')}>
+          <button
+            type="button"
+            onClick={onVectorize}
+            className="border-line bg-chip hover:border-chip-line hover:text-body flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 transition"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              className="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            >
+              <path d="M3 13L8 3l5 10" />
+              <path d="M4.8 9.5h6.4" />
+            </svg>
+            {t('mode.vector')}
           </button>
         </Tooltip>
         <div className="bg-line h-px" />
@@ -244,5 +234,79 @@ export function ExportPopover({ onClose }: { onClose: () => void }) {
         {loadError && <p className="text-xs text-red-400">{t('export.loadInvalid')}</p>}
       </FloatingPanel>
     </>
+  )
+}
+
+/** W × H inputs with the aspect-lock chip (mirrors the export popover's PNG size knobs). */
+function PngSizeInputs({
+  pngW,
+  pngH,
+  wText,
+  hText,
+  lockAspect,
+  onWidth,
+  onHeight,
+  onWidthBlur,
+  onHeightBlur,
+  onToggleLock,
+}: {
+  pngW: number
+  pngH: number
+  wText: string | null
+  hText: string | null
+  lockAspect: boolean
+  onWidth: (raw: string) => void
+  onHeight: (raw: string) => void
+  onWidthBlur: () => void
+  onHeightBlur: () => void
+  onToggleLock: () => void
+}) {
+  const { t } = useI18n()
+  return (
+    <div className="text-body flex items-center gap-1.5 text-xs">
+      <Tooltip label={t('export.pngWidth.desc')}>
+        <label className="border-line bg-chip flex min-w-0 flex-1 items-center gap-1 rounded-md border px-1.5 py-1">
+          <span className="text-muted">W</span>
+          <input
+            type="number"
+            min={1}
+            max={5000}
+            value={wText ?? pngW}
+            onChange={(e) => onWidth(e.target.value)}
+            onBlur={onWidthBlur}
+            className="text-body w-full min-w-0 bg-transparent text-right text-xs outline-none"
+          />
+        </label>
+      </Tooltip>
+      <span className="text-muted">×</span>
+      <Tooltip label={t('export.pngHeight.desc')}>
+        <label className="border-line bg-chip flex min-w-0 flex-1 items-center gap-1 rounded-md border px-1.5 py-1">
+          <span className="text-muted">H</span>
+          <input
+            type="number"
+            min={1}
+            max={5000}
+            value={hText ?? pngH}
+            onChange={(e) => onHeight(e.target.value)}
+            onBlur={onHeightBlur}
+            className="text-body w-full min-w-0 bg-transparent text-right text-xs outline-none"
+          />
+        </label>
+      </Tooltip>
+      <Chip active={lockAspect} title={t('export.lock.desc')} onClick={onToggleLock}>
+        <svg
+          viewBox="0 0 16 16"
+          className="h-3.5 w-3.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        >
+          <path d="M6.5 9.5l3-3" />
+          <path d="M5.2 7.8L3.9 9.1a2.1 2.1 0 003 3l1.3-1.3" />
+          <path d="M10.8 8.2l1.3-1.3a2.1 2.1 0 00-3-3L7.8 5.2" />
+        </svg>
+      </Chip>
+    </div>
   )
 }

@@ -1,7 +1,7 @@
-/** Shared opener for the glyph-editor database: one connection, all object stores, schema v4. */
+/** Shared opener for the glyph-editor database: one connection, all object stores, schema v6. */
 
 const DB_NAME = 'glyph-editor'
-const DB_VERSION = 5
+const DB_VERSION = 6
 
 let memoryOnly = false
 let dbPromise: Promise<IDBDatabase | null> | null = null
@@ -37,6 +37,13 @@ export function openDb(): Promise<IDBDatabase | null> {
         }
         if (!db.objectStoreNames.contains('autosave')) {
           db.createObjectStore('autosave', { keyPath: 'id' })
+        }
+        if (!db.objectStoreNames.contains('vectorJobs')) {
+          db.createObjectStore('vectorJobs', { keyPath: 'id' })
+        }
+        if (!db.objectStoreNames.contains('vectorPresets')) {
+          const presets = db.createObjectStore('vectorPresets', { keyPath: 'id' })
+          presets.createIndex('by_updated', 'updatedAt')
         }
       }
       req.onsuccess = () => resolve(req.result)

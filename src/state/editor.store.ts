@@ -19,11 +19,14 @@ import type {
 import type { FillStyle } from '../engine/fillpatterns.ts'
 import type { GlyphTileSet } from '../engine/glyph-tiles.ts'
 import type { ImportResult } from '../engine/import-image.ts'
+import type { ImportBitmap } from '../engine/import-image.ts'
 import type { PalettePreset } from '../engine/palettes.ts'
 import type { EditorPreset, PresetConfig } from '../engine/presets.ts'
+import type { TraceParams } from '../engine/trace/params.ts'
 import type { BrushPresetEntry } from '../storage/brushes.ts'
 import type { GlyphTileSetEntry } from '../storage/glyph-tiles.ts'
 import type { PresetEntry } from '../storage/presets.ts'
+import type { VectorPresetEntry } from '../storage/vector-presets.ts'
 import { createBrushesSlice } from './brushes.slice.ts'
 import { createDocSlice, DOC_KEY } from './doc.slice.ts'
 import { createFillSlice } from './fill.slice.ts'
@@ -43,6 +46,8 @@ import {
   type ToolOpts,
 } from './tools.slice.ts'
 import { createUiSlice, type ResolvedTheme, type ThemePref } from './ui.slice.ts'
+import { createVectorPresetsSlice } from './vector-presets.slice.ts'
+import { createVectorSlice, type VectorResult, type VectorStatus } from './vector.slice.ts'
 
 export type { Tool, ToolOpts } from './tools.slice.ts'
 export type { ThemePref, ResolvedTheme } from './ui.slice.ts'
@@ -282,6 +287,30 @@ export interface State {
   closeNodeEditor: () => void
   setNodeEditorMode: (mode: 'split' | 'overlay') => void
   setNodeEditorSplit: (fraction: number) => void
+  setMode: (mode: 'pixel' | 'vector') => void
+  mode: 'pixel' | 'vector'
+  // vector workspace (independent second mode; outside undo history)
+  vectorSource: ImportBitmap | null
+  vectorSourceName: string
+  vectorParams: TraceParams
+  vectorResult: VectorResult | null
+  vectorStatus: VectorStatus
+  vectorError: string | null
+  vectorHandoff: ImportBitmap | null
+  setVectorSource: (bitmap: ImportBitmap | null, name?: string) => void
+  patchVectorParams: (patch: Partial<TraceParams>) => void
+  applyVectorParams: (params: TraceParams) => void
+  setVectorResult: (result: VectorResult | null) => void
+  setVectorStatus: (status: VectorStatus, error?: string | null) => void
+  setVectorHandoff: (bitmap: ImportBitmap | null) => void
+  loadVectorJob: () => Promise<void>
+  // vector preset library (user presets; built-ins come from engine/trace/params)
+  vectorPresets: VectorPresetEntry[]
+  vectorPresetsReady: boolean
+  loadVectorPresets: () => Promise<void>
+  createVectorPreset: (name: string) => Promise<VectorPresetEntry>
+  overwriteVectorPreset: (id: string) => Promise<void>
+  deleteVectorPreset: (id: string) => Promise<void>
 }
 
 /** Whether an autosaved document exists in localStorage (fresh users see the start dialog). */
@@ -338,6 +367,8 @@ export const useStore = create<State>()(
       ...createPresetsSlice({ set, get }),
       ...createBrushesSlice({ set, get }),
       ...createGlyphSlice({ set, get }),
+      ...createVectorSlice({ set, get }),
+      ...createVectorPresetsSlice({ set, get }),
     }),
     temporalOptions,
   ),

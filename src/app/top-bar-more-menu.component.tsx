@@ -30,6 +30,18 @@ const MORE_ICONS = {
       <path d="M4.8 4.4l5 1.9M10.2 8.4L6 10.7" />
     </svg>
   ),
+  vector: (
+    <svg
+      viewBox="0 0 16 16"
+      className="h-5 w-5 shrink-0 opacity-80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    >
+      <path d="M3 13L8 3l5 10" />
+      <path d="M4.8 9.5h6.4" />
+    </svg>
+  ),
   import: (
     <svg
       viewBox="0 0 16 16"
@@ -235,6 +247,10 @@ export function TopBarMoreMenu({
               {row(MORE_ICONS.nodes, nodeEditorOpen ? t('editor.close') : t('editor.open'), () =>
                 nodeEditorOpen ? closeNodeEditor() : openNodeEditor(),
               )}
+              {row(MORE_ICONS.vector, t('mode.vector'), () => {
+                useStore.getState().setMode('vector')
+                setOpen(false)
+              })}
               {row(MORE_ICONS.import, t('import.open'), onImport)}
               {row(MORE_ICONS.export, t('export.open'), onExport)}
               {row(MORE_ICONS.settings, t('project.settings'), onSettings)}

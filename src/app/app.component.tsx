@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { ImportBitmap } from '../engine/import-image.ts'
 import { CanvasStage } from '../features/canvas/canvas-stage.component.tsx'
-import { decodeImageFile } from '../features/import/decode-image.util.ts'
 import { ImportDialog } from '../features/import/import-dialog.component.tsx'
 import { NodeEditorCanvas } from '../features/nodes-editor/node-editor-canvas.component.tsx'
 import { ProjectDialog } from '../features/projects/project-dialog.component.tsx'
@@ -15,13 +14,16 @@ import { FabPanel } from '../features/tools/fab-panel.component.tsx'
 import { allOrder, ToolIcon } from '../features/tools/tool-icons.component.tsx'
 import { ToolRail } from '../features/tools/tool-rail.component.tsx'
 import { ToolSettings, type SettingsAnchor } from '../features/tools/tool-settings.component.tsx'
+import { VectorWorkspace } from '../features/vectorizer/vector-workspace.component.tsx'
 import { I18nProvider, useI18n } from '../shared/i18n/i18n.provider.tsx'
+import { decodeImageFile } from '../shared/lib/decode-image.util.ts'
 import { ConfirmDialog } from '../shared/ui/confirm-dialog.component.tsx'
 import { IconButton, SectionGlyph } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
 import { useStore, hasAutosave } from '../state/editor.store.ts'
 import { TopBar } from './app-top-bar.component.tsx'
 import { useHotkeys } from './use-hotkeys.hook.ts'
+import { useVectorizeBridge } from './use-vectorize-bridge.hook.ts'
 
 function Editor() {
   const { t } = useI18n()
@@ -29,20 +31,36 @@ function Editor() {
   const loadPresets = useStore((s) => s.loadPresets)
   const loadBrushes = useStore((s) => s.loadBrushes)
   const loadGlyphSets = useStore((s) => s.loadGlyphSets)
+  const loadVectorJob = useStore((s) => s.loadVectorJob)
+  const loadVectorPresets = useStore((s) => s.loadVectorPresets)
   useEffect(() => {
     void loadPresets()
     void loadBrushes()
     void loadGlyphSets()
-  }, [loadPresets, loadBrushes, loadGlyphSets])
+    void loadVectorJob()
+    void loadVectorPresets()
+  }, [loadPresets, loadBrushes, loadGlyphSets, loadVectorJob, loadVectorPresets])
 
+  const mode = useStore((s) => s.mode)
+  const isVector = mode === 'vector'
   const [importBitmap, setImportBitmap] = useState<ImportBitmap | null>(null)
+  // imports are routed by mode: the pixel editor opens the dither dialog, the vector
+  // workspace sets the trace source directly
   const openImportFile = useCallback((file: File | Blob) => {
+    const name = file instanceof File ? file.name : ''
     void decodeImageFile(file)
-      .then(setImportBitmap)
+      .then((bitmap) => {
+        if (useStore.getState().mode === 'vector') {
+          useStore.getState().setVectorSource(bitmap, name)
+        } else {
+          setImportBitmap(bitmap)
+        }
+      })
       .catch(() => {
         /* not a decodable image — ignore */
       })
   }, [])
+  const vectorizeCanvas = useVectorizeBridge()
   const nodeEditorOpen = useStore((s) => s.nodeEditorOpen)
   const doc = useStore((s) => s.doc)
   const tool = useStore((s) => s.tool)
@@ -98,196 +116,206 @@ function Editor() {
 
   return (
     <div className="bg-app text-body flex h-dvh flex-col overscroll-none select-none">
-      <TopBar onImportFile={openImportFile} onTogglePanel={() => setPanelOpen((v) => !v)} />
-      <div className="relative flex min-h-0 flex-1">
-        <ToolRail />
-        <div ref={editorPaneRef} className="relative flex min-w-0 flex-1">
-          <CanvasStage onDropFile={openImportFile} />
-          <FabPanel />
-          {homeOpen && (
-            <ProjectsDialog
-              variant="home"
-              onClose={() => setHomeOpen(false)}
-              onNewProject={() => {
-                const busy = doc.cells.some((v) => v !== 0) || doc.links.length > 0
-                if (busy) setNewGuard(true)
-                else {
+      <TopBar
+        onImportFile={openImportFile}
+        onTogglePanel={() => setPanelOpen((v) => !v)}
+        onVectorize={vectorizeCanvas}
+      />
+      {isVector ? (
+        <VectorWorkspace />
+      ) : (
+        <div className="relative flex min-h-0 flex-1">
+          <ToolRail />
+          <div ref={editorPaneRef} className="relative flex min-w-0 flex-1">
+            <CanvasStage onDropFile={openImportFile} />
+            <FabPanel />
+            {homeOpen && (
+              <ProjectsDialog
+                variant="home"
+                onClose={() => setHomeOpen(false)}
+                onNewProject={() => {
+                  const busy = doc.cells.some((v) => v !== 0) || doc.links.length > 0
+                  if (busy) setNewGuard(true)
+                  else {
+                    setHomeOpen(false)
+                    setSetupOpen(true)
+                  }
+                }}
+              />
+            )}
+            {newGuard && (
+              <ConfirmDialog
+                title={t('projects.replaceWarnTitle')}
+                message={t('projects.replaceWarn')}
+                confirmLabel={t('projects.confirm')}
+                cancelLabel={t('projects.cancel')}
+                onConfirm={() => {
+                  setNewGuard(false)
                   setHomeOpen(false)
                   setSetupOpen(true)
-                }
-              }}
-            />
-          )}
-          {newGuard && (
-            <ConfirmDialog
-              title={t('projects.replaceWarnTitle')}
-              message={t('projects.replaceWarn')}
-              confirmLabel={t('projects.confirm')}
-              cancelLabel={t('projects.cancel')}
-              onConfirm={() => {
-                setNewGuard(false)
-                setHomeOpen(false)
-                setSetupOpen(true)
-              }}
-              onClose={() => setNewGuard(false)}
-            />
-          )}
-          {setupOpen && <ProjectDialog mode="create" onClose={() => setSetupOpen(false)} />}
-          {nodeEditorOpen && (
-            <>
-              {nodeEditorMode === 'split' && (
+                }}
+                onClose={() => setNewGuard(false)}
+              />
+            )}
+            {setupOpen && <ProjectDialog mode="create" onClose={() => setSetupOpen(false)} />}
+            {nodeEditorOpen && (
+              <>
+                {nodeEditorMode === 'split' && (
+                  <div
+                    role="separator"
+                    aria-orientation="vertical"
+                    onPointerDown={startEditorResize}
+                    className="bg-line hover:bg-accent-line hidden w-1 shrink-0 cursor-col-resize transition-colors lg:block"
+                  />
+                )}
                 <div
-                  role="separator"
-                  aria-orientation="vertical"
-                  onPointerDown={startEditorResize}
-                  className="bg-line hover:bg-accent-line hidden w-1 shrink-0 cursor-col-resize transition-colors lg:block"
-                />
-              )}
-              <div
-                className={
-                  nodeEditorMode === 'overlay'
-                    ? 'absolute inset-0 z-30'
-                    : 'relative z-30 flex min-w-0 items-stretch max-lg:absolute max-lg:inset-0'
-                }
-                style={
-                  nodeEditorMode === 'split'
-                    ? { width: `${nodeEditorSplit * 100}%`, maxWidth: undefined }
-                    : undefined
-                }
-              >
-                <NodeEditorCanvas onClose={() => useStore.getState().closeNodeEditor()} />
+                  className={
+                    nodeEditorMode === 'overlay'
+                      ? 'absolute inset-0 z-30'
+                      : 'relative z-30 flex min-w-0 items-stretch max-lg:absolute max-lg:inset-0'
+                  }
+                  style={
+                    nodeEditorMode === 'split'
+                      ? { width: `${nodeEditorSplit * 100}%`, maxWidth: undefined }
+                      : undefined
+                  }
+                >
+                  <NodeEditorCanvas onClose={() => useStore.getState().closeNodeEditor()} />
+                </div>
+              </>
+            )}
+          </div>
+          {panelCollapsed ? (
+            // collapsed: section shortcuts on top, dedicated expand chevron pinned to the
+            // bottom — mirrors the tool rail's collapse toggle (arrow points where it expands)
+            <div className="border-line bg-panel hidden w-12 shrink-0 flex-col items-center border-l lg:flex">
+              <div className="flex flex-col items-center gap-1 py-2">
+                {PANEL_SECTIONS.map((x) => (
+                  <Tooltip key={x.id} label={t(x.titleKey as 'panel.color')}>
+                    <button
+                      type="button"
+                      aria-label={t(x.titleKey as 'panel.color')}
+                      onClick={() => {
+                        togglePanelCollapsed()
+                        setPanelSection(x.id)
+                      }}
+                      className="text-muted hover:bg-chip-active hover:text-body flex h-10 w-10 items-center justify-center rounded-lg transition"
+                    >
+                      <SectionGlyph icon={x.icon} />
+                    </button>
+                  </Tooltip>
+                ))}
               </div>
-            </>
-          )}
-        </div>
-        {panelCollapsed ? (
-          // collapsed: section shortcuts on top, dedicated expand chevron pinned to the
-          // bottom — mirrors the tool rail's collapse toggle (arrow points where it expands)
-          <div className="border-line bg-panel hidden w-12 shrink-0 flex-col items-center border-l lg:flex">
-            <div className="flex flex-col items-center gap-1 py-2">
-              {PANEL_SECTIONS.map((x) => (
-                <Tooltip key={x.id} label={t(x.titleKey as 'panel.color')}>
+              <div className="border-line mt-auto flex w-full justify-center border-t py-2">
+                <Tooltip label={t('panel.expand')}>
                   <button
                     type="button"
-                    aria-label={t(x.titleKey as 'panel.color')}
-                    onClick={() => {
-                      togglePanelCollapsed()
-                      setPanelSection(x.id)
-                    }}
-                    className="text-muted hover:bg-chip-active hover:text-body flex h-10 w-10 items-center justify-center rounded-lg transition"
+                    aria-label={t('panel.expand')}
+                    onClick={togglePanelCollapsed}
+                    className="text-muted hover:bg-chip hover:text-body flex h-7 w-7 items-center justify-center rounded-lg transition"
                   >
-                    <SectionGlyph icon={x.icon} />
+                    <svg
+                      viewBox="0 0 16 16"
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9.5 4L5.5 8l4 4" />
+                    </svg>
                   </button>
                 </Tooltip>
-              ))}
+              </div>
             </div>
-            <div className="border-line mt-auto flex w-full justify-center border-t py-2">
-              <Tooltip label={t('panel.expand')}>
-                <button
-                  type="button"
-                  aria-label={t('panel.expand')}
-                  onClick={togglePanelCollapsed}
-                  className="text-muted hover:bg-chip hover:text-body flex h-7 w-7 items-center justify-center rounded-lg transition"
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M9.5 4L5.5 8l4 4" />
-                  </svg>
-                </button>
-              </Tooltip>
-            </div>
-          </div>
-        ) : (
-          <div className="border-line bg-panel hidden w-64 shrink-0 flex-col border-l lg:flex">
-            <SettingsPanel
-              className="flex min-h-0 w-full flex-1 flex-col"
-              openSection={panelSection}
-            />
-            {/* collapse row styled like the tool rail's: chevron + text, arrow pointing
+          ) : (
+            <div className="border-line bg-panel hidden w-64 shrink-0 flex-col border-l lg:flex">
+              <SettingsPanel
+                className="flex min-h-0 w-full flex-1 flex-col"
+                openSection={panelSection}
+              />
+              {/* collapse row styled like the tool rail's: chevron + text, arrow pointing
                 at the right edge the panel collapses into */}
-            <div className="border-line border-t p-2">
-              <Tooltip label={t('panel.collapse')}>
-                <button
-                  type="button"
-                  onClick={togglePanelCollapsed}
-                  className="text-muted hover:bg-chip hover:text-body flex h-8 w-full items-center gap-2 rounded-lg px-2 transition"
-                >
-                  <svg
-                    viewBox="0 0 16 16"
-                    className="h-3.5 w-3.5 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+              <div className="border-line border-t p-2">
+                <Tooltip label={t('panel.collapse')}>
+                  <button
+                    type="button"
+                    onClick={togglePanelCollapsed}
+                    className="text-muted hover:bg-chip hover:text-body flex h-8 w-full items-center gap-2 rounded-lg px-2 transition"
                   >
-                    <path d="M6.5 4l4 4-4 4" />
-                  </svg>
-                  <span className="flex-1 truncate text-left text-xs">{t('panel.collapse')}</span>
-                </button>
-              </Tooltip>
+                    <svg
+                      viewBox="0 0 16 16"
+                      className="h-3.5 w-3.5 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M6.5 4l4 4-4 4" />
+                    </svg>
+                    <span className="flex-1 truncate text-left text-xs">{t('panel.collapse')}</span>
+                  </button>
+                </Tooltip>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
       {/* mobile: tools in the thumb zone — a horizontally scrollable strip under the
           canvas, plus a settings shortcut for the active tool (Photoshop iOS layout) */}
-      <div className="border-line bg-app flex h-14 shrink-0 items-center gap-1.5 border-t px-2 lg:hidden">
-        <div
-          ref={stripRef}
-          className="flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-1 overflow-x-auto py-1.5 [&::-webkit-scrollbar]:hidden"
-        >
-          {allOrder.map((id) => (
-            <button
-              key={id}
-              data-tool={id}
-              type="button"
-              aria-label={id}
-              onClick={() => useStore.getState().setTool(id)}
-              onDoubleClick={() => setMobileSettings({ tool: id, x: 0, y: 0 })}
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition ${
-                tool === id
-                  ? 'border-accent-line bg-accent-soft text-accent-text'
-                  : 'text-muted hover:bg-chip hover:text-body border-transparent'
-              }`}
-            >
-              <ToolIcon id={id} className="h-5 w-5" />
-            </button>
-          ))}
-        </div>
-        <div className="bg-line h-8 w-px shrink-0" />
-        <IconButton
-          big
-          plate
-          title={t('tool.settings')}
-          onClick={() => setMobileSettings({ tool, x: 0, y: 0 })}
-        >
-          <svg
-            viewBox="0 0 16 16"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
+      {!isVector && (
+        <div className="border-line bg-app flex h-14 shrink-0 items-center gap-1.5 border-t px-2 lg:hidden">
+          <div
+            ref={stripRef}
+            className="flex min-w-0 flex-1 [scrollbar-width:none] items-center gap-1 overflow-x-auto py-1.5 [&::-webkit-scrollbar]:hidden"
           >
-            <path d="M3 4.5h6M12 4.5h1M3 11.5h1M7 11.5h6" />
-            <circle cx="10.5" cy="4.5" r="1.6" />
-            <circle cx="5.5" cy="11.5" r="1.6" />
-          </svg>
-        </IconButton>
-      </div>
-      {mobileSettings && (
+            {allOrder.map((id) => (
+              <button
+                key={id}
+                data-tool={id}
+                type="button"
+                aria-label={id}
+                onClick={() => useStore.getState().setTool(id)}
+                onDoubleClick={() => setMobileSettings({ tool: id, x: 0, y: 0 })}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition ${
+                  tool === id
+                    ? 'border-accent-line bg-accent-soft text-accent-text'
+                    : 'text-muted hover:bg-chip hover:text-body border-transparent'
+                }`}
+              >
+                <ToolIcon id={id} className="h-5 w-5" />
+              </button>
+            ))}
+          </div>
+          <div className="bg-line h-8 w-px shrink-0" />
+          <IconButton
+            big
+            plate
+            title={t('tool.settings')}
+            onClick={() => setMobileSettings({ tool, x: 0, y: 0 })}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            >
+              <path d="M3 4.5h6M12 4.5h1M3 11.5h1M7 11.5h6" />
+              <circle cx="10.5" cy="4.5" r="1.6" />
+              <circle cx="5.5" cy="11.5" r="1.6" />
+            </svg>
+          </IconButton>
+        </div>
+      )}
+      {!isVector && mobileSettings && (
         <ToolSettings anchor={mobileSettings} onClose={() => setMobileSettings(null)} />
       )}
 
-      {panelOpen && (
+      {!isVector && panelOpen && (
         <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setPanelOpen(false)}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <aside

@@ -332,6 +332,7 @@ export function TopBarDialogs({
   setupOpen,
   exportOpen,
   clearConfirm,
+  onVectorize,
   onCloseProjects,
   onCloseSetup,
   onCloseExport,
@@ -342,6 +343,7 @@ export function TopBarDialogs({
   setupOpen: boolean
   exportOpen: boolean
   clearConfirm: boolean
+  onVectorize: () => void
   onCloseProjects: () => void
   onCloseSetup: () => void
   onCloseExport: () => void
@@ -353,7 +355,7 @@ export function TopBarDialogs({
     <>
       {projectsOpen && <ProjectsDialog onClose={onCloseProjects} />}
       {setupOpen && <ProjectDialog mode="edit" onClose={onCloseSetup} />}
-      {exportOpen && <ExportPopover onClose={onCloseExport} />}
+      {exportOpen && <ExportPopover onClose={onCloseExport} onVectorize={onVectorize} />}
       {clearConfirm && (
         <ConfirmDialog
           title={t('confirm.clear.title')}
