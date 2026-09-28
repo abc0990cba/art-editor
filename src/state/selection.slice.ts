@@ -238,7 +238,8 @@ export interface SelectionSlice {
   selection: number[]
   // element selection (UI state; the styled edits themselves are undoable doc actions)
   selectElements: (ids: number[]) => void
-  toggleSelection: (id: number) => void
+  /** Drop the given ids from the selection (Shift/Alt deselect of groups and marquee hits) */
+  removeFromSelection: (ids: number[]) => void
   clearSelection: () => void
   selectAllElements: () => void
   /** Restyle every selected element (undoable) */
@@ -264,12 +265,12 @@ export function createSelectionSlice({ set }: SliceApi): SelectionSlice {
     selection: [],
 
     selectElements: (ids) => set({ selection: [...new Set(ids)].filter((id) => id > 0) }),
-    toggleSelection: (id) =>
-      set((s) => ({
-        selection: s.selection.includes(id)
-          ? s.selection.filter((x) => x !== id)
-          : [...s.selection, id],
-      })),
+    removeFromSelection: (ids) =>
+      set((s) => {
+        const drop = new Set(ids)
+        const next = s.selection.filter((id) => !drop.has(id))
+        return next.length === s.selection.length ? s : { selection: next }
+      }),
     clearSelection: () => set((s) => (s.selection.length > 0 ? { selection: [] } : s)),
     selectAllElements: () =>
       set((s) => {

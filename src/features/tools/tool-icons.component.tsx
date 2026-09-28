@@ -161,6 +161,23 @@ const order: Tool[] = [
 /** The rail shows every tool in one flat list; the mobile strip reuses the order. */
 export const allOrder: Tool[] = [...order, ...SHAPE_TOOLS]
 
+/** Tools whose settings popover carries real controls (everything but select/picker). */
+export function toolHasSettings(tool: Tool): boolean {
+  return tool !== 'select' && tool !== 'picker'
+}
+
+/**
+ * Fresco's per-tool options marker: a tiny triangle shown on every tool that carries settings.
+ * Purely an affordance — opening the settings is the second click on the already-active tool.
+ */
+export function SettingsGlyph({ className }: { className: string }) {
+  return (
+    <svg viewBox="0 0 8 5" className={className} fill="currentColor" aria-hidden>
+      <path d="M0 0h8L4 5z" />
+    </svg>
+  )
+}
+
 export function ToolIcon({ id, className = 'h-4.5 w-4.5' }: { id: Tool; className?: string }) {
   return (
     <svg

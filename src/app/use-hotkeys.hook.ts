@@ -36,6 +36,17 @@ const toolKeys: Record<string, Tool> = {
   '5': 'bento',
 }
 
+/** Arrows nudge the selection by one cell, Shift+arrows by ten (Illustrator practice). */
+function nudgeSelection(key: string, shift: boolean): boolean {
+  const s = useStore.getState()
+  if (s.selection.length === 0) return false
+  const step = shift ? 10 : 1
+  const dx = key === 'arrowleft' ? -step : key === 'arrowright' ? step : 0
+  const dy = key === 'arrowup' ? -step : key === 'arrowdown' ? step : 0
+  s.moveSelection(dx, dy)
+  return true
+}
+
 export function useHotkeys(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -106,6 +117,10 @@ export function useHotkeys(): void {
       if (!mod && key === 'f') {
         e.preventDefault()
         useStore.getState().requestFit()
+        return
+      }
+      if (!mod && key.startsWith('arrow') && nudgeSelection(key, e.shiftKey)) {
+        e.preventDefault()
         return
       }
       if (!mod && toolKeys[key]) {

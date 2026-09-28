@@ -1,4 +1,4 @@
-import type { StageTheme, SymmetryState } from '../../engine/doc.ts'
+import type { StageTheme, SymmetryState, Doc } from '../../engine/doc.ts'
 import type { Grid } from '../../engine/grids.ts'
 import type { Pt } from '../../engine/marching-squares.ts'
 import { isRepeat, repeatDef, type RepeatDef } from '../../engine/symmetry.ts'
@@ -13,20 +13,25 @@ export const SCROLLBAR = 10
 /** Marching-ants dash travel speed, in screen px per second. */
 export const ANTS_SPEED = 30
 
-/** In-stroke drag variants: canvas pan, freehand paint, shape drag, selection move. */
+/** In-stroke drag variants: canvas pan, freehand paint, shape drag, selection move, marquee select. */
 export interface DragState {
-  kind: 'pan' | 'draw' | 'shape' | 'move'
+  kind: 'pan' | 'draw' | 'shape' | 'move' | 'marquee'
   sx?: number
   sy?: number
   panX?: number
   panY?: number
   start?: [number, number]
+  /** Marquee: live opposite corner in doc space while the rubber band stretches */
+  end?: { x: number; y: number }
   last?: number
   removedLinks?: Set<number>
   /** Move drag: snapshot of the selected cells [index, value, element id] plus last offset */
   moved?: [number, number, number][]
   dx?: number
   dy?: number
+  /** Marquee modifiers captured at pointerdown (the finishing pointerup may miss them) */
+  additive?: boolean
+  subtractive?: boolean
 }
 
 export interface Hover {
@@ -36,6 +41,131 @@ export interface Hover {
 export interface DocPoint {
   x: number
   y: number
+}
+
+/** Axis-aligned rect in doc units (marquee rubber band, normalized corners). */
+export interface MarqueeRect {
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+}
+
+/** Normalize the two marquee corners into a proper rect. */
+export function marqueeRect(a: DocPoint, b: DocPoint): MarqueeRect {
+  return {
+    x0: Math.min(a.x, b.x),
+    y0: Math.min(a.y, b.y),
+    x1: Math.max(a.x, b.x),
+    y1: Math.max(a.y, b.y),
+  }
+}
+
+/**
+ * Live marquee rubber band on the overlay: translucent fill + hairline border, the stroke kept
+ * screen-constant. Drawn inside the overlay's doc-space transform.
+ */
+export function drawMarquee(
+  ctx: CanvasRenderingContext2D,
+  band: { start?: [number, number]; end?: DocPoint } | null,
+  theme: StageTheme,
+  zoom: number,
+): void {
+  if (!band?.start || !band.end) return
+  const r = marqueeRect({ x: band.start[0], y: band.start[1] }, band.end)
+  ctx.fillStyle = theme.guide
+  ctx.globalAlpha = 0.15
+  ctx.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0)
+  ctx.globalAlpha = 1
+  ctx.lineWidth = 1 / zoom
+  ctx.strokeStyle = theme.guide
+  ctx.strokeRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0)
+}
+
+/**
+ * Ids of objects whose ink bounding box intersects the marquee rect (doc units) — the Illustrator
+ * rubber-band rule. `pickable` filters out locked/hidden ids; connectors count through their
+ * endpoints even when they own no cells.
+ */
+export function objectsInMarquee(
+  doc: Doc,
+  rect: MarqueeRect,
+  pickable: (id: number) => boolean,
+): number[] {
+  const bw = doc.cols * doc.sub
+  const sub = doc.sub
+  const boxes = new Map<number, { x0: number; y0: number; x1: number; y1: number }>()
+  const grow = (id: number, x0: number, y0: number, x1: number, y1: number): void => {
+    const b = boxes.get(id)
+    if (!b) {
+      boxes.set(id, { x0, y0, x1, y1 })
+      return
+    }
+    b.x0 = Math.min(b.x0, x0)
+    b.y0 = Math.min(b.y0, y0)
+    b.x1 = Math.max(b.x1, x1)
+    b.y1 = Math.max(b.y1, y1)
+  }
+  if (doc.cellObj) {
+    for (let i = 0; i < doc.cellObj.length; i++) {
+      const o = doc.cellObj[i]
+      if (o <= 0) continue
+      const bx = i % bw
+      const by = (i - bx) / bw
+      grow(o, bx / sub, by / sub, (bx + 1) / sub, (by + 1) / sub)
+    }
+  }
+  for (const l of doc.links) {
+    if (!l.obj) continue
+    grow(l.obj, l.ax, l.ay, l.ax + 1, l.ay + 1)
+  }
+  const hits: number[] = []
+  for (const [id, b] of boxes) {
+    if (b.x0 < rect.x1 && b.x1 > rect.x0 && b.y0 < rect.y1 && b.y1 > rect.y0 && pickable(id)) {
+      hits.push(id)
+    }
+  }
+  return hits.sort((a, b) => a - b)
+}
+
+/** Any painted buffer cell inside the rect (strided scan, capped work for huge marquees). */
+export function rectHasInk(
+  cells: Uint16Array,
+  bw: number,
+  bh: number,
+  sub: number,
+  rect: MarqueeRect,
+): boolean {
+  const bx0 = Math.max(0, Math.floor(rect.x0 * sub))
+  const by0 = Math.max(0, Math.floor(rect.y0 * sub))
+  const bx1 = Math.min(bw - 1, Math.ceil(rect.x1 * sub) - 1)
+  const by1 = Math.min(bh - 1, Math.ceil(rect.y1 * sub) - 1)
+  if (bx1 < bx0 || by1 < by0) return false
+  const area = (bx1 - bx0 + 1) * (by1 - by0 + 1)
+  const stride = Math.max(1, Math.ceil(Math.sqrt(area / 4096)))
+  for (let by = by0; by <= by1; by += stride) {
+    for (let bx = bx0; bx <= bx1; bx += stride) {
+      if (cells[by * bw + bx] > 0) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Shift-constrained opposite corner of a shape drag: the line snaps to 45° steps, every
+ * two-dimensional shape keeps a square 1:1 bounding box (Illustrator/Photoshop practice).
+ */
+export function constrainShapeEnd(tool: string, start: DocPoint, end: DocPoint): DocPoint {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  if (tool === 'line') {
+    const step = Math.PI / 4
+    const a = Math.round(Math.atan2(dy, dx) / step) * step
+    const d = Math.max(Math.abs(dx), Math.abs(dy))
+    return { x: start.x + Math.cos(a) * d, y: start.y + Math.sin(a) * d }
+  }
+  const m = Math.max(Math.abs(dx), Math.abs(dy))
+  return { x: start.x + Math.sign(dx) * m, y: start.y + Math.sign(dy) * m }
 }
 
 /**

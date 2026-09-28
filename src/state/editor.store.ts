@@ -172,7 +172,8 @@ export interface State {
   setStyleScope: (scope: StyleScope) => void
   // element selection (UI state; the styled edits themselves are undoable doc actions)
   selectElements: (ids: number[]) => void
-  toggleSelection: (id: number) => void
+  /** Drop the given ids from the selection (Shift/Alt deselect of groups and marquee hits) */
+  removeFromSelection: (ids: number[]) => void
   clearSelection: () => void
   selectAllElements: () => void
   /** Restyle every selected element (undoable) */

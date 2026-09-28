@@ -659,15 +659,15 @@ export const en = {
   'tool.pencil.desc':
     'Draws freehand pixels with the current brush tip and pixel size. Drag to paint a stroke.',
   'tool.select.desc':
-    'Click a drawn element to select it (Shift+click adds). Drag the selection to move it, Del erases it. Its style is edited in the right panel.',
+    'Click a shape to select it — or its whole group (Shift adds, Alt removes). Drag empty space for a rubber band, drag the selection to move it, arrows nudge, Del erases.',
   'tool.eraser.desc':
     'Erase pixels with the current brush tip; also removes connectors it crosses.',
   'tool.fill.desc':
     'Flood-fills the contiguous region of same-colored cells around the click; symmetry copies are filled too.',
   'tool.picker.desc': 'Click a pixel to make its color the active color.',
-  'tool.line.desc': 'Drag to draw a straight line of pixels between two points.',
-  'tool.rect.desc': 'Drag to draw a rectangle outline.',
-  'tool.ellipse.desc': 'Drag to draw an ellipse outline.',
+  'tool.line.desc': 'Drag to draw a straight line of pixels; Shift snaps it to 45° steps.',
+  'tool.rect.desc': 'Drag to draw a rectangle outline; Shift keeps it square.',
+  'tool.ellipse.desc': 'Drag to draw an ellipse outline; Shift keeps it a circle.',
   'tool.connector.desc': 'Click two cells to connect their centers with a line. Esc cancels.',
   'tool.star.desc': 'Drag to draw a star outline; the ray count is in the Shapes settings.',
   'tool.polygon.desc': 'Drag to draw a regular polygon; the side count is in the Shapes settings.',

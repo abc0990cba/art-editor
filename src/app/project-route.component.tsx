@@ -12,7 +12,6 @@ import type { ImportBitmap } from '../engine/import-image.ts'
 import { deserialize } from '../engine/project.ts'
 import { GradientWorkspace } from '../features/gradient/gradient-workspace.component.tsx'
 import { ImportDialog } from '../features/import/import-dialog.component.tsx'
-import { ToolSettings, type SettingsAnchor } from '../features/tools/tool-settings.component.tsx'
 import { VectorWorkspace } from '../features/vectorizer/vector-workspace.component.tsx'
 import { I18nProvider } from '../shared/i18n/i18n.provider.tsx'
 import { decodeImageFile } from '../shared/lib/decode-image.util.ts'
@@ -47,8 +46,6 @@ export function ProjectRoute(): ReactElement {
   const [importBitmap, setImportBitmap] = useState<ImportBitmap | null>(null)
   // phones/tablets: the right panel lives in a slide-over drawer instead of a column
   const [panelOpen, setPanelOpen] = useState(false)
-  // mobile: the active tool's settings open as a bottom sheet from the strip's gear
-  const [mobileSettings, setMobileSettings] = useState<SettingsAnchor | null>(null)
 
   // imports and pastes route by the open project's kind: pixel opens the dither dialog,
   // the vector and gradient workspaces set their trace source directly
@@ -97,10 +94,7 @@ export function ProjectRoute(): ReactElement {
           <GradientSurface entry={entry} />
         ) : (
           <PixelSurface entry={entry}>
-            <MobileToolStrip onSettings={(tool) => setMobileSettings({ tool, x: 0, y: 0 })} />
-            {mobileSettings && (
-              <ToolSettings anchor={mobileSettings} onClose={() => setMobileSettings(null)} />
-            )}
+            <MobileToolStrip />
             {panelOpen && <MobilePanelDrawer onClose={() => setPanelOpen(false)} />}
           </PixelSurface>
         )}

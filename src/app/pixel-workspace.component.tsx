@@ -7,8 +7,14 @@ import {
   SettingsPanel,
 } from '../features/settings-panel/settings-panel.component.tsx'
 import { FabPanel } from '../features/tools/fab-panel.component.tsx'
-import { allOrder, ToolIcon } from '../features/tools/tool-icons.component.tsx'
+import {
+  allOrder,
+  SettingsGlyph,
+  ToolIcon,
+  toolHasSettings,
+} from '../features/tools/tool-icons.component.tsx'
 import { ToolRail } from '../features/tools/tool-rail.component.tsx'
+import { ToolSettings } from '../features/tools/tool-settings.component.tsx'
 import { useI18n } from '../shared/i18n/i18n.provider.tsx'
 import { IconButton, MobileSheet, SectionGlyph } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
@@ -160,14 +166,12 @@ export function PixelCanvasArea(): ReactElement {
   )
 }
 
-/** Mobile thumb zone: horizontally scrollable tool strip + settings shortcut for the active tool. */
-export function MobileToolStrip({
-  onSettings,
-}: {
-  onSettings: (tool: Tool) => void
-}): ReactElement {
+/** Mobile thumb zone: horizontally scrollable tool strip with Fresco-style tool settings. */
+export function MobileToolStrip(): ReactElement {
   const { t } = useI18n()
   const tool = useStore((s) => s.tool)
+  // the active tool's settings open as a full-screen sheet on the second tap
+  const [settingsTool, setSettingsTool] = useState<Tool | null>(null)
   const stripRef = useRef<HTMLDivElement>(null)
   // keep the active tool visible in the mobile strip while the user scrolls it
   useEffect(() => {
@@ -175,6 +179,16 @@ export function MobileToolStrip({
       ?.querySelector(`[data-tool="${tool}"]`)
       ?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
   }, [tool])
+
+  const onToolClick = (id: Tool) => {
+    if (tool !== id) {
+      setSettingsTool(null)
+      useStore.getState().setTool(id)
+      return
+    }
+    if (!toolHasSettings(id)) return
+    setSettingsTool((cur) => (cur === id ? null : id))
+  }
 
   return (
     <div className="border-line bg-app flex h-14 shrink-0 items-center gap-1.5 border-t px-2 lg:hidden">
@@ -188,20 +202,27 @@ export function MobileToolStrip({
             data-tool={id}
             type="button"
             aria-label={id}
-            onClick={() => useStore.getState().setTool(id)}
-            onDoubleClick={() => onSettings(id)}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition ${
+            onClick={() => onToolClick(id)}
+            className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition ${
               tool === id
                 ? 'border-accent-line bg-accent-soft text-accent-text'
                 : 'text-muted hover:bg-chip hover:text-body border-transparent'
             }`}
           >
             <ToolIcon id={id} className="h-5 w-5" />
+            {toolHasSettings(id) && (
+              <SettingsGlyph className="absolute bottom-1 left-1/2 h-1 w-1.5 -translate-x-1/2" />
+            )}
           </button>
         ))}
       </div>
       <div className="bg-line h-8 w-px shrink-0" />
-      <IconButton big plate title={t('tool.settings')} onClick={() => onSettings(tool)}>
+      <IconButton
+        big
+        plate
+        title={t('tool.settings')}
+        onClick={() => setSettingsTool((cur) => (cur === tool ? null : tool))}
+      >
         <svg
           viewBox="0 0 16 16"
           className="h-5 w-5"
@@ -215,6 +236,12 @@ export function MobileToolStrip({
           <circle cx="5.5" cy="11.5" r="1.6" />
         </svg>
       </IconButton>
+      {settingsTool && (
+        <ToolSettings
+          anchor={{ tool: settingsTool, x: 0, y: 0 }}
+          onClose={() => setSettingsTool(null)}
+        />
+      )}
     </div>
   )
 }

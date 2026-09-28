@@ -168,6 +168,44 @@ export function objLayer(layers: SceneLayer[], objId: number): SceneLayer | null
 }
 
 /**
+ * The outermost group that contains the object, or null when it sits directly in a layer. The
+ * select tool treats this group as the click unit (Illustrator practice): one click picks the whole
+ * group, not the single shape inside it.
+ */
+export function groupAncestorOf(layers: SceneLayer[], objId: number): SceneGroup | null {
+  // undefined = "not on this branch", distinct from null = "found directly in a layer"
+  const visit = (items: SceneItem[], outer: SceneGroup | null): SceneGroup | null | undefined => {
+    for (const item of items) {
+      if (item.kind === 'obj') {
+        if (item.id === objId) return outer
+      } else {
+        const hit = visit(item.children, outer ?? item)
+        if (hit !== undefined) return hit
+      }
+    }
+    return undefined
+  }
+  for (const layer of layers) {
+    const hit = visit(layer.children, null)
+    if (hit !== undefined) return hit
+  }
+  return null
+}
+
+/** Every object id inside a group's subtree (deep, in tree order). */
+export function objIdsWithin(group: SceneGroup): number[] {
+  const out: number[] = []
+  const walk = (items: SceneItem[]): void => {
+    for (const item of items) {
+      if (item.kind === 'obj') out.push(item.id)
+      else walk(item.children)
+    }
+  }
+  walk(group.children)
+  return out
+}
+
+/**
  * Effective edit protection: the node itself, any ancestor group or the owning layer is locked, or
  * some ancestor/layer is hidden (hidden content is not editable either).
  */

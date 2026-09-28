@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import { brushAnchor } from '../../engine/brush.ts'
-import { STAGE_THEMES, docExtent, type Doc } from '../../engine/doc.ts'
+import { STAGE_THEMES, docExtent } from '../../engine/doc.ts'
 import { buildGeometry, stagingPreview, type Geometry } from '../../engine/geometry.ts'
 import { cellCoordLabel } from '../../engine/grids.ts'
-import { marchingSquares, type Pt } from '../../engine/marching-squares.ts'
 import { drawGeometry } from '../../engine/png.ts'
 import { nodeProtected, objLayer, type SceneLayer } from '../../engine/scene.ts'
 import { scrollbarMetrics } from '../../engine/scrollbars.ts'
@@ -19,13 +18,20 @@ import {
   SCROLLBAR,
   blobCells,
   checkerTileFor,
+  constrainShapeEnd,
   drawGuides,
+  drawMarquee,
+  marqueeRect,
+  objectsInMarquee,
   polyPath,
+  rectHasInk,
   sizeCanvas,
   type DragState,
   type Hover,
 } from './canvas-stage.util.ts'
+import { clickSelectionIds } from './select-hit.util.ts'
 import { useCanvasStaging } from './use-canvas-staging.hook.ts'
+import { useOutlineCache } from './use-outline-cache.hook.ts'
 
 export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void } = {}) {
   const { t } = useI18n()
@@ -47,7 +53,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const fillStyle = useStore((s) => s.fillStyle)
   const selection = useStore((s) => s.selection)
   const selectElements = useStore((s) => s.selectElements)
-  const toggleSelection = useStore((s) => s.toggleSelection)
+  const removeFromSelection = useStore((s) => s.removeFromSelection)
   const clearSelection = useStore((s) => s.clearSelection)
   const moveSelection = useStore((s) => s.moveSelection)
   const fillSelection = useStore((s) => s.fillSelection)
@@ -207,6 +213,17 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
   const [hover, setHover] = useState<Hover | null>(null)
   const drag = useRef<DragState | null>(null)
+  // marquee frames coalesce into one overlay redraw per frame (the base layer never changes)
+  const marqueeRafRef = useRef(0)
+  const scheduleMarquee = useCallback(() => {
+    if (!marqueeRafRef.current) {
+      marqueeRafRef.current = requestAnimationFrame(() => {
+        marqueeRafRef.current = 0
+        drawOverlayRef.current()
+      })
+    }
+  }, [])
+  useEffect(() => () => cancelAnimationFrame(marqueeRafRef.current), [])
   // active scrollbar thumb drag: axis, pointer start, view start and px-per-doc scale
   const scrollDrag = useRef<{
     axis: 'x' | 'y'
@@ -251,8 +268,14 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   // Finish a drag no matter where the pointer ends up: window-level pointerup,
   // pointercancel and blur all clear the in-flight stroke so a lost pointerup
   // can never turn later hover moves into stray stamps. A selection move drag
-  // commits through moveSelection instead of the paint path.
+  // commits through moveSelection instead of the paint path; a marquee drag
+  // resolves the rubber band into element ids (add/subtract per its modifiers).
   const finishDragRef = useRef<() => void>(() => {})
+  /** A scene object the select tool may pick: visible, not locked, not under a locked parent. */
+  const pickableObj = useCallback(
+    (id: number): boolean => id > 0 && !(doc.layers && nodeProtected(doc.layers, id)),
+    [doc.layers],
+  )
   finishDragRef.current = () => {
     const d = drag.current
     if (!d) return
@@ -263,6 +286,31 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       stagingRef.current = null
       bumpStaging()
       if ((d.dx ?? 0) !== 0 || (d.dy ?? 0) !== 0) moveSelection(d.dx!, d.dy!)
+      return
+    }
+    if (d.kind === 'marquee') {
+      if (marqueeRafRef.current) {
+        cancelAnimationFrame(marqueeRafRef.current)
+        marqueeRafRef.current = 0
+      }
+      if (d.start && d.end) {
+        const rect = marqueeRect({ x: d.start[0], y: d.start[1] }, d.end)
+        const hits = objectsInMarquee(doc, rect, pickableObj)
+        if (d.subtractive) removeFromSelection(hits)
+        else if (d.additive) selectElements([...selection, ...hits])
+        else {
+          selectElements(hits)
+          // the band covered painted artwork yet picked nothing: canvas-wide styles keep
+          // cellObj empty — surface why instead of failing silently (same as a bare click)
+          if (
+            hits.length === 0 &&
+            doc.styleScope === 'global' &&
+            rectHasInk(doc.cells, bw, bh, doc.sub, rect)
+          ) {
+            showScopeHint()
+          }
+        }
+      }
       return
     }
     commitStaging()
@@ -280,6 +328,63 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   }, [])
 
   // ---- pointer handlers ----
+  /** Select-tool press: group-aware pick, Shift/Alt add/remove, empty space starts a marquee. */
+  const beginSelect = (
+    e: React.PointerEvent<HTMLCanvasElement>,
+    p: { x: number; y: number },
+    idx: number,
+  ) => {
+    // locked or hidden-ancestor objects are not pickable
+    const rawObj = idx >= 0 ? (doc.cellObj?.[idx] ?? 0) : 0
+    const obj = pickableObj(rawObj) ? rawObj : 0
+    if (obj > 0 && (e.shiftKey || e.altKey)) {
+      // Shift adds/toggles the clicked entity, Alt removes it; both work on whole
+      // groups — the group is the click unit (Illustrator practice)
+      const ids = clickSelectionIds(doc, obj)
+      if (e.altKey || ids.some((id) => selection.includes(id))) removeFromSelection(ids)
+      else selectElements([...selection, ...ids])
+      return
+    }
+    if (obj > 0) {
+      const ids = clickSelectionIds(doc, obj)
+      const already = ids.every((id) => selection.includes(id))
+      if (!already) selectElements(ids)
+      // clicking an object makes its layer the active one
+      if (doc.layers) {
+        const layerId = objLayer(doc.layers, obj)?.id
+        if (layerId != null && layerId !== activeLayerId) setActiveLayer(layerId)
+      }
+      const sel = already ? selection : ids
+      // snapshot the selected cells so the drag preview knows what moves
+      let moved: [number, number, number][] = []
+      if (isSquare && doc.cellObj) {
+        moved = []
+        for (let i = 0; i < doc.cellObj.length; i++) {
+          const o = doc.cellObj[i]
+          if (o > 0 && sel.includes(o) && doc.cells[i] > 0) moved.push([i, doc.cells[i], o])
+        }
+      }
+      drag.current = { kind: 'move', sx: p.x, sy: p.y, moved, dx: 0, dy: 0 }
+      setDragKind('move')
+      return
+    }
+    // empty space: a plain click clears, Shift/Alt keep the selection and stretch an
+    // additive/subtractive rubber band; everything inside becomes selected on release
+    if (!e.shiftKey && !e.altKey) clearSelection()
+    drag.current = {
+      kind: 'marquee',
+      sx: p.x,
+      sy: p.y,
+      start: [p.x, p.y],
+      additive: e.shiftKey,
+      subtractive: e.altKey,
+    }
+    setDragKind('marquee')
+    // artwork is there but unselectable: canvas-wide styles keep cellObj empty,
+    // so a select click would do nothing — surface why instead of staying silent
+    if (doc.styleScope === 'global' && idx >= 0 && doc.cells[idx] > 0) showScopeHint()
+  }
+
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     try {
       e.currentTarget.setPointerCapture(e.pointerId)
@@ -298,41 +403,19 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     const idx = toIndex(e)
     // painting tools are no-ops while the active layer is locked (or under a locked parent)
     const drawBlocked = tool !== 'select' && tool !== 'picker' ? activeLayerState().locked : false
+    // shape drags only record their start point; the preview builds in onPointerMove
+    if (tool === 'line' || tool === 'rect' || tool === 'ellipse' || isShapeTool(tool)) {
+      if (!drawBlocked) {
+        drag.current = { kind: 'shape', start: [p.x, p.y] }
+        shapeStartRef.current = [p.x, p.y]
+        shapeLastRef.current = [p.x, p.y]
+        setDragKind('shape')
+      }
+      return
+    }
     switch (tool) {
       case 'select': {
-        // locked or hidden-ancestor objects are not pickable
-        const rawObj = idx >= 0 ? (doc.cellObj?.[idx] ?? 0) : 0
-        const obj = rawObj > 0 && !(doc.layers && nodeProtected(doc.layers, rawObj)) ? rawObj : 0
-        if (e.shiftKey) {
-          if (obj > 0) toggleSelection(obj)
-          break
-        }
-        if (obj > 0) {
-          const already = selection.includes(obj)
-          if (!already) selectElements([obj])
-          // clicking an object makes its layer the active one
-          if (doc.layers) {
-            const layerId = objLayer(doc.layers, obj)?.id
-            if (layerId != null && layerId !== activeLayerId) setActiveLayer(layerId)
-          }
-          const sel = already ? selection : [obj]
-          // snapshot the selected cells so the drag preview knows what moves
-          let moved: [number, number, number][] = []
-          if (isSquare && doc.cellObj) {
-            moved = []
-            for (let i = 0; i < doc.cellObj.length; i++) {
-              const o = doc.cellObj[i]
-              if (o > 0 && sel.includes(o) && doc.cells[i] > 0) moved.push([i, doc.cells[i], o])
-            }
-          }
-          drag.current = { kind: 'move', sx: p.x, sy: p.y, moved, dx: 0, dy: 0 }
-          setDragKind('move')
-        } else {
-          clearSelection()
-          // artwork is there but unselectable: canvas-wide styles keep cellObj empty,
-          // so a select click would do nothing — surface why instead of staying silent
-          if (doc.styleScope === 'global' && idx >= 0 && doc.cells[idx] > 0) showScopeHint()
-        }
+        beginSelect(e, p, idx)
         break
       }
       case 'pencil':
@@ -367,38 +450,6 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
           const v = doc.cells[idx]
           if (v > 0) setColor(doc.palette[(v - 1) % doc.palette.length])
         }
-        break
-      }
-      case 'line':
-      case 'rect':
-      case 'ellipse':
-      case 'star':
-      case 'polygon':
-      case 'diamond':
-      case 'heart':
-      case 'spiral':
-      case 'arrow':
-      case 'lightning':
-      case 'moon':
-      case 'wave':
-      case 'cross':
-      case 'flower':
-      case 'gear':
-      case 'sun':
-      case 'bento':
-      case 'zigzag':
-      case 'ring':
-      case 'arc':
-      case 'drop':
-      case 'chevron':
-      case 'concentric':
-      case 'concentricRect':
-      case 'skull': {
-        if (drawBlocked) break
-        drag.current = { kind: 'shape', start: [p.x, p.y] }
-        shapeStartRef.current = [p.x, p.y]
-        shapeLastRef.current = [p.x, p.y]
-        setDragKind('shape')
         break
       }
       case 'connector': {
@@ -473,8 +524,13 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     }
     if (d.kind === 'move') {
       if (!p || !d.moved || d.moved.length === 0) return
-      const ndx = Math.round(p.x - d.sx!)
-      const ndy = Math.round(p.y - d.sy!)
+      let ndx = Math.round(p.x - d.sx!)
+      let ndy = Math.round(p.y - d.sy!)
+      // Shift locks the drag to the dominant axis — straight horizontal/vertical moves
+      if (e.shiftKey) {
+        if (Math.abs(ndx) >= Math.abs(ndy)) ndy = 0
+        else ndx = 0
+      }
       if (ndx === d.dx && ndy === d.dy) return
       d.dx = ndx
       d.dy = ndy
@@ -501,6 +557,13 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       scheduleStaging()
       return
     }
+    if (d.kind === 'marquee') {
+      // live rubber band: overlay-only redraw (rAF-coalesced), the base never changes
+      if (!p) return
+      d.end = p
+      scheduleMarquee()
+      return
+    }
     if (!p) return
     if (d.kind === 'draw') {
       if (d.last !== idx) {
@@ -510,8 +573,11 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       return
     }
     if (d.kind === 'shape') {
-      shapeLastRef.current = [p.x, p.y]
-      stampShape({ x: d.start![0], y: d.start![1] }, p, e.altKey)
+      // Shift constrains the drag: 45° steps for the line, a 1:1 box for 2D shapes
+      const startPt = { x: d.start![0], y: d.start![1] }
+      const cp = e.shiftKey ? constrainShapeEnd(tool, startPt, p) : p
+      shapeLastRef.current = [cp.x, cp.y]
+      stampShape(startPt, cp, e.altKey)
     }
   }
 
@@ -691,82 +757,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     return { cell, pixel }
   }, [isSquare, bw, bh, doc.sub, extent.w, extent.h])
 
-  interface ElementOutline {
-    path: Path2D
-    /** Bounding box in doc units, for the selection size badge */
-    minX: number
-    minY: number
-    maxX: number
-    maxY: number
-  }
-
-  /** Region contour (doc units) around every cell owned by the given element ids. */
-  const elementOutline = useCallback(
-    (ids: number[]): ElementOutline | null => {
-      if (!doc.cellObj || ids.length === 0) return null
-      const set = new Set(ids)
-      const w = bw + 2
-      const h = bh + 2
-      const field = new Float32Array(w * h)
-      let any = false
-      let minX = bw
-      let minY = bh
-      let maxX = -1
-      let maxY = -1
-      for (let y = 0; y < bh; y++) {
-        for (let x = 0; x < bw; x++) {
-          const i = y * bw + x
-          if (doc.cells[i] > 0 && set.has(doc.cellObj[i])) {
-            field[(y + 1) * w + (x + 1)] = 1
-            any = true
-            if (x < minX) minX = x
-            if (y < minY) minY = y
-            if (x > maxX) maxX = x
-            if (y > maxY) maxY = y
-          }
-        }
-      }
-      if (!any) return null
-      const loops: Pt[][] = marchingSquares(field, w, h, 0.5)
-      const path = new Path2D()
-      for (const loop of loops) {
-        loop.forEach((p, k) => {
-          const x = (p.x - 0.5) / doc.sub
-          const y = (p.y - 0.5) / doc.sub
-          if (k === 0) path.moveTo(x, y)
-          else path.lineTo(x, y)
-        })
-        path.closePath()
-      }
-      return {
-        path,
-        minX: minX / doc.sub,
-        minY: minY / doc.sub,
-        maxX: (maxX + 1) / doc.sub,
-        maxY: (maxY + 1) / doc.sub,
-      }
-    },
-    [doc.cellObj, doc.cells, doc.sub, bw, bh],
-  )
-
-  // Outline cache: building a contour allocates a full-buffer float field and runs
-  // marching squares over it — far too slow to redo on every hover move in select mode.
-  // Keyed per doc; the doc only changes on commit, so hits cover all hover/redraw work.
-  const outlineCacheRef = useRef<{ doc: Doc; map: Map<string, ElementOutline | null> } | null>(null)
-  const cachedOutline = useCallback(
-    (ids: number[]): ElementOutline | null => {
-      const key = [...ids].sort((a, b) => a - b).join(',')
-      let c = outlineCacheRef.current
-      if (!c || c.doc !== doc) c = outlineCacheRef.current = { doc, map: new Map() }
-      const hit = c.map.get(key)
-      if (hit !== undefined) return hit
-      const built = elementOutline(ids)
-      if (c.map.size > 128) c.map.clear()
-      c.map.set(key, built)
-      return built
-    },
-    [elementOutline, doc],
-  )
+  // selection/hover contours (marching squares over the owned cells), cached per doc
+  const cachedOutline = useOutlineCache(doc, bw, bh)
 
   const hoverObj = hover && tool === 'select' ? (doc.cellObj?.[hover.idx] ?? 0) : 0
 
@@ -1070,8 +1062,13 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       ctx.fillText(label, px + 5, py + 9.5)
       ctx.restore()
     }
-    if (hoverObj > 0 && dragKind === null && !selection.includes(hoverObj)) {
-      const hov = cachedOutline([hoverObj])
+    // live marquee rubber band: translucent fill + hairline border, screen-constant stroke
+    const mq = dragKind === 'marquee' && drag.current?.kind === 'marquee' ? drag.current : null
+    if (mq) drawMarquee(ctx, mq, stage, view.zoom)
+    // hover previews exactly what a click would pick: the whole group (see clickSelectionIds)
+    const hoverIds = hoverObj > 0 ? clickSelectionIds(doc, hoverObj) : null
+    if (hoverIds && dragKind === null && !hoverIds.some((id) => selection.includes(id))) {
+      const hov = cachedOutline(hoverIds)
       if (hov) {
         blitOutsideStrokes((s) => {
           s.lineJoin = 'round'
