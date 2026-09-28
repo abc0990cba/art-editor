@@ -18,6 +18,7 @@ const base = {
   free: false,
   strokeOnly: true,
   singleColor: true,
+  symmetryActive: false,
   inkColor: '#e63946',
   start: [3, 4] as [number, number],
   last: [13, 14] as [number, number],
@@ -51,6 +52,13 @@ describe('shapeParametric', () => {
   it('non-square grids and multi-color strokes commit plain pixels', () => {
     expect(shapeParametric({ ...base, isSquare: false })).toBeUndefined()
     expect(shapeParametric({ ...base, singleColor: false })).toBeUndefined()
+  })
+
+  it('symmetric strokes commit plain pixels: a source node owns only the primary copy', () => {
+    expect(shapeParametric({ ...base, symmetryActive: true })).toBeUndefined()
+    expect(
+      shapeParametric({ ...base, symmetryActive: true, tool: 'rect', strokeOnly: false }),
+    ).toBeUndefined()
   })
 
   it('rect spans its inclusive box and carries the corner knobs', () => {

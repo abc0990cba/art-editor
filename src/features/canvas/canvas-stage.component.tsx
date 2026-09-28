@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { brushAnchor } from '../../engine/brush.ts'
 import { STAGE_THEMES, docExtent, type Doc } from '../../engine/doc.ts'
 import { buildGeometry, stagingPreview, type Geometry } from '../../engine/geometry.ts'
+import { cellCoordLabel } from '../../engine/grids.ts'
 import { marchingSquares, type Pt } from '../../engine/marching-squares.ts'
 import { drawGeometry } from '../../engine/png.ts'
 import { nodeProtected, objLayer, type SceneLayer } from '../../engine/scene.ts'
@@ -1368,15 +1369,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         </div>
       )}
       <ZoomControls
-        hoverText={
-          hover
-            ? `${
-                isSquare
-                  ? `x:${Math.floor((hover.idx % bw) / doc.sub)} y:${Math.floor(Math.floor(hover.idx / bw) / doc.sub)} · `
-                  : ''
-              }i:${hover.idx}`
-            : null
-        }
+        hoverText={hover ? cellCoordLabel(grid, hover.idx, isSquare ? bw : 0) : null}
         zoom={view.zoom}
         setView={setView}
         wrap={wrapRef.current}

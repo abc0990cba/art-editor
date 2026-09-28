@@ -1,5 +1,11 @@
 import type { Brush } from '../engine/brush.ts'
-import { normalizeBrush, resizeBrush, squareBrush } from '../engine/brush.ts'
+import {
+  BRUSH_SHAPES,
+  detectBrushShape,
+  normalizeBrush,
+  resizeBrush,
+  squareBrush,
+} from '../engine/brush.ts'
 import type { SymmetryState } from '../engine/doc.ts'
 import { DEFAULT_FILL_STYLE, type FillStyle } from '../engine/fillpatterns.ts'
 import { DEFAULT_CONCENTRIC_RADII } from '../engine/shapes.ts'
@@ -322,6 +328,13 @@ export function createToolsSlice({ set }: SliceApi): ToolsSlice {
       set((s) => {
         // any hand edit makes the current tip a custom one (no preset selected)
         if (patch.size !== undefined && patch.size !== s.brush.size) {
+          // a recognized tip shape regenerates at the new size, so circles stay circles across
+          // slider drags (nearest-neighbor resampling would blur them into a custom tip)
+          const shape = detectBrushShape(s.brush)
+          const known = BRUSH_SHAPES.find((sh) => sh.id === shape)
+          if (known) {
+            return { brushId: null, brush: known.make(patch.size) }
+          }
           return { brushId: null, brush: resizeBrush(s.brush, patch.size) }
         }
         return { brushId: null, brush: normalizeBrush({ ...s.brush, ...patch }) }

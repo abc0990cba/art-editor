@@ -190,9 +190,8 @@ export function SettingsPanel({
 
   return (
     <aside className={className}>
-      {/* pinned color block: collapsible like every section (open by default), but kept
-          outside the scrolling area so the current brush/eraser colors stay visible */}
-      <div className="shrink-0">
+      {/* one scroller for every section, color included — the scrollbar spans the whole panel */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {/* capped height with internal scrolling: when expanded past 60% of the window
             the palette list scrolls inside, so the sections below never get pushed away */}
         <Section
@@ -390,8 +389,7 @@ export function SettingsPanel({
             )
           })()}
         </Section>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+
         <LayersPanel />
         <NodePresetsPanel />
         <ObjectGraphPanel />

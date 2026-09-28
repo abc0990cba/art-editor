@@ -71,7 +71,7 @@ function NameSlot({
       <button
         type="button"
         onClick={onRenameStart}
-        className="text-body hover:bg-chip-active flex min-w-0 flex-1 items-center truncate rounded px-0.5 text-left text-xs font-medium transition max-lg:min-h-11"
+        className="text-body hover:bg-chip-active flex min-w-0 flex-1 items-center truncate rounded px-0.5 text-left text-xs font-medium transition max-lg:min-h-11 max-lg:text-sm"
       >
         {entry.name}
       </button>
@@ -121,7 +121,7 @@ export function ProjectCard({
           <Thumb entry={entry} />
         </button>
       </Tooltip>
-      <div className="flex flex-col gap-1.5 p-2">
+      <div className="flex flex-col gap-1.5 p-2 max-lg:gap-2 max-lg:p-3">
         <div className="flex items-center gap-1.5">
           <span className="border-line text-muted text-overline shrink-0 rounded border px-1 py-px">
             {kindLabel}
@@ -139,12 +139,12 @@ export function ProjectCard({
           {fmtDate(entry.updatedAt)}
           {entry.kind === 'pixel' ? ` · ${entry.doc.cols} × ${entry.doc.rows}` : ''}
         </span>
-        <div className="text-label flex gap-1">
+        <div className="text-label flex gap-1 max-lg:gap-2">
           <Tooltip label={t('projects.open')}>
             <button
               type="button"
               onClick={onOpen}
-              className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition max-lg:min-h-11"
+              className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition max-lg:min-h-11 max-lg:text-sm"
             >
               {t('projects.open')}
             </button>
@@ -153,7 +153,7 @@ export function ProjectCard({
             <button
               type="button"
               onClick={onDuplicate}
-              className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition max-lg:min-h-11"
+              className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition max-lg:min-h-11 max-lg:text-sm"
             >
               {t('projects.duplicate')}
             </button>
@@ -162,7 +162,7 @@ export function ProjectCard({
             <button
               type="button"
               onClick={onDelete}
-              className="border-line flex-1 rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400 max-lg:min-h-11"
+              className="border-line flex-1 rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400 max-lg:min-h-11 max-lg:text-sm"
             >
               {t('projects.delete')}
             </button>

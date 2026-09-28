@@ -59,7 +59,10 @@ function DialogContent({
             : // Ditherlab adaptation: below lg a dialog is a full-screen sheet (native mobile
               // modal); lg: restores the centered desktop modal. Callers size the desktop rung
               // with lg: classes (max-w/rounded/max-h), the sheet fills the phone screen.
-              'fixed top-0 left-0 z-50 grid h-dvh w-full gap-4 overflow-y-auto rounded-none border-0 bg-background shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 lg:top-[50%] lg:left-[50%] lg:h-auto lg:max-w-[calc(100%-2rem)] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:overflow-visible lg:rounded-lg lg:border lg:data-[state=closed]:zoom-out-95 lg:data-[state=open]:zoom-in-95',
+              // The sheet is a flex column on mobile: grid's align-content would stretch every
+              // row across the whole screen height, while flex stacks from the top and lets a
+              // footer pin with mt-auto.
+              'fixed top-0 left-0 z-50 grid h-dvh w-full gap-4 overflow-y-auto max-lg:flex max-lg:flex-col rounded-none border-0 bg-background shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 lg:top-[50%] lg:left-[50%] lg:h-auto lg:max-w-[calc(100%-2rem)] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:overflow-visible lg:rounded-lg lg:border lg:data-[state=closed]:zoom-out-95 lg:data-[state=open]:zoom-in-95',
           className,
         )}
         {...props}

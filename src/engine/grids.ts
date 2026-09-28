@@ -27,6 +27,8 @@ export interface Grid {
   angleOf(i: number): number
   /** Cell on the same radius ring closest to the target angle (-1 when none) */
   cellByAngle(i: number, targetAngle: number): number
+  /** Radial grids only: [ring index, sector index in the ring, sector count of the ring] */
+  ringSectorOf?(i: number): [number, number, number]
 }
 
 const cache = new Map<string, Grid>()
@@ -45,6 +47,35 @@ export function makeGrid(type: GridType, cols: number, rows: number, even = fals
 export function docSize(type: GridType, cols: number, rows: number): { w: number; h: number } {
   const g = makeGrid(type, cols, rows)
   return { w: g.w, h: g.h }
+}
+
+/**
+ * Grid-native coordinates of one cell for the cursor readout: square → doc-cell x/y, hex → axial
+ * q/r (the cube-rounding pair cellAt maps from), triangle → row/col with the ▲/▼ orientation,
+ * radial → ring and sector, each with its total. Language-neutral labels; the zoom plate renders
+ * them monospaced.
+ */
+export function cellCoordLabel(grid: Grid, idx: number, bufferCols = 0): string {
+  if (grid.type === 'square') {
+    const cols = bufferCols || grid.cols
+    const sub = cols / grid.cols
+    const bx = idx % cols
+    const by = Math.floor(idx / cols)
+    return `x:${Math.floor(bx / sub)} y:${Math.floor(by / sub)}`
+  }
+  if (grid.type === 'hex') {
+    const row = Math.floor(idx / grid.cols)
+    const col = idx % grid.cols
+    // odd-r offset → axial, the exact inverse of cellAt's col = q + floor((row - row%2) / 2)
+    return `q:${col - (row - (row % 2)) / 2} r:${row}`
+  }
+  if (grid.type === 'triangle') {
+    const row = Math.floor(idx / grid.cols)
+    const col = idx % grid.cols
+    return `row:${row} col:${col} ${(col + row) % 2 === 0 ? '▲' : '▼'}`
+  }
+  const rs = grid.ringSectorOf?.(idx)
+  return rs ? `ring:${rs[0]}/${grid.rows} sector:${rs[1]}/${rs[2]}` : `i:${idx}`
 }
 
 function normalized(p: Pt, fromW: number, fromH: number, toW: number, toH: number): Pt {

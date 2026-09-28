@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { defaultDoc, type Doc } from './doc.ts'
 import { buildGeometry } from './geometry.ts'
-import { docSize, makeGrid } from './grids.ts'
+import { cellCoordLabel, docSize, makeGrid } from './grids.ts'
 import type { Pt } from './marching-squares'
 import { deserialize, serialize } from './project.ts'
 
@@ -226,5 +226,52 @@ describe('radial grid: equal cells per ring (radialEven)', () => {
     const u = makeGrid('radial', 24, 12)
     expect(u.count).toBe(24 * 12)
     expect(u.cellAt(u.center(5 * 24 + 3).x, u.center(5 * 24 + 3).y)).toBe(5 * 24 + 3)
+  })
+})
+
+describe('cellCoordLabel', () => {
+  it('square: doc-cell x/y from the buffer index at the given buffer width', () => {
+    const g = makeGrid('square', 4, 3)
+    // buffer width 8 (sub 2): buffer idx 1*8+5 → buffer (5,1) → doc cell (2,0)
+    expect(cellCoordLabel(g, 1 * 8 + 5, 8)).toBe('x:2 y:0')
+    // without a buffer width the grid is its own buffer (sub 1)
+    expect(cellCoordLabel(g, 2 * 4 + 3)).toBe('x:3 y:2')
+  })
+
+  it('hex: axial q/r, the inverse of cellAt offset conversion', () => {
+    const g = makeGrid('hex', 6, 4)
+    expect(cellCoordLabel(g, 0)).toBe('q:0 r:0')
+    expect(cellCoordLabel(g, 1 * 6 + 2)).toBe('q:2 r:1')
+    // even rows shift the axial origin: col 4 of row 2 → q = 4 - 1
+    expect(cellCoordLabel(g, 2 * 6 + 4)).toBe('q:3 r:2')
+    // every cell's label round-trips through cellAt via the axial→offset map
+    for (let i = 0; i < g.count; i++) {
+      const row = Math.floor(i / g.cols)
+      const col = i % g.cols
+      const q = col - (row - (row % 2)) / 2
+      const c = g.center(i)
+      expect(g.cellAt(c.x, c.y)).toBe(i)
+      expect(cellCoordLabel(g, i)).toBe(`q:${q} r:${row}`)
+    }
+  })
+
+  it('triangle: row/col with the ▲/▼ orientation', () => {
+    const g = makeGrid('triangle', 4, 2)
+    expect(cellCoordLabel(g, 0)).toBe('row:0 col:0 ▲')
+    expect(cellCoordLabel(g, 1)).toBe('row:0 col:1 ▼')
+    expect(cellCoordLabel(g, 4 * 1 + 2)).toBe('row:1 col:2 ▼')
+  })
+
+  it('radial: ring/sector with both totals', () => {
+    const g = makeGrid('radial', 8, 4)
+    expect(cellCoordLabel(g, 0)).toBe('ring:0/4 sector:0/8')
+    expect(cellCoordLabel(g, 8 + 3)).toBe('ring:1/4 sector:3/8')
+    // the label always agrees with the grid's own ring/sector decomposition
+    for (let i = 0; i < g.count; i++) {
+      const [ring, sector, sectors] = g.ringSectorOf!(i)
+      expect(cellCoordLabel(g, i)).toBe(`ring:${ring}/${g.rows} sector:${sector}/${sectors}`)
+      const c = g.center(i)
+      expect(g.cellAt(c.x, c.y)).toBe(i)
+    }
   })
 })

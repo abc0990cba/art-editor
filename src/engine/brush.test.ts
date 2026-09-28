@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  BRUSH_SHAPES,
   MAX_BRUSH,
   brushAnchor,
   brushOffsets,
   checkerBrush,
   circleBrush,
+  crossBrush,
+  detectBrushShape,
+  diagBrush,
   diamondBrush,
+  frameBrush,
   normalizeBrush,
   resizeBrush,
+  ringBrush,
   squareBrush,
 } from './brush.ts'
 
@@ -121,5 +127,57 @@ describe('brushAnchor', () => {
     expect(brushAnchor(10, 10, 1, false)).toEqual([10, 10])
     expect(brushAnchor(10, 10, 5, false)).toEqual([8, 8])
     expect(brushAnchor(10, 10, 4, false)).toEqual([9, 9])
+  })
+})
+
+describe('brush shapes and detection', () => {
+  it('ring is hollow: center off, rim on', () => {
+    const b = ringBrush(5)
+    expect(b.pattern[12]).toBe(false) // center hole
+    expect(b.pattern[2]).toBe(true) // top-middle rim
+    expect(b.pattern[7]).toBe(true) // mid-left rim
+    expect(detectBrushShape(b)).toBe('ring')
+  })
+
+  it('frame is a hollow square, cross a plus, diag the main diagonal', () => {
+    const f = frameBrush(4)
+    expect(f.pattern).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+    ])
+    const c = crossBrush(5)
+    expect(c.pattern.filter(Boolean).length).toBe(9) // row 2 + col 2, center shared
+    const d = diagBrush(4)
+    expect(d.pattern.filter((_, i) => d.pattern[i]).length).toBe(4)
+    for (let i = 0; i < 16; i++) expect(d.pattern[i]).toBe(i % 4 === Math.floor(i / 4))
+  })
+
+  it('detects every built-in shape and flags hand edits as custom', () => {
+    for (const { id, make } of BRUSH_SHAPES) {
+      expect(detectBrushShape(make(5))).toBe(id)
+      expect(detectBrushShape(make(8))).toBe(id)
+    }
+    const tweaked = squareBrush(5)
+    tweaked.pattern[12] = !tweaked.pattern[12]
+    expect(detectBrushShape(tweaked)).toBe('custom')
+  })
+
+  it('shape detection survives degenerate small sizes via the full-tip fallback', () => {
+    // every 1×1 tip is the full square
+    expect(detectBrushShape(circleBrush(1))).toBe('square')
   })
 })

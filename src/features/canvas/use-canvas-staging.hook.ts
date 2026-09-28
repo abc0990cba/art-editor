@@ -795,6 +795,7 @@ export function useCanvasStaging({
             free: shapeFreeRef.current,
             strokeOnly,
             singleColor: strokeOnly ? Boolean(shapePaint.stroke) : !shapePaint.stroke,
+            symmetryActive: symmetry.mode !== 'none',
             inkColor: shapePaint.stroke ? shapePaint.strokeColor || color : color,
             start,
             last,
@@ -833,6 +834,7 @@ export function useCanvasStaging({
     brushSnap,
     isSquare,
     concentricRadii,
+    symmetry,
     bumpStaging,
   ])
 

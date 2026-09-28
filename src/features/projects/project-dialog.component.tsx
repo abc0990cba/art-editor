@@ -102,7 +102,10 @@ export function ProjectDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent showCloseButton={false} className="gap-3 p-4 lg:max-w-md lg:rounded-xl">
+      <DialogContent
+        showCloseButton={false}
+        className="gap-3 p-4 max-lg:gap-4 lg:max-w-md lg:rounded-xl"
+      >
         <div className="flex items-center justify-between">
           <DialogTitle className="text-body text-sm font-semibold tracking-wide">
             {mode === 'create' ? t('project.new') : t('project.settings')}
@@ -144,7 +147,8 @@ export function ProjectDialog({
           />
         )}
 
-        <div className="flex items-center justify-end gap-2 pt-1 max-lg:gap-3">
+        {/* mobile sheet: the footer pins to the bottom, the fields stay stacked at the top */}
+        <div className="flex items-center justify-end gap-2 pt-1 max-lg:mt-auto max-lg:gap-3 max-lg:pt-3 max-lg:pb-1">
           <Button
             type="button"
             variant="ghost"

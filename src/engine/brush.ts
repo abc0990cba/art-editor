@@ -50,6 +50,43 @@ export function checkerBrush(size: number): Brush {
   return normalizeBrush({ size: s, pattern })
 }
 
+export function ringBrush(size: number): Brush {
+  const s = clampBrushSize(size)
+  const c = (s - 1) / 2
+  const outer = c + 0.25
+  const inner = Math.max(0.6, c - 1.2)
+  const pattern: boolean[] = []
+  for (let y = 0; y < s; y++)
+    for (let x = 0; x < s; x++) {
+      const d = Math.hypot(x - c, y - c)
+      pattern.push(d <= outer && d >= inner)
+    }
+  return normalizeBrush({ size: s, pattern })
+}
+
+export function frameBrush(size: number): Brush {
+  const s = clampBrushSize(size)
+  const pattern: boolean[] = []
+  for (let y = 0; y < s; y++)
+    for (let x = 0; x < s; x++) pattern.push(x === 0 || y === 0 || x === s - 1 || y === s - 1)
+  return normalizeBrush({ size: s, pattern })
+}
+
+export function crossBrush(size: number): Brush {
+  const s = clampBrushSize(size)
+  const m = Math.floor(s / 2)
+  const pattern: boolean[] = []
+  for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) pattern.push(x === m || y === m)
+  return normalizeBrush({ size: s, pattern })
+}
+
+export function diagBrush(size: number): Brush {
+  const s = clampBrushSize(size)
+  const pattern: boolean[] = []
+  for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) pattern.push(x === y)
+  return normalizeBrush({ size: s, pattern })
+}
+
 /** Coerce arbitrary stored/input data into a valid brush; an all-empty tip falls back to full. */
 export function normalizeBrush(brush: Partial<Brush> | null | undefined): Brush {
   const size = clampBrushSize(brush?.size)
@@ -104,6 +141,37 @@ export function brushAnchor(
 export interface BrushDef {
   id: string
   make: () => Brush
+}
+
+/** The built-in tip shapes every size selector offers. */
+export type BrushShapeId =
+  | 'square'
+  | 'circle'
+  | 'diamond'
+  | 'checker'
+  | 'ring'
+  | 'frame'
+  | 'cross'
+  | 'diag'
+
+export const BRUSH_SHAPES: readonly { id: BrushShapeId; make: (size: number) => Brush }[] = [
+  { id: 'square', make: squareBrush },
+  { id: 'circle', make: circleBrush },
+  { id: 'diamond', make: diamondBrush },
+  { id: 'checker', make: checkerBrush },
+  { id: 'ring', make: ringBrush },
+  { id: 'frame', make: frameBrush },
+  { id: 'cross', make: crossBrush },
+  { id: 'diag', make: diagBrush },
+]
+
+/** Which built-in tip shape the pattern equals right now, or 'custom' (hand-edited/resampled). */
+export function detectBrushShape(brush: Brush): BrushShapeId | 'custom' {
+  for (const { id, make } of BRUSH_SHAPES) {
+    const candidate = make(brush.size)
+    if (candidate.pattern.every((v, i) => v === brush.pattern[i])) return id
+  }
+  return 'custom'
 }
 
 export const BUILT_IN_BRUSHES: readonly BrushDef[] = [

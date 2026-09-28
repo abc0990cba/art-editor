@@ -22,6 +22,12 @@ export interface ShapeCommitParams {
   strokeOnly: boolean
   /** The stroke is one single color, so a parametric node could own it */
   singleColor: boolean
+  /**
+   * The stroke was drawn with symmetry copies. A single source node reproduces only the primary
+   * copy — and its evaluation discards the stored ink — so symmetric strokes must commit as plain
+   * pixels, exactly as previewed.
+   */
+  symmetryActive: boolean
   /** The one ink color (stroke color when stroked, else the fill color) */
   inkColor: string
   /** Drag endpoints in doc units, as recorded from pointerdown/move */
@@ -42,6 +48,7 @@ export interface ShapeCommitParams {
 export function shapeParametric(p: ShapeCommitParams): ParametricSpec | undefined {
   let parametrizable =
     p.isSquare &&
+    !p.symmetryActive &&
     p.singleColor &&
     (p.brushSize === 1 || !p.strokeOnly) &&
     hasDefaultConcentricRadii(p.concentricRadii)

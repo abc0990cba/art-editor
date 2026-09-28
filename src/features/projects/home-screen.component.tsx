@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, type ReactElement } from 'react'
 
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog.component.tsx'
-import { Button } from '../../shared/ui/shadcn/button.tsx'
 import {
   deleteProject,
   duplicateName,
@@ -84,15 +83,6 @@ export function HomeScreen({ onOpen }: { onOpen: (id: string) => void }): ReactE
         <HomeLogo />
         <span className="text-sm font-semibold tracking-wide">{t('app.title')}</span>
         <span className="text-muted ml-2 hidden text-xs sm:inline">{t('home.title')}</span>
-        <div className="ml-auto">
-          <Button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="h-7 px-3 text-xs max-lg:h-11"
-          >
-            + {t('home.new')}
-          </Button>
-        </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4">
@@ -105,8 +95,12 @@ export function HomeScreen({ onOpen }: { onOpen: (id: string) => void }): ReactE
         {state.kind === 'ready' && continueEntry && (
           <ContinueCard entry={continueEntry} onOpen={onOpen} />
         )}
-        {state.kind === 'ready' && entries.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+        {state.kind === 'ready' && entries.length === 0 && (
+          <p className="text-muted text-center text-xs">{t('projects.empty')}</p>
+        )}
+        {state.kind === 'ready' && (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            {/* phones: one full-width card per row; md+ keeps the dense multi-column library */}
             {sortEntries(entries).map((entry) => (
               <ProjectCard
                 key={entry.id}
@@ -126,18 +120,7 @@ export function HomeScreen({ onOpen }: { onOpen: (id: string) => void }): ReactE
                 onDelete={() => setDeleting(entry.id)}
               />
             ))}
-          </div>
-        )}
-        {state.kind === 'ready' && entries.length === 0 && (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
-            <p className="text-muted text-sm">{t('projects.empty')}</p>
-            <Button
-              type="button"
-              onClick={() => setCreating(true)}
-              className="h-auto px-4 py-2 text-xs max-lg:min-h-11"
-            >
-              + {t('home.new')}
-            </Button>
+            <AddProjectCard onClick={() => setCreating(true)} />
           </div>
         )}
       </main>
@@ -166,6 +149,35 @@ export function HomeScreen({ onOpen }: { onOpen: (id: string) => void }): ReactE
   )
 }
 
+/**
+ * The «add new project» tile: the grid's last card, sized by the row it shares with real project
+ * cards. Same panel underlay as the cards but dashed — the mainstream library-grid cue for a create
+ * action — with a plus glyph and a label.
+ */
+function AddProjectCard({ onClick }: { onClick: () => void }): ReactElement {
+  const { t } = useI18n()
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="border-line bg-panel text-muted hover:border-chip-line hover:text-body flex min-h-40 flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-2 transition max-lg:min-h-44 max-lg:gap-3"
+    >
+      <svg
+        viewBox="0 0 16 16"
+        className="h-5 w-5 max-lg:h-7 max-lg:w-7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        aria-hidden
+      >
+        <path d="M8 3v10M3 8h10" />
+      </svg>
+      <span className="text-xs font-medium max-lg:text-sm">{t('home.addProject')}</span>
+    </button>
+  )
+}
+
 /** The last opened project as a full-width Continue row above the grid. */
 function ContinueCard({
   entry,
@@ -183,13 +195,15 @@ function ContinueCard({
       <button
         type="button"
         onClick={() => onOpen(entry.id)}
-        className="border-accent-line bg-panel hover:border-accent-text flex w-full items-center gap-3 rounded-lg border p-2 text-left transition"
+        className="border-accent-line bg-panel hover:border-accent-text flex w-full items-center gap-3 rounded-lg border p-2 text-left transition max-lg:p-3"
       >
         <span className="min-w-0 flex-1">
-          <span className="text-body block truncate text-sm font-medium">{entry.name}</span>
+          <span className="text-body block truncate text-sm font-medium max-lg:text-base">
+            {entry.name}
+          </span>
           <span className="text-muted text-overline block">{t('home.lastSaved')}</span>
         </span>
-        <span className="border-accent-line text-accent-text rounded border px-2 py-1 text-xs">
+        <span className="border-accent-line text-accent-text shrink-0 rounded border px-2 py-1 text-xs max-lg:min-h-11 max-lg:px-3 max-lg:py-2 max-lg:text-sm">
           {t('home.continue')}
         </span>
       </button>

@@ -694,7 +694,8 @@
       "eslint/max-lines": [
         "error",
         {
-          "max": 1288,
+          // 1308→1288: shared zoom plates; 1288→1282: grid-native cursor coords (2026-09)
+          "max": 1282,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -892,8 +893,9 @@
       "eslint/max-lines": [
         "error",
         {
-          // 1172→1196: symmetry preview modal; 1196→1226: panel collapse strip (2026-09)
-          "max": 437,
+          // 1172→1196: symmetry preview modal; 1196→1226: panel collapse strip (2026-09);
+          // 1226→1224: color section joined the panel scroller (2026-09)
+          "max": 435,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -901,8 +903,9 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          // 1119→1138: symmetry preview modal; 1138→1168: panel collapse strip (2026-09)
-          "max": 1168,
+          // 1119→1138: symmetry preview modal; 1138→1168: panel collapse strip (2026-09);
+          // 1168→1166: color section joined the panel scroller (2026-09)
+          "max": 1166,
           "skipComments": true,
           "skipBlankLines": true
         }

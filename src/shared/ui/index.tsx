@@ -27,6 +27,7 @@ export function Chip({
   disabled,
   className,
   children,
+  ariaLabel,
 }: {
   active?: boolean
   onClick: () => void
@@ -35,6 +36,8 @@ export function Chip({
   /** Extra classes on the button, e.g. 44px touch sizing in floating panels */
   className?: string
   children: ReactNode
+  /** Accessible name for icon-only chips (the visible content is a glyph) */
+  ariaLabel?: string
 }) {
   return (
     <Tooltip label={title}>
@@ -43,6 +46,7 @@ export function Chip({
         variant="ghost"
         disabled={disabled}
         onClick={onClick}
+        aria-label={ariaLabel}
         className={cn(
           CHIP_CLASS,
           className,

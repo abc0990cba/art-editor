@@ -1,13 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import {
-  BUILT_IN_BRUSHES,
-  checkerBrush,
-  circleBrush,
-  diamondBrush,
-  squareBrush,
-  type Brush,
-} from '../../engine/brush.ts'
+import { BRUSH_SHAPES, BUILT_IN_BRUSHES, detectBrushShape, type Brush } from '../../engine/brush.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
@@ -215,30 +208,16 @@ export function BrushSection() {
             ))}
           </div>
           <div className="flex flex-wrap gap-1">
-            <Chip
-              title={t('brush.square')}
-              onClick={() => patchBrush({ pattern: squareBrush(brush.size).pattern })}
-            >
-              {t('brush.square')}
-            </Chip>
-            <Chip
-              title={t('brush.circle')}
-              onClick={() => patchBrush({ pattern: circleBrush(brush.size).pattern })}
-            >
-              {t('brush.circle')}
-            </Chip>
-            <Chip
-              title={t('brush.diamond')}
-              onClick={() => patchBrush({ pattern: diamondBrush(brush.size).pattern })}
-            >
-              {t('brush.diamond')}
-            </Chip>
-            <Chip
-              title={t('brush.checker')}
-              onClick={() => patchBrush({ pattern: checkerBrush(brush.size).pattern })}
-            >
-              {t('brush.checker')}
-            </Chip>
+            {BRUSH_SHAPES.map(({ id, make }) => (
+              <Chip
+                key={id}
+                active={detectBrushShape(brush) === id}
+                title={t(`brush.${id}` as 'brush.square')}
+                onClick={() => patchBrush({ pattern: make(brush.size).pattern })}
+              >
+                {t(`brush.${id}` as 'brush.square')}
+              </Chip>
+            ))}
             <Chip
               title={t('brush.invert')}
               onClick={() => patchBrush({ pattern: brush.pattern.map((v) => !v) })}

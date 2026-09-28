@@ -353,6 +353,10 @@ function makeRadial(cols: number, rows: number, even: boolean): Grid {
     radiusOf,
     angleOf,
     cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
+    ringSectorOf: (i) => {
+      const ring = ringOfArr[i]
+      return [ring, i - ringStart[ring], ringSectors[ring]]
+    },
   }
 }
 

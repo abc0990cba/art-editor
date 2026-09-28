@@ -94,7 +94,7 @@ export function NewProjectDialog({
         </div>
 
         {stage === 'choose' ? (
-          <div className="flex flex-col gap-2 max-lg:flex-1">
+          <div className="flex flex-col gap-2">
             <KindOption
               title={t('project.kind.pixel')}
               desc={t('home.pixel.desc')}
@@ -210,7 +210,7 @@ function KindOption({
     <button
       type="button"
       onClick={onPick}
-      className="border-line bg-panel hover:border-accent-line flex min-h-11 items-center gap-3 rounded-lg border p-3 text-left transition max-lg:min-h-24 max-lg:flex-1"
+      className="border-line bg-panel hover:border-accent-line flex min-h-11 items-center gap-3 rounded-lg border p-3 text-left transition max-lg:min-h-24"
     >
       <span className="text-body shrink-0">{icon}</span>
       <span className="min-w-0">

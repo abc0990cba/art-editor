@@ -128,7 +128,10 @@ export function ToolPreview({
     const shapeLike = tool === 'rect' || tool === 'ellipse' || isShapeTool(tool)
     let outlinePts: [number, number][] = []
     if (tool === 'pencil' || tool === 'eraser') {
-      stamp(Math.floor(cols / 2), cy)
+      // anchor the tip box on the grid center (offsets run 0..size-1 from the stamp point), so a
+      // big pixel size stays centered instead of walking out of the preview; oversized tips clip
+      // symmetrically
+      stamp(Math.floor((cols - brush.size) / 2), Math.floor((rows - brush.size) / 2))
     } else if (tool === 'line') {
       outlinePts = linePoints(2, rows - 3, cols - 3, 2)
     } else if (tool === 'rect') {
