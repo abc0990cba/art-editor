@@ -2,8 +2,9 @@ import { useState } from 'react'
 
 import { DEFAULT_TRACE_PARAMS, TRACE_PRESETS } from '../../engine/trace/params.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+import { useDemoImage } from '../../shared/lib/use-demo-image.hook.ts'
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog.component.tsx'
-import { CheckRow, Chip, Section, Slider, TextField } from '../../shared/ui/index.tsx'
+import { CheckRow, Chip, PresetCard, Section, Slider, TextField } from '../../shared/ui/index.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 
@@ -65,19 +66,34 @@ export function VectorParamsPanel() {
 function PresetsSection() {
   const { t } = useI18n()
   const applyParams = useStore((s) => s.applyVectorParams)
+  const setSource = useStore((s) => s.setVectorSource)
+  const setStatus = useStore((s) => s.setVectorStatus)
   const vectorPresets = useStore((s) => s.vectorPresets)
   const createVectorPreset = useStore((s) => s.createVectorPreset)
   const overwriteVectorPreset = useStore((s) => s.overwriteVectorPreset)
   const deleteVectorPreset = useStore((s) => s.deleteVectorPreset)
   const [name, setName] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const { loadingId, loadDemo } = useDemoImage({
+    onLoad: setSource,
+    onError: (message) => setStatus('error', message),
+    errorMessage: t('workspace.demo.error'),
+  })
+  const applyPreset = (id: string, params: Record<string, unknown>, demo?: string): void => {
+    applyParams({ ...DEFAULT_TRACE_PARAMS, ...params })
+    if (demo) void loadDemo(id, demo)
+  }
   return (
     <Section title={t('vector.preset')} icon="presets" defaultOpen>
-      <div className="flex flex-wrap gap-1">
+      <div className="grid grid-cols-2 gap-1.5">
         {TRACE_PRESETS.map((p) => (
-          <Chip key={p.id} onClick={() => applyParams({ ...DEFAULT_TRACE_PARAMS, ...p.params })}>
-            {t(`vector.preset.${p.id}` as 'vector.preset.default')}
-          </Chip>
+          <PresetCard
+            key={p.id}
+            label={t(`vector.preset.${p.id}` as 'vector.preset.default')}
+            image={p.demo}
+            loading={loadingId === p.id}
+            onClick={() => applyPreset(p.id, p.params, p.demo)}
+          />
         ))}
       </div>
       {vectorPresets.length > 0 ? (

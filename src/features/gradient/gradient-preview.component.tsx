@@ -19,6 +19,7 @@ export function GradientPreview({
   demap,
   error,
   controls = true,
+  busy = false,
 }: {
   source: ImportBitmap
   svg: string | null
@@ -27,6 +28,8 @@ export function GradientPreview({
   error: boolean
   /** Zoom/fit plates; the compact preview inside the params sheet hides them */
   controls?: boolean
+  /** A fit is running: the shown result is stale and about to be replaced */
+  busy?: boolean
 }): ReactElement {
   const { t } = useI18n()
   const [zoom, setZoom] = useState(1)
@@ -80,6 +83,8 @@ export function GradientPreview({
       controls={controls}
       fitLabel={t('gradient.fit')}
       onZoomChange={setZoom}
+      busy={busy}
+      busyLabel={t('workspace.processing')}
       overlay={
         showHeatmap ? (
           <span className="text-label absolute top-2 left-2 rounded bg-black/50 px-1.5 py-0.5 text-white/80">

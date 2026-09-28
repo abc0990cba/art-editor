@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { FitCanvasButton } from './fit-button.component.tsx'
 import { usePanPinchGestures, type PanPinchView } from './use-pinch-pan.hook.ts'
@@ -25,6 +25,8 @@ export function PanZoomPreview({
   controls = true,
   fitLabel,
   onZoomChange,
+  busy = false,
+  busyLabel,
 }: {
   /** Document-space box the children live in (drives fit) */
   width: number
@@ -38,6 +40,9 @@ export function PanZoomPreview({
   fitLabel: string
   /** Zoom changes, for doc-space overlays that must keep their screen size */
   onZoomChange?: (zoom: number) => void
+  /** A long job (trace/fit) is running: dim the shown result — it is about to be replaced */
+  busy?: boolean
+  busyLabel?: string
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState<PanPinchView>({ zoom: 1, x: 0, y: 0 })
@@ -52,7 +57,7 @@ export function PanZoomPreview({
     maxZoom: MAX_ZOOM,
   })
 
-  const fit = (): void => {
+  const fit = useCallback((): void => {
     const box = containerRef.current?.getBoundingClientRect()
     if (!box || width === 0 || height === 0) return
     const zoom = Math.min((box.width - 32) / width, (box.height - 32) / height)
@@ -61,15 +66,14 @@ export function PanZoomPreview({
       x: (box.width - width * zoom) / 2,
       y: (box.height - height * zoom) / 2,
     })
-  }
+  }, [width, height])
   // refit when the image dimensions or the viewport change (rotate, panel open/close)
   useEffect(() => {
     fit()
     const observer = new ResizeObserver(() => fit())
     if (containerRef.current) observer.observe(containerRef.current)
     return () => observer.disconnect()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height])
+  }, [fit])
 
   return (
     <div
@@ -91,7 +95,10 @@ export function PanZoomPreview({
           }
         })
       }}
-      {...gestures}
+      onPointerDown={gestures.handlePointerDown}
+      onPointerMove={gestures.handlePointerMove}
+      onPointerUp={gestures.handlePointerUp}
+      onPointerCancel={gestures.handlePointerCancel}
     >
       {/* checkerboard under the artwork (alpha visibility) — same recipe as the import dialog */}
       <div
@@ -104,12 +111,26 @@ export function PanZoomPreview({
         }}
       />
       <div
-        className="absolute origin-top-left"
+        className={`absolute origin-top-left transition duration-300 ${
+          busy ? 'opacity-55 saturate-[0.55]' : 'opacity-100'
+        }`}
         style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}
       >
         {children}
       </div>
       {overlay}
+      {/* a long job is running: the shown result is stale and about to be replaced */}
+      {busy && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="border-line bg-panel/90 text-body flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs shadow-lg backdrop-blur">
+            <span
+              className="border-accent-text h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
+              aria-hidden
+            />
+            {busyLabel}
+          </span>
+        </div>
+      )}
       {controls && (
         <>
           <FitCanvasButton label={fitLabel} onFit={fit} />

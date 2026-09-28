@@ -1,6 +1,7 @@
 import { DEFAULT_GRADIENT_PARAMS, GRADIENT_PRESETS } from '../../engine/gradient/params.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { Chip, Section, Slider } from '../../shared/ui/index.tsx'
+import { useDemoImage } from '../../shared/lib/use-demo-image.hook.ts'
+import { Chip, PresetCard, Section, Slider } from '../../shared/ui/index.tsx'
 import { useStore } from '../../state/editor.store.ts'
 
 /**
@@ -8,6 +9,35 @@ import { useStore } from '../../state/editor.store.ts'
  * region vs stacked soft spot layers) and the segmentation/fit budgets. Follows the vector params
  * panel pattern.
  */
+
+/** Built-in preset thumbnails: tap applies the params and loads the preset's demo photo. */
+function PresetGrid() {
+  const { t } = useI18n()
+  const apply = useStore((s) => s.applyGradientParams)
+  const setSource = useStore((s) => s.setGradientSource)
+  const setStatus = useStore((s) => s.setGradientStatus)
+  const { loadingId, loadDemo } = useDemoImage({
+    onLoad: setSource,
+    onError: (message) => setStatus('error', message),
+    errorMessage: t('workspace.demo.error'),
+  })
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {GRADIENT_PRESETS.map((p) => (
+        <PresetCard
+          key={p.id}
+          label={t(`gradient.preset.${p.id}` as 'gradient.preset.art')}
+          image={p.demo}
+          loading={loadingId === p.id}
+          onClick={() => {
+            apply({ ...DEFAULT_GRADIENT_PARAMS, ...p.params })
+            if (p.demo) void loadDemo(p.id, p.demo)
+          }}
+        />
+      ))}
+    </div>
+  )
+}
 
 /** Labeled chip group for enum-ish parameter values. */
 function EnumChips<T extends string>({
@@ -39,17 +69,10 @@ export function GradientParamsPanel() {
   const { t } = useI18n()
   const params = useStore((s) => s.gradientParams)
   const patch = useStore((s) => s.patchGradientParams)
-  const apply = useStore((s) => s.applyGradientParams)
   return (
     <>
       <Section title={t('gradient.preset')} icon="presets" defaultOpen>
-        <div className="flex flex-wrap gap-1">
-          {GRADIENT_PRESETS.map((p) => (
-            <Chip key={p.id} onClick={() => apply({ ...DEFAULT_GRADIENT_PARAMS, ...p.params })}>
-              {t(`gradient.preset.${p.id}` as 'gradient.preset.art')}
-            </Chip>
-          ))}
-        </div>
+        <PresetGrid />
         <EnumChips
           label={t('gradient.mode')}
           value={params.mode}

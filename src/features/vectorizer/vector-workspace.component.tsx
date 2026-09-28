@@ -129,7 +129,7 @@ export function VectorWorkspace() {
           </div>
         </div>
         {source ? (
-          <VectorPreview source={source} svg={result?.svg ?? null} />
+          <VectorPreview source={source} svg={result?.svg ?? null} busy={status === 'tracing'} />
         ) : (
           <button
             type="button"
@@ -222,11 +222,12 @@ function ParamsDrawer({ onClose }: { onClose: () => void }) {
   const { t } = useI18n()
   const source = useStore((s) => s.vectorSource)
   const svg = useStore((s) => s.vectorResult?.svg ?? null)
+  const busy = useStore((s) => s.vectorStatus === 'tracing')
   return (
     <MobileSheet title={t('vector.params')} onClose={onClose}>
       {source && (
         <div className="border-line bg-panel h-48 shrink-0 border-b">
-          <VectorPreview source={source} svg={svg} controls={false} />
+          <VectorPreview source={source} svg={svg} controls={false} busy={busy} />
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-y-auto">

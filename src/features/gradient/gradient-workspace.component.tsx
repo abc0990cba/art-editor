@@ -127,6 +127,7 @@ export function GradientWorkspace(): ReactElement {
             svg={result?.svg ?? null}
             demap={result?.demap ?? null}
             error={errorView}
+            busy={status === 'tracing'}
           />
         ) : (
           <button
@@ -258,11 +259,19 @@ function ParamsDrawer({ onClose }: { onClose: () => void }): ReactElement {
   const source = useStore((s) => s.gradientSource)
   const svg = useStore((s) => s.gradientResult?.svg ?? null)
   const demap = useStore((s) => s.gradientResult?.demap ?? null)
+  const busy = useStore((s) => s.gradientStatus === 'tracing')
   return (
     <MobileSheet title={t('gradient.params')} onClose={onClose}>
       {source && (
         <div className="border-line bg-panel h-48 shrink-0 border-b">
-          <GradientPreview source={source} svg={svg} demap={demap} error={false} controls={false} />
+          <GradientPreview
+            source={source}
+            svg={svg}
+            demap={demap}
+            error={false}
+            controls={false}
+            busy={busy}
+          />
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-y-auto">

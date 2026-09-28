@@ -64,23 +64,31 @@ export const DEFAULT_TRACE_PARAMS: TraceParams = {
   strokeWidth: 0,
 }
 
-/** Built-in presets; labels live in i18n (`vector.preset.<id>`). */
+/**
+ * Built-in presets; labels live in i18n (`vector.preset.<id>`). `demo` is a free stock photo (Lorem
+ * Picsum) the preset ships with, so the effect can be tried on a real image in one tap.
+ */
 export interface TracePreset {
   id: string
   params: Partial<TraceParams>
+  demo?: string
 }
 
+const demo = (id: number): string => `https://picsum.photos/id/${id}/480/360`
+
 export const TRACE_PRESETS: readonly TracePreset[] = [
-  { id: 'default', params: {} },
+  { id: 'default', params: {}, demo: demo(1015) },
   {
     id: 'photo',
     params: { colorPrecision: 8, layerDifference: 8, filterSpeckle: 8, hierarchical: 'stacked' },
+    demo: demo(237),
   },
   {
     id: 'poster',
     params: { colorPrecision: 4, layerDifference: 32, filterSpeckle: 12, hierarchical: 'stacked' },
+    demo: demo(1024),
   },
-  { id: 'bw', params: { colorMode: 'binary', mode: 'spline', filterSpeckle: 2 } },
+  { id: 'bw', params: { colorMode: 'binary', mode: 'spline', filterSpeckle: 2 }, demo: demo(64) },
   {
     id: 'pixel',
     params: {
@@ -90,10 +98,38 @@ export const TRACE_PRESETS: readonly TracePreset[] = [
       mode: 'polygon',
       cornerThreshold: 180,
     },
+    demo: demo(1084),
   },
   {
     id: 'lineart',
     params: { tracer: 'centerline', mode: 'spline', minStrokeLength: 6, strokeWidth: 0 },
+    demo: demo(1074),
+  },
+  {
+    id: 'logo',
+    params: { colorPrecision: 6, layerDifference: 24, filterSpeckle: 32, mode: 'spline' },
+    demo: demo(1050),
+  },
+  {
+    id: 'sketch',
+    params: { colorMode: 'binary', binaryThreshold: 150, mode: 'spline', filterSpeckle: 4 },
+    demo: demo(338),
+  },
+  {
+    id: 'comic',
+    params: {
+      colorPrecision: 6,
+      layerDifference: 24,
+      filterSpeckle: 6,
+      hierarchical: 'mosaic',
+      mode: 'polygon',
+    },
+    demo: demo(40),
+  },
+  {
+    id: 'antique',
+    params: { colorPrecision: 2, layerDifference: 64, filterSpeckle: 16, hierarchical: 'stacked' },
+    demo: demo(365),
   },
 ]
 

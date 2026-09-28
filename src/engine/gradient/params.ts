@@ -36,14 +36,19 @@ export const DEFAULT_GRADIENT_PARAMS: GradientParams = {
 export interface GradientPreset {
   id: string
   params: Partial<GradientParams>
+  /** Free stock photo (Lorem Picsum) the preset ships with, for one-tap demos. */
+  demo?: string
 }
+
+const demo = (id: number): string => `https://picsum.photos/id/${id}/480/360`
 
 /** Built-in starting points; keys are i18n labels (`gradient.preset.<id>`). */
 export const GRADIENT_PRESETS: GradientPreset[] = [
-  { id: 'art', params: { ...DEFAULT_GRADIENT_PARAMS } },
+  { id: 'art', params: { ...DEFAULT_GRADIENT_PARAMS }, demo: demo(1018) },
   {
     id: 'flat',
     params: { deltaETolerance: 1.5, maxStops: 4, maxLayers: 0, colorPrecision: 5, minRegion: 48 },
+    demo: demo(1060),
   },
   {
     id: 'photo',
@@ -55,6 +60,34 @@ export const GRADIENT_PRESETS: GradientPreset[] = [
       colorPrecision: 4,
       minRegion: 16,
     },
+    demo: demo(1025),
+  },
+  {
+    id: 'soft',
+    params: { deltaETolerance: 2, maxStops: 6, maxLayers: 0, minRegion: 64 },
+    demo: demo(1039),
+  },
+  {
+    id: 'detailed',
+    params: {
+      mode: 'stacked',
+      deltaETolerance: 2,
+      maxStops: 10,
+      maxLayers: 32,
+      colorPrecision: 5,
+      minRegion: 8,
+    },
+    demo: demo(1015),
+  },
+  {
+    id: 'poster',
+    params: { deltaETolerance: 5, maxStops: 3, maxLayers: 0, minRegion: 128 },
+    demo: demo(29),
+  },
+  {
+    id: 'duotone',
+    params: { deltaETolerance: 4, maxStops: 2, maxLayers: 0, minRegion: 96 },
+    demo: demo(110),
   },
 ]
 

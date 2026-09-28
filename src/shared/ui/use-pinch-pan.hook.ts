@@ -92,5 +92,10 @@ export function usePanPinchGestures({
     if (pointers.current.size === 0) panRef.current = null
   }
 
-  return { onPointerDown, onPointerMove, onPointerUp: endPointer, onPointerCancel: endPointer }
+  return {
+    handlePointerDown: onPointerDown,
+    handlePointerMove: onPointerMove,
+    handlePointerUp: endPointer,
+    handlePointerCancel: endPointer,
+  }
 }

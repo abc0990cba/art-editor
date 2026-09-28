@@ -11,6 +11,7 @@ import { Tooltip } from './tooltip.component.tsx'
 
 export { Section, SectionGlyph } from './section.component.tsx'
 export { MobileSheet } from './mobile-sheet.component.tsx'
+export { PresetCard } from './preset-card.component.tsx'
 export { useMediaQuery } from './use-media-query.hook.ts'
 
 /**
