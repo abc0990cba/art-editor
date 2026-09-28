@@ -5,6 +5,7 @@
  */
 
 import { rgbToHex } from './color.ts'
+import type { SpotLayer } from './layers.ts'
 import type { GradFit, GradStop } from './types.ts'
 
 /** `<linearGradient>`/`<radialGradient>` def markup for a fit (solid has no def). */
@@ -22,6 +23,28 @@ export function gradientDef(fit: GradFit, id: string): string {
     `<radialGradient id="${id}" gradientUnits="userSpaceOnUse"` +
     ` cx="${num(fit.center.x)}" cy="${num(fit.center.y)}" r="${num(fit.radius)}">${stops}</radialGradient>`
   )
+}
+
+/** `<radialGradient>` def for a spot layer: constant color, stop-opacity alpha ramp (AI-safe). */
+export function spotDef(spot: SpotLayer, id: string): string {
+  const hex = rgbToHex(spot.color)
+  const stops = spot.alpha
+    .map(
+      (s) =>
+        `<stop offset="${num(s.offset)}" stop-color="${hex}" stop-opacity="${num(s.color.r)}"/>`,
+    )
+    .join('')
+  return (
+    `<radialGradient id="${id}" gradientUnits="userSpaceOnUse"` +
+    ` cx="${num(spot.center.x)}" cy="${num(spot.center.y)}" r="${num(spot.radius)}">${stops}</radialGradient>`
+  )
+}
+
+/** Fill attribute for a fit; gradient fits register their `<def>` under `id`. */
+export function fitFill(fit: GradFit, defs: string[], id: string): string {
+  if (fit.kind === 'solid') return rgbToHex(fit.color)
+  defs.push(gradientDef(fit, id))
+  return `url(#${id})`
 }
 
 /** Standalone SVG document with one full-bleed rect painted by the fit. */

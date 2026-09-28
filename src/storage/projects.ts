@@ -1,7 +1,7 @@
 import type { ProjectJSON } from '../engine/project'
 import { newId, openDb, reqToPromise } from './db'
 
-export type ProjectKind = 'pixel' | 'vector'
+export type ProjectKind = 'pixel' | 'vector' | 'gradient'
 
 /** Shared metadata of every library entry. */
 export interface ProjectBase {
@@ -31,7 +31,18 @@ export interface VectorProjectEntry extends ProjectBase {
   stats: unknown
 }
 
-export type ProjectEntry = PixelProjectEntry | VectorProjectEntry
+/** A gradient-trace project: the whole gradient session (source raster, params, result). */
+export interface GradientProjectEntry extends ProjectBase {
+  kind: 'gradient'
+  /** Raw RGBA source raster; null = the project awaits an import */
+  source: { width: number; height: number; data: ArrayBuffer } | null
+  sourceName: string
+  params: unknown
+  svg: string | null
+  stats: unknown
+}
+
+export type ProjectEntry = PixelProjectEntry | VectorProjectEntry | GradientProjectEntry
 
 const STORE = 'projects'
 
@@ -81,10 +92,11 @@ export function normalizeProject(raw: unknown): ProjectEntry | null {
     updatedAt: storedTime(r['updatedAt']),
     thumbnail: storedString(r['thumbnail']),
   }
-  if (r['kind'] === 'vector') {
+  if (r['kind'] === 'vector' || r['kind'] === 'gradient') {
+    const kind = r['kind']
     return {
       ...base,
-      kind: 'vector',
+      kind,
       source: storedSource(r['source']),
       sourceName: storedString(r['sourceName']),
       params: r['params'] ?? null,
@@ -109,6 +121,26 @@ export function newVectorEntry(init: {
   return {
     id: newProjectId(),
     kind: 'vector',
+    createdAt: now,
+    updatedAt: now,
+    thumbnail: '',
+    ...init,
+  }
+}
+
+/** Fresh gradient-trace project (the creation dialog). */
+export function newGradientEntry(init: {
+  name: string
+  source: GradientProjectEntry['source']
+  sourceName: string
+  params: unknown
+  svg: string | null
+  stats: unknown
+}): GradientProjectEntry {
+  const now = Date.now()
+  return {
+    id: newProjectId(),
+    kind: 'gradient',
     createdAt: now,
     updatedAt: now,
     thumbnail: '',

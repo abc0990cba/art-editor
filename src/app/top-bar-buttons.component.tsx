@@ -110,7 +110,8 @@ export function MobileHeader({
   more?: ReactNode
 }) {
   const { t } = useI18n()
-  const isVector = kind === 'vector'
+  // pixel-only controls (undo/redo, doc state); the media workspaces own their toolbars
+  const isMedia = kind !== 'pixel'
   const projectName = useStore((s) => s.projectName)
   const { canUndo, canRedo } = useCanUndoRedo()
   return (
@@ -136,7 +137,7 @@ export function MobileHeader({
       >
         {projectName.trim() || t('project.untitled')}
       </button>
-      {!isVector && (
+      {!isMedia && (
         <>
           <IconButton big plate title={t('top.undo')} onClick={undo} disabled={!canUndo}>
             <svg
@@ -177,7 +178,7 @@ export function MobileHeader({
           <path d="M13.2 9.8a5.4 5.4 0 000-3.6l1.5-1a.5.5 0 00-.1-.7l-1.9-1.4a.5.5 0 00-.6 0l-1.6 1a5.6 5.6 0 00-1.6-.9l-.3-1.9a.5.5 0 00-.5-.4h-2.2a.5.5 0 00-.5.4l-.3 1.9a5.6 5.6 0 00-1.6.9l-1.6-1a.5.5 0 00-.6 0L1.4 4.5a.5.5 0 00-.1.7l1.5 1a5.4 5.4 0 000 3.6l-1.5 1a.5.5 0 00.1.7l1.9 1.4a.5.5 0 00.6 0l1.6-1a5.6 5.6 0 001.6.9l.3 1.9a.5.5 0 00.5.4h2.2a.5.5 0 00.5-.4l.3-1.9a5.6 5.6 0 001.6-.9l1.6 1a.5.5 0 00.6 0z" />
         </svg>
       </IconButton>
-      {!isVector && (
+      {!isMedia && (
         <IconButton big plate title={t('top.panel')} onClick={onTogglePanel}>
           <svg
             viewBox="0 0 16 16"
@@ -336,7 +337,7 @@ export function TopBarDialogs({
       {setupOpen && (
         <ProjectDialog
           mode="edit"
-          scope={kind === 'vector' ? 'name' : 'full'}
+          scope={kind === 'pixel' ? 'full' : 'name'}
           onClose={onCloseSetup}
         />
       )}

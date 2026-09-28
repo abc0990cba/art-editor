@@ -23,9 +23,9 @@ function useSvgUrl(svg: string | null): string | null {
   return url
 }
 
-/** Thumbnail area: stored PNG for pixel projects, live SVG for vector ones. */
+/** Thumbnail area: stored PNG for pixel projects, live SVG for trace ones. */
 function Thumb({ entry }: { entry: ProjectEntry }): ReactElement {
-  const svgUrl = useSvgUrl(entry.kind === 'vector' ? entry.svg : null)
+  const svgUrl = useSvgUrl(entry.kind === 'pixel' ? null : entry.svg)
   const src = entry.kind === 'pixel' ? entry.thumbnail : svgUrl
   if (src) {
     return <img src={src} alt="" className="aspect-[4/3] w-full object-contain" />
@@ -112,7 +112,12 @@ export function ProjectCard({
       hour: '2-digit',
       minute: '2-digit',
     })
-  const kindLabel = entry.kind === 'pixel' ? t('project.kind.pixel') : t('project.kind.vector')
+  const kindLabel =
+    entry.kind === 'pixel'
+      ? t('project.kind.pixel')
+      : entry.kind === 'gradient'
+        ? t('project.kind.gradient')
+        : t('project.kind.vector')
 
   return (
     <div className="bg-panel border-line hover:border-chip-line flex flex-col overflow-hidden rounded-lg border transition">
@@ -144,8 +149,9 @@ export function ProjectCard({
             <button
               type="button"
               onClick={onOpen}
-              className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition max-lg:min-h-11 max-lg:text-sm"
+              className="border-line hover:border-chip-line flex flex-1 items-center justify-center gap-1 rounded border py-0.5 transition max-lg:min-h-11 max-lg:text-sm"
             >
+              <ActionIcon path="M4.5 11.5L11.5 4.5M6 4.5h5.5V10" />
               {t('projects.open')}
             </button>
           </Tooltip>
@@ -153,8 +159,9 @@ export function ProjectCard({
             <button
               type="button"
               onClick={onDuplicate}
-              className="border-line hover:border-chip-line flex-1 rounded border py-0.5 transition max-lg:min-h-11 max-lg:text-sm"
+              className="border-line hover:border-chip-line flex flex-1 items-center justify-center gap-1 rounded border py-0.5 transition max-lg:min-h-11 max-lg:text-sm"
             >
+              <ActionIcon path="M5.5 5.5h7v7h-7zM10.5 5.5v-2h-7v7h2" />
               {t('projects.duplicate')}
             </button>
           </Tooltip>
@@ -162,13 +169,32 @@ export function ProjectCard({
             <button
               type="button"
               onClick={onDelete}
-              className="border-line flex-1 rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400 max-lg:min-h-11 max-lg:text-sm"
+              className="border-line flex flex-1 items-center justify-center gap-1 rounded border py-0.5 transition hover:border-red-500/60 hover:text-red-400 max-lg:min-h-11 max-lg:text-sm"
             >
+              <ActionIcon path="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8h5.8l.6-8M6.7 6.5v4M9.3 6.5v4" />
               {t('projects.delete')}
             </button>
           </Tooltip>
         </div>
       </div>
     </div>
+  )
+}
+
+/** Tiny stroke icon for a card action row (16-box, currentColor). */
+function ActionIcon({ path }: { path: string }): ReactElement {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      className="h-3.5 w-3.5 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d={path} />
+    </svg>
   )
 }

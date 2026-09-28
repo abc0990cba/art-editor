@@ -101,6 +101,29 @@ function fieldFrom(w: number, h: number, colorAt: (x: number, y: number) => RGB)
   return { width: w, height: h, rgb }
 }
 
+/** Composite a soft spot onto the field source-over: `alpha(t)` with t = dist/radius. */
+export function addSpot(
+  f: RgbField,
+  center: Vec2,
+  radius: number,
+  color: RGB,
+  alpha: (t: number) => number,
+): RgbField {
+  const out: RgbField = { width: f.width, height: f.height, rgb: f.rgb.slice() }
+  for (let y = 0; y < f.height; y++) {
+    for (let x = 0; x < f.width; x++) {
+      const t = Math.hypot(x - center.x, y - center.y) / radius
+      if (t >= 1) continue
+      const a = alpha(t)
+      const o = (y * f.width + x) * 3
+      out.rgb[o] = out.rgb[o] * (1 - a) + color.r * a
+      out.rgb[o + 1] = out.rgb[o + 1] * (1 - a) + color.g * a
+      out.rgb[o + 2] = out.rgb[o + 2] * (1 - a) + color.b * a
+    }
+  }
+  return out
+}
+
 function hsvToRgb(hDeg: number, s: number, v: number): RGB {
   const hp = (((hDeg % 360) + 360) % 360) / 60
   const c = v * s

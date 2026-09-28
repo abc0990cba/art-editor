@@ -10,12 +10,12 @@ import { MobileSheet } from '../../shared/ui/mobile-sheet.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import { useVectorTrace } from './use-vector-trace.hook.ts'
 import { VectorParamsPanel } from './vector-params-panel.component.tsx'
-import { VectorPreview, ViewToggle } from './vector-preview.component.tsx'
+import { VectorPreview } from './vector-preview.component.tsx'
 
 /**
- * The vector mode workspace: preview center (traced SVG vs original raster) + parameter column on
- * the right (desktop) or a slide-over drawer (mobile). Fully independent from the pixel document:
- * its own import, its own state slice, its own autosave.
+ * The vector mode workspace: preview center (original raster vs traced SVG with a draggable
+ * divider) + parameter column on the right (desktop) or a slide-over drawer (mobile). Fully
+ * independent from the pixel document: its own import, its own state slice, its own autosave.
  */
 export function VectorWorkspace() {
   const { t } = useI18n()
@@ -26,7 +26,6 @@ export function VectorWorkspace() {
   const status = useStore((s) => s.vectorStatus)
   const error = useStore((s) => s.vectorError)
   const setVectorSource = useStore((s) => s.setVectorSource)
-  const [view, setView] = useState<'result' | 'original'>('result')
   const [panelOpen, setPanelOpen] = useState(false)
   const [clearConfirm, setClearConfirm] = useState(false)
   const [dragOver, setDragOver] = useState(false)
@@ -87,8 +86,7 @@ export function VectorWorkspace() {
       onDrop={onDrop}
     >
       <div className="bg-app relative flex min-w-0 flex-1 flex-col">
-        <div className="border-line flex h-10 shrink-0 items-center gap-2 overflow-x-auto border-b px-2">
-          {source && <ViewToggle value={view} onChange={setView} />}
+        <div className="border-line flex h-10 shrink-0 items-center gap-2 overflow-x-auto border-b px-2 max-lg:h-14">
           {status === 'tracing' && (
             <span className="text-muted text-overline animate-pulse">{t('vector.tracing')}</span>
           )}
@@ -99,25 +97,39 @@ export function VectorWorkspace() {
           {stats && <StatsLine stats={stats} kb={kb} />}
           <div className="ml-auto flex shrink-0 items-center gap-1">
             {source && (
-              <Chip onClick={() => setClearConfirm(true)} title={t('vector.confirm.clear.msg')}>
+              <Chip
+                className="shrink-0 max-lg:min-h-11 max-lg:text-sm"
+                onClick={() => setClearConfirm(true)}
+                title={t('vector.confirm.clear.msg')}
+              >
                 {t('vector.source.clear')}
               </Chip>
             )}
-            <Chip onClick={() => fileRef.current?.click()}>{t('vector.source.replace')}</Chip>
-            <Chip disabled={!result} onClick={exportSvg} title={t('vector.exportSvg.desc')}>
+            <Chip
+              className="shrink-0 max-lg:min-h-11 max-lg:text-sm"
+              onClick={() => fileRef.current?.click()}
+            >
+              {t('vector.source.replace')}
+            </Chip>
+            <Chip
+              className="shrink-0 max-lg:min-h-11 max-lg:text-sm"
+              disabled={!result}
+              onClick={exportSvg}
+              title={t('vector.exportSvg.desc')}
+            >
               {t('vector.exportSvg')}
             </Chip>
-            <Chip disabled={!result} onClick={() => void copySvg()}>
+            <Chip
+              className="shrink-0 max-lg:min-h-11 max-lg:text-sm"
+              disabled={!result}
+              onClick={() => void copySvg()}
+            >
               {copied ? t('vector.copied') : t('vector.copySvg')}
             </Chip>
           </div>
         </div>
         {source ? (
-          <VectorPreview
-            source={source}
-            svg={result?.svg ?? null}
-            showOriginal={view === 'original'}
-          />
+          <VectorPreview source={source} svg={result?.svg ?? null} />
         ) : (
           <button
             type="button"
@@ -214,7 +226,7 @@ function ParamsDrawer({ onClose }: { onClose: () => void }) {
     <MobileSheet title={t('vector.params')} onClose={onClose}>
       {source && (
         <div className="border-line bg-panel h-48 shrink-0 border-b">
-          <VectorPreview source={source} svg={svg} showOriginal={false} controls={false} />
+          <VectorPreview source={source} svg={svg} controls={false} />
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-y-auto">

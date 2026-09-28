@@ -6,6 +6,15 @@ import { TooltipContent } from './shadcn/tooltip.tsx'
 const SHOW_DELAY_MS = 350
 
 /**
+ * Hover pointers only: a tap focuses the trigger and pops the bubble instantly over the UI (there
+ * is no hover to wait for), so touch devices get the accessible name without the bubble.
+ */
+const HAS_HOVER =
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(hover: hover)').matches
+    : true
+
+/**
  * Hover/focus tooltip on the shadcn/Radix primitive. Wraps a single trigger element (the bubble
  * portals to the body, flips by available space and never clips); passing no label renders the
  * trigger untouched. A string label doubles as the trigger's accessible name when it has none.
@@ -19,6 +28,7 @@ export function Tooltip({ label, children }: { label?: ReactNode; children: Reac
           'aria-label': label,
         })
       : children
+  if (!HAS_HOVER) return trigger
   return (
     <TooltipPrimitive.Root delayDuration={SHOW_DELAY_MS}>
       <TooltipPrimitive.Trigger asChild>{trigger}</TooltipPrimitive.Trigger>

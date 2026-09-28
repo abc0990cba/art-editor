@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX } from 'react'
 
 import { useI18n } from '../shared/i18n/i18n.provider.tsx'
 import { useStore, type ThemePref } from '../state/editor.store.ts'
+import type { ProjectKind } from '../storage/projects.ts'
 
 /** Overflow-menu icons (16px stroke set, matches the toolbar's icon language). */
 const MORE_ICONS = {
@@ -133,7 +134,7 @@ export function TopBarMoreMenu({
   onSettings,
   onClear,
 }: {
-  kind: 'pixel' | 'vector'
+  kind: ProjectKind
   /** Import hands the picked file back to the top bar's hidden input flow */
   onImport: () => void
   onExport: () => void

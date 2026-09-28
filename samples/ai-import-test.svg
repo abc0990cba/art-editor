@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 720" width="480" height="720">
+  <!--
+    AI-import test sheet (gradient vectorizer, stage-0 spike).
+    Open this file in Adobe Illustrator and fill the "Observed" column of
+    docs/ai-import-test.md per section. Browser rendering is the reference.
+  -->
+  <defs>
+    <linearGradient id="lin3" gradientUnits="userSpaceOnUse" x1="20" y1="20" x2="220" y2="20">
+      <stop offset="0" stop-color="#d9232c"/>
+      <stop offset="0.5" stop-color="#f2a33c"/>
+      <stop offset="1" stop-color="#2e9e6b"/>
+    </linearGradient>
+    <radialGradient id="ell" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1"
+      gradientTransform="translate(120 180) rotate(28) scale(95 55)">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#124a8c"/>
+    </radialGradient>
+    <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="260" y1="120" x2="460" y2="120">
+      <stop offset="0" stop-color="#7b2ff7" stop-opacity="1"/>
+      <stop offset="1" stop-color="#7b2ff7" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="clipCircle">
+      <circle cx="120" cy="330" r="85"/>
+    </clipPath>
+    <radialGradient id="maskRamp" gradientUnits="userSpaceOnUse" cx="360" cy="330" r="90">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#000000"/>
+    </radialGradient>
+    <mask id="softMask">
+      <rect x="260" y="240" width="200" height="180" fill="url(#maskRamp)"/>
+    </mask>
+    <linearGradient id="spot" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1"
+      gradientTransform="translate(120 540) scale(80 80)">
+      <stop offset="0" stop-color="#ffd54d" stop-opacity="0.95"/>
+      <stop offset="0.75" stop-color="#ffd54d" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#ffd54d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="spotScreen" gradientUnits="userSpaceOnUse" x1="260" y1="540" x2="460" y2="540">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="480" height="720" fill="#20242b"/>
+
+  <text x="20" y="14" fill="#aab" font-family="monospace" font-size="11">1 linearGradient 3 stops userSpaceOnUse</text>
+  <rect x="20" y="20" width="200" height="80" fill="url(#lin3)"/>
+
+  <text x="260" y="14" fill="#aab" font-family="monospace" font-size="11">2 radial + gradientTransform (ellipse)</text>
+  <rect x="260" y="120" width="200" height="120" fill="none"/>
+  <rect x="260" y="20" width="200" height="120" fill="#0e1524"/>
+  <rect x="260" y="20" width="200" height="120" fill="url(#ell)"/>
+
+  <text x="20" y="114" fill="#aab" font-family="monospace" font-size="11">3 stop-opacity fade</text>
+  <rect x="20" y="120" width="200" height="120" fill="#101820"/>
+  <rect x="20" y="120" width="200" height="120" fill="url(#fade)"/>
+  <text x="260" y="234" fill="#aab" font-family="monospace" font-size="11">(stop-opacity row is above)</text>
+
+  <text x="20" y="254" fill="#aab" font-family="monospace" font-size="11">4 clipPath circle</text>
+  <g clip-path="url(#clipCircle)">
+    <rect x="20" y="240" width="200" height="180" fill="url(#lin3)"/>
+  </g>
+
+  <text x="260" y="254" fill="#aab" font-family="monospace" font-size="11">5 gradient luminance mask</text>
+  <rect x="260" y="260" width="200" height="180" fill="#e05252"/>
+  <rect x="260" y="260" width="200" height="180" fill="url(#fade)" mask="url(#softMask)"/>
+
+  <text x="20" y="434" fill="#aab" font-family="monospace" font-size="11">6 mix-blend-mode: multiply</text>
+  <g style="isolation:isolate">
+    <rect x="20" y="440" width="200" height="100" fill="#3a79c9"/>
+    <rect x="80" y="455" width="120" height="70" fill="#e0a33a" style="mix-blend-mode:multiply"/>
+  </g>
+
+  <text x="260" y="434" fill="#aab" font-family="monospace" font-size="11">7 mix-blend-mode: screen</text>
+  <g style="isolation:isolate">
+    <rect x="260" y="440" width="200" height="100" fill="#26221f"/>
+    <rect x="320" y="455" width="120" height="70" fill="#7a5cff" style="mix-blend-mode:screen"/>
+  </g>
+
+  <text x="20" y="554" fill="#aab" font-family="monospace" font-size="11">8 plus-lighter Gouraud triangle</text>
+  <g style="isolation:isolate">
+    <path d="M20 690L120 560L120 690Z" fill="#ff0000" style="mix-blend-mode:plus-lighter"/>
+    <path d="M120 560L220 690L120 690Z" fill="#00ff00" style="mix-blend-mode:plus-lighter"/>
+    <path d="M20 690L120 690L70 600Z" fill="#0000ff" style="mix-blend-mode:plus-lighter"/>
+  </g>
+
+  <text x="260" y="554" fill="#aab" font-family="monospace" font-size="11">9 spot radialGradient with stop-opacity</text>
+  <rect x="260" y="560" width="200" height="140" fill="#204a3a"/>
+  <path d="M260 560H460V700H260Z" fill="url(#spot)"/>
+  <rect x="260" y="560" width="200" height="140" fill="url(#spotScreen)"/>
+</svg>

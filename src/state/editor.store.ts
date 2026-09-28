@@ -18,6 +18,7 @@ import type {
 } from '../engine/doc.ts'
 import type { FillStyle } from '../engine/fillpatterns.ts'
 import type { GlyphTileSet } from '../engine/glyph-tiles.ts'
+import type { GradientParams } from '../engine/gradient/params.ts'
 import type { ImportResult } from '../engine/import-image.ts'
 import type { ImportBitmap } from '../engine/import-image.ts'
 import type { PalettePreset } from '../engine/palettes.ts'
@@ -27,11 +28,13 @@ import type { BrushPresetEntry } from '../storage/brushes.ts'
 import type { GlyphTileSetEntry } from '../storage/glyph-tiles.ts'
 import type { PresetEntry } from '../storage/presets.ts'
 import type { ProjectEntry, VectorProjectEntry } from '../storage/projects.ts'
+import type { GradientProjectEntry } from '../storage/projects.ts'
 import type { VectorPresetEntry } from '../storage/vector-presets.ts'
 import { createBrushesSlice } from './brushes.slice.ts'
 import { createDocSlice } from './doc.slice.ts'
 import { createFillSlice } from './fill.slice.ts'
 import { createGlyphSlice } from './glyph.slice.ts'
+import { createGradientSlice, type GradientResult, type GradientStatus } from './gradient.slice.ts'
 import { createPaintSlice } from './paint.slice.ts'
 import { createPresetsSlice } from './presets.slice.ts'
 import { createProjectSlice } from './project.slice.ts'
@@ -312,6 +315,19 @@ export interface State {
   createVectorPreset: (name: string) => Promise<VectorPresetEntry>
   overwriteVectorPreset: (id: string) => Promise<void>
   deleteVectorPreset: (id: string) => Promise<void>
+  // gradient workspace (same shape as the vector slice; demap is runtime-only)
+  gradientSource: ImportBitmap | null
+  gradientSourceName: string
+  gradientParams: GradientParams
+  gradientResult: GradientResult | null
+  gradientStatus: GradientStatus
+  gradientError: string | null
+  setGradientSource: (bitmap: ImportBitmap | null, name?: string) => void
+  patchGradientParams: (patch: Partial<GradientParams>) => void
+  applyGradientParams: (params: GradientParams) => void
+  setGradientResult: (result: GradientResult | null) => void
+  setGradientStatus: (status: GradientStatus, error?: string | null) => void
+  loadGradientEntry: (entry: GradientProjectEntry) => void
 }
 
 /** Trailing throttle so slider drags collapse into one history entry. */
@@ -361,6 +377,7 @@ export const useStore = create<State>()(
       ...createGlyphSlice({ set, get }),
       ...createVectorSlice({ set, get }),
       ...createVectorPresetsSlice({ set, get }),
+      ...createGradientSlice({ set, get }),
     }),
     temporalOptions,
   ),

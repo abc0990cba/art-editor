@@ -100,6 +100,8 @@ export function HomeScreen({ onOpen }: { onOpen: (id: string) => void }): ReactE
         )}
         {state.kind === 'ready' && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            {/* the create tile leads the grid on every breakpoint */}
+            <AddProjectCard onClick={() => setCreating(true)} />
             {/* phones: one full-width card per row; md+ keeps the dense multi-column library */}
             {sortEntries(entries).map((entry) => (
               <ProjectCard
@@ -120,7 +122,6 @@ export function HomeScreen({ onOpen }: { onOpen: (id: string) => void }): ReactE
                 onDelete={() => setDeleting(entry.id)}
               />
             ))}
-            <AddProjectCard onClick={() => setCreating(true)} />
           </div>
         )}
       </main>
@@ -150,31 +151,34 @@ export function HomeScreen({ onOpen }: { onOpen: (id: string) => void }): ReactE
 }
 
 /**
- * The «add new project» tile: the grid's last card, sized by the row it shares with real project
- * cards. Same panel underlay as the cards but dashed — the mainstream library-grid cue for a create
- * action — with a plus glyph and a label.
+ * The «add new project» tile: always the grid's first card, sized by the row it shares with real
+ * project cards. Same panel underlay as the cards but dashed — the mainstream library-grid cue for
+ * a create action — with a slow accent beam circling the border (see `.add-tile-beam`).
  */
 function AddProjectCard({ onClick }: { onClick: () => void }): ReactElement {
   const { t } = useI18n()
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="border-line bg-panel text-muted hover:border-chip-line hover:text-body flex min-h-40 flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-2 transition max-lg:min-h-44 max-lg:gap-3"
-    >
-      <svg
-        viewBox="0 0 16 16"
-        className="h-5 w-5 max-lg:h-7 max-lg:w-7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        aria-hidden
+    <div className="add-tile relative min-h-40 overflow-hidden rounded-lg max-lg:min-h-44">
+      <div aria-hidden className="add-tile-beam absolute inset-0" />
+      <button
+        type="button"
+        onClick={onClick}
+        className="border-line bg-panel text-muted hover:border-chip-line hover:text-body relative m-[2px] flex h-[calc(100%-4px)] w-[calc(100%-4px)] flex-col items-center justify-center gap-2 rounded-md border border-dashed p-2 transition max-lg:gap-3"
       >
-        <path d="M8 3v10M3 8h10" />
-      </svg>
-      <span className="text-xs font-medium max-lg:text-sm">{t('home.addProject')}</span>
-    </button>
+        <svg
+          viewBox="0 0 16 16"
+          className="h-5 w-5 max-lg:h-7 max-lg:w-7"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          aria-hidden
+        >
+          <path d="M8 3v10M3 8h10" />
+        </svg>
+        <span className="text-xs font-medium max-lg:text-sm">{t('home.addProject')}</span>
+      </button>
+    </div>
   )
 }
 

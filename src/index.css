@@ -354,3 +354,43 @@ input[type='number']::-webkit-outer-spin-button {
 .rail-list::-webkit-scrollbar {
   display: none;
 }
+
+/* the home screen's add-project tile: a soft accent beam circling the border. The conic angle
+   itself is the animation (registered custom property), so nothing is transformed — the beam
+   shows only where the tile's inner card leaves a 2px ring visible. */
+@property --beam-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes beam-orbit {
+  to {
+    --beam-angle: 360deg;
+  }
+}
+
+.add-tile-beam {
+  background: conic-gradient(
+    from var(--beam-angle),
+    transparent 0turn,
+    transparent 0.6turn,
+    color-mix(in oklab, var(--accent-text) 55%, transparent) 0.78turn,
+    color-mix(in oklab, var(--accent-text) 65%, white) 0.87turn,
+    color-mix(in oklab, var(--accent-text) 55%, transparent) 0.96turn,
+    transparent 1turn
+  );
+  animation: beam-orbit 7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .add-tile-beam {
+    animation: none;
+    background: linear-gradient(
+      120deg,
+      transparent 20%,
+      color-mix(in oklab, var(--accent-text) 45%, transparent),
+      transparent 80%
+    );
+  }
+}

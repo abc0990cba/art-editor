@@ -7,6 +7,7 @@ import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import {
+  newGradientEntry,
   newProjectId,
   newVectorEntry,
   normalizeName,
@@ -15,7 +16,7 @@ import {
 } from '../../storage/projects.ts'
 import { ProjectDialog } from './project-dialog.component.tsx'
 
-type Kind = 'pixel' | 'vector'
+type Kind = 'pixel' | 'vector' | 'gradient'
 
 /** Snapshot the (already applied) store document into a fresh pixel library entry. */
 async function createPixelEntry(onCreated: (id: string) => void | Promise<void>): Promise<void> {
@@ -98,41 +99,10 @@ export function NewProjectDialog({
             <KindOption
               title={t('project.kind.pixel')}
               desc={t('home.pixel.desc')}
-              icon={
-                <svg viewBox="0 0 24 24" className="h-8 w-8" fill="currentColor" aria-hidden>
-                  <rect x="3" y="3" width="5" height="5" rx="1" />
-                  <rect x="10" y="3" width="5" height="5" rx="1" opacity=".6" />
-                  <rect x="17" y="3" width="4" height="5" rx="1" opacity=".35" />
-                  <rect x="3" y="10" width="5" height="5" rx="1" opacity=".6" />
-                  <rect x="10" y="10" width="5" height="5" rx="1" opacity=".9" />
-                  <rect x="17" y="10" width="4" height="5" rx="1" opacity=".6" />
-                  <rect x="3" y="17" width="5" height="4" rx="1" opacity=".35" />
-                  <rect x="10" y="17" width="5" height="4" rx="1" opacity=".6" />
-                  <rect x="17" y="17" width="4" height="4" rx="1" opacity=".9" />
-                </svg>
-              }
+              icon={<PixelIcon />}
               onPick={() => setStage('pixel')}
             />
-            <KindOption
-              title={t('project.kind.vector')}
-              desc={t('home.vector.desc')}
-              icon={
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-8 w-8"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  aria-hidden
-                >
-                  <path d="M3 18C7 18 7 6 12 6s5 12 9 12" />
-                  <rect x="1.5" y="16.5" width="3" height="3" rx="0.8" />
-                  <rect x="19.5" y="16.5" width="3" height="3" rx="0.8" />
-                  <circle cx="12" cy="6" r="1.6" />
-                </svg>
-              }
-              onPick={() => setStage('vector')}
-            />
+            <MediaKindOptions onPick={setStage} />
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -147,12 +117,14 @@ export function NewProjectDialog({
                 placeholder={t('project.untitled')}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') void createVectorEntry(name, onCreated)
+                  if (e.key === 'Enter') void createTraceEntry(stage, name, onCreated)
                 }}
                 className={fieldClass}
               />
             </label>
-            <p className="text-muted text-overline">{t('home.vector.hint')}</p>
+            <p className="text-muted text-overline">
+              {stage === 'gradient' ? t('home.gradient.hint') : t('home.vector.hint')}
+            </p>
             <div className="flex items-center justify-end gap-2 pt-1 max-lg:gap-3">
               <Button
                 type="button"
@@ -164,7 +136,7 @@ export function NewProjectDialog({
               </Button>
               <Button
                 type="button"
-                onClick={() => void createVectorEntry(name, onCreated)}
+                onClick={() => void createTraceEntry(stage, name, onCreated)}
                 className="h-auto px-3 py-1.5 text-xs max-lg:min-h-11 max-lg:flex-1"
               >
                 {t('project.create')}
@@ -192,6 +164,109 @@ async function createVectorEntry(
   })
   await saveProject(entry)
   await onCreated(entry.id)
+}
+
+/** Same minimal flow for a gradient project: name → import surface. */
+async function createGradientEntry(
+  rawName: string,
+  onCreated: (id: string) => void | Promise<void>,
+): Promise<void> {
+  const entry = newGradientEntry({
+    name: normalizeName(rawName),
+    source: null,
+    sourceName: '',
+    params: useStore.getState().gradientParams,
+    svg: null,
+    stats: null,
+  })
+  await saveProject(entry)
+  await onCreated(entry.id)
+}
+
+/** Name-stage submit for both media kinds (pixel goes through the full project dialog). */
+function createTraceEntry(
+  kind: 'vector' | 'gradient',
+  rawName: string,
+  onCreated: (id: string) => void | Promise<void>,
+): Promise<void> {
+  return kind === 'gradient'
+    ? createGradientEntry(rawName, onCreated)
+    : createVectorEntry(rawName, onCreated)
+}
+
+/** The pixel kind icon: a 3×3 cell mosaic. */
+function PixelIcon(): ReactElement {
+  return (
+    <svg viewBox="0 0 24 24" className="h-8 w-8" fill="currentColor" aria-hidden>
+      <rect x="3" y="3" width="5" height="5" rx="1" />
+      <rect x="10" y="3" width="5" height="5" rx="1" opacity=".6" />
+      <rect x="17" y="3" width="4" height="5" rx="1" opacity=".35" />
+      <rect x="3" y="10" width="5" height="5" rx="1" opacity=".6" />
+      <rect x="10" y="10" width="5" height="5" rx="1" opacity=".9" />
+      <rect x="17" y="10" width="4" height="5" rx="1" opacity=".6" />
+      <rect x="3" y="17" width="5" height="4" rx="1" opacity=".35" />
+      <rect x="10" y="17" width="5" height="4" rx="1" opacity=".6" />
+      <rect x="17" y="17" width="4" height="4" rx="1" opacity=".9" />
+    </svg>
+  )
+}
+
+/** The two media kinds: both continue with a name and open on an import surface. */
+function MediaKindOptions({
+  onPick,
+}: {
+  onPick: (kind: 'vector' | 'gradient') => void
+}): ReactElement {
+  const { t } = useI18n()
+  return (
+    <>
+      <KindOption
+        title={t('project.kind.vector')}
+        desc={t('home.vector.desc')}
+        icon={
+          <svg
+            viewBox="0 0 24 24"
+            className="h-8 w-8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden
+          >
+            <path d="M3 18C7 18 7 6 12 6s5 12 9 12" />
+            <rect x="1.5" y="16.5" width="3" height="3" rx="0.8" />
+            <rect x="19.5" y="16.5" width="3" height="3" rx="0.8" />
+            <circle cx="12" cy="6" r="1.6" />
+          </svg>
+        }
+        onPick={() => onPick('vector')}
+      />
+      <KindOption
+        title={t('project.kind.gradient')}
+        desc={t('home.gradient.desc')}
+        icon={
+          <svg
+            viewBox="0 0 24 24"
+            className="h-8 w-8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden
+          >
+            <defs>
+              <linearGradient id="kind-grad" x1="3" y1="18" x2="21" y2="6">
+                <stop offset="0" stopColor="currentColor" />
+                <stop offset="1" stopColor="currentColor" stopOpacity=".35" />
+              </linearGradient>
+            </defs>
+            <rect x="3" y="3" width="18" height="18" rx="3" fill="url(#kind-grad)" stroke="none" />
+            <circle cx="7" cy="17" r="1.6" />
+            <circle cx="17" cy="7" r="1.6" />
+          </svg>
+        }
+        onPick={() => onPick('gradient')}
+      />
+    </>
+  )
 }
 
 /** Type-chooser card: icon + label + description, whole card clickable. */

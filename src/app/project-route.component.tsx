@@ -10,13 +10,18 @@ import {
 
 import type { ImportBitmap } from '../engine/import-image.ts'
 import { deserialize } from '../engine/project.ts'
+import { GradientWorkspace } from '../features/gradient/gradient-workspace.component.tsx'
 import { ImportDialog } from '../features/import/import-dialog.component.tsx'
 import { ToolSettings, type SettingsAnchor } from '../features/tools/tool-settings.component.tsx'
 import { VectorWorkspace } from '../features/vectorizer/vector-workspace.component.tsx'
 import { I18nProvider } from '../shared/i18n/i18n.provider.tsx'
 import { decodeImageFile } from '../shared/lib/decode-image.util.ts'
 import { useStore } from '../state/editor.store.ts'
-import type { PixelProjectEntry, VectorProjectEntry } from '../storage/projects.ts'
+import type {
+  GradientProjectEntry,
+  PixelProjectEntry,
+  VectorProjectEntry,
+} from '../storage/projects.ts'
 import { TopBar } from './app-top-bar.component.tsx'
 import {
   MobilePanelDrawer,
@@ -46,13 +51,14 @@ export function ProjectRoute(): ReactElement {
   const [mobileSettings, setMobileSettings] = useState<SettingsAnchor | null>(null)
 
   // imports and pastes route by the open project's kind: pixel opens the dither dialog,
-  // the vector workspace sets the trace source directly
+  // the vector and gradient workspaces set their trace source directly
   const openImportFile = useCallback((file: File | Blob) => {
     const name = file instanceof File ? file.name : ''
     void decodeImageFile(file)
       .then((bitmap) => {
         const s = useStore.getState()
         if (s.boundEntry?.kind === 'vector') s.setVectorSource(bitmap, name)
+        else if (s.boundEntry?.kind === 'gradient') s.setGradientSource(bitmap, name)
         else setImportBitmap(bitmap)
       })
       .catch(() => {
@@ -87,6 +93,8 @@ export function ProjectRoute(): ReactElement {
         />
         {entry.kind === 'vector' ? (
           <VectorSurface entry={entry} />
+        ) : entry.kind === 'gradient' ? (
+          <GradientSurface entry={entry} />
         ) : (
           <PixelSurface entry={entry}>
             <MobileToolStrip onSettings={(tool) => setMobileSettings({ tool, x: 0, y: 0 })} />
@@ -117,6 +125,17 @@ function VectorSurface({ entry }: { entry: VectorProjectEntry }): ReactElement {
     loadVectorEntry(entry)
   }, [entry, loadVectorEntry])
   return <VectorWorkspace />
+}
+
+/** The gradient workspace: state restored from the project's gradient session, then self-sufficient. */
+function GradientSurface({ entry }: { entry: GradientProjectEntry }): ReactElement {
+  const loadGradientEntry = useStore((s) => s.loadGradientEntry)
+  useLayoutEffect(() => {
+    const s = useStore.getState()
+    s.openProject(entry)
+    loadGradientEntry(entry)
+  }, [entry, loadGradientEntry])
+  return <GradientWorkspace />
 }
 
 /** The pixel surface: canvas area + mobile chrome, bound to the opened entry before first paint. */
