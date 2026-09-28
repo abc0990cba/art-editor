@@ -66,17 +66,14 @@ export function ToolRail() {
         }`}
       >
         <ToolIcon id={id} className={expanded ? 'h-4 w-4' : 'h-4.5 w-4.5'} />
-        {expanded ? (
+        {expanded && (
           <>
             <span className="flex-1 truncate text-left text-xs">{t(`tool.${id}`)}</span>
-            {toolHasSettings(id) && <SettingsGlyph className="h-1 w-1.5 shrink-0" />}
             <span className="text-muted text-overline tabular-nums">{toolKeys[id]}</span>
           </>
-        ) : (
-          toolHasSettings(id) && (
-            <SettingsGlyph className="absolute bottom-[3px] left-1/2 h-1 w-1.5 -translate-x-1/2" />
-          )
         )}
+        {/* Fresco's options marker: a small triangle pinned to the button's bottom-right corner */}
+        {toolHasSettings(id) && <SettingsGlyph className="absolute right-[3px] bottom-[3px] h-1 w-1.5" />}
       </button>
     </Tooltip>
   )

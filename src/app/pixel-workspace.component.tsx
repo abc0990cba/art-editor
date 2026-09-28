@@ -211,7 +211,7 @@ export function MobileToolStrip(): ReactElement {
           >
             <ToolIcon id={id} className="h-5 w-5" />
             {toolHasSettings(id) && (
-              <SettingsGlyph className="absolute bottom-1 left-1/2 h-1 w-1.5 -translate-x-1/2" />
+              <SettingsGlyph className="absolute right-1 bottom-1 h-1.5 w-2" />
             )}
           </button>
         ))}
