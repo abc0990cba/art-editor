@@ -1,23 +1,24 @@
-import { useState } from 'react'
-
 import { MAX_CELL, MIN_CELL, TILING_MODES, WALLPAPER_MODES } from '../../engine/symmetry.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { useStore } from '../../state/editor.store.ts'
-import { SymmetryPreviewDialog } from './symmetry-preview-dialog.component.tsx'
+import { SymmetryPreview } from './symmetry-preview.component.tsx'
 
-/** Symmetry section: finite modes, rosette knobs, wallpaper/tiling lattices and the preview. */
+/** Symmetry section: live preview, finite modes, rosette knobs and wallpaper/tiling lattices. */
 export function SymmetrySection() {
   const { t } = useI18n()
   const symmetry = useStore((s) => s.symmetry)
   const patchSymmetry = useStore((s) => s.patchSymmetry)
   const isSquare = useStore((s) => s.doc.gridType === 'square')
-  const [symPreviewOpen, setSymPreviewOpen] = useState(false)
   const isRadial = symmetry.mode === 'radial' || symmetry.mode === 'kaleido'
   const repeatActive = ['brick', 'halfdrop', ...WALLPAPER_MODES].includes(symmetry.mode)
 
   return (
     <Section title={t('panel.symmetry')} icon="symmetry">
+      {/* pinned so the demo follows chip/slider changes while scrolling the long section */}
+      <div className="border-line bg-panel sticky top-0 z-10 -mx-3 border-b px-3 pb-2 max-lg:-mx-4 max-lg:px-4">
+        <SymmetryPreview />
+      </div>
       <div className="text-muted text-label font-medium tracking-wider uppercase">
         {t('sym.basic')}
       </div>
@@ -27,11 +28,7 @@ export function SymmetrySection() {
             key={mode}
             active={symmetry.mode === mode}
             title={t(`sym.${mode}.desc` as 'sym.none.desc')}
-            onClick={() => {
-              const changed = symmetry.mode !== mode
-              patchSymmetry({ mode })
-              if (changed) setSymPreviewOpen(true)
-            }}
+            onClick={() => patchSymmetry({ mode })}
           >
             {t(`sym.${mode}`)}
           </Chip>
@@ -47,11 +44,7 @@ export function SymmetrySection() {
             key={mode}
             active={symmetry.mode === mode}
             title={t(`sym.${mode}.desc` as 'sym.radial.desc')}
-            onClick={() => {
-              const changed = symmetry.mode !== mode
-              patchSymmetry({ mode })
-              if (changed) setSymPreviewOpen(true)
-            }}
+            onClick={() => patchSymmetry({ mode })}
           >
             {t(`sym.${mode}`)}
           </Chip>
@@ -106,11 +99,7 @@ export function SymmetrySection() {
             active={symmetry.mode === mode}
             disabled={!isSquare}
             title={t(`sym.${mode}.desc` as 'sym.p1.desc')}
-            onClick={() => {
-              const changed = symmetry.mode !== mode
-              patchSymmetry({ mode })
-              if (changed) setSymPreviewOpen(true)
-            }}
+            onClick={() => patchSymmetry({ mode })}
           >
             {mode}
           </Chip>
@@ -127,11 +116,7 @@ export function SymmetrySection() {
             active={symmetry.mode === mode}
             disabled={!isSquare}
             title={t(`sym.${mode}.desc` as 'sym.brick.desc')}
-            onClick={() => {
-              const changed = symmetry.mode !== mode
-              patchSymmetry({ mode })
-              if (changed) setSymPreviewOpen(true)
-            }}
+            onClick={() => patchSymmetry({ mode })}
           >
             {t(`sym.${mode}`)}
           </Chip>
@@ -172,11 +157,6 @@ export function SymmetrySection() {
         checked={symmetry.showGuides}
         onChange={(v) => patchSymmetry({ showGuides: v })}
       />
-
-      <Chip title={t('sym.preview.desc')} onClick={() => setSymPreviewOpen(true)}>
-        {t('sym.preview')}
-      </Chip>
-      {symPreviewOpen && <SymmetryPreviewDialog onClose={() => setSymPreviewOpen(false)} />}
     </Section>
   )
 }

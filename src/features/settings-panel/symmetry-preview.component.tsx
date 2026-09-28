@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 
+import { STAGE_THEMES } from '../../engine/doc.ts'
 import { symmetryPoints, type RadialOpts } from '../../engine/symmetry.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
 import { useStore } from '../../state/editor.store.ts'
 
 const GRID = 24
@@ -21,18 +21,26 @@ const SEEDS: [number, number][] = [
 ]
 
 /**
- * Modal preview of the selected symmetry mode: a demo doodle (accent) with all its symmetric copies
- * (muted) rendered on a grid, so the effect of the mode is visible at a glance.
+ * Live demo of the active symmetry mode: an accent doodle with all its symmetric copies (muted) on
+ * a grid, redrawn from the current symmetry settings so every chip and slider change is instantly
+ * visible. Stays an inline canvas on purpose — inside a Radix portal the content mounts one commit
+ * after the component, and a draw-on-mount effect would run before the canvas exists.
  */
-export function SymmetryPreviewDialog({ onClose }: { onClose: () => void }) {
+export function SymmetryPreview({ className = '' }: { className?: string }) {
   const { t } = useI18n()
   const symmetry = useStore((s) => s.symmetry)
+  // the demo colors follow the theme: grid lines come from the canvas stage theme, seeds/copies
+  // from the panel's accent/muted tokens — both flip with the resolved theme
+  const resolvedTheme = useStore((s) => s.resolvedTheme)
+  const stage = STAGE_THEMES[resolvedTheme]
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const radial: RadialOpts | undefined =
-    symmetry.mode === 'radial' || symmetry.mode === 'kaleido'
-      ? { fill: symmetry.fill, phase: symmetry.phase, twist: symmetry.twist }
-      : undefined
+  // radial knobs as primitives, so the draw effect re-runs only on real changes (no per-render
+  // options object in the dependency array)
+  const isRadial = symmetry.mode === 'radial' || symmetry.mode === 'kaleido'
+  const fill = isRadial ? symmetry.fill : 0
+  const phase = isRadial ? symmetry.phase : 0
+  const twist = isRadial ? symmetry.twist : 0
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -41,6 +49,9 @@ export function SymmetryPreviewDialog({ onClose }: { onClose: () => void }) {
     canvas.height = GRID * CELL
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+
+    const radial: RadialOpts | undefined =
+      symmetry.mode === 'radial' || symmetry.mode === 'kaleido' ? { fill, phase, twist } : undefined
 
     const cell = (x: number, y: number, color: string, inset = 1) => {
       ctx.fillStyle = color
@@ -52,7 +63,7 @@ export function SymmetryPreviewDialog({ onClose }: { onClose: () => void }) {
       getComputedStyle(document.documentElement).getPropertyValue('--chip').trim() ||
       'rgba(128,128,128,0.12)'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.strokeStyle = 'rgba(128,128,128,0.25)'
+    ctx.strokeStyle = stage.pixelLine
     for (let i = 0; i <= GRID; i++) {
       ctx.beginPath()
       ctx.moveTo(i * CELL, 0)
@@ -86,42 +97,14 @@ export function SymmetryPreviewDialog({ onClose }: { onClose: () => void }) {
         cell(px, py, copy)
       }
     }
-  }, [
-    symmetry.mode,
-    symmetry.n,
-    symmetry.cell,
-    symmetry.fill,
-    symmetry.phase,
-    symmetry.twist,
-    radial,
-  ])
+  }, [symmetry.mode, symmetry.n, symmetry.cell, fill, phase, twist, stage])
 
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
-    >
-      <DialogContent showCloseButton={false} className="gap-3 p-4 lg:max-w-md lg:rounded-xl">
-        <div className="flex items-center justify-between">
-          <DialogTitle className="text-body text-sm font-semibold tracking-wide">
-            {t(`sym.${symmetry.mode}` as 'sym.none')}
-          </DialogTitle>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('dialog.close')}
-            className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
-          >
-            ✕
-          </button>
-        </div>
-        <canvas ref={canvasRef} className="border-line w-full rounded-lg border" />
-        <p className="text-muted text-overline leading-snug">
-          {t(`sym.${symmetry.mode}.desc` as 'sym.none.desc')}
-        </p>
-      </DialogContent>
-    </Dialog>
+    <canvas
+      ref={canvasRef}
+      role="img"
+      aria-label={t('sym.preview.desc')}
+      className={`border-line w-full rounded-lg border ${className}`}
+    />
   )
 }

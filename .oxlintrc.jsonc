@@ -1062,14 +1062,29 @@
   {
     "files": [
       "src/features/settings-panel/style-section.component.tsx",
-      "src/features/settings-panel/texture-section.component.tsx",
-      "src/features/settings-panel/symmetry-section.component.tsx"
+      "src/features/settings-panel/texture-section.component.tsx"
     ],
     "rules": {
       "eslint/max-lines-per-function": [
         "error",
         {
           "max": 358,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/features/settings-panel/symmetry-section.component.tsx"
+    ],
+    "rules": {
+      "eslint/max-lines-per-function": [
+        "error",
+        {
+          // 358→155: forced modal preview replaced by the inline live SymmetryPreview (2026-09)
+          "max": 155,
           "skipComments": true,
           "skipBlankLines": true
         }
