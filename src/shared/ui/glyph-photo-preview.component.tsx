@@ -72,7 +72,8 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [source, setSource] = useState<ImageData | null>(null)
-  const [cols, setCols] = useState(64)
+  // coarse by default: individual glyphs read clearly (fine grids melt them into gray)
+  const [cols, setCols] = useState(24)
   const [mode, setMode] = useState(COLOR_MODES[0])
 
   // load the bundled sample once; on failure fall back to a procedural gradient
@@ -118,7 +119,10 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="border-line bg-chip relative overflow-hidden rounded-lg border">
-        <canvas ref={canvasRef} className="block max-h-[460px] w-full object-contain" />
+        <canvas
+          ref={canvasRef}
+          className="block max-h-[360px] w-full object-contain max-lg:max-h-[32vh]"
+        />
         <span className="text-label absolute top-2 left-2 rounded bg-black/50 px-1.5 py-0.5 text-white/80">
           {set.name}
         </span>
@@ -126,7 +130,12 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-muted text-overline">{t('glyph.preview.color')}</span>
         {COLOR_MODES.map((m) => (
-          <Chip key={m.id} active={mode.id === m.id} onClick={() => setMode(m)}>
+          <Chip
+            key={m.id}
+            active={mode.id === m.id}
+            onClick={() => setMode(m)}
+            className="max-lg:min-h-11"
+          >
             {t(m.id as 'glyph.preview.mono')}
           </Chip>
         ))}
@@ -134,12 +143,14 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-muted text-overline">{t('glyph.preview.grid')}</span>
         {GRID_OPTIONS.map((n) => (
-          <Chip key={n} active={cols === n} onClick={() => setCols(n)}>
+          <Chip key={n} active={cols === n} onClick={() => setCols(n)} className="max-lg:min-h-11">
             {n}
           </Chip>
         ))}
         <span className="flex-1" />
-        <Chip onClick={() => fileRef.current?.click()}>{t('glyph.preview.replace')}</Chip>
+        <Chip onClick={() => fileRef.current?.click()} className="max-lg:min-h-11 max-lg:px-3">
+          {t('glyph.preview.replace')}
+        </Chip>
         <input
           ref={fileRef}
           type="file"

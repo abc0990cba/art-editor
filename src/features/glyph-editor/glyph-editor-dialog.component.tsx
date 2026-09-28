@@ -45,9 +45,9 @@ function GlyphLibrary() {
           ▦ {t('glyph.gallery')}
         </Chip>
       </div>
-      <div className="border-line bg-chip flex max-h-44 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1">
+      <div className="border-line bg-chip flex max-h-44 flex-wrap content-start gap-1 overflow-y-auto rounded-lg border p-1.5">
         {glyphSets.map((entry) => (
-          <div key={entry.id} className="flex items-center gap-1">
+          <span key={entry.id} className="flex items-center gap-1">
             <Chip
               active={glyphDraftId === entry.id}
               onClick={() => applyGlyphSet(entry.id, entry.set)}
@@ -57,12 +57,12 @@ function GlyphLibrary() {
             </Chip>
             <Chip onClick={() => void renameGlyphSet(entry.id, entry.name)}>✎</Chip>
             <Chip onClick={() => void deleteGlyphSet(entry.id)}>×</Chip>
-          </div>
+          </span>
         ))}
         {BUILT_IN_GLYPH_SETS.map((b) => (
-          <div key={b.id} className="flex items-center gap-1">
-            <Chip onClick={() => applyGlyphSet(null, b.set)}>★ {b.set.name}</Chip>
-          </div>
+          <Chip key={b.id} onClick={() => applyGlyphSet(null, b.set)} className="max-lg:min-h-11">
+            ★ {b.set.name}
+          </Chip>
         ))}
       </div>
       {galleryOpen && (
@@ -88,7 +88,7 @@ function GeneratorsRow({
 }) {
   const { t } = useI18n()
   const genChip = (label: string, make: () => GlyphTileSet) => (
-    <Chip key={label} onClick={() => onRegenerate(make())}>
+    <Chip key={label} onClick={() => onRegenerate(make())} className="max-lg:min-h-11">
       {label}
     </Chip>
   )
@@ -120,9 +120,48 @@ function GeneratorsRow({
 
 const TILE_SIZES = [2, 3, 4, 5, 6, 8, 12, 16]
 
+/** Level navigation: position readout, prev/next steps, add (duplicates the current) and remove. */
+function LevelNav({
+  level,
+  count,
+  onSelect,
+  onAdd,
+  onRemove,
+}: {
+  level: number
+  count: number
+  onSelect: (level: number) => void
+  onAdd: () => void
+  onRemove: () => void
+}) {
+  const { t } = useI18n()
+  const step = (delta: number) => () => onSelect(Math.max(0, Math.min(count - 1, level + delta)))
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-muted min-w-12 text-xs tabular-nums">
+        {level + 1}/{count}
+      </span>
+      <Chip title={t('glyph.prevLevel')} onClick={step(-1)}>
+        ‹
+      </Chip>
+      <Chip title={t('glyph.nextLevel')} onClick={step(1)}>
+        ›
+      </Chip>
+      <span className="flex-1" />
+      <Chip title={t('glyph.addLevel.desc')} onClick={onAdd}>
+        {t('glyph.addLevel')}
+      </Chip>
+      <Chip title={t('glyph.removeLevel.desc')} onClick={onRemove}>
+        {t('glyph.removeLevel')}
+      </Chip>
+    </div>
+  )
+}
+
 /**
  * Detailed glyph editor in a modal (opened from the compact right-panel section): level-by-level
- * pixel editing, all generators, tile resize, and saving over the draft or as a new library set.
+ * pixel editing (press and drag to paint), all generators, tile resize, and saving over the draft
+ * or as a new library set. The tone strip is the level navigator — the selected level centers.
  */
 export function GlyphEditorDialog({ onClose }: { onClose: () => void }) {
   const { t } = useI18n()
@@ -137,12 +176,27 @@ export function GlyphEditorDialog({ onClose }: { onClose: () => void }) {
   const levelCount = glyphDraft.levels.length
   const safeLevel = Math.max(0, Math.min(levelCount - 1, level))
   const wide = glyphDraft.w > 8
+  // small tile sets get big cells (a 4×4 grid fills the view), 16×16 stays compact
+  const cell = Math.max(10, Math.min(26, Math.floor(224 / glyphDraft.w)))
 
-  const toggleCell = (index: number) => {
+  const paintCell = (index: number, value: boolean) => {
     const levels = glyphDraft.levels.map((cells, li) =>
-      li === safeLevel ? cells.map((v, i) => (i === index ? !v : v)) : cells,
+      li === safeLevel ? cells.map((v, i) => (i === index ? value : v)) : cells,
     )
     patchGlyphDraft({ levels })
+  }
+
+  const addLevel = () => {
+    const levels = [...glyphDraft.levels]
+    levels.splice(safeLevel + 1, 0, [...levels[safeLevel]])
+    patchGlyphDraft({ levels })
+    setLevel(safeLevel + 1)
+  }
+  const removeLevel = () => {
+    if (levelCount <= 2) return
+    const levels = glyphDraft.levels.filter((_c, i) => i !== safeLevel)
+    patchGlyphDraft({ levels })
+    setLevel(Math.max(0, safeLevel - 1))
   }
 
   return (
@@ -154,17 +208,22 @@ export function GlyphEditorDialog({ onClose }: { onClose: () => void }) {
     >
       <DialogContent
         showCloseButton={false}
-        className="flex w-full flex-col gap-3 overflow-y-auto p-4 lg:max-h-[90vh] lg:max-w-xl lg:rounded-xl"
+        className="flex w-full flex-col gap-3 overflow-y-auto p-4 max-lg:gap-4 max-lg:px-3 lg:max-h-[90vh] lg:max-w-xl lg:rounded-xl"
       >
-        <div className="flex items-center justify-between">
-          <DialogTitle className="text-body text-sm font-semibold tracking-wide">
-            {t('glyph.editor')}
-          </DialogTitle>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <DialogTitle className="text-body text-sm font-semibold tracking-wide">
+              {t('glyph.editor')}
+            </DialogTitle>
+            <span className="text-muted text-overline shrink-0">
+              {glyphDraft.w}×{glyphDraft.h} · {levelCount}
+            </span>
+          </div>
           <button
             type="button"
             onClick={onClose}
             aria-label={t('dialog.close')}
-            className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition"
+            className="text-muted hover:bg-chip-active hover:text-body rounded-md px-2 py-1 text-xs transition max-lg:h-11 max-lg:w-11"
           >
             ✕
           </button>
@@ -176,40 +235,19 @@ export function GlyphEditorDialog({ onClose }: { onClose: () => void }) {
           selected={safeLevel}
           onSelect={setLevel}
         />
-        <div className="text-body flex items-center gap-1.5 text-xs">
-          <span className="text-muted">
-            {t('glyph.level')} {safeLevel + 1}/{levelCount}
-          </span>
-          <Chip onClick={() => setLevel(Math.max(0, safeLevel - 1))}>−</Chip>
-          <Chip onClick={() => setLevel(Math.min(levelCount - 1, safeLevel + 1))}>+</Chip>
-          <Chip
-            onClick={() => {
-              if (levelCount <= 2) return
-              const levels = glyphDraft.levels.filter((_c, i) => i !== safeLevel)
-              patchGlyphDraft({ levels })
-              setLevel(Math.max(0, safeLevel - 1))
-            }}
-          >
-            {t('glyph.removeLevel')}
-          </Chip>
-          <Chip
-            onClick={() => {
-              const levels = [...glyphDraft.levels]
-              levels.splice(safeLevel + 1, 0, [...levels[safeLevel]])
-              patchGlyphDraft({ levels })
-              setLevel(safeLevel + 1)
-            }}
-          >
-            {t('glyph.addLevel')}
-          </Chip>
-        </div>
-        <GlyphTileGrid
-          set={glyphDraft}
+        <LevelNav
           level={safeLevel}
-          cell={wide ? 11 : 18}
-          onToggle={toggleCell}
+          count={levelCount}
+          onSelect={setLevel}
+          onAdd={addLevel}
+          onRemove={removeLevel}
         />
+
+        <div className="flex justify-center">
+          <GlyphTileGrid set={glyphDraft} level={safeLevel} cell={cell} onPaint={paintCell} />
+        </div>
         <p className="text-muted text-overline leading-snug">{t('glyph.applyHint')}</p>
+
         <div className="text-muted text-overline font-semibold tracking-wider uppercase">
           {t('glyph.tileSize')}
         </div>
@@ -219,11 +257,13 @@ export function GlyphEditorDialog({ onClose }: { onClose: () => void }) {
               key={n}
               active={glyphDraft.w === n && glyphDraft.h === n}
               onClick={() => patchGlyphDraft(resizeGlyphSet(glyphDraft, n, n))}
+              className="max-lg:min-h-11"
             >
               {n}×{n}
             </Chip>
           ))}
         </div>
+
         <GeneratorsRow draft={glyphDraft} onRegenerate={patchGlyphDraft} />
 
         <div className="flex items-center gap-1.5">
@@ -239,6 +279,7 @@ export function GlyphEditorDialog({ onClose }: { onClose: () => void }) {
               void (glyphDraftId ? overwriteGlyphDraft(glyphDraftId) : saveGlyphDraft(finalName))
               setName('')
             }}
+            className="max-lg:min-h-11"
           >
             {glyphDraftId ? t('glyph.overwrite') : t('glyph.save')}
           </Chip>

@@ -56,7 +56,7 @@ function GalleryCard({
         </span>
       </span>
       <GlyphTonePreview set={set} className="border-line h-auto w-full rounded-sm border" />
-      <GlyphRampStrip set={sampleLevels(set)} size={set.w > 8 ? 2 : 3} />
+      <GlyphRampStrip set={sampleLevels(set)} size={set.w > 8 ? 2 : 3} fadeFrom="from-chip" />
     </button>
   )
 }
