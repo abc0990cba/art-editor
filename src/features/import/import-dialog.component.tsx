@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { hexToRgb } from '../../engine/color.ts'
 import {
@@ -7,11 +7,11 @@ import {
   ORDERED_DITHERS,
   type ImportBitmap,
   type ImportDither,
-  type ImportFit,
   type ImportOptions,
   type ImportPaletteChoice,
   type ImportResult,
 } from '../../engine/import-image.ts'
+import { curateImportPalette, type PaletteEdit } from '../../engine/import-palette.ts'
 import { IMPORT_PRESETS } from '../../engine/import-presets.ts'
 import { PALETTES } from '../../engine/palettes.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
@@ -31,80 +31,9 @@ import {
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import { BeforeAfterPreview } from './before-after-preview.component.tsx'
-
-const FITS: ImportFit[] = ['cover', 'contain', 'stretch', 'resize']
-
-// chip-plate select trigger; phones get 44px touch targets (max-lg)
-const SELECT_TRIGGER =
-  'border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs max-lg:min-h-11 max-lg:px-3 max-lg:py-2.5 max-lg:text-sm'
-const DITHER_GROUPS: {
-  label:
-    | 'import.ditherGroup.off'
-    | 'import.ditherGroup.ordered'
-    | 'import.ditherGroup.diffusion'
-    | 'import.ditherGroup.special'
-    | 'import.ditherGroup.glyph'
-  dithers: ImportDither[]
-}[] = [
-  { label: 'import.ditherGroup.off', dithers: ['none'] },
-  {
-    label: 'import.ditherGroup.ordered',
-    dithers: [
-      'bayer2',
-      'bayer4',
-      'bayer8',
-      'bayer16',
-      'cluster-dot',
-      'halftone',
-      'blue-noise',
-      'void-cluster',
-      'pattern',
-      'crosshatch',
-    ],
-  },
-  {
-    label: 'import.ditherGroup.diffusion',
-    dithers: [
-      'floyd',
-      'atkinson',
-      'sierra',
-      'sierra-lite',
-      'stucki',
-      'burkes',
-      'jjn',
-      'stevenson-arce',
-      'nakano',
-    ],
-  },
-  {
-    label: 'import.ditherGroup.special',
-    dithers: ['ostromoukhov', 'variable-error', 'dot-diffusion', 'riemersma'],
-  },
-  {
-    label: 'import.ditherGroup.glyph',
-    dithers: ['glyph', 'palette-glyph'],
-  },
-]
-
-const checkerStyle: React.CSSProperties = {
-  backgroundImage:
-    'conic-gradient(rgba(128,128,128,0.25) 25%, rgba(128,128,128,0.08) 0 50%, rgba(128,128,128,0.25) 0 75%, rgba(128,128,128,0.08) 0)',
-  backgroundSize: '16px 16px',
-}
-
-/** Collapsible slider group (Adjust / Pre / Post); rows grow to 44px touch targets on phones. */
-function SliderGroup({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <details className="border-line rounded-md border px-2 py-1">
-      <summary className="text-muted cursor-pointer text-xs select-none max-lg:flex max-lg:min-h-11 max-lg:items-center max-lg:text-sm">
-        {title}
-      </summary>
-      <div className="mt-1.5 flex flex-col gap-2">{children}</div>
-    </details>
-  )
-}
-
-const signed = (v: number): string => (v > 0 ? `+${v}` : `${v}`)
+import { ImportAdjustSections } from './import-adjust-sections.component.tsx'
+import { checkerStyle, DITHER_GROUPS, FITS, SELECT_TRIGGER } from './import-controls.util.ts'
+import { ImportPaletteEditor } from './import-palette-editor.component.tsx'
 
 export function ImportDialog({
   bitmap: initialBitmap,
@@ -129,6 +58,8 @@ export function ImportDialog({
   const [presetSel, setPresetSel] = useState('')
   const [paletteSel, setPaletteSel] = useState('auto')
   const [autoColors, setAutoColors] = useState(16)
+  // user curation of the converted palette; resets when the conversion itself changes it
+  const [paletteEdit, setPaletteEdit] = useState<PaletteEdit | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const square = doc.gridType === 'square'
@@ -156,17 +87,30 @@ export function ImportDialog({
     return () => clearTimeout(id)
   }, [bitmap, opts, doc.cols, doc.rows, doc.sub, doc.palette, square])
 
+  // palette curation applies after conversion; it resets only when the conversion's own
+  // palette changes (auto quantization), so slider tweaks on a fixed palette keep the edits
+  const paletteKey = result ? result.palette.join(',') : ''
+  useEffect(() => setPaletteEdit(null), [paletteKey])
+  const finalResult = useMemo(
+    () => (result && paletteEdit ? curateImportPalette(result, paletteEdit) : result),
+    [result, paletteEdit],
+  )
+
   const rgbOf = useMemo(() => {
     const m = new Map<string, { r: number; g: number; b: number }>()
-    if (result) for (const hex of result.palette) m.set(hex, hexToRgb(hex) ?? { r: 0, g: 0, b: 0 })
+    if (finalResult) {
+      for (const hex of finalResult.palette) m.set(hex, hexToRgb(hex) ?? { r: 0, g: 0, b: 0 })
+    }
     return m
-  }, [result])
+  }, [finalResult])
 
-  const colorsUsed = result ? new Set(result.cells).size - (result.cells.includes(0) ? 1 : 0) : 0
+  const colorsUsed = finalResult
+    ? new Set(finalResult.cells).size - (finalResult.cells.includes(0) ? 1 : 0)
+    : 0
 
   const apply = () => {
-    if (!result) return
-    importPixels(result)
+    if (!finalResult) return
+    importPixels(finalResult)
     requestFit()
     onClose()
   }
@@ -226,7 +170,7 @@ export function ImportDialog({
               <div className="border-line bg-panel h-64 overflow-hidden rounded-lg border p-2 lg:h-auto lg:min-h-[240px] lg:flex-1">
                 <BeforeAfterPreview
                   bitmap={bitmap}
-                  result={result}
+                  result={finalResult}
                   rgbOf={rgbOf}
                   sub={doc.sub}
                   fit={opts.fit}
@@ -237,9 +181,9 @@ export function ImportDialog({
                 <span className="text-muted text-label">
                   {t('import.original')} ⟷ {t('import.result')}
                 </span>
-                {result && (
+                {finalResult && (
                   <span className="text-muted text-overline">
-                    {result.cols}×{result.rows} {t('import.info.cells')} · {colorsUsed}{' '}
+                    {finalResult.cols}×{finalResult.rows} {t('import.info.cells')} · {colorsUsed}{' '}
                     {t('import.info.colors')}
                   </span>
                 )}
@@ -247,6 +191,12 @@ export function ImportDialog({
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto lg:w-64 lg:flex-none lg:pr-1">
+              <ImportPaletteEditor
+                result={finalResult}
+                edit={paletteEdit}
+                onChange={setPaletteEdit}
+              />
+
               <div className="flex flex-col gap-1">
                 <span className="text-muted text-xs">{t('import.presets')}</span>
                 <Select
@@ -278,18 +228,19 @@ export function ImportDialog({
 
               <div className="flex flex-col gap-1">
                 <span className="text-muted text-xs">{t('import.fit')}</span>
-                <Select value={opts.fit} onValueChange={(v) => patch({ fit: v as ImportFit })}>
-                  <SelectTrigger className={SELECT_TRIGGER}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FITS.map((f) => (
-                      <SelectItem key={f} value={f}>
-                        {t(`import.fit.${f}` as 'import.fit.cover')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap gap-1">
+                  {FITS.map((f) => (
+                    <Chip
+                      key={f}
+                      active={opts.fit === f}
+                      title={t(`import.fit.${f}` as 'import.fit.cover')}
+                      onClick={() => patch({ fit: f })}
+                      className="max-lg:h-11"
+                    >
+                      {t(`import.fit.${f}` as 'import.fit.cover')}
+                    </Chip>
+                  ))}
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -389,124 +340,7 @@ export function ImportDialog({
                 />
               )}
 
-              <SliderGroup title={t('import.section.adjust')}>
-                <Slider
-                  label={t('import.brightness')}
-                  title={t('import.brightness.desc')}
-                  min={-100}
-                  max={100}
-                  value={opts.brightness}
-                  display={signed}
-                  onChange={(v) => patch({ brightness: v })}
-                />
-                <Slider
-                  label={t('import.contrast')}
-                  title={t('import.contrast.desc')}
-                  min={-100}
-                  max={100}
-                  value={opts.contrast}
-                  display={signed}
-                  onChange={(v) => patch({ contrast: v })}
-                />
-                <Slider
-                  label={t('import.saturation')}
-                  title={t('import.saturation.desc')}
-                  min={-100}
-                  max={100}
-                  value={opts.saturation}
-                  display={signed}
-                  onChange={(v) => patch({ saturation: v })}
-                />
-              </SliderGroup>
-
-              <SliderGroup title={t('import.section.pre')}>
-                <Slider
-                  label={t('import.blur')}
-                  title={t('import.blur.desc')}
-                  min={0}
-                  max={10}
-                  value={opts.blur}
-                  onChange={(v) => patch({ blur: v })}
-                />
-                <Slider
-                  label={t('import.sharpen')}
-                  title={t('import.sharpen.desc')}
-                  min={0}
-                  max={100}
-                  value={opts.sharpen}
-                  display={(v) => `${v}%`}
-                  onChange={(v) => patch({ sharpen: v })}
-                />
-                <Slider
-                  label={t('import.hue')}
-                  title={t('import.hue.desc')}
-                  min={-180}
-                  max={180}
-                  value={opts.hue}
-                  display={signed}
-                  onChange={(v) => patch({ hue: v })}
-                />
-                <Slider
-                  label={t('import.preDenoise')}
-                  title={t('import.preDenoise.desc')}
-                  min={0}
-                  max={5}
-                  value={opts.preDenoise}
-                  onChange={(v) => patch({ preDenoise: v })}
-                />
-                <Slider
-                  label={t('import.preSmooth')}
-                  title={t('import.preSmooth.desc')}
-                  min={0}
-                  max={5}
-                  value={opts.preSmooth}
-                  onChange={(v) => patch({ preSmooth: v })}
-                />
-              </SliderGroup>
-
-              <SliderGroup title={t('import.section.post')}>
-                <Slider
-                  label={t('import.glowRadius')}
-                  title={t('import.glowRadius.desc')}
-                  min={0}
-                  max={24}
-                  value={opts.glowRadius}
-                  onChange={(v) => patch({ glowRadius: v })}
-                />
-                <Slider
-                  label={t('import.glowIntensity')}
-                  title={t('import.glowIntensity.desc')}
-                  min={0}
-                  max={100}
-                  value={opts.glowIntensity}
-                  display={(v) => `${v}%`}
-                  onChange={(v) => patch({ glowIntensity: v })}
-                />
-                <Slider
-                  label={t('import.aberration')}
-                  title={t('import.aberration.desc')}
-                  min={0}
-                  max={12}
-                  value={opts.aberration}
-                  onChange={(v) => patch({ aberration: v })}
-                />
-                <Slider
-                  label={t('import.postDenoise')}
-                  title={t('import.postDenoise.desc')}
-                  min={0}
-                  max={5}
-                  value={opts.postDenoise}
-                  onChange={(v) => patch({ postDenoise: v })}
-                />
-                <Slider
-                  label={t('import.postSmooth')}
-                  title={t('import.postSmooth.desc')}
-                  min={0}
-                  max={5}
-                  value={opts.postSmooth}
-                  onChange={(v) => patch({ postSmooth: v })}
-                />
-              </SliderGroup>
+              <ImportAdjustSections opts={opts} patch={patch} />
 
               <Slider
                 label={t('import.blend')}
@@ -527,19 +361,6 @@ export function ImportDialog({
                 display={(v) => `${v}×${v}`}
                 onChange={(v) => patch({ pixelScale: v })}
               />
-
-              {result && (
-                <div className="flex flex-wrap gap-0.5">
-                  {result.palette.map((hex) => (
-                    <span
-                      key={hex}
-                      title={hex}
-                      className="h-4 w-4 rounded-sm border border-black/20"
-                      style={{ background: hex }}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         ) : (

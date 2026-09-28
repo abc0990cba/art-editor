@@ -757,8 +757,9 @@
       "eslint/max-lines": [
         "error",
         {
-          // 597→601: shadcn migration; →577: presets→Select; →576: SliderGroup (2026-09)
-          "max": 576,
+          // 597→601: shadcn migration; →577: presets→Select; →576: SliderGroup; →401: slider
+          // sections + static data extracted, palette editor added as components (2026-09)
+          "max": 401,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -766,8 +767,8 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          // 501→512: shadcn Dialog/Select migration (2026-09)
-          "max": 512,
+          // 501→512: shadcn Dialog/Select migration; →366: sections extracted (2026-09)
+          "max": 366,
           "skipComments": true,
           "skipBlankLines": true
         }
