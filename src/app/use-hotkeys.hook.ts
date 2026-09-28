@@ -47,6 +47,53 @@ function nudgeSelection(key: string, shift: boolean): boolean {
   return true
 }
 
+/** Mod-key actions (undo/redo/select/group/save/stack/duplicate); true when one fired. */
+function modAction(e: KeyboardEvent, key: string): boolean {
+  const s = useStore.getState()
+  if (key === 'z') {
+    if (e.shiftKey) redo()
+    else undo()
+    return true
+  }
+  if (key === 'y') {
+    redo()
+    return true
+  }
+  if (key === 'a') {
+    s.selectAllElements()
+    return true
+  }
+  if (key === 'g') {
+    if (e.shiftKey) s.ungroupSelection()
+    else s.groupSelection()
+    return true
+  }
+  if (key === 'd') {
+    s.duplicateSelection()
+    return true
+  }
+  if (key === 's') {
+    // saving is ambient now; Ctrl+S forces an immediate write with a fresh thumbnail
+    void s.saveToLibrary({ freshThumb: true })
+    return true
+  }
+  if (key === '[' || key === ']') {
+    // stack order: ] brings the node one slot up, [ sends it down (tree order)
+    if (!s.doc.layers) return true
+    const ids =
+      s.selection.length > 0 ? s.selection : s.activeLayerId == null ? [] : [s.activeLayerId]
+    const dir = key === ']' ? 'after' : 'before'
+    for (const id of ids) {
+      const st = useStore.getState()
+      if (!st.doc.layers) break
+      const target = shiftTarget(st.doc.layers, id, dir)
+      if (target) st.reorderNode(id, target.targetId, target.place)
+    }
+    return true
+  }
+  return false
+}
+
 export function useHotkeys(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -62,48 +109,8 @@ export function useHotkeys(): void {
       }
       const mod = e.ctrlKey || e.metaKey
       const key = e.key.toLowerCase()
-      if (mod && key === 'z') {
+      if (mod && modAction(e, key)) {
         e.preventDefault()
-        if (e.shiftKey) redo()
-        else undo()
-        return
-      }
-      if (mod && key === 'y') {
-        e.preventDefault()
-        redo()
-        return
-      }
-      if (mod && key === 'a') {
-        e.preventDefault()
-        useStore.getState().selectAllElements()
-        return
-      }
-      if (mod && key === 'g') {
-        e.preventDefault()
-        if (e.shiftKey) useStore.getState().ungroupSelection()
-        else useStore.getState().groupSelection()
-        return
-      }
-      if (mod && key === 's') {
-        e.preventDefault()
-        // saving is ambient now; Ctrl+S forces an immediate write with a fresh thumbnail
-        void useStore.getState().saveToLibrary({ freshThumb: true })
-        return
-      }
-      if (mod && (key === '[' || key === ']')) {
-        e.preventDefault()
-        // stack order: ] brings the node one slot up, [ sends it down (tree order)
-        const s = useStore.getState()
-        if (!s.doc.layers) return
-        const ids =
-          s.selection.length > 0 ? s.selection : s.activeLayerId == null ? [] : [s.activeLayerId]
-        const dir = key === ']' ? 'after' : 'before'
-        for (const id of ids) {
-          const st = useStore.getState()
-          if (!st.doc.layers) break
-          const target = shiftTarget(st.doc.layers, id, dir)
-          if (target) st.reorderNode(id, target.targetId, target.place)
-        }
         return
       }
       if (!mod && (key === 'delete' || key === 'backspace')) {

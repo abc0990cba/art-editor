@@ -658,8 +658,14 @@ export const en = {
 
   'tool.pencil.desc':
     'Draws freehand pixels with the current brush tip and pixel size. Drag to paint a stroke.',
+  'sel.duplicate': 'Duplicate selection',
+  'sel.flipH': 'Flip horizontally',
+  'sel.flipV': 'Flip vertically',
+  'sel.rotCcw': 'Rotate 90° counterclockwise',
+  'sel.rotCw': 'Rotate 90° clockwise',
+  'sel.delete': 'Delete selection',
   'tool.select.desc':
-    'Click a shape to select it — or its whole group (Shift adds, Alt removes). Drag empty space for a rubber band, drag the selection to move it, arrows nudge, Del erases.',
+    'Click a shape — or its whole group (Shift adds). Drag empty space for a rubber band; drag the box handles to scale, the corner zones to rotate; Alt+drag duplicates, arrows nudge.',
   'tool.eraser.desc':
     'Erase pixels with the current brush tip; also removes connectors it crosses.',
   'tool.fill.desc':

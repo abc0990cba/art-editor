@@ -13,9 +13,9 @@ export const SCROLLBAR = 10
 /** Marching-ants dash travel speed, in screen px per second. */
 export const ANTS_SPEED = 30
 
-/** In-stroke drag variants: canvas pan, freehand paint, shape drag, selection move, marquee select. */
+/** In-stroke drag variants: pan, freehand paint, shape drag, selection move, marquee, transform. */
 export interface DragState {
-  kind: 'pan' | 'draw' | 'shape' | 'move' | 'marquee'
+  kind: 'pan' | 'draw' | 'shape' | 'move' | 'marquee' | 'xform'
   sx?: number
   sy?: number
   panX?: number

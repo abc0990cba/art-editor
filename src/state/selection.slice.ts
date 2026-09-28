@@ -37,7 +37,7 @@ export interface ElementStylePatch {
 }
 
 /** Drop elements no longer referenced by any cell or connector; remap ids (and selection). */
-function compactElements(doc: Doc, selection: number[]): { doc: Doc; selection: number[] } {
+export function compactElements(doc: Doc, selection: number[]): { doc: Doc; selection: number[] } {
   const used = new Set<number>()
   if (doc.cellObj) {
     for (let i = 0; i < doc.cellObj.length; i++) if (doc.cellObj[i] > 0) used.add(doc.cellObj[i])

@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
-import { brushAnchor } from '../../engine/brush.ts'
 import { STAGE_THEMES, docExtent } from '../../engine/doc.ts'
 import { buildGeometry, stagingPreview, type Geometry } from '../../engine/geometry.ts'
 import { cellCoordLabel } from '../../engine/grids.ts'
 import { drawGeometry } from '../../engine/png.ts'
 import { nodeProtected, objLayer, type SceneLayer } from '../../engine/scene.ts'
 import { scrollbarMetrics } from '../../engine/scrollbars.ts'
+import { selectionBox, type CellBox } from '../../engine/selection-xform.ts'
 import { isShapeTool } from '../../engine/shapes.ts'
-import { symmetryPoints } from '../../engine/symmetry.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { FitCanvasButton } from '../../shared/ui/fit-button.component.tsx'
 import { ZoomControls } from '../../shared/ui/zoom-controls.component.tsx'
@@ -16,22 +15,24 @@ import { useStore } from '../../state/editor.store.ts'
 import {
   ANTS_SPEED,
   SCROLLBAR,
-  blobCells,
   checkerTileFor,
   constrainShapeEnd,
   drawGuides,
   drawMarquee,
   marqueeRect,
   objectsInMarquee,
-  polyPath,
   rectHasInk,
   sizeCanvas,
   type DragState,
   type Hover,
 } from './canvas-stage.util.ts'
+import { drawToolHover } from './draw-tool-hover.util.ts'
 import { clickSelectionIds } from './select-hit.util.ts'
+import { SelectionActions } from './selection-actions.component.tsx'
+import { cursorForHandle, drawTransformBox } from './selection-transform.util.ts'
 import { useCanvasStaging } from './use-canvas-staging.hook.ts'
 import { useOutlineCache } from './use-outline-cache.hook.ts'
+import { useSelectionTransform } from './use-selection-transform.hook.ts'
 
 export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void } = {}) {
   const { t } = useI18n()
@@ -213,6 +214,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
   const [hover, setHover] = useState<Hover | null>(null)
   const drag = useRef<DragState | null>(null)
+  // cursor of the hovered transform handle (state only flips when the value changes)
+  const [handleCursor, setHandleCursor] = useState<string | null>(null)
   // marquee frames coalesce into one overlay redraw per frame (the base layer never changes)
   const marqueeRafRef = useRef(0)
   const scheduleMarquee = useCallback(() => {
@@ -224,6 +227,20 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     }
   }, [])
   useEffect(() => () => cancelAnimationFrame(marqueeRafRef.current), [])
+  // buffer-space bbox of the selection's ink — drives the transform box and its handles
+  const selCellBox = useMemo<CellBox | null>(
+    () =>
+      isSquare && selection.length > 0 && doc.cellObj
+        ? selectionBox(doc.cells, doc.cellObj, selection, bw, bh)
+        : null,
+    [isSquare, selection, doc, bw],
+  )
+  const xform = useSelectionTransform(doc, selection, selCellBox, doc.sub, {
+    ensureStaging,
+    scheduleStaging,
+  })
+  const xformCancelRef = useRef<() => void>(xform.cancel)
+
   // active scrollbar thumb drag: axis, pointer start, view start and px-per-doc scale
   const scrollDrag = useRef<{
     axis: 'x' | 'y'
@@ -288,6 +305,12 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       if ((d.dx ?? 0) !== 0 || (d.dy ?? 0) !== 0) moveSelection(d.dx!, d.dy!)
       return
     }
+    if (d.kind === 'xform') {
+      stagingRef.current = null
+      bumpStaging()
+      xform.finish()
+      return
+    }
     if (d.kind === 'marquee') {
       if (marqueeRafRef.current) {
         cancelAnimationFrame(marqueeRafRef.current)
@@ -334,34 +357,50 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     p: { x: number; y: number },
     idx: number,
   ) => {
+    // a grab of a transform-box handle (or its rotate zone) wins over everything else
+    if (selection.length > 0) {
+      const hit = xform.hit(p, view.zoom, e.pointerType === 'touch')
+      if (hit && xform.begin(hit.kind, hit.handle, p)) {
+        drag.current = { kind: 'xform', sx: p.x, sy: p.y }
+        setDragKind('xform')
+        return
+      }
+    }
     // locked or hidden-ancestor objects are not pickable
     const rawObj = idx >= 0 ? (doc.cellObj?.[idx] ?? 0) : 0
     const obj = pickableObj(rawObj) ? rawObj : 0
-    if (obj > 0 && (e.shiftKey || e.altKey)) {
-      // Shift adds/toggles the clicked entity, Alt removes it; both work on whole
-      // groups — the group is the click unit (Illustrator practice)
+    if (obj > 0 && e.shiftKey) {
+      // Shift adds/toggles the clicked entity — the whole group is the click unit
       const ids = clickSelectionIds(doc, obj)
-      if (e.altKey || ids.some((id) => selection.includes(id))) removeFromSelection(ids)
+      if (ids.some((id) => selection.includes(id))) removeFromSelection(ids)
       else selectElements([...selection, ...ids])
       return
     }
     if (obj > 0) {
       const ids = clickSelectionIds(doc, obj)
       const already = ids.every((id) => selection.includes(id))
-      if (!already) selectElements(ids)
+      if (e.altKey) {
+        // Alt+drag clones the selection and moves the clones (Illustrator option-drag);
+        // a plain Alt+click leaves both copies in place — undo reverts it
+        useStore.getState().duplicateSelection()
+      } else if (!already) {
+        selectElements(ids)
+      }
       // clicking an object makes its layer the active one
       if (doc.layers) {
         const layerId = objLayer(doc.layers, obj)?.id
         if (layerId != null && layerId !== activeLayerId) setActiveLayer(layerId)
       }
-      const sel = already ? selection : ids
+      const st = useStore.getState()
+      const sel = e.altKey ? st.selection : already ? selection : ids
+      const snapDoc = st.doc
       // snapshot the selected cells so the drag preview knows what moves
       let moved: [number, number, number][] = []
-      if (isSquare && doc.cellObj) {
+      if (isSquare && snapDoc.cellObj) {
         moved = []
-        for (let i = 0; i < doc.cellObj.length; i++) {
-          const o = doc.cellObj[i]
-          if (o > 0 && sel.includes(o) && doc.cells[i] > 0) moved.push([i, doc.cells[i], o])
+        for (let i = 0; i < snapDoc.cellObj.length; i++) {
+          const o = snapDoc.cellObj[i]
+          if (o > 0 && sel.includes(o) && snapDoc.cells[i] > 0) moved.push([i, snapDoc.cells[i], o])
         }
       }
       drag.current = { kind: 'move', sx: p.x, sy: p.y, moved, dx: 0, dy: 0 }
@@ -497,6 +536,12 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     })
     const d = drag.current
     if (!d) {
+      // transform-handle hover cursors, set imperatively-cheap: the state only flips
+      // when the cursor value itself changes, so this costs nothing between handles
+      if (tool === 'select' && p) {
+        const c = cursorForHandle(xform.hit(p, viewRef.current.zoom, e.pointerType === 'touch'))
+        setHandleCursor((prev) => (prev === c ? prev : c))
+      }
       // connector preview follows the pointer between the two clicks, with its symmetry copies
       if (pendingLink && p && isSquare) {
         const st = ensureStaging()
@@ -557,6 +602,11 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       scheduleStaging()
       return
     }
+    if (d.kind === 'xform') {
+      // live scale/rotate ghost: staged cells repaint per frame via the staging loop
+      if (p) xform.update(p, e)
+      return
+    }
     if (d.kind === 'marquee') {
       // live rubber band: overlay-only redraw (rAF-coalesced), the base never changes
       if (!p) return
@@ -600,6 +650,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     } = null
     const cancelStroke = () => {
       drag.current = null
+      xformCancelRef.current()
       shapeStartRef.current = null
       shapeLastRef.current = null
       setPendingLink(null)
@@ -685,6 +736,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         e.preventDefault()
       }
       if (e.key === 'Escape') {
+        xformCancelRef.current()
         setPendingLink(null)
         stagingRef.current = null
         bumpStaging()
@@ -1065,6 +1117,22 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     // live marquee rubber band: translucent fill + hairline border, screen-constant stroke
     const mq = dragKind === 'marquee' && drag.current?.kind === 'marquee' ? drag.current : null
     if (mq) drawMarquee(ctx, mq, stage, view.zoom)
+    // Illustrator-style transform box: live geometry while a scale/rotate drag runs, the
+    // committed box otherwise; hidden during move/marquee drags (the ghost tells the story)
+    if (
+      tool === 'select' &&
+      isSquare &&
+      selCellBox &&
+      (dragKind === null || dragKind === 'xform')
+    ) {
+      drawTransformBox(
+        ctx,
+        dragKind === 'xform' ? xform.live() : null,
+        xform.box!,
+        stage,
+        view.zoom,
+      )
+    }
     // hover previews exactly what a click would pick: the whole group (see clickSelectionIds)
     const hoverIds = hoverObj > 0 ? clickSelectionIds(doc, hoverObj) : null
     if (hoverIds && dragKind === null && !hoverIds.some((id) => selection.includes(id))) {
@@ -1087,104 +1155,28 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     // brush footprint + symmetry ghosts under the cursor; hidden mid-stroke, where the
     // staging preview already shows the full result
     if (hover && dragKind === null && tool !== 'picker' && tool !== 'select') {
-      const foot = new Path2D()
-      const ghosts = new Path2D()
-      let hasGhosts = false
-      const singleCell = tool === 'fill' || tool === 'connector'
-      const cellRects = (idx: number, into: Path2D) => {
-        if (isSquare) {
-          const gx = idx % bw
-          const gy = Math.floor(idx / bw)
-          into.rect(gx / doc.sub, gy / doc.sub, 1 / doc.sub, 1 / doc.sub)
-        } else {
-          polyPath(into, grid.polygon(idx))
-        }
-      }
-      if (singleCell) {
-        // fill over a selected shape re-fills the whole selection: preview that region
-        const fillHitObj = tool === 'fill' && hover ? (doc.cellObj?.[hover.idx] ?? 0) : 0
-        const selFoot =
-          fillHitObj > 0 && selection.includes(fillHitObj) ? (selOut?.path ?? null) : null
-        if (selFoot) {
-          foot.addPath(selFoot)
-        } else {
-          cellRects(hover.idx, foot)
-          if (tool === 'fill' && symmetry.mode !== 'none') {
-            for (const si of expand(hover.idx)) {
-              if (si === hover.idx) continue
-              cellRects(si, ghosts)
-              hasGhosts = true
-            }
-          }
-        }
-      } else if (isSquare) {
-        const bx = hover.idx % bw
-        const by = Math.floor(hover.idx / bw)
-        const [ax, ay] = brushAnchor(bx, by, brush.size, brushSnap)
-        const orbit =
-          symmetry.mode === 'none'
-            ? [[ax, ay]]
-            : symmetryPoints(ax, ay, bw, bh, symmetry.mode, symmetry.n, symmetry.cell, radialOpts)
-        // symmetryPoints lists the anchor first; the remaining copies are ghosts
-        orbit.forEach(([ox, oy], oi) => {
-          for (const [dx, dy] of tipOffsets) {
-            const x = ox + dx
-            const y = oy + dy
-            if (x < 0 || y < 0 || x >= bw || y >= bh) continue
-            if (oi === 0) foot.rect(x / doc.sub, y / doc.sub, 1 / doc.sub, 1 / doc.sub)
-            else {
-              ghosts.rect(x / doc.sub, y / doc.sub, 1 / doc.sub, 1 / doc.sub)
-              hasGhosts = true
-            }
-          }
-        })
-      } else {
-        const blob = blobCells(grid, hover.idx, brush.size * brush.size)
-        for (const bi of blob) {
-          polyPath(foot, grid.polygon(bi))
-          if (symmetry.mode !== 'none') {
-            for (const si of expand(bi)) {
-              if (si === bi) continue
-              polyPath(ghosts, grid.polygon(si))
-              hasGhosts = true
-            }
-          }
-        }
-      }
-      if (hasGhosts && (tool === 'pencil' || tool === 'eraser' || tool === 'fill')) {
-        ctx.globalAlpha = tool === 'eraser' ? 0.22 : 0.35
-        ctx.fillStyle = tool === 'eraser' ? stage.hover : color
-        ctx.fill(ghosts)
-        ctx.globalAlpha = 1
-      }
-      // translucent fill of what a click would paint plus a screen-constant
-      // halo + core outline that reads on any background
-      if (
-        tool === 'pencil' ||
-        tool === 'fill' ||
-        tool === 'line' ||
-        tool === 'rect' ||
-        tool === 'ellipse' ||
-        tool === 'connector' ||
-        isShapeTool(tool)
-      ) {
-        ctx.globalAlpha = 0.4
-        ctx.fillStyle = color
-        ctx.fill(foot)
-        ctx.globalAlpha = 1
-      } else if (tool === 'eraser') {
-        ctx.globalAlpha = 0.3
-        ctx.fillStyle = stage.hover
-        ctx.fill(foot)
-        ctx.globalAlpha = 1
-      }
-      ctx.lineJoin = 'round'
-      ctx.strokeStyle = stage.hoverHalo
-      ctx.lineWidth = 4 / view.zoom
-      ctx.stroke(foot)
-      ctx.strokeStyle = stage.hover
-      ctx.lineWidth = 1.75 / view.zoom
-      ctx.stroke(foot)
+      drawToolHover({
+        ctx,
+        zoom: view.zoom,
+        hoverIdx: hover.idx,
+        tool,
+        color,
+        brushSize: brush.size,
+        brushSnap,
+        isSquare,
+        grid,
+        bw,
+        bh,
+        sub: doc.sub,
+        cellObj: doc.cellObj,
+        tipOffsets,
+        symmetry,
+        radialOpts,
+        expand,
+        selection,
+        selOutPath: selOut?.path ?? null,
+        theme: stage,
+      })
     }
     ctx.restore()
 
@@ -1241,7 +1233,10 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     return () => cancelAnimationFrame(raf)
   }, [selection])
 
-  const cursor = panning || spaceDown ? 'grabbing' : tool === 'select' ? 'default' : 'crosshair'
+  const cursor =
+    panning || spaceDown
+      ? 'grabbing'
+      : (handleCursor ?? (tool === 'select' ? 'default' : 'crosshair'))
 
   // ---- overlay scrollbars: the track maps the canvas extent, the thumb mirrors the viewport ----
   const vwDoc = wrapSize.w / view.zoom
@@ -1260,6 +1255,18 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     vhDoc,
     wrapSize.h - (hVisible ? SCROLLBAR : 0),
   )
+
+  // contextual action bar above the transform box (duplicate / flips / 90° / delete)
+  const actionsVisible =
+    tool === 'select' && dragKind === null && selCellBox !== null && xform.box !== null
+  const actionsPos = (() => {
+    if (!actionsVisible || !xform.box) return null
+    const b = xform.box
+    const x = Math.min(Math.max(4, view.x + b.x0 * view.zoom), Math.max(4, wrapSize.w - 244))
+    let y = view.y + b.y0 * view.zoom - 46
+    if (y < 4) y = view.y + b.y1 * view.zoom + 10
+    return { x, y: Math.min(y, Math.max(4, wrapSize.h - 52)) }
+  })()
 
   const thumbDown = (axis: 'x' | 'y', scale: number) => (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -1328,6 +1335,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         onPointerLeave={() => setHover(null)}
       />
       <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 touch-none" />
+      {actionsPos && <SelectionActions x={actionsPos.x} y={actionsPos.y} />}
       {pendingLink && (
         <div className="border-line bg-panel text-body pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full border px-3 py-1 text-xs backdrop-blur">
           {t('view.linkPending')}

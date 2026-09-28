@@ -3,6 +3,8 @@ import { Dialog as DialogPrimitive } from 'radix-ui'
 import * as React from 'react'
 
 import { cn } from '@/shared/lib/utils'
+// Ditherlab adaptation: dialog borders carry border-line — a bare `border` renders
+// currentColor (Tailwind v4), which reads as a white outline on dark themes.
 import { Button } from '@/shared/ui/shadcn/button'
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -55,14 +57,14 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           centered
-            ? 'fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg'
+            ? 'fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-line bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg'
             : // Ditherlab adaptation: below lg a dialog is a full-screen sheet (native mobile
               // modal); lg: restores the centered desktop modal. Callers size the desktop rung
               // with lg: classes (max-w/rounded/max-h), the sheet fills the phone screen.
               // The sheet is a flex column on mobile: grid's align-content would stretch every
               // row across the whole screen height, while flex stacks from the top and lets a
               // footer pin with mt-auto.
-              'fixed top-0 left-0 z-50 grid h-dvh w-full gap-4 overflow-y-auto max-lg:flex max-lg:flex-col rounded-none border-0 bg-background shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 lg:top-[50%] lg:left-[50%] lg:h-auto lg:max-w-[calc(100%-2rem)] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:overflow-visible lg:rounded-lg lg:border lg:data-[state=closed]:zoom-out-95 lg:data-[state=open]:zoom-in-95',
+              'fixed top-0 left-0 z-50 grid h-dvh w-full gap-4 overflow-y-auto max-lg:flex max-lg:flex-col rounded-none border-0 bg-background shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 lg:top-[50%] lg:left-[50%] lg:h-auto lg:max-w-[calc(100%-2rem)] lg:-translate-x-1/2 lg:-translate-y-1/2 lg:overflow-visible lg:rounded-lg lg:border lg:border-line lg:data-[state=closed]:zoom-out-95 lg:data-[state=open]:zoom-in-95',
           className,
         )}
         {...props}

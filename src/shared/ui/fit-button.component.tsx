@@ -20,7 +20,7 @@ export function FitCanvasButton({
       type="button"
       onClick={onFit}
       title={title ?? label}
-      className="border-line bg-panel text-body hover:border-chip-line absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs shadow-sm backdrop-blur transition max-lg:min-h-11 max-lg:px-3"
+      className="border-line bg-panel text-body hover:border-chip-line absolute bottom-3 left-3 z-10 flex h-7 items-center gap-1.5 rounded-lg border px-2 text-xs shadow-sm backdrop-blur transition max-lg:min-h-11 max-lg:px-3"
     >
       <svg
         viewBox="0 0 16 16"

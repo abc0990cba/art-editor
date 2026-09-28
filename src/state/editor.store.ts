@@ -49,6 +49,7 @@ import {
   type Tool,
   type ToolOpts,
 } from './tools.slice.ts'
+import { createTransformSlice } from './transform.slice.ts'
 import { createUiSlice, type ResolvedTheme, type ThemePref } from './ui.slice.ts'
 import { createVectorPresetsSlice } from './vector-presets.slice.ts'
 import { createVectorSlice, type VectorResult, type VectorStatus } from './vector.slice.ts'
@@ -182,6 +183,10 @@ export interface State {
   deleteSelection: () => void
   /** Move the selection by dx/dy pixel cells on the square grid (undoable) */
   moveSelection: (dx: number, dy: number) => void
+  /** Scale / rotate / flip every selected object's ink (undoable; square grid only) */
+  transformSelection: (x: import('../engine/selection-xform.ts').SelectionXform) => void
+  /** Clone the selected objects offset one cell down-right; clones become the selection (undoable) */
+  duplicateSelection: () => void
   // layers panel — structure actions mutate the doc's scene tree (undoable)
   setActiveLayer: (id: number | null) => void
   addLayer: () => void
@@ -372,6 +377,7 @@ export const useStore = create<State>()(
       ...createPaintSlice({ set, get }),
       ...createFillSlice({ set, get }),
       ...createSelectionSlice({ set, get }),
+      ...createTransformSlice({ set, get }),
       ...createProjectSlice({ set, get }),
       ...createPresetsSlice({ set, get }),
       ...createBrushesSlice({ set, get }),

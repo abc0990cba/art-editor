@@ -97,7 +97,7 @@ export function ZoomControls({
   )
 
   return (
-    <div className="border-line bg-panel text-body absolute right-3 bottom-3 flex items-center gap-1 rounded-lg border px-2 py-1 text-xs shadow-sm backdrop-blur max-lg:gap-1.5">
+    <div className="border-line bg-panel text-body absolute right-3 bottom-3 flex h-7 items-center gap-1 rounded-lg border px-2 text-xs shadow-sm backdrop-blur max-lg:h-auto max-lg:min-h-11 max-lg:gap-1.5 max-lg:py-1">
       {hoverText !== null && (
         <>
           <Tooltip label={t('view.cursor.desc')}>
