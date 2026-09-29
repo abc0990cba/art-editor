@@ -3,6 +3,7 @@ import { useEffect, useState, type JSX } from 'react'
 import { useI18n } from '../shared/i18n/i18n.provider.tsx'
 import { useStore, type ThemePref } from '../state/editor.store.ts'
 import type { ProjectKind } from '../storage/projects.ts'
+import { ThemeSwatchStrip } from './theme-swatches.component.tsx'
 
 /** Overflow-menu icons (16px stroke set, matches the toolbar's icon language). */
 const MORE_ICONS = {
@@ -119,6 +120,41 @@ const chipClass = (active: boolean): string =>
   `h-11 rounded-lg border px-3 text-sm transition ${
     active ? 'border-accent-line bg-accent-soft text-accent-text' : 'border-line bg-chip text-body'
   }`
+
+/** The theme picker block of the mobile overflow menu: swatch chips per editor palette. */
+function ThemePickerSection({
+  active,
+  onPick,
+}: {
+  active: ThemePref
+  onPick: (pref: ThemePref) => void
+}): JSX.Element {
+  const { t } = useI18n()
+  return (
+    <div className="border-line flex flex-col gap-2 border-t pt-4">
+      <span className="text-muted text-overline font-semibold tracking-wider uppercase">
+        {t('top.theme')}
+      </span>
+      <div className="grid grid-cols-2 gap-2">
+        {THEME_PREFS.map(([pref, key]) => (
+          <button
+            key={pref}
+            type="button"
+            onClick={() => onPick(pref)}
+            className={`flex h-11 items-center gap-2 rounded-lg border px-3 text-sm transition ${
+              active === pref
+                ? 'border-accent-line bg-accent-soft text-accent-text'
+                : 'border-line bg-chip text-body'
+            }`}
+          >
+            <ThemeSwatchStrip pref={pref} />
+            <span className="truncate">{t(key)}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 /**
  * Phone/tablet overflow «…» button with a full-screen menu: large rows for document actions,
@@ -237,23 +273,7 @@ export function TopBarMoreMenu({
               {row(MORE_ICONS.settings, t('project.settings'), onSettings)}
             </div>
 
-            <div className="border-line flex flex-col gap-2 border-t pt-4">
-              <span className="text-muted text-overline font-semibold tracking-wider uppercase">
-                {t('top.theme')}
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                {THEME_PREFS.map(([pref, key]) => (
-                  <button
-                    key={pref}
-                    type="button"
-                    onClick={() => setThemePref(pref)}
-                    className={chipClass(themePref === pref)}
-                  >
-                    {t(key)}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <ThemePickerSection active={themePref} onPick={(pref) => setThemePref(pref)} />
 
             <div className="border-line flex flex-col gap-2 border-t pt-4">
               <span className="text-muted text-overline font-semibold tracking-wider uppercase">

@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '../shared/ui/shadcn/dropdown-menu.tsx'
 import { useStore, type ThemePref } from '../state/editor.store.ts'
+import { ThemeSwatchStrip } from './theme-swatches.component.tsx'
 
 const triggerClass =
   'border-line bg-chip text-body hover:border-chip-line data-[state=open]:border-accent-line data-[state=open]:bg-accent-soft flex h-7 items-center justify-center rounded-md border px-2 text-xs transition'
@@ -60,14 +61,15 @@ export function ThemeMenu() {
           </svg>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuRadioGroup
           value={themePref}
           onValueChange={(v) => setThemePref(v as ThemePref)}
         >
           {THEME_PREFS.map(([pref, key]) => (
-            <DropdownMenuRadioItem key={pref} value={pref} className={itemClass}>
-              {t(key)}
+            <DropdownMenuRadioItem key={pref} value={pref} className={`${itemClass} gap-2`}>
+              <ThemeSwatchStrip pref={pref} />
+              <span className="truncate">{t(key)}</span>
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

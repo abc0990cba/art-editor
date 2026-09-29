@@ -167,13 +167,15 @@ export function toolHasSettings(tool: Tool): boolean {
 }
 
 /**
- * Fresco's per-tool options marker: a tiny triangle shown on every tool that carries settings.
- * Purely an affordance — opening the settings is the second click on the already-active tool.
+ * Fresco's per-tool options marker: a tiny corner wedge shown on every tool that carries settings —
+ * a square cut by its diagonal, the right angle seated in the button's bottom-right corner and the
+ * hypotenuse facing the tool icon. Purely an affordance — opening the settings is the second click
+ * on the already-active tool.
  */
 export function SettingsGlyph({ className }: { className: string }) {
   return (
-    <svg viewBox="0 0 8 5" className={className} fill="currentColor" aria-hidden>
-      <path d="M0 0h8L4 5z" />
+    <svg viewBox="0 0 8 8" className={className} fill="currentColor" aria-hidden>
+      <path d="M8 0v8H0z" />
     </svg>
   )
 }

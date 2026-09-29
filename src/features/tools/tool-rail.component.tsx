@@ -73,7 +73,9 @@ export function ToolRail() {
           </>
         )}
         {/* Fresco's options marker: a small triangle pinned to the button's bottom-right corner */}
-        {toolHasSettings(id) && <SettingsGlyph className="absolute right-[3px] bottom-[3px] h-1 w-1.5" />}
+        {toolHasSettings(id) && (
+          <SettingsGlyph className="absolute right-[3px] bottom-[3px] h-1 w-1" />
+        )}
       </button>
     </Tooltip>
   )

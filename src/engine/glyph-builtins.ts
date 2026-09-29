@@ -1,11 +1,24 @@
 /**
  * Curated registry of built-in glyph tile sets, grouped into families for the gallery: matrices
- * (ordered-dither ramps), dots, lines, shapes (diamonds/squares/stars/morphs) and patterns
- * (checker/corner/medallion/scales/bricks/grain/pinwheel). Procedural generators live in
- * glyph-generators.ts.
+ * (ordered-dither ramps), dots, lines, shapes (diamonds/squares/stars/morphs), patterns
+ * (checker/corner/medallion/scales/bricks/grain/pinwheel) and ornaments (cross-stitch, hearts,
+ * mosaic). Procedural generators live in glyph-generators.ts / glyph-generators-art.ts.
  */
 
 import { BAYER2, BAYER4, BAYER8 } from './dither-matrices.ts'
+import {
+  glyphSetArgyle,
+  glyphSetBubbles,
+  glyphSetCrossStitch,
+  glyphSetCrystal,
+  glyphSetHalftone,
+  glyphSetHatch,
+  glyphSetHearts,
+  glyphSetRipples,
+  glyphSetSilk,
+  glyphSetSunburst,
+  glyphSetTesserae,
+} from './glyph-generators-art.ts'
 import {
   glyphSetBricks,
   glyphSetChecker,
@@ -28,7 +41,7 @@ import {
 } from './glyph-generators.ts'
 import { glyphSetFromMatrix, type GlyphTileSet } from './glyph-tiles.ts'
 
-export type GlyphFamily = 'matrix' | 'dots' | 'lines' | 'shapes' | 'patterns'
+export type GlyphFamily = 'matrix' | 'dots' | 'lines' | 'shapes' | 'patterns' | 'ornament'
 
 /** Gallery display order of the families. */
 export const GLYPH_FAMILY_ORDER: readonly GlyphFamily[] = [
@@ -37,6 +50,7 @@ export const GLYPH_FAMILY_ORDER: readonly GlyphFamily[] = [
   'lines',
   'shapes',
   'patterns',
+  'ornament',
 ]
 
 export interface BuiltInGlyphSet {
@@ -61,6 +75,8 @@ export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
     family: 'dots',
     set: glyphSetGridDots(16, 17, 'Точечная решётка 16×16'),
   },
+  { id: 'glyph-halftone6', family: 'dots', set: glyphSetHalftone(6, 13, 'Растровые точки') },
+  { id: 'glyph-bubbles12', family: 'dots', set: glyphSetBubbles(12, 17, 'Пузыри') },
   // lines
   { id: 'glyph-hlines', family: 'lines', set: glyphSetLines('h', 4, 9, 'Линии — горизонталь') },
   { id: 'glyph-vlines', family: 'lines', set: glyphSetLines('v', 4, 9, 'Линии — вертикаль') },
@@ -68,6 +84,8 @@ export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
   { id: 'glyph-chevron', family: 'lines', set: glyphSetChevron(6, 9, 'Ёлочка') },
   { id: 'glyph-waves8', family: 'lines', set: glyphSetWaves(8, 17, 'Волны 8×8') },
   { id: 'glyph-waves16', family: 'lines', set: glyphSetWaves(16, 17, 'Волны 16×16') },
+  { id: 'glyph-hatch8', family: 'lines', set: glyphSetHatch(8, 13, 'Гравюра') },
+  { id: 'glyph-ripples12', family: 'lines', set: glyphSetRipples(12, 17, 'Рябь') },
   // shapes
   { id: 'glyph-diamonds4', family: 'shapes', set: glyphSetDiamonds(4, 17, 'Ромбы 4×4') },
   { id: 'glyph-diamonds8', family: 'shapes', set: glyphSetDiamonds(8, 17, 'Ромбы 8×8') },
@@ -86,6 +104,8 @@ export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
   { id: 'glyph-stars16', family: 'shapes', set: glyphSetStars(16, 17, 'Звёзды 16×16') },
   { id: 'glyph-morph8', family: 'shapes', set: glyphSetShapeMorph(8, 17, 'Морф 8×8') },
   { id: 'glyph-morph16', family: 'shapes', set: glyphSetShapeMorph(16, 25, 'Морф 16×16') },
+  { id: 'glyph-sunburst12', family: 'shapes', set: glyphSetSunburst(12, 17, 'Лучи') },
+  { id: 'glyph-crystal12', family: 'shapes', set: glyphSetCrystal(12, 17, 'Кристалл') },
   // patterns
   { id: 'glyph-checker', family: 'patterns', set: glyphSetChecker(4, 9, 'Шахматка') },
   { id: 'glyph-corner', family: 'patterns', set: glyphSetCorner(4, 9, 'Диагональный склон') },
@@ -95,6 +115,12 @@ export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
   { id: 'glyph-bricks8', family: 'patterns', set: glyphSetBricks(8, 17, 'Кирпичи') },
   { id: 'glyph-grain8', family: 'patterns', set: glyphSetGrain(8, 17, 'Зерно') },
   { id: 'glyph-pinwheel8', family: 'patterns', set: glyphSetPinwheel(8, 17, 'Вертушка') },
+  { id: 'glyph-silk16', family: 'patterns', set: glyphSetSilk(16, 25, 'Шёлк') },
+  { id: 'glyph-argyle12', family: 'patterns', set: glyphSetArgyle(12, 13, 'Аргайл') },
+  // ornaments
+  { id: 'glyph-crossstitch10', family: 'ornament', set: glyphSetCrossStitch(10, 13, 'Крестик') },
+  { id: 'glyph-hearts12', family: 'ornament', set: glyphSetHearts(12, 13, 'Сердца') },
+  { id: 'glyph-tesserae10', family: 'ornament', set: glyphSetTesserae(10, 17, 'Мозаика') },
 ]
 
 export function builtInGlyphSetById(id: string): GlyphTileSet | null {

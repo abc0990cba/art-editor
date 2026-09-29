@@ -14,6 +14,7 @@ import {
   sortEntries,
   type ProjectEntry,
 } from '../../storage/projects.ts'
+import { ExamplesSection } from './examples-section.component.tsx'
 import { NewProjectDialog } from './new-project-dialog.component.tsx'
 import { ProjectCard } from './project-card.component.tsx'
 
@@ -95,6 +96,7 @@ export function HomeScreen({ onOpen }: { onOpen: (id: string) => void }): ReactE
         {state.kind === 'ready' && continueEntry && (
           <ContinueCard entry={continueEntry} onOpen={onOpen} />
         )}
+        {state.kind === 'ready' && <ExamplesSection onOpen={onOpen} />}
         {state.kind === 'ready' && entries.length === 0 && (
           <p className="text-muted text-center text-xs">{t('projects.empty')}</p>
         )}

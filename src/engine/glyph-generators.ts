@@ -16,7 +16,13 @@ function monotonize(levels: GlyphTileCells[]): GlyphTileCells[] {
   return out
 }
 
-function finish(name: string, n: number, levels: GlyphTileCells[], monotone = true): GlyphTileSet {
+/** Assemble a set from raw per-level cells, optionally OR-flattening coverage monotone. */
+export function finish(
+  name: string,
+  n: number,
+  levels: GlyphTileCells[],
+  monotone = true,
+): GlyphTileSet {
   return { name, w: n, h: n, levels: monotone ? monotonize(levels) : levels }
 }
 

@@ -131,6 +131,11 @@ export function ProjectCard({
           <span className="border-line text-muted text-overline shrink-0 rounded border px-1 py-px">
             {kindLabel}
           </span>
+          {entry.id.startsWith('demo.') && (
+            <span className="border-accent-line text-accent-text text-overline shrink-0 rounded border px-1 py-px">
+              {t('projects.demo')}
+            </span>
+          )}
           <NameSlot
             entry={entry}
             renameValue={renameValue}
