@@ -5,9 +5,13 @@
  * emits.
  */
 
-import { type OrderedMatrix } from './dither-matrices.ts'
-import { defaultDoc, type ElementStyle, type Link } from './doc'
+import type { CellShapeId, ShapeParams } from './cell-shapes.ts'
+import type { OrderedMatrix } from './dither-matrices.ts'
+import { defaultDoc, type ElementStyle, type Link, type PixelStyle } from './doc'
+import type { Graph } from './nodes/types.ts'
 import type { ProjectJSON } from './project.ts'
+
+export type { Link } from './doc'
 
 /** Sparse ink of one paint object: buffer index (y·cols + x) → palette value (1-based). */
 export type Ink = Map<number, number>
@@ -24,6 +28,15 @@ export function makeGrid(cols: number, rows: number): InkGrid {
 
 export function paint(g: InkGrid, x: number, y: number, v: number): void {
   if (x >= 0 && x < g.cols && y >= 0 && y < g.rows) g.ink.set(y * g.cols + x, v)
+}
+
+/**
+ * Paint a non-square-grid cell by its buffer index — hex, triangle and radial cells map 1:1 onto
+ * the document buffer (the grid's own `cellAt` returns these same indices), so demos walk
+ * `grid.count` cells, sample `grid.center(i)` and write here.
+ */
+export function paintIdx(g: InkGrid, i: number, v: number): void {
+  g.ink.set(i, v)
 }
 
 export interface Rect {
@@ -117,10 +130,45 @@ const STYLE: ElementStyle = (() => {
   }
 })()
 
-export function makeObj(id: number, name: string, g: InkGrid): DemoObjJSON {
+/** A frozen element style with patched pixel-style knobs (everything else stays at defaults). */
+export function stylePatch(
+  patch: Partial<Omit<PixelStyle, 'shapeParams'>> & {
+    shape?: CellShapeId
+    shapeParams?: Partial<ShapeParams>
+  },
+): ElementStyle {
+  return {
+    ...STYLE,
+    style: {
+      ...STYLE.style,
+      ...patch,
+      shapeParams: { ...STYLE.style.shapeParams, ...patch.shapeParams },
+    },
+  }
+}
+
+/** Overrides on top of the frozen default style for one demo object. */
+export interface ObjOpts {
+  style?: ElementStyle
+  links?: Link[]
+  /** Live node graph — evaluated into ink and appearance at composite time. */
+  graph?: Graph
+}
+
+export function makeObj(id: number, name: string, g: InkGrid, opts: ObjOpts = {}): DemoObjJSON {
   const cells: number[] = []
   for (const [i, v] of [...g.ink.entries()].sort((a, b) => a[0] - b[0])) cells.push(i, v)
-  return { kind: 'obj', id, name, visible: true, locked: false, cells, links: [], style: STYLE }
+  return {
+    kind: 'obj',
+    id,
+    name,
+    visible: true,
+    locked: false,
+    cells,
+    links: opts.links ?? [],
+    style: opts.style ?? STYLE,
+    ...(opts.graph ? { graph: opts.graph } : {}),
+  }
 }
 
 export const makeLayer = (id: number, name: string, children: DemoObjJSON[]): DemoLayerJSON => ({

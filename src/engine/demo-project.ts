@@ -5,12 +5,25 @@
  * storage/demo-seed.ts and reuses the `demo.poster` def.
  */
 
+import { confettiProjectJSON } from './demo-confetti.ts'
+import { constellationProjectJSON } from './demo-constellation.ts'
+import { cubistProjectJSON } from './demo-cubist.ts'
+import { dollarProjectJSON } from './demo-dollar.ts'
+import { galaxyProjectJSON } from './demo-galaxy.ts'
+import { hexreefProjectJSON } from './demo-hexreef.ts'
 import { invaderProjectJSON } from './demo-invader.ts'
+import { kaleidoProjectJSON } from './demo-kaleido.ts'
 import { landscapeProjectJSON } from './demo-landscape.ts'
+import { lavaProjectJSON } from './demo-lava.ts'
 import { mandalaProjectJSON } from './demo-mandala.ts'
 import { gradientDemoSource, vectorDemoSource, type DemoSource } from './demo-media.ts'
+import { neonCityProjectJSON } from './demo-neoncity.ts'
+import { nodeGardenProjectJSON } from './demo-nodegarden.ts'
 import { portraitProjectJSON } from './demo-portrait.ts'
 import { demoProjectJSON, DEMO_PROJECT_NAME } from './demo-poster.ts'
+import { toneProjectJSON } from './demo-tone.ts'
+import { tripeaksProjectJSON } from './demo-tripeaks.ts'
+import { wallpaperProjectJSON } from './demo-wallpaper.ts'
 import type { GradientParams } from './gradient/params.ts'
 import { DEFAULT_GRADIENT_PARAMS } from './gradient/params.ts'
 import type { ProjectJSON } from './project.ts'
@@ -72,9 +85,74 @@ export const DEMO_PROJECTS: readonly DemoDef[] = [
     build: () => ({ kind: 'pixel', doc: portraitProjectJSON() }),
   },
   {
+    id: 'demo.confetti',
+    name: 'Confetti 64',
+    build: () => ({ kind: 'pixel', doc: confettiProjectJSON() }),
+  },
+  {
+    id: 'demo.tone',
+    name: 'Tone Sun 96',
+    build: () => ({ kind: 'pixel', doc: toneProjectJSON() }),
+  },
+  {
+    id: 'demo.hexreef',
+    name: 'Hex Reef 96',
+    build: () => ({ kind: 'pixel', doc: hexreefProjectJSON() }),
+  },
+  {
     id: 'demo.mandala',
     name: 'Mandala 128',
     build: () => ({ kind: 'pixel', doc: mandalaProjectJSON() }),
+  },
+  {
+    id: 'demo.kaleido',
+    name: 'Kaleido Bloom 128',
+    build: () => ({ kind: 'pixel', doc: kaleidoProjectJSON() }),
+  },
+  {
+    id: 'demo.galaxy',
+    name: 'Radial Galaxy 128',
+    build: () => ({ kind: 'pixel', doc: galaxyProjectJSON() }),
+  },
+  {
+    id: 'demo.cubist',
+    name: 'Cubist Portrait 128',
+    build: () => ({ kind: 'pixel', doc: cubistProjectJSON() }),
+  },
+  {
+    id: 'demo.wallpaper',
+    name: 'Suzani Tile 128',
+    build: () => ({ kind: 'pixel', doc: wallpaperProjectJSON() }),
+  },
+  {
+    id: 'demo.nodegarden',
+    name: 'Node Garden 128',
+    build: () => ({ kind: 'pixel', doc: nodeGardenProjectJSON() }),
+  },
+  {
+    id: 'demo.constellation',
+    name: 'Constellations 128',
+    build: () => ({ kind: 'pixel', doc: constellationProjectJSON() }),
+  },
+  {
+    id: 'demo.neoncity',
+    name: 'Neon City 128',
+    build: () => ({ kind: 'pixel', doc: neonCityProjectJSON() }),
+  },
+  {
+    id: 'demo.tripeaks',
+    name: 'Triangle Peaks 128',
+    build: () => ({ kind: 'pixel', doc: tripeaksProjectJSON() }),
+  },
+  {
+    id: 'demo.lava',
+    name: 'Lava Blobs 96',
+    build: () => ({ kind: 'pixel', doc: lavaProjectJSON() }),
+  },
+  {
+    id: 'demo.dollar',
+    name: 'Banknote 192',
+    build: () => ({ kind: 'pixel', doc: dollarProjectJSON() }),
   },
   {
     id: 'demo.landscape',

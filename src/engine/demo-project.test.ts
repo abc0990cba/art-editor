@@ -83,14 +83,41 @@ function registry() {
     }
   })
 
-  it('grid scales grow from an icon to a poster-size canvas', () => {
-    const sizes = DEMO_PROJECTS.filter((d) => d.id !== 'demo.poster')
-      .map((d) => {
-        const c = d.build()
-        return c.kind === 'pixel' ? c.doc.cols : 0
-      })
-      .filter(Boolean)
-    expect(sizes).toEqual([32, 64, 128, 512])
+  it('every pixel demo is deterministic: two builds serialize identically', () => {
+    for (const def of DEMO_PROJECTS) {
+      const a = def.build()
+      const b = def.build()
+      if (a.kind !== 'pixel' || b.kind !== 'pixel') continue
+      expect(JSON.stringify(a.doc), def.id).toBe(JSON.stringify(b.doc))
+    }
+  })
+
+  it('pins the canvas width of every pixel demo, icons first', () => {
+    const sizes: Record<string, [number, number]> = {}
+    for (const def of DEMO_PROJECTS) {
+      const content = def.build()
+      if (content.kind === 'pixel') sizes[def.id] = [content.doc.cols, content.doc.rows]
+    }
+    expect(sizes).toEqual({
+      'demo.poster': [200, 100],
+      'demo.invader': [32, 32],
+      'demo.portrait': [64, 64],
+      'demo.confetti': [64, 64],
+      'demo.tone': [96, 96],
+      'demo.hexreef': [96, 80],
+      'demo.mandala': [128, 128],
+      'demo.kaleido': [128, 128],
+      'demo.galaxy': [128, 64],
+      'demo.cubist': [128, 76],
+      'demo.wallpaper': [128, 128],
+      'demo.nodegarden': [128, 128],
+      'demo.constellation': [128, 96],
+      'demo.neoncity': [128, 96],
+      'demo.tripeaks': [128, 88],
+      'demo.lava': [96, 128],
+      'demo.dollar': [192, 96],
+      'demo.landscape': [512, 256],
+    })
   })
 
   it('trace demos ship a source raster with default params and no svg yet', () => {
