@@ -117,11 +117,11 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="border-line bg-chip relative overflow-hidden rounded-lg border">
+    <div className="flex min-h-0 flex-col gap-1.5 max-lg:shrink-0 lg:flex-1">
+      <div className="border-line bg-chip relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border">
         <canvas
           ref={canvasRef}
-          className="block max-h-[360px] w-full object-contain max-lg:max-h-[32vh]"
+          className="block max-h-[360px] w-full object-contain max-lg:max-h-[32vh] lg:h-full lg:max-h-full lg:w-auto"
         />
         <span className="text-label absolute top-2 left-2 rounded bg-black/50 px-1.5 py-0.5 text-white/80">
           {set.name}

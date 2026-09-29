@@ -3,6 +3,8 @@ import { useState, type ReactElement } from 'react'
 import {
   BRUSH_SHAPES,
   detectBrushShape,
+  TIP_MIN_SIZE,
+  MAX_BRUSH,
   type Brush,
   type BrushShapeId,
 } from '../../engine/brush.ts'
@@ -10,6 +12,13 @@ import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { QUICK_COLORS } from '../../shared/lib/quick-colors.util.ts'
 import { ColorPicker } from '../../shared/ui/color-picker.component.tsx'
 import { Chip, ColorSwatch, hexLuminance, Slider } from '../../shared/ui/index.tsx'
+import {
+  selectTriggerClass,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from '../../shared/ui/select.component.tsx'
 import { ShapeTileGrid } from '../../shared/ui/shape-tiles.component.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
@@ -122,6 +131,28 @@ function FabSwatch({ color, side }: { color: string; side: string }) {
         }`,
       }}
     />
+  )
+}
+
+/** Brush size as a selector: 1×1 … 16×16. */
+function BrushSizeSelect({ size, onPick }: { size: number; onPick: (n: number) => void }) {
+  const { t } = useI18n()
+  return (
+    <Select value={String(size)} onValueChange={(v) => onPick(Number(v))}>
+      <SelectTrigger className={selectTriggerClass} aria-label={t('brush.size')}>
+        {/* the label renders straight from the store — SelectValue's item registry can lag */}
+        <span className="text-xs">
+          {size}×{size}
+        </span>
+      </SelectTrigger>
+      <SelectContent>
+        {Array.from({ length: MAX_BRUSH }, (_v, i) => i + 1).map((s) => (
+          <SelectItem key={s} value={String(s)}>
+            {s}×{s}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 
@@ -283,47 +314,47 @@ export function FabPanel() {
         display={(v) => `${v}×${v}`}
         onChange={(v) => patchBrush({ size: v })}
       />
-      <div className="flex flex-wrap gap-1">
-        {[1, 2, 3, 4, 5, 8].map((s) => (
-          <Chip
-            key={s}
-            active={brush.size === s && brush.pattern.every(Boolean)}
-            title={`${s}×${s}`}
-            onClick={() => patchBrush({ size: s })}
-            className="h-11 lg:h-auto"
-          >
-            {s}
-          </Chip>
-        ))}
-      </div>
+      <BrushSizeSelect size={brush.size} onPick={(n) => patchBrush({ size: n })} />
 
       <div className="flex flex-col gap-1">
         <span className="text-muted text-xs">{t('brush.tip')}</span>
         <div className="grid grid-cols-4 gap-1">
-          {BRUSH_SHAPES.map(({ id, make }) => (
-            <Chip
-              key={id}
-              active={detectBrushShape(brush) === id}
-              title={t(`brush.${id}` as 'brush.square')}
-              ariaLabel={t(`brush.${id}` as 'brush.square')}
-              onClick={() => setTip(make(brush.size).pattern)}
-              className="h-11 lg:h-auto"
-            >
-              <span className="flex items-center justify-center">
-                <svg viewBox="0 0 16 16" className="h-5 w-5" fill="currentColor" aria-hidden>
-                  <TipShapeGlyph shape={id} />
-                </svg>
-              </span>
-            </Chip>
-          ))}
+          {BRUSH_SHAPES.map(({ id, make }) => {
+            const min = TIP_MIN_SIZE[id]
+            const fits = brush.size >= min
+            const name = t(`brush.${id}` as 'brush.square')
+            return (
+              <Chip
+                key={id}
+                active={detectBrushShape(brush) === id}
+                disabled={!fits}
+                title={fits ? name : `${name} — ${min}×${min}`}
+                ariaLabel={fits ? name : `${name} — ${min}×${min}`}
+                onClick={() => setTip(make(brush.size).pattern)}
+                className="h-11 lg:h-auto"
+              >
+                <span className="flex items-center justify-center">
+                  <svg viewBox="0 0 16 16" className="h-5 w-5" fill="currentColor" aria-hidden>
+                    <TipShapeGlyph shape={id} />
+                  </svg>
+                </span>
+              </Chip>
+            )
+          })}
         </div>
+        {BRUSH_SHAPES.some(({ id }) => TIP_MIN_SIZE[id] > brush.size) && (
+          <p className="text-muted text-overline leading-snug">{t('brush.tipTooSmallHint')}</p>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
         <span className="text-muted text-xs">{t('style.shape')}</span>
         <ShapeTileGrid
-          shape={docStyle.shape}
-          onPick={(id) => patchStyle({ shape: id })}
+          shape={brush.shape ?? docStyle.shape}
+          onPick={(id) => {
+            patchStyle({ shape: id })
+            patchBrush({ shape: id })
+          }}
           columns={4}
           tileClassName="h-11 lg:h-auto"
           ariaLabel={t('style.shape')}

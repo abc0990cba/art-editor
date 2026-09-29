@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { defaultDoc } from '../engine/doc.ts'
+import { BUILT_IN_GLYPH_SETS } from '../engine/glyph-builtins.ts'
 import { ensureScene } from '../engine/scene.ts'
 import { useStore } from './editor.store'
 
@@ -42,5 +43,30 @@ describe('project dirty state (ambient autosave)', () => {
     state().markProjectSaved()
     state().clear()
     expect(state().projectDirty).toBe(true)
+  })
+})
+
+describe('forms-family glyph apply pairs the cell form', () => {
+  beforeEach(() => {
+    useStore.setState({ doc: ensureScene(defaultDoc()) })
+  })
+
+  it('applying «Кольцо» by id switches the pixel form to ring', () => {
+    const entry = BUILT_IN_GLYPH_SETS.find((b) => b.id === 'glyph-form-ring12')!
+    state().applyGlyphSet(entry.id, entry.set)
+    expect(state().glyphDraft.name).toBe('Кольцо')
+    expect(state().doc.style.shape).toBe('ring')
+  })
+
+  it('the gallery path passes builtin sets without an id — identity still pairs', () => {
+    const entry = BUILT_IN_GLYPH_SETS.find((b) => b.id === 'glyph-form-heart12')!
+    state().applyGlyphSet(null, entry.set)
+    expect(state().doc.style.shape).toBe('heart')
+  })
+
+  it('non-form glyphs never touch the pixel style', () => {
+    const bayer = BUILT_IN_GLYPH_SETS.find((b) => b.id === 'glyph-bayer8')!
+    state().applyGlyphSet(null, bayer.set)
+    expect(state().doc.style.shape).toBe('square')
   })
 })

@@ -173,6 +173,24 @@ export function StyleSection({
                 {t('style.group.shape')}
               </div>
               <ShapePicker style={styleView} onApply={applyStyle} />
+              <CheckRow
+                label={t('style.toneSize')}
+                title={t('style.toneSize.desc')}
+                checked={styleView.toneSize}
+                onChange={(v) => applyStyle({ toneSize: v })}
+              />
+              {styleView.toneSize && (
+                <Slider
+                  label={t('style.toneSizeMin')}
+                  title={t('style.toneSizeMin.desc')}
+                  value={styleView.toneSizeMin}
+                  min={0.05}
+                  max={1}
+                  step={0.01}
+                  display={pct}
+                  onChange={(v) => applyStyle({ toneSizeMin: v })}
+                />
+              )}
             </>
           )}
           <div className="text-muted text-overline font-semibold tracking-wider uppercase">

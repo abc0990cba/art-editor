@@ -44,6 +44,10 @@ export interface PixelStyle {
   shape: CellShapeId
   /** Shared shape knobs (thickness/points/rotation); each shape reads what it needs */
   shapeParams: ShapeParams
+  /** Scale every cell form by its color's darkness: dark = full figure, light = `toneSizeMin` */
+  toneSize: boolean
+  /** Smallest figure at the light end of the tone scale, fraction of the cell box, 0.05..1 */
+  toneSizeMin: number
 }
 
 export interface MetaballSettings {
@@ -277,6 +281,8 @@ export function defaultDoc(): Doc {
       squareEdges: false,
       shape: 'square',
       shapeParams: { ...DEFAULT_SHAPE_PARAMS },
+      toneSize: false,
+      toneSizeMin: 0.15,
     },
     renderMode: 'pixels',
     connectivity: 'edge',

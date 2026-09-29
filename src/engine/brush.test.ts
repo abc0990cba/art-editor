@@ -16,6 +16,8 @@ import {
   resizeBrush,
   ringBrush,
   squareBrush,
+  TIP_MIN_SIZE,
+  type BrushShapeId,
 } from './brush.ts'
 
 describe('brush factories', () => {
@@ -179,5 +181,32 @@ describe('brush shapes and detection', () => {
   it('shape detection survives degenerate small sizes via the full-tip fallback', () => {
     // every 1×1 tip is the full square
     expect(detectBrushShape(circleBrush(1))).toBe('square')
+  })
+})
+
+describe('TIP_MIN_SIZE (tip availability per pixel size)', () => {
+  it('square is available everywhere; others start where they stop being a full tip', () => {
+    expect(TIP_MIN_SIZE.square).toBe(1)
+    expect(TIP_MIN_SIZE.checker).toBe(2)
+    expect(TIP_MIN_SIZE.circle).toBe(3)
+    expect(TIP_MIN_SIZE.ring).toBe(3)
+    expect(TIP_MIN_SIZE.frame).toBe(3)
+    for (const id of Object.keys(TIP_MIN_SIZE) as BrushShapeId[]) {
+      expect(TIP_MIN_SIZE[id]).toBeGreaterThanOrEqual(1)
+      expect(TIP_MIN_SIZE[id]).toBeLessThanOrEqual(MAX_BRUSH)
+    }
+  })
+
+  it('below the minimum the shape equals a full tip; from it on, it differs', () => {
+    for (const { id, make } of BRUSH_SHAPES) {
+      const min = TIP_MIN_SIZE[id]
+      if (id === 'square') continue
+      const same = (size: number) => {
+        const full = squareBrush(size)
+        return make(size).pattern.every((v, i) => v === full.pattern[i])
+      }
+      expect(same(min), `${id} at ${min}`).toBe(false)
+      if (min > 1) expect(same(min - 1), `${id} at ${min - 1}`).toBe(true)
+    }
   })
 })

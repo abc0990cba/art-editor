@@ -1,12 +1,12 @@
 /**
  * Artistic glyph ramps beyond the classic azulejo shapes: a print-screen halftone, bokeh bubbles,
  * engraving cross-hatch, water ripples, a sunburst, a snow crystal, silk folds, an argyle lattice
- * and the ornament family (cross-stitch, hearts, mosaic tesserae). These favour character over
- * strictly linear coverage — every ramp still starts empty, ends solid and never loses ink as the
- * tone rises. Curated in glyph-builtins.ts.
+ * and the ornament family (cross-stitch, hearts, mosaic tesserae). Form-based tone ramps live in
+ * glyph-generators-forms.ts. These favour character over strictly linear coverage — every ramp
+ * still starts empty, ends solid and never loses ink as the tone rises. Curated in
+ * glyph-builtins.ts.
  */
 
-import { cellShapeHit, DEFAULT_SHAPE_PARAMS, type CellShapeId } from './cell-shapes.ts'
 import { finish } from './glyph-generators.ts'
 import type { GlyphTileCells, GlyphTileSet } from './glyph-tiles.ts'
 
@@ -337,120 +337,6 @@ export function glyphSetTesserae(n: number, levels: number, name = 'Мозаик
     const cells: GlyphTileCells = []
     for (let y = 0; y < n; y++) {
       for (let x = 0; x < n; x++) cells.push(u >= chipThreshold(x + 0.5, y + 0.5))
-    }
-    levelsOut.push(cells)
-  }
-  return finish(name, n, levelsOut, false)
-}
-
-/* --------------------- tone-scale ramps of the cell forms --------------------- */
-
-const FORM_PARAMS = { ...DEFAULT_SHAPE_PARAMS, rotation: 0 }
-
-/** Smallest scale (share of the target box) at which the form swallows every probe point. */
-function formCoverScale(
-  id: CellShapeId,
-  probes: readonly (readonly [number, number])[],
-  toForm: (qx: number, qy: number, s: number) => [number, number],
-): number {
-  const covered = (s: number): boolean =>
-    probes.every(([qx, qy]) => cellShapeHit(id, ...toForm(qx, qy, s), FORM_PARAMS))
-  let s = 0.3
-  while (!covered(s)) s += 0.05
-  return s
-}
-
-/**
- * Tone-scale ramp of one registered cell form: the figure grows from a speck at the light end of
- * the ramp until it swallows the whole tile at the dark end — "light gray = small heart, black =
- * full heart" for every silhouette in the registry. Geometry comes from cellShapeHit, so the glyph
- * always matches the canvas rendering of that form.
- */
-export function glyphSetForm(
-  id: CellShapeId,
-  n: number,
-  levels: number,
-  name = 'Форма',
-): GlyphTileSet {
-  const probes: (readonly [number, number])[] = []
-  for (let y = 0; y < n; y++) {
-    for (let x = 0; x < n; x++) probes.push([(x + 0.5) / n, (y + 0.5) / n])
-  }
-  const toForm = (qx: number, qy: number, s: number): [number, number] => [
-    0.5 + (qx - 0.5) / s,
-    0.5 + (qy - 0.5) / s,
-  ]
-  const sMax = formCoverScale(id, probes, toForm)
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const cells: GlyphTileCells = []
-    if (t === 0 || t === levels - 1) {
-      const solid = t === levels - 1
-      for (let i = 0; i < n * n; i++) cells.push(solid)
-      levelsOut.push(cells)
-      continue
-    }
-    const s = ramp(levels, t) * sMax
-    for (const [qx, qy] of probes) {
-      const [fu, fv] = toForm(qx, qy, s)
-      cells.push(cellShapeHit(id, fu, fv, FORM_PARAMS))
-    }
-    levelsOut.push(cells)
-  }
-  return finish(name, n, levelsOut, false)
-}
-
-/**
- * Two different figures at once: a staggered 2×2 block lattice like the halftone screen, the
- * checker parities carrying form A and form B. Each figure grows with the tone inside its own
- * block, so mid tones read as both silhouettes side by side and the darkest level stays solid.
- */
-export function glyphSetFormDuo(
-  a: CellShapeId,
-  b: CellShapeId,
-  n: number,
-  levels: number,
-  name = 'Дуэт форм',
-): GlyphTileSet {
-  const pitch = 2
-  // the four cell centers of one 2×2 block, as offsets from the block center (±0.5)
-  const blockProbes: (readonly [number, number])[] = [
-    [0.5, 0.5],
-    [-0.5, 0.5],
-    [0.5, -0.5],
-    [-0.5, -0.5],
-  ]
-  const toBlockForm = (dx: number, dy: number, s: number): [number, number] => [
-    0.5 + dx / (2 * s),
-    0.5 + dy / (2 * s),
-  ]
-  const sA = formCoverScale(a, blockProbes, toBlockForm)
-  const sB = formCoverScale(b, blockProbes, toBlockForm)
-  const levelsOut: GlyphTileCells[] = []
-  for (let t = 0; t < levels; t++) {
-    const cells: GlyphTileCells = []
-    if (t === 0 || t === levels - 1) {
-      const solid = t === levels - 1
-      for (let i = 0; i < n * n; i++) cells.push(solid)
-      levelsOut.push(cells)
-      continue
-    }
-    const s = ramp(levels, t)
-    for (let y = 0; y < n; y++) {
-      for (let x = 0; x < n; x++) {
-        const px = x + 0.5
-        const py = y + 0.5
-        const row = Math.floor(py / pitch)
-        const off = (row % 2) * (pitch / 2)
-        const col = Math.floor((px - off) / pitch)
-        const useA = (row + col) % 2 === 0
-        const id = useA ? a : b
-        const sMax = useA ? sA : sB
-        const dx = px - (col * pitch + off + pitch / 2)
-        const dy = py - (row * pitch + pitch / 2)
-        const [fu, fv] = toBlockForm(dx, dy, s * sMax)
-        cells.push(cellShapeHit(id, fu, fv, FORM_PARAMS))
-      }
     }
     levelsOut.push(cells)
   }

@@ -85,6 +85,8 @@ function normalizeStyle(raw: unknown, base: PixelStyle): PixelStyle {
     squareEdges: st.squareEdges === true,
     shape: isCellShapeId(st.shape) ? st.shape : 'square',
     shapeParams: normalizeShapeParams(st.shapeParams),
+    toneSize: st.toneSize === true,
+    toneSizeMin: clamp(Number(st.toneSizeMin ?? base.toneSizeMin), 0.05, 1),
   }
 }
 

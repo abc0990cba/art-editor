@@ -5,14 +5,13 @@
  * mosaic). Procedural generators live in glyph-generators.ts / glyph-generators-art.ts.
  */
 
+import type { CellShapeId } from './cell-shapes.ts'
 import { BAYER2, BAYER4, BAYER8 } from './dither-matrices.ts'
 import {
   glyphSetArgyle,
   glyphSetBubbles,
   glyphSetCrossStitch,
   glyphSetCrystal,
-  glyphSetForm,
-  glyphSetFormDuo,
   glyphSetHalftone,
   glyphSetHatch,
   glyphSetHearts,
@@ -22,6 +21,7 @@ import {
   glyphSetTesserae,
   glyphSetTriangles,
 } from './glyph-generators-art.ts'
+import { glyphSetForm, glyphSetFormDuo, glyphSetFormMorph } from './glyph-generators-forms.ts'
 import {
   glyphSetBricks,
   glyphSetChecker,
@@ -44,10 +44,11 @@ import {
 } from './glyph-generators.ts'
 import { glyphSetFromMatrix, type GlyphTileSet } from './glyph-tiles.ts'
 
-export type GlyphFamily = 'matrix' | 'dots' | 'lines' | 'shapes' | 'patterns' | 'ornament'
+export type GlyphFamily = 'forms' | 'matrix' | 'dots' | 'lines' | 'shapes' | 'patterns' | 'ornament'
 
 /** Gallery display order of the families. */
 export const GLYPH_FAMILY_ORDER: readonly GlyphFamily[] = [
+  'forms',
   'matrix',
   'dots',
   'lines',
@@ -60,6 +61,8 @@ export interface BuiltInGlyphSet {
   id: string
   family: GlyphFamily
   set: GlyphTileSet
+  /** Forms-family ramps: the cell form this glyph draws with (applied on pick) */
+  form?: CellShapeId
 }
 
 export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
@@ -110,33 +113,116 @@ export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
   { id: 'glyph-sunburst12', family: 'shapes', set: glyphSetSunburst(12, 17, 'Лучи') },
   { id: 'glyph-crystal12', family: 'shapes', set: glyphSetCrystal(12, 17, 'Кристалл') },
   { id: 'glyph-triangles6', family: 'shapes', set: glyphSetTriangles(6, 13, 'Треугольники') },
-  // tone-scale ramps of the cell forms (the figure grows with the tone)
+  // forms: the minimum element of every tile is a registered cell form, not a square —
+  // each ramp is the analogue of a black→white gradient drawn with one figure
   {
-    id: 'glyph-hexagons12',
-    family: 'shapes',
-    set: glyphSetForm('hexagon', 12, 17, 'Шестиугольники'),
+    id: 'glyph-form-circle12',
+    family: 'forms',
+    form: 'circle',
+    set: glyphSetForm('circle', 12, 17, 'Круг'),
   },
-  { id: 'glyph-sparkles12', family: 'shapes', set: glyphSetForm('sparkle', 12, 17, 'Искры') },
   {
-    id: 'glyph-form-hearts12',
-    family: 'shapes',
-    set: glyphSetForm('heart', 12, 17, 'Сердца (рост)'),
+    id: 'glyph-form-ring12',
+    family: 'forms',
+    form: 'ring',
+    set: glyphSetForm('ring', 12, 17, 'Кольцо'),
   },
-  // two figures at once on interleaved lattices
+  {
+    id: 'glyph-form-square12',
+    family: 'forms',
+    form: 'square',
+    set: glyphSetForm('square', 12, 17, 'Квадрат'),
+  },
+  {
+    id: 'glyph-form-triangle12',
+    family: 'forms',
+    form: 'triangle',
+    set: glyphSetForm('triangle', 12, 17, 'Треугольник'),
+  },
+  {
+    id: 'glyph-form-triangle-down12',
+    family: 'forms',
+    form: 'triangleDown',
+    set: glyphSetForm('triangleDown', 12, 17, 'Треугольник вниз'),
+  },
+  {
+    id: 'glyph-form-diamond12',
+    family: 'forms',
+    form: 'diamond',
+    set: glyphSetForm('diamond', 12, 17, 'Ромб'),
+  },
+  {
+    id: 'glyph-form-cross12',
+    family: 'forms',
+    form: 'cross',
+    set: glyphSetForm('cross', 12, 17, 'Крест'),
+  },
+  {
+    id: 'glyph-form-xcross12',
+    family: 'forms',
+    form: 'xCross',
+    set: glyphSetForm('xCross', 12, 17, 'Крест-накрест'),
+  },
+  {
+    id: 'glyph-form-star12',
+    family: 'forms',
+    form: 'star',
+    set: glyphSetForm('star', 12, 17, 'Звезда'),
+  },
+  {
+    id: 'glyph-form-sparkle12',
+    family: 'forms',
+    form: 'sparkle',
+    set: glyphSetForm('sparkle', 12, 17, 'Искра'),
+  },
+  {
+    id: 'glyph-form-hexagon12',
+    family: 'forms',
+    form: 'hexagon',
+    set: glyphSetForm('hexagon', 12, 17, 'Шестиугольник'),
+  },
+  {
+    id: 'glyph-form-heart12',
+    family: 'forms',
+    form: 'heart',
+    set: glyphSetForm('heart', 12, 17, 'Сердце'),
+  },
+  // two figures at once on interleaved lattices (pitch = lattice density)
   {
     id: 'glyph-duo-stars-dots12',
-    family: 'shapes',
-    set: glyphSetFormDuo('star', 'circle', 12, 17, 'Звёзды и круги'),
+    family: 'forms',
+    set: glyphSetFormDuo('star', 'circle', 12, 17, { name: 'Звёзды и круги' }),
   },
   {
     id: 'glyph-duo-hearts-diamonds12',
-    family: 'shapes',
-    set: glyphSetFormDuo('heart', 'diamond', 12, 17, 'Сердца и ромбы'),
+    family: 'forms',
+    set: glyphSetFormDuo('heart', 'diamond', 12, 17, { name: 'Сердца и ромбы' }),
   },
   {
     id: 'glyph-duo-cross-rings12',
-    family: 'shapes',
-    set: glyphSetFormDuo('cross', 'ring', 12, 17, 'Крестики и кольца'),
+    family: 'forms',
+    set: glyphSetFormDuo('cross', 'ring', 12, 17, { name: 'Крестики и кольца' }),
+  },
+  {
+    id: 'glyph-duo-stars-dots-fine12',
+    family: 'forms',
+    set: glyphSetFormDuo('star', 'circle', 12, 17, { name: 'Звёзды и круги 3×3', pitch: 3 }),
+  },
+  // one figure transforms into another across the tone ramp
+  {
+    id: 'glyph-morph-star-heart12',
+    family: 'forms',
+    set: glyphSetFormMorph('star', 'heart', 12, 17, 'Морф: звезда → сердце'),
+  },
+  {
+    id: 'glyph-morph-circle-cross12',
+    family: 'forms',
+    set: glyphSetFormMorph('circle', 'cross', 12, 17, 'Морф: круг → крест'),
+  },
+  {
+    id: 'glyph-morph-triangle-hexagon12',
+    family: 'forms',
+    set: glyphSetFormMorph('triangle', 'hexagon', 12, 17, 'Морф: треугольник → шестиугольник'),
   },
   // patterns
   { id: 'glyph-checker', family: 'patterns', set: glyphSetChecker(4, 9, 'Шахматка') },
@@ -155,6 +241,10 @@ export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
   { id: 'glyph-tesserae10', family: 'ornament', set: glyphSetTesserae(10, 17, 'Мозаика') },
 ]
 
+export function builtInGlyphEntry(id: string): BuiltInGlyphSet | null {
+  return BUILT_IN_GLYPH_SETS.find((b) => b.id === id) ?? null
+}
+
 export function builtInGlyphSetById(id: string): GlyphTileSet | null {
-  return BUILT_IN_GLYPH_SETS.find((b) => b.id === id)?.set ?? null
+  return builtInGlyphEntry(id)?.set ?? null
 }

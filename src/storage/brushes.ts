@@ -2,13 +2,27 @@ import type { Brush } from '../engine/brush'
 import { normalizeBrush } from '../engine/brush'
 import { newId, openDb, reqToPromise } from './db'
 
-/** A saved brush: metadata + validated tip (size + pattern). */
+/** A saved brush: metadata + validated tip (size + pattern) + the color and cell form it had. */
 export interface BrushPresetEntry {
   id: string
   name: string
   createdAt: number
   updatedAt: number
   brush: Brush
+  /** Working color captured with the preset; applied back on pick */
+  color?: string
+}
+
+const HEX = /^#[0-9a-fA-F]{3,8}$/
+
+function withValidBrush(entry: BrushPresetEntry): BrushPresetEntry {
+  return {
+    ...entry,
+    brush: normalizeBrush(entry.brush),
+    ...(typeof entry.color === 'string' && HEX.test(entry.color)
+      ? { color: entry.color.toLowerCase() }
+      : {}),
+  }
 }
 
 const STORE = 'brushes'
@@ -21,10 +35,6 @@ export function newBrushId(): string {
 
 export function sortBrushes(entries: BrushPresetEntry[]): BrushPresetEntry[] {
   return [...entries].sort((a, b) => b.updatedAt - a.updatedAt)
-}
-
-function withValidBrush(entry: BrushPresetEntry): BrushPresetEntry {
-  return { ...entry, brush: normalizeBrush(entry.brush) }
 }
 
 export async function listBrushes(): Promise<BrushPresetEntry[]> {

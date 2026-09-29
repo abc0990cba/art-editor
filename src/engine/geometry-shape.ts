@@ -1,4 +1,5 @@
 import { cellShapeFragment } from './cell-shapes.ts'
+import { hexLuminance } from './color.ts'
 import { bufferHeight, bufferWidth, cellColor, type Doc, type Link } from './doc.ts'
 import type { Geometry, Staging, StyledPath } from './geometry-types.ts'
 import { regionTextureFragments, type TextureCell } from './texture.ts'
@@ -94,12 +95,24 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
   const squareEdges = doc.style.squareEdges
   const shape = doc.style.shape
   const sp = doc.style.shapeParams
+  const toneSize = doc.style.toneSize
+  const toneSizeMin = doc.style.toneSizeMin
+  // tone-scale lookup per palette value: darker ink draws a larger figure
+  const toneOf = new Map<number, number>()
+  const toneScaleOf = (v: number): number => {
+    let k = toneOf.get(v)
+    if (k === undefined) {
+      k = toneSizeMin + (1 - toneSizeMin) * (1 - hexLuminance(cellColor(doc, v) ?? '#ffffff'))
+      toneOf.set(v, k)
+    }
+    return k
+  }
   // unrotated square keeps every classic fast path: run merging and rect-shaped texture holes
   const plainSquare = shape === 'square' && sp.rotation === 0
   const tex = doc.texture
   // texture holes are punched as evenodd subpaths of the cell rect — on rotated or non-square
   // forms they would paint specks outside the ink, so baked texture stays a plain-square feature
-  const textured = tex.effect !== 'none' && plainSquare
+  const textured = tex.effect !== 'none' && plainSquare && !toneSize
   // texture is one continuous pattern per color: sides shared with the same
   // value stay connected (no seams), open sides carry the gap margin
   const texCells = textured ? new Map<number, TextureCell[]>() : undefined
@@ -107,15 +120,74 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
   const groups = new Map<number, string[]>()
   // Horizontal runs of same-value cells collapse into one rect fragment when every per-cell
   // fragment would be a plain square (zero radii, no texture, no size scaling, no cell form or
-  // rotation): classic pixel-art ink then builds orders of magnitude fewer path fragments. Any
-  // rounding, texture effect, sizeX/sizeY scaling or non-square form keeps the exact per-cell
-  // loop — fragments stop being plain rects there.
+  // rotation, no tone-driven size): classic pixel-art ink then builds orders of magnitude fewer
+  // path fragments. Any rounding, texture effect, sizeX/sizeY scaling or non-square form keeps
+  // the exact per-cell loop — fragments stop being plain rects there.
   const runMerge =
     !textured &&
     radii.every((r) => r === 0) &&
     doc.style.sizeX === 1 &&
     doc.style.sizeY === 1 &&
-    plainSquare
+    plainSquare &&
+    !toneSize
+  // one cell fragment: tone-scaled box, then the rect or form path, then texture bookkeeping
+  const pushCell = (v: number, bx: number, by: number, end: number) => {
+    let x = bx / doc.sub + (1 / doc.sub - cw) / 2
+    let y = by / doc.sub + (1 / doc.sub - ch) / 2
+    let w = (end - bx) * cw
+    let h = ch
+    if (toneSize) {
+      // the figure shrinks with its color's lightness: dark = full cell, light = toneSizeMin
+      const k = toneScaleOf(v)
+      w = cw * k
+      h = ch * k
+      x = bx / doc.sub + (1 / doc.sub - w) / 2
+      y = by / doc.sub + (1 / doc.sub - h) / 2
+    }
+    const onBorder = squareEdges && (bx === 0 || by === 0 || bx === bw - 1 || by === bh - 1)
+    const radiiHere =
+      runMerge || !onBorder
+        ? radii
+        : borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
+    let frags = groups.get(v)
+    if (!frags) groups.set(v, (frags = []))
+    frags.push(
+      plainSquare
+        ? roundedRectPath(x, y, w, h, radiiHere, chamfer)
+        : cellShapeFragment({
+            id: shape,
+            x,
+            y,
+            w,
+            h,
+            params: sp,
+            radius: doc.style.radius,
+            chamfer,
+          }),
+    )
+    if (texCells) {
+      const same = (xx: number, yy: number) =>
+        xx >= 0 && yy >= 0 && xx < bw && yy < bh && cells[yy * bw + xx] === v
+      let list = texCells.get(v)
+      if (!list) texCells.set(v, (list = []))
+      list.push({
+        x,
+        y,
+        w: cw,
+        h: ch,
+        radii: radiiHere,
+        chamfer,
+        cx0: bx / doc.sub,
+        cy0: by / doc.sub,
+        cx1: (bx + 1) / doc.sub,
+        cy1: (by + 1) / doc.sub,
+        connectedL: same(bx - 1, by),
+        connectedT: same(bx, by - 1),
+        connectedR: same(bx + 1, by),
+        connectedB: same(bx, by + 1),
+      })
+    }
+  }
   for (let by = 0; by < bh; by++) {
     const row = by * bw
     for (let bx = 0; bx < bw;) {
@@ -125,52 +197,7 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
         continue
       }
       const end = runMerge ? runEnd(cells, row, bx, bw, v) : bx + 1
-      const x = bx / doc.sub + (1 / doc.sub - cw) / 2
-      const y = by / doc.sub + (1 / doc.sub - ch) / 2
-      const w = (end - bx) * cw
-      const onBorder = squareEdges && (bx === 0 || by === 0 || bx === bw - 1 || by === bh - 1)
-      const radiiHere =
-        runMerge || !onBorder
-          ? radii
-          : borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
-      let frags = groups.get(v)
-      if (!frags) groups.set(v, (frags = []))
-      frags.push(
-        plainSquare
-          ? roundedRectPath(x, y, w, ch, radiiHere, chamfer)
-          : cellShapeFragment({
-              id: shape,
-              x,
-              y,
-              w,
-              h: ch,
-              params: sp,
-              radius: doc.style.radius,
-              chamfer,
-            }),
-      )
-      if (texCells) {
-        const same = (xx: number, yy: number) =>
-          xx >= 0 && yy >= 0 && xx < bw && yy < bh && cells[yy * bw + xx] === v
-        let list = texCells.get(v)
-        if (!list) texCells.set(v, (list = []))
-        list.push({
-          x,
-          y,
-          w: cw,
-          h: ch,
-          radii: radiiHere,
-          chamfer,
-          cx0: bx / doc.sub,
-          cy0: by / doc.sub,
-          cx1: (bx + 1) / doc.sub,
-          cy1: (by + 1) / doc.sub,
-          connectedL: same(bx - 1, by),
-          connectedT: same(bx, by - 1),
-          connectedR: same(bx + 1, by),
-          connectedB: same(bx, by + 1),
-        })
-      }
+      pushCell(v, bx, by, end)
       bx = end
     }
   }

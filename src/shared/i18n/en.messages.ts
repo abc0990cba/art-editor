@@ -85,6 +85,7 @@ export const en = {
   'glyph.gallery.user': 'Your sets',
   'glyph.gallery.hint':
     'Click a card to pick the set — the wide strip is a tone ramp dithered with its tiles.',
+  'glyph.family.forms': 'Forms',
   'glyph.family.matrix': 'Matrices',
   'glyph.family.dots': 'Dots',
   'glyph.family.lines': 'Lines',
@@ -177,6 +178,11 @@ export const en = {
   'style.shape.thickness.desc': 'Ring wall, cross arm width or star arm slimness.',
   'style.shape.points': 'Points',
   'style.shape.points.desc': 'Number of star points.',
+  'style.toneSize': 'Size by tone',
+  'style.toneSize.desc':
+    'Darker colors draw a larger figure — a smooth form-based gradient (halftone screening).',
+  'style.toneSizeMin': 'Min size',
+  'style.toneSizeMin.desc': 'Figure size at the lightest color of the palette.',
   'style.shape.curvedHint': 'Corner rounding does not apply to curved forms.',
   'cellform.square': 'Square',
   'cellform.circle': 'Circle',
@@ -579,6 +585,7 @@ export const en = {
     'Wallpaper and repeat modes tile a square lattice and work on the square grid only. Mirrors, rosette and diagonal modes work on every grid.',
 
   'brush.size': 'Pixel size',
+  'brush.tipTooSmallHint': 'Dimmed tips need a larger pixel size.',
   'brush.tip': 'Tip',
   'brush.square': 'Square',
   'brush.circle': 'Circle',

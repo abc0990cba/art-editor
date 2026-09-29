@@ -89,6 +89,7 @@ export const ru: Dict = {
   'glyph.gallery.user': 'Свои наборы',
   'glyph.gallery.hint':
     'Клик по карточке — выбрать набор; широкая полоса — тон-рампа, отрисованная его тайлами.',
+  'glyph.family.forms': 'Формы',
   'glyph.family.matrix': 'Матрицы',
   'glyph.family.dots': 'Точки',
   'glyph.family.lines': 'Линии',
@@ -182,6 +183,11 @@ export const ru: Dict = {
     'Стенка кольца, ширина перекладины креста или тонкость лучей звезды.',
   'style.shape.points': 'Лучи',
   'style.shape.points.desc': 'Количество лучей звезды.',
+  'style.toneSize': 'Размер по тону',
+  'style.toneSize.desc':
+    'Чем темнее цвет, тем крупнее фигура — плавный градиент из форм (полутон).',
+  'style.toneSizeMin': 'Мин. размер',
+  'style.toneSizeMin.desc': 'Размер фигуры для самого светлого цвета палитры.',
   'style.shape.curvedHint': 'Скругление углов не применяется к круглым формам.',
   'cellform.square': 'Квадрат',
   'cellform.circle': 'Круг',
@@ -586,6 +592,7 @@ export const ru: Dict = {
     'Плитки и обои повторяют квадратную решётку — доступны только для квадратной сетки. Зеркала, розетки и диагонали работают на любой сетке.',
 
   'brush.size': 'Размер пикселя',
+  'brush.tipTooSmallHint': 'Бледные кончики недоступны при текущем размере пикселя.',
   'brush.tip': 'Кончик',
   'brush.square': 'Квадрат',
   'brush.circle': 'Круг',

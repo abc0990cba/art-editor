@@ -1,8 +1,12 @@
 /**
  * Brush model: a pixel size (the tip grid dimension, in buffer cells) plus an on/off tip pattern. A
  * full square pattern of size N paints exactly an N×N block of cells, so the brush size _is_ the
- * pixel size the user draws with (5 = "5-cell pixel"). Pure data, no React.
+ * pixel size the user draws with (5 = "5-cell pixel"). A brush can also remember the cell form it
+ * draws with (hearts, crosses…); absent shape = follow the current pixel style. Pure data, no
+ * React.
  */
+
+import { isCellShapeId, type CellShapeId } from './cell-shapes.ts'
 
 const MIN_BRUSH = 1
 export const MAX_BRUSH = 16
@@ -12,6 +16,8 @@ export interface Brush {
   size: number
   /** Row-major, length size*size; true = this tip cell paints */
   pattern: boolean[]
+  /** Cell form this brush draws with; absent = follow the current pixel style */
+  shape?: CellShapeId
 }
 
 function clampBrushSize(size: unknown): number {
@@ -94,7 +100,7 @@ export function normalizeBrush(brush: Partial<Brush> | null | undefined): Brush 
   const pattern: boolean[] = []
   for (let i = 0; i < size * size; i++) pattern.push(Array.isArray(raw) ? raw[i] === true : true)
   if (!pattern.some((v) => v)) return squareBrush(size)
-  return { size, pattern }
+  return isCellShapeId(brush?.shape) ? { size, pattern, shape: brush.shape } : { size, pattern }
 }
 
 /** Resample the tip to a new size (nearest-neighbor) so custom tips survive resizing. */
@@ -173,6 +179,27 @@ export function detectBrushShape(brush: Brush): BrushShapeId | 'custom' {
   }
   return 'custom'
 }
+
+/**
+ * Smallest tip grid where each shape differs from a full square of the same size — below it the
+ * shape degenerates into a plain square (a size-1 ring normalizes into a single cell) and is not
+ * offered in the pickers. The full square itself is available everywhere.
+ */
+export const TIP_MIN_SIZE: Record<BrushShapeId, number> = (() => {
+  const out = { square: 1 } as Record<BrushShapeId, number>
+  for (const { id, make } of BRUSH_SHAPES) {
+    if (id === 'square') continue
+    for (let size = 1; size <= MAX_BRUSH; size++) {
+      const full = squareBrush(size)
+      if (make(size).pattern.some((v, i) => v !== full.pattern[i])) {
+        out[id] = size
+        break
+      }
+    }
+    out[id] ??= MAX_BRUSH
+  }
+  return out
+})()
 
 export const BUILT_IN_BRUSHES: readonly BrushDef[] = [
   { id: 'px1', make: () => squareBrush(1) },

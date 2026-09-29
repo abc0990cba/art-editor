@@ -1,4 +1,5 @@
 import { cellShapeFragment } from './cell-shapes.ts'
+import { hexLuminance } from './color.ts'
 import type { Doc, ElementStyle, Link, PixelStyle } from './doc'
 import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from './doc'
 import { elementStyleKey, elementGeometry } from './geometry-elements.ts'
@@ -175,6 +176,10 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
   }
   const groups = new Map<string, Group>()
   const erase: number[] = []
+  const colorOf = (v: number) =>
+    staging.palette
+      ? (staging.palette[(v - 1) % staging.palette.length] ?? '#888')
+      : (cellColor(doc, v) ?? '#888')
 
   for (const [i, v] of s) {
     if (v === null || v === 0) {
@@ -215,15 +220,27 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
         ? borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
         : radii
     const chamfer = el.style.cornerStyle === 'chamfer'
+    let fx = x
+    let fy = y
+    let fw = cw
+    let fh = ch
+    if (el.style.toneSize) {
+      // mirrors shapeGeometry: the figure shrinks with its color's lightness
+      const k = el.style.toneSizeMin + (1 - el.style.toneSizeMin) * (1 - hexLuminance(colorOf(v)))
+      fw = cw * k
+      fh = ch * k
+      fx = bx / doc.sub + (1 / doc.sub - fw) / 2
+      fy = by / doc.sub + (1 / doc.sub - fh) / 2
+    }
     frags.push(
       el.style.shape === 'square' && el.style.shapeParams.rotation === 0
-        ? roundedRectPath(x, y, cw, ch, radiiHere, chamfer)
+        ? roundedRectPath(fx, fy, fw, fh, radiiHere, chamfer)
         : cellShapeFragment({
             id: el.style.shape,
-            x,
-            y,
-            w: cw,
-            h: ch,
+            x: fx,
+            y: fy,
+            w: fw,
+            h: fh,
             params: el.style.shapeParams,
             radius: el.style.radius,
             chamfer,
@@ -232,10 +249,6 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
   }
 
   const paths: StyledPath[] = []
-  const colorOf = (v: number) =>
-    staging.palette
-      ? (staging.palette[(v - 1) % staging.palette.length] ?? '#888')
-      : (cellColor(doc, v) ?? '#888')
   for (const g of groups.values()) {
     for (const [v, frags] of g.frags) {
       paths.push({ d: frags.join(''), fill: colorOf(v) })

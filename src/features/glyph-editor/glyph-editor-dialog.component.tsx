@@ -68,8 +68,8 @@ function GlyphLibrary() {
       {galleryOpen && (
         <GlyphGallery
           onClose={() => setGalleryOpen(false)}
-          onPick={(set) => {
-            applyGlyphSet(null, set)
+          onPick={(set, id) => {
+            applyGlyphSet(id, set)
             setGalleryOpen(false)
           }}
         />

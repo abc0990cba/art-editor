@@ -1,3 +1,5 @@
+import { DEFAULT_SHAPE_PARAMS } from '../engine/cell-shapes.ts'
+import { BUILT_IN_GLYPH_SETS, builtInGlyphEntry } from '../engine/glyph-builtins.ts'
 import { emptyGlyphSet, normalizeGlyphTileSet, type GlyphTileSet } from '../engine/glyph-tiles.ts'
 import {
   deleteGlyphSet as deleteGlyphSetRow,
@@ -118,6 +120,24 @@ export function createGlyphSlice({ set, get }: SliceApi): GlyphSlice {
       }))
     },
     applyGlyphSet: (id, tileSet) =>
-      set({ glyphDraft: normalizeGlyphTileSet(tileSet), glyphDraftId: id }),
+      set((s) => {
+        // forms-family ramps pair with their cell form: picking «Сердце» also makes the drawn
+        // pixel a heart, so the dithering screen and the minimum ink element always match.
+        // The gallery passes builtin sets without an id — match them by object identity.
+        const meta = id ? builtInGlyphEntry(id) : BUILT_IN_GLYPH_SETS.find((b) => b.set === tileSet)
+        const form = meta?.form
+        return {
+          glyphDraft: normalizeGlyphTileSet(tileSet),
+          glyphDraftId: id,
+          ...(form
+            ? {
+                doc: {
+                  ...s.doc,
+                  style: { ...s.doc.style, shape: form, shapeParams: { ...DEFAULT_SHAPE_PARAMS } },
+                },
+              }
+            : {}),
+        }
+      }),
   }
 }

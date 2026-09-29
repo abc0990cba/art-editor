@@ -11,40 +11,45 @@ import { useStore } from '../../state/editor.store.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { GlyphPhotoPreview } from './glyph-photo-preview.component.tsx'
 import { GlyphRampStrip } from './glyph-ramp-strip.component.tsx'
-import { GlyphTonePreview } from './glyph-tone-preview.component.tsx'
 import { TextField } from './index.tsx'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from './shadcn/dialog.tsx'
 
-/** Max level tiles shown per card — long ramps are sampled evenly (the tone strip shows it all). */
-const CARD_LEVELS = 12
+/** Max level tiles shown per row — long ramps are sampled evenly (the photo shows the rest). */
+const ROW_LEVELS = 12
 
-/** Evenly sample the ramp so a 65-level Bayer card stays the same height as a 9-level one. */
+/** Evenly sample the ramp so a 65-level Bayer row stays the same height as a 9-level one. */
 function sampleLevels(set: GlyphTileSet): GlyphTileSet {
-  if (set.levels.length <= CARD_LEVELS) return set
+  if (set.levels.length <= ROW_LEVELS) return set
   const last = set.levels.length - 1
-  const levels = Array.from({ length: CARD_LEVELS }, (_v, i) => {
-    const idx = Math.round((i / (CARD_LEVELS - 1)) * last)
+  const levels = Array.from({ length: ROW_LEVELS }, (_v, i) => {
+    const idx = Math.round((i / (ROW_LEVELS - 1)) * last)
     return set.levels[idx]
   })
   return { ...set, levels }
 }
 
-/** One gallery card: name + tile meta, the tone-ramp preview, and the level tiles at full size. */
-function GalleryCard({
+/**
+ * One row of the glyph list: name + tile meta over the tone ramp. Hovering drives the large photo
+ * preview on the left, clicking applies the set.
+ */
+function GalleryRow({
   name,
   set,
+  sourceId,
   onPick,
   onHover,
 }: {
   name: string
   set: GlyphTileSet
-  onPick: (set: GlyphTileSet) => void
+  /** Library id of the set (null for ad-hoc sets) */
+  sourceId: string | null
+  onPick: (set: GlyphTileSet, id: string | null) => void
   onHover: (set: GlyphTileSet) => void
 }) {
   return (
     <button
       type="button"
-      onClick={() => onPick(set)}
+      onClick={() => onPick(set, sourceId)}
       onMouseEnter={() => onHover(set)}
       onFocus={() => onHover(set)}
       className="border-line bg-chip hover:border-chip-line flex min-w-0 flex-col gap-1.5 rounded-lg border p-2 text-left transition"
@@ -55,29 +60,28 @@ function GalleryCard({
           {set.w}×{set.h} · {set.levels.length}
         </span>
       </span>
-      <GlyphTonePreview set={set} className="border-line h-auto w-full rounded-sm border" />
       <GlyphRampStrip set={sampleLevels(set)} size={set.w > 8 ? 2 : 3} fadeFrom="from-chip" />
     </button>
   )
 }
 
 /**
- * Full-screen gallery of every glyph tile set — user library on top, then the built-in families
- * (matrices, dots, lines, shapes, patterns) — each with a large tone-ramp preview. Browsing aid for
- * choosing a dithering glyph, e.g. right in the import dialog. Stacks above other dialogs (portal
- * order); Escape and the backdrop close only this layer.
+ * Full-screen glyph gallery, master/detail: the left pane keeps the photo preview as large as the
+ * dialog allows, the right pane is a single scrollable column of sets — hovering a row re-dithers
+ * the photo live, clicking applies it. User library on top, then the built-in families. Stacks
+ * above other dialogs (portal order); Escape and the backdrop close only this layer.
  */
 export function GlyphGallery({
   onClose,
   onPick,
 }: {
   onClose: () => void
-  onPick: (set: GlyphTileSet) => void
+  onPick: (set: GlyphTileSet, id: string | null) => void
 }) {
   const { t } = useI18n()
   const glyphSets = useStore((s) => s.glyphSets)
   const [query, setQuery] = useState('')
-  // the photo preview shows this set; hovering a card swaps it live
+  // the photo preview shows this set; hovering a row swaps it live
   const [previewSet, setPreviewSet] = useState<GlyphTileSet>(
     () => builtInGlyphSetById('glyph-bayer8') ?? BUILT_IN_GLYPH_SETS[0].set,
   )
@@ -103,7 +107,7 @@ export function GlyphGallery({
     >
       <DialogContent
         showCloseButton={false}
-        className="z-60 flex w-full flex-col gap-3 overflow-hidden p-4 lg:h-auto lg:max-h-[90vh] lg:max-w-5xl lg:rounded-xl"
+        className="z-60 flex w-full flex-col gap-3 overflow-hidden p-4 lg:h-[90vh] lg:max-w-6xl lg:rounded-xl"
       >
         <div className="flex items-center justify-between">
           <DialogTitle className="text-body text-sm font-semibold tracking-wide">
@@ -119,65 +123,72 @@ export function GlyphGallery({
           </button>
         </div>
 
-        <TextField
-          value={query}
-          autoFocus
-          placeholder={t('glyph.gallery.search')}
-          ariaLabel={t('glyph.gallery.search')}
-          onChange={setQuery}
-          className="w-full"
-        />
-
         <DialogDescription className="sr-only">{t('glyph.gallery.hint')}</DialogDescription>
 
-        <div className="flex flex-col gap-1.5">
-          <GlyphPhotoPreview set={previewSet} />
-          <p className="text-muted text-overline leading-snug">{t('glyph.preview.hint')}</p>
-        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
+          {/* master: the live photo preview, as large as the dialog allows */}
+          <div className="flex min-h-0 flex-col gap-1.5 lg:min-w-0 lg:flex-1">
+            <GlyphPhotoPreview set={previewSet} />
+            <p className="text-muted text-overline leading-snug">{t('glyph.preview.hint')}</p>
+          </div>
 
-        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-0.5">
-          {userSets.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <h3 className="text-muted text-overline font-semibold tracking-wider uppercase">
-                {t('glyph.gallery.user')}
-              </h3>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2">
-                {userSets.map((e) => (
-                  <GalleryCard
-                    key={e.id}
-                    name={e.set.name}
-                    set={e.set}
-                    onHover={setPreviewSet}
-                    onPick={(picked) => {
-                      onPick(picked)
-                      onClose()
-                    }}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-          {families.map(({ family, sets }) => (
-            <section key={family} className="flex flex-col gap-2">
-              <h3 className="text-muted text-overline font-semibold tracking-wider uppercase">
-                {t(`glyph.family.${family}` as 'glyph.family.matrix')}
-              </h3>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2">
-                {sets.map((b) => (
-                  <GalleryCard
-                    key={b.id}
-                    name={b.set.name}
-                    set={b.set}
-                    onHover={setPreviewSet}
-                    onPick={(picked) => {
-                      onPick(picked)
-                      onClose()
-                    }}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
+          {/* detail: search + every set in one scrollable column */}
+          <div className="flex min-h-0 flex-1 flex-col gap-2 lg:w-80 lg:shrink-0">
+            <TextField
+              value={query}
+              autoFocus
+              placeholder={t('glyph.gallery.search')}
+              ariaLabel={t('glyph.gallery.search')}
+              onChange={setQuery}
+              className="w-full"
+            />
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-0.5">
+              {userSets.length > 0 && (
+                <section className="flex flex-col gap-1.5">
+                  <h3 className="text-muted text-overline font-semibold tracking-wider uppercase">
+                    {t('glyph.gallery.user')}
+                  </h3>
+                  <div className="flex flex-col gap-1.5">
+                    {userSets.map((e) => (
+                      <GalleryRow
+                        key={e.id}
+                        name={e.set.name}
+                        set={e.set}
+                        sourceId={e.id}
+                        onHover={setPreviewSet}
+                        onPick={(picked, pickedId) => {
+                          onPick(picked, pickedId)
+                          onClose()
+                        }}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+              {families.map(({ family, sets }) => (
+                <section key={family} className="flex flex-col gap-1.5">
+                  <h3 className="text-muted text-overline font-semibold tracking-wider uppercase">
+                    {t(`glyph.family.${family}` as 'glyph.family.matrix')}
+                  </h3>
+                  <div className="flex flex-col gap-1.5">
+                    {sets.map((b) => (
+                      <GalleryRow
+                        key={b.id}
+                        name={b.set.name}
+                        set={b.set}
+                        sourceId={b.id}
+                        onHover={setPreviewSet}
+                        onPick={(picked, pickedId) => {
+                          onPick(picked, pickedId)
+                          onClose()
+                        }}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
         </div>
 
         <p className="text-muted text-overline leading-snug">{t('glyph.gallery.hint')}</p>

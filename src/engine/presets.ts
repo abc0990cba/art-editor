@@ -117,6 +117,8 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
       squareEdges: st.squareEdges === true,
       shape: isCellShapeId(st.shape) ? st.shape : base.style.shape,
       shapeParams: normalizeShapeParams(st.shapeParams),
+      toneSize: st.toneSize === true,
+      toneSizeMin: clamp(Number(st.toneSizeMin ?? base.style.toneSizeMin), 0.05, 1),
     },
     renderMode: renderModes.includes(d['renderMode'] as RenderMode)
       ? (d['renderMode'] as RenderMode)
@@ -211,6 +213,8 @@ function stylesEqual(a: PixelStyle, b: PixelStyle): boolean {
     a.squareEdges === b.squareEdges &&
     a.shape === b.shape &&
     sameShapeParams(a.shapeParams, b.shapeParams) &&
+    a.toneSize === b.toneSize &&
+    a.toneSizeMin === b.toneSizeMin &&
     a.corners.tl === b.corners.tl &&
     a.corners.tr === b.corners.tr &&
     a.corners.br === b.corners.br &&

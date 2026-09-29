@@ -17,6 +17,7 @@ export function GlyphEditor() {
   const { t } = useI18n()
   const glyphDraft = useStore((s) => s.glyphDraft)
   const patchGlyphDraft = useStore((s) => s.patchGlyphDraft)
+  const applyGlyphSet = useStore((s) => s.applyGlyphSet)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [galleryOpen, setGalleryOpen] = useState(false)
 
@@ -42,11 +43,20 @@ export function GlyphEditor() {
               {n}×{n}
             </Chip>
           ))}
-          <span className="flex-1" />
-          <Chip title={t('glyph.openSettings')} onClick={() => setDetailsOpen(true)}>
+        </div>
+        <div className="flex gap-1">
+          <Chip
+            className="flex-1 text-center"
+            title={t('glyph.openSettings')}
+            onClick={() => setDetailsOpen(true)}
+          >
             ⚙ {t('glyph.details')}
           </Chip>
-          <Chip title={t('glyph.gallery.hint')} onClick={() => setGalleryOpen(true)}>
+          <Chip
+            ariaLabel={t('glyph.gallery')}
+            title={t('glyph.gallery')}
+            onClick={() => setGalleryOpen(true)}
+          >
             ▦
           </Chip>
         </div>
@@ -55,8 +65,8 @@ export function GlyphEditor() {
       {galleryOpen && (
         <GlyphGallery
           onClose={() => setGalleryOpen(false)}
-          onPick={(set) => {
-            patchGlyphDraft(set)
+          onPick={(set, id) => {
+            applyGlyphSet(id, set)
             setGalleryOpen(false)
           }}
         />

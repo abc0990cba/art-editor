@@ -127,3 +127,10 @@ export function normalizeHex(hex: string): string | null {
   const rgb = hexToRgb(hex)
   return rgb ? rgbToHex(rgb) : null
 }
+
+/** Relative luminance of a hex color, 0 (black) .. 1 (white); unparsable colors read as white. */
+export function hexLuminance(hex: string): number {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return 1
+  return (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255
+}

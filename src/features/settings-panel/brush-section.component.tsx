@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { BRUSH_SHAPES, BUILT_IN_BRUSHES, detectBrushShape, type Brush } from '../../engine/brush.ts'
+import {
+  BRUSH_SHAPES,
+  BUILT_IN_BRUSHES,
+  detectBrushShape,
+  TIP_MIN_SIZE,
+  type Brush,
+} from '../../engine/brush.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
+import { ShapeTileGrid } from '../../shared/ui/shape-tiles.component.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import type { BrushPresetEntry } from '../../storage/brushes.ts'
@@ -47,6 +54,39 @@ function brushNameKey(id: string): 'brushName.px1' {
   return `brushName.${id}` as 'brushName.px1'
 }
 
+/** Tip shape presets; shapes that degenerate at the current size are disabled with a hint. */
+function TipChips({ brush, onPick }: { brush: Brush; onPick: (pattern: boolean[]) => void }) {
+  const { t } = useI18n()
+  return (
+    <>
+      <div className="flex flex-wrap gap-1">
+        {BRUSH_SHAPES.map(({ id, make }) => {
+          const min = TIP_MIN_SIZE[id]
+          const fits = brush.size >= min
+          const name = t(`brush.${id}` as 'brush.square')
+          return (
+            <Chip
+              key={id}
+              active={detectBrushShape(brush) === id}
+              disabled={!fits}
+              title={fits ? name : `${name} — ${min}×${min}`}
+              onClick={() => onPick(make(brush.size).pattern)}
+            >
+              {name}
+            </Chip>
+          )
+        })}
+        <Chip title={t('brush.invert')} onClick={() => onPick(brush.pattern.map((v) => !v))}>
+          {t('brush.invert')}
+        </Chip>
+      </div>
+      {BRUSH_SHAPES.some(({ id }) => TIP_MIN_SIZE[id] > brush.size) && (
+        <p className="text-muted text-overline leading-snug">{t('brush.tipTooSmallHint')}</p>
+      )}
+    </>
+  )
+}
+
 /** Brush section: pixel size, tip editor and the brush preset library. */
 export function BrushSection() {
   const { t } = useI18n()
@@ -56,6 +96,8 @@ export function BrushSection() {
   const patchBrush = useStore((s) => s.patchBrush)
   const setBrushSnap = useStore((s) => s.setBrushSnap)
   const isSquare = useStore((s) => s.doc.gridType === 'square')
+  const docStyle = useStore((s) => s.doc.style)
+  const patchStyle = useStore((s) => s.patchStyle)
   const brushPresets = useStore((s) => s.brushPresets)
   const brushesReady = useStore((s) => s.brushesReady)
   const loadBrushes = useStore((s) => s.loadBrushes)
@@ -207,28 +249,25 @@ export function BrushSection() {
               />
             ))}
           </div>
-          <div className="flex flex-wrap gap-1">
-            {BRUSH_SHAPES.map(({ id, make }) => (
-              <Chip
-                key={id}
-                active={detectBrushShape(brush) === id}
-                title={t(`brush.${id}` as 'brush.square')}
-                onClick={() => patchBrush({ pattern: make(brush.size).pattern })}
-              >
-                {t(`brush.${id}` as 'brush.square')}
-              </Chip>
-            ))}
-            <Chip
-              title={t('brush.invert')}
-              onClick={() => patchBrush({ pattern: brush.pattern.map((v) => !v) })}
-            >
-              {t('brush.invert')}
-            </Chip>
-          </div>
+          <TipChips brush={brush} onPick={(pattern) => patchBrush({ pattern })} />
         </div>
       ) : (
         <p className="text-muted text-label">{t('brush.squareOnly')}</p>
       )}
+
+      <div className="flex flex-col gap-1">
+        <span className="text-muted text-xs" title={t('style.shape.desc')}>
+          {t('style.shape')}
+        </span>
+        <ShapeTileGrid
+          shape={brush.shape ?? docStyle.shape}
+          onPick={(id) => {
+            patchBrush({ shape: id })
+            patchStyle({ shape: id })
+          }}
+          ariaLabel={t('style.shape')}
+        />
+      </div>
 
       <CheckRow
         label={t('brush.snap')}

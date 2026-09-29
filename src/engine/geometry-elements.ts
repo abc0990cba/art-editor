@@ -49,6 +49,8 @@ export function elementStyleKey(el: ElementStyle): string {
     s.shapeParams.thickness,
     s.shapeParams.points,
     s.shapeParams.rotation,
+    s.toneSize,
+    s.toneSizeMin,
     s.corners.tl,
     s.corners.tr,
     s.corners.br,

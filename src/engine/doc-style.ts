@@ -58,6 +58,8 @@ function samePixelStyle(a: PixelStyle, b: PixelStyle): boolean {
     a.squareEdges === b.squareEdges &&
     a.shape === b.shape &&
     sameShapeParams(a.shapeParams, b.shapeParams) &&
+    a.toneSize === b.toneSize &&
+    a.toneSizeMin === b.toneSizeMin &&
     a.corners.tl === b.corners.tl &&
     a.corners.tr === b.corners.tr &&
     a.corners.br === b.corners.br &&

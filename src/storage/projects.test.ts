@@ -46,6 +46,8 @@ function entry(id: string, name: string, updatedAt: number): PixelProjectEntry {
         squareEdges: false,
         shape: 'square',
         shapeParams: { thickness: 0.25, points: 5, rotation: 0 },
+        toneSize: false,
+        toneSizeMin: 0.15,
       },
       gridType: 'square',
       renderMode: 'pixels',

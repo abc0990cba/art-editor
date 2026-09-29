@@ -1,5 +1,6 @@
 import { normalizeBrush } from '../engine/brush.ts'
 import type { Brush } from '../engine/brush.ts'
+import { isCellShapeId } from '../engine/cell-shapes.ts'
 import {
   deleteBrush as deleteBrushRow,
   listBrushes,
@@ -55,6 +56,7 @@ export function createBrushesSlice({ set, get }: SliceApi): BrushesSlice {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         brush: normalizeBrush(s.brush),
+        color: s.color,
       }
       await saveBrush(entry)
       set({ brushPresets: sortBrushes([entry, ...s.brushPresets]) })
@@ -67,6 +69,7 @@ export function createBrushesSlice({ set, get }: SliceApi): BrushesSlice {
       const updated: BrushPresetEntry = {
         ...existing,
         brush: normalizeBrush(s.brush),
+        color: s.color,
         updatedAt: Date.now(),
       }
       await saveBrush(updated)
@@ -91,6 +94,25 @@ export function createBrushesSlice({ set, get }: SliceApi): BrushesSlice {
       await deleteBrushRow(id)
       set((s) => ({ brushPresets: s.brushPresets.filter((b) => b.id !== id) }))
     },
-    applyBrushPreset: (id, brush) => set({ brush: normalizeBrush(brush), brushId: id }),
+    // picking a preset restores its tip, working color and cell form (a preset without a
+    // form leaves the current pixel style alone)
+    applyBrushPreset: (id, brush) =>
+      set((s) => {
+        const entry = s.brushPresets.find((b) => b.id === id)
+        const shape = isCellShapeId(brush.shape) ? brush.shape : undefined
+        return {
+          brush: normalizeBrush(brush),
+          brushId: id,
+          ...(entry?.color ? { color: entry.color } : {}),
+          ...(shape
+            ? {
+                doc: {
+                  ...s.doc,
+                  style: { ...s.doc.style, shape, shapeParams: { ...s.doc.style.shapeParams } },
+                },
+              }
+            : {}),
+        }
+      }),
   }
 }

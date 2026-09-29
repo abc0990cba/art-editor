@@ -4,6 +4,52 @@ import type { PresetSeed } from './preset-configs'
 
 export const FORMS_PRESETS: PresetSeed[] = [
   {
+    name: 'Dot Screen',
+    id: 'builtin.form-dot-screen',
+    input: {
+      gridType: 'square',
+      cols: 32,
+      rows: 32,
+      sub: 1,
+      palette: ['#111111', '#555555', '#999999', '#dddddd'],
+      renderMode: 'pixels',
+      connectivity: 'edge',
+      style: {
+        shape: 'circle',
+        shapeParams: { thickness: 0.25, points: 5, rotation: 0 },
+        toneSize: true,
+        toneSizeMin: 0.1,
+        sizeX: 1,
+        sizeY: 1,
+      },
+      bg: '#dddddd',
+      symmetry: { mode: 'none', n: 8, showGuides: false },
+    },
+  },
+  {
+    name: 'Cross Screen',
+    id: 'builtin.form-cross-screen',
+    input: {
+      gridType: 'square',
+      cols: 32,
+      rows: 32,
+      sub: 1,
+      palette: ['#101418', '#3a4750', '#8b9ba3', '#e6e2d8'],
+      renderMode: 'pixels',
+      connectivity: 'edge',
+      style: {
+        shape: 'cross',
+        shapeParams: { thickness: 0.3, points: 5, rotation: 0 },
+        toneSize: true,
+        toneSizeMin: 0.12,
+        sizeX: 1,
+        sizeY: 1,
+      },
+      bg: '#e6e2d8',
+      symmetry: { mode: 'none', n: 8, showGuides: false },
+    },
+  },
+  {
     name: 'Polka Dots',
     id: 'builtin.form-dots',
     input: {
