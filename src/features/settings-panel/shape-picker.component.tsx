@@ -1,12 +1,13 @@
-import { CELL_SHAPES, isCurvedShape, paramsOf, shapePreviewPath } from '../../engine/cell-shapes.ts'
+import { isCurvedShape, paramsOf } from '../../engine/cell-shapes.ts'
 import type { Doc } from '../../engine/doc.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { Chip, Slider } from '../../shared/ui/index.tsx'
+import { Slider } from '../../shared/ui/index.tsx'
+import { ShapeTileGrid } from '../../shared/ui/shape-tiles.component.tsx'
 
 /**
  * Cell-form picker for `pixels` mode: one tile per registered shape plus the sliders for the params
  * that shape exposes (thickness / points / rotation). Tiles draw through the same engine geometry
- * as the canvas (shapePreviewPath), so the icon always matches the ink.
+ * as the canvas, so the icon always matches the ink.
  */
 export function ShapePicker({
   style,
@@ -26,26 +27,11 @@ export function ShapePicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <div
-        role="listbox"
-        aria-label={t('style.shape')}
-        className="grid grid-cols-6 gap-1 max-lg:grid-cols-4"
-      >
-        {CELL_SHAPES.map((def) => (
-          <Chip
-            key={def.id}
-            active={shape === def.id}
-            title={t(`cellform.${def.id}` as 'cellform.square')}
-            ariaLabel={t(`cellform.${def.id}` as 'cellform.square')}
-            className="flex items-center justify-center px-0"
-            onClick={() => onApply({ shape: def.id })}
-          >
-            <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden="true">
-              <path d={shapePreviewPath(def.id, 24)} fill="currentColor" fillRule="evenodd" />
-            </svg>
-          </Chip>
-        ))}
-      </div>
+      <ShapeTileGrid
+        shape={shape}
+        onPick={(id) => onApply({ shape: id })}
+        ariaLabel={t('style.shape')}
+      />
       {params.includes('rotation') && (
         <Slider
           label={t('style.shape.rotation')}

@@ -4,6 +4,7 @@ import {
   CELL_SHAPE_IDS,
   DEFAULT_SHAPE_PARAMS,
   cellShapeFragment,
+  cellShapeHit,
   isCellShapeId,
   normalizeShapeParams,
   paramsOf,
@@ -126,6 +127,37 @@ describe('cell form geometry', () => {
     const cut = frag('hexagon', DEFAULT_SHAPE_PARAMS, 0.5, true, { x: 0, y: 0, w: 8, h: 8 })
     expect(arc).toContain('A')
     expect(cut).not.toContain('A')
+  })
+})
+
+describe('cell form hit tests', () => {
+  it('center is inside every form except the ring hole; corners outside (except square)', () => {
+    for (const id of CELL_SHAPE_IDS) {
+      const centerInside = id !== 'ring'
+      expect(cellShapeHit(id, 0.5, 0.5, DEFAULT_SHAPE_PARAMS), id).toBe(centerInside)
+    }
+    expect(cellShapeHit('square', 0.01, 0.01, DEFAULT_SHAPE_PARAMS)).toBe(true)
+    for (const id of ['circle', 'diamond', 'star', 'hexagon', 'heart'] as const) {
+      expect(cellShapeHit(id, 0.01, 0.01, DEFAULT_SHAPE_PARAMS), id).toBe(false)
+    }
+  })
+
+  it('ring wall thickness decides between center ink and hole', () => {
+    expect(cellShapeHit('ring', 0.5, 0.5, DEFAULT_SHAPE_PARAMS)).toBe(false)
+    expect(cellShapeHit('ring', 0.5, 0.04, DEFAULT_SHAPE_PARAMS)).toBe(true)
+    expect(cellShapeHit('ring', 0.5, 0.5, { ...DEFAULT_SHAPE_PARAMS, thickness: 0.5 })).toBe(true)
+  })
+
+  it('rotation moves the silhouette with the form', () => {
+    // (0.7, 0.8) sits in the lower-right body of the up-pointing triangle; flipped 180°
+    // that region maps to the empty upper-left corner of the down-pointing one
+    expect(cellShapeHit('triangle', 0.7, 0.8, DEFAULT_SHAPE_PARAMS)).toBe(true)
+    expect(cellShapeHit('triangle', 0.7, 0.8, { ...DEFAULT_SHAPE_PARAMS, rotation: 180 })).toBe(
+      false,
+    )
+    expect(cellShapeHit('triangle', 0.3, 0.2, { ...DEFAULT_SHAPE_PARAMS, rotation: 180 })).toBe(
+      true,
+    )
   })
 })
 

@@ -1,10 +1,10 @@
-import { roundedPolygonPath } from './cell-shapes.ts'
 import type { Doc, Link } from './doc'
 import { cellColor } from './doc'
 import type { StyledPath } from './geometry'
 import { makeGrid, type Grid } from './grids'
 import { marchingSquares, type Pt } from './marching-squares.ts'
 import { emitFilletPath } from './outline'
+import { roundedPolygonPath } from './poly-path.ts'
 
 const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
 const q6 = (v: number) => Math.round(v * 1e6) / 1e6

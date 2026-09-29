@@ -10,6 +10,7 @@ import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { QUICK_COLORS } from '../../shared/lib/quick-colors.util.ts'
 import { ColorPicker } from '../../shared/ui/color-picker.component.tsx'
 import { Chip, ColorSwatch, hexLuminance, Slider } from '../../shared/ui/index.tsx'
+import { ShapeTileGrid } from '../../shared/ui/shape-tiles.component.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 
@@ -191,6 +192,8 @@ export function FabPanel() {
   const fillSelection = useStore((s) => s.fillSelection)
   const brush = useStore((s) => s.brush)
   const patchBrush = useStore((s) => s.patchBrush)
+  const docStyle = useStore((s) => s.doc.style)
+  const patchStyle = useStore((s) => s.patchStyle)
   const [pickerOpen, setPickerOpen] = useState(false)
   // picking with a selection active re-fills it — same behavior as the right panel
   const applyColor = (h: string) => {
@@ -314,6 +317,17 @@ export function FabPanel() {
             </Chip>
           ))}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-muted text-xs">{t('style.shape')}</span>
+        <ShapeTileGrid
+          shape={docStyle.shape}
+          onPick={(id) => patchStyle({ shape: id })}
+          columns={4}
+          tileClassName="h-11 lg:h-auto"
+          ariaLabel={t('style.shape')}
+        />
       </div>
     </div>
   )

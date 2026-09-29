@@ -1,4 +1,5 @@
 import type { Pt } from './marching-squares.ts'
+import { fmt, roundedPolygonPath } from './poly-path.ts'
 
 /**
  * Cell form registry: how one painted cell is drawn in `pixels` render mode. `square` keeps the
@@ -104,8 +105,6 @@ export function isCurvedShape(id: CellShapeId): boolean {
   return CELL_SHAPES.find((d) => d.id === id)?.curved ?? false
 }
 
-const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
-
 /* ------------------------------ unit form geometry ------------------------------ */
 
 type UnitPt = [number, number]
@@ -202,6 +201,103 @@ function crossPoly(hw: number, diagonal: boolean): UnitPt[] {
   })
 }
 
+/* ------------------------------ silhouette hit tests ------------------------------ */
+
+/** Even-odd ray-cast point-in-polygon on unit-space points. */
+function unitPolyHit(poly: readonly UnitPt[], u: number, v: number): boolean {
+  let inside = false
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i]
+    const [xj, yj] = poly[j]
+    if (yi > v !== yj > v && u < ((xj - xi) * (v - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
+}
+
+/** Cubic heart flattened to a polygon for hit tests (same control points as the rendered path). */
+function heartPoly(samples = 6): UnitPt[] {
+  const pts: UnitPt[] = [HEART[0]]
+  for (let seg = 1; seg < HEART.length; seg += 3) {
+    const [p0x, p0y] = HEART[seg - 1]
+    const [c1x, c1y] = HEART[seg]
+    const [c2x, c2y] = HEART[seg + 1]
+    const [p1x, p1y] = HEART[seg + 2]
+    for (let k = 1; k <= samples; k++) {
+      const t = k / samples
+      const m = 1 - t
+      pts.push([
+        m * m * m * p0x + 3 * m * m * t * c1x + 3 * m * t * t * c2x + t * t * t * p1x,
+        m * m * m * p0y + 3 * m * m * t * c1y + 3 * m * t * t * c2y + t * t * t * p1y,
+      ])
+    }
+  }
+  return pts
+}
+
+const HEART_HITS = heartPoly()
+
+/** Unit silhouette of the polygonal forms (square/circle/ring/heart have analytic hits). */
+function unitFormPoly(
+  id: 'triangle' | 'triangleDown' | 'diamond' | 'hexagon' | 'cross' | 'xCross' | 'star' | 'sparkle',
+  p: ShapeParams,
+): UnitPt[] {
+  switch (id) {
+    case 'triangle': {
+      return TRIANGLE
+    }
+    case 'triangleDown': {
+      return TRIANGLE_DOWN
+    }
+    case 'diamond': {
+      return DIAMOND
+    }
+    case 'hexagon': {
+      return HEXAGON
+    }
+    case 'cross': {
+      return crossPoly(p.thickness / 2, false)
+    }
+    case 'xCross': {
+      return crossPoly(p.thickness / 2, true)
+    }
+    case 'star': {
+      return starPoly(p.points, p.thickness)
+    }
+    case 'sparkle': {
+      return starPoly(4, clamp(p.thickness * 0.7, 0.05, 0.5))
+    }
+  }
+}
+
+/**
+ * Whether the point (u, v) in the unit cell box lies inside the form. Rotation turns the point
+ * against the unrotated silhouette; ring relies on its wall thickness; radius/chamfer (polygon
+ * corner rounding) are ignored — hit tests serve tone-scale rasters where corners stay sharp.
+ */
+export function cellShapeHit(id: CellShapeId, u: number, v: number, p: ShapeParams): boolean {
+  const rad = (-p.rotation * Math.PI) / 180
+  const cos = Math.cos(rad)
+  const sin = Math.sin(rad)
+  const dx = u - 0.5
+  const dy = v - 0.5
+  const x = 0.5 + dx * cos - dy * sin
+  const y = 0.5 + dx * sin + dy * cos
+  if (id === 'square') {
+    return x >= 0 && x <= 1 && y >= 0 && y <= 1
+  }
+  if (id === 'circle') {
+    return (x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5) <= 0.25
+  }
+  if (id === 'ring') {
+    const r = Math.hypot(x - 0.5, y - 0.5)
+    return r <= 0.5 && r >= 0.5 - clamp(p.thickness, 0.05, 0.5)
+  }
+  if (id === 'heart') {
+    return unitPolyHit(HEART_HITS, x, y)
+  }
+  return unitPolyHit(unitFormPoly(id, p), x, y)
+}
+
 /* ------------------------------ path fragment builders ------------------------------ */
 
 function ellipseFrag(cx: number, cy: number, rx: number, ry: number): string {
@@ -211,68 +307,6 @@ function ellipseFrag(cx: number, cy: number, rx: number, ry: number): string {
   d += `A${fmt(rx)} ${fmt(ry)} 0 0 1 ${fmt(cx)} ${fmt(cy + ry)}`
   d += `A${fmt(rx)} ${fmt(ry)} 0 0 1 ${fmt(cx - rx)} ${fmt(cy)}Z`
   return d
-}
-
-/**
- * Rounded polygon: fillet every true corner (turns below 10° read as arc samples). Shared with the
- * non-square grid renderer.
- */
-export function roundedPolygonPath(poly: Pt[], r: number, chamfer: boolean): string {
-  const n = poly.length
-  const corners: number[] = []
-  for (let i = 0; i < n; i++) {
-    const a = poly[(i - 1 + n) % n]
-    const b = poly[i]
-    const c = poly[(i + 1) % n]
-    const d1x = b.x - a.x
-    const d1y = b.y - a.y
-    const d2x = c.x - b.x
-    const d2y = c.y - b.y
-    const l1 = Math.hypot(d1x, d1y)
-    const l2 = Math.hypot(d2x, d2y)
-    if (l1 === 0 || l2 === 0) continue
-    const cos = (d1x * d2x + d1y * d2y) / (l1 * l2)
-    if (cos < 0.985) corners.push(i) // turn angle above ~10°
-  }
-  if (corners.length < 3) {
-    // degenerate: plain polygon
-    return `M${poly.map((p) => `${fmt(p.x)} ${fmt(p.y)}`).join('L')}Z`
-  }
-  const isCorner = new Set(corners)
-  let d = ''
-  let first = true
-  for (let i = 0; i < n; i++) {
-    if (!isCorner.has(i)) {
-      // arc sample between corners: keep it, or the whole curved edge collapses
-      // into the straight chord joining the two fillets
-      d += `${first ? 'M' : 'L'}${fmt(poly[i].x)} ${fmt(poly[i].y)}`
-      first = false
-      continue
-    }
-    const p = poly[i]
-    const prev = poly[(i - 1 + n) % n]
-    const next = poly[(i + 1) % n]
-    const inLen = Math.hypot(p.x - prev.x, p.y - prev.y)
-    const outLen = Math.hypot(next.x - p.x, next.y - p.y)
-    const t = Math.min(r, inLen / 2, outLen / 2)
-    const d1x = (p.x - prev.x) / inLen
-    const d1y = (p.y - prev.y) / inLen
-    const d2x = (next.x - p.x) / outLen
-    const d2y = (next.y - p.y) / outLen
-    const ax = p.x - d1x * t
-    const ay = p.y - d1y * t
-    const bx = p.x + d2x * t
-    const by = p.y + d2y * t
-    d += `${first ? 'M' : 'L'}${fmt(ax)} ${fmt(ay)}`
-    first = false
-    if (t > 0) {
-      const cross = d1x * d2y - d1y * d2x
-      d += chamfer
-        ? `L${fmt(bx)} ${fmt(by)}`
-        : `A${fmt(t)} ${fmt(t)} 0 0 ${cross > 0 ? 1 : 0} ${fmt(bx)} ${fmt(by)}`
-    }
-  }
-  return `${d}Z`
 }
 
 /** Scale unit points into the cell box, then rotate the result about the box center. */

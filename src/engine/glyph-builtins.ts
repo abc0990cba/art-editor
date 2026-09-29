@@ -11,6 +11,8 @@ import {
   glyphSetBubbles,
   glyphSetCrossStitch,
   glyphSetCrystal,
+  glyphSetForm,
+  glyphSetFormDuo,
   glyphSetHalftone,
   glyphSetHatch,
   glyphSetHearts,
@@ -108,6 +110,34 @@ export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
   { id: 'glyph-sunburst12', family: 'shapes', set: glyphSetSunburst(12, 17, 'Лучи') },
   { id: 'glyph-crystal12', family: 'shapes', set: glyphSetCrystal(12, 17, 'Кристалл') },
   { id: 'glyph-triangles6', family: 'shapes', set: glyphSetTriangles(6, 13, 'Треугольники') },
+  // tone-scale ramps of the cell forms (the figure grows with the tone)
+  {
+    id: 'glyph-hexagons12',
+    family: 'shapes',
+    set: glyphSetForm('hexagon', 12, 17, 'Шестиугольники'),
+  },
+  { id: 'glyph-sparkles12', family: 'shapes', set: glyphSetForm('sparkle', 12, 17, 'Искры') },
+  {
+    id: 'glyph-form-hearts12',
+    family: 'shapes',
+    set: glyphSetForm('heart', 12, 17, 'Сердца (рост)'),
+  },
+  // two figures at once on interleaved lattices
+  {
+    id: 'glyph-duo-stars-dots12',
+    family: 'shapes',
+    set: glyphSetFormDuo('star', 'circle', 12, 17, 'Звёзды и круги'),
+  },
+  {
+    id: 'glyph-duo-hearts-diamonds12',
+    family: 'shapes',
+    set: glyphSetFormDuo('heart', 'diamond', 12, 17, 'Сердца и ромбы'),
+  },
+  {
+    id: 'glyph-duo-cross-rings12',
+    family: 'shapes',
+    set: glyphSetFormDuo('cross', 'ring', 12, 17, 'Крестики и кольца'),
+  },
   // patterns
   { id: 'glyph-checker', family: 'patterns', set: glyphSetChecker(4, 9, 'Шахматка') },
   { id: 'glyph-corner', family: 'patterns', set: glyphSetCorner(4, 9, 'Диагональный склон') },
