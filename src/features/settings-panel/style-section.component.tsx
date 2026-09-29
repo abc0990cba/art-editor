@@ -1,6 +1,9 @@
+import { isCurvedShape } from '../../engine/cell-shapes.ts'
 import type { Doc } from '../../engine/doc.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
+import { RoundingControls } from './rounding-controls.component.tsx'
+import { ShapePicker } from './shape-picker.component.tsx'
 import { PixelStylePreview } from './style-previews.component.tsx'
 
 /** Selection-aware style target shared by the style/texture sections. */
@@ -49,7 +52,7 @@ export function StyleSection({
     applyMetaball,
   } = target
   const isSquare = target.isSquare
-  const c = styleView.corners
+  const curved = isCurvedShape(styleView.shape)
   const pct = (v: number) => `${Math.round(v * 100)}%`
 
   return (
@@ -138,75 +141,40 @@ export function StyleSection({
           </div>
         </div>
       )}
-      {modeView !== 'metaball' && (
+      {modeView === 'outline' && (
         <>
-          {modeView === 'outline' ? (
-            <>
-              <Slider
-                label={t('style.convex')}
-                title={t('style.convex.desc')}
-                value={styleView.convexRadius}
-                min={0}
-                max={0.5}
-                step={0.01}
-                display={pct}
-                onChange={(v) => applyStyle({ convexRadius: v })}
-              />
-              <Slider
-                label={t('style.concave')}
-                title={t('style.concave.desc')}
-                value={styleView.concaveRadius}
-                min={0}
-                max={0.5}
-                step={0.01}
-                display={pct}
-                onChange={(v) => applyStyle({ concaveRadius: v })}
-              />
-            </>
-          ) : (
-            <Slider
-              label={t('style.radius')}
-              title={t('style.radius.desc')}
-              value={styleView.radius}
-              min={0}
-              max={0.5}
-              step={0.01}
-              display={pct}
-              onChange={(v) => applyStyle({ radius: v })}
-            />
-          )}
-          <div className="text-muted flex items-center justify-between text-xs">
-            <span>{t('style.cornerStyle')}</span>
-            <div className="flex gap-1">
-              {(
-                [
-                  ['arc', 'style.corner.arc'],
-                  ['chamfer', 'style.corner.chamfer'],
-                ] as const
-              ).map(([cs, key]) => (
-                <Chip
-                  key={cs}
-                  active={styleView.cornerStyle === cs}
-                  title={t(`style.corner.${cs}.desc` as 'style.corner.arc.desc')}
-                  onClick={() => applyStyle({ cornerStyle: cs })}
-                >
-                  {t(key)}
-                </Chip>
-              ))}
-            </div>
-          </div>
-          {isSquare && (
-            <CheckRow
-              label={t('style.squareEdges')}
-              title={t('style.squareEdges.desc')}
-              checked={styleView.squareEdges}
-              onChange={(v) => applyStyle({ squareEdges: v })}
-            />
-          )}
+          <Slider
+            label={t('style.convex')}
+            title={t('style.convex.desc')}
+            value={styleView.convexRadius}
+            min={0}
+            max={0.5}
+            step={0.01}
+            display={pct}
+            onChange={(v) => applyStyle({ convexRadius: v })}
+          />
+          <Slider
+            label={t('style.concave')}
+            title={t('style.concave.desc')}
+            value={styleView.concaveRadius}
+            min={0}
+            max={0.5}
+            step={0.01}
+            display={pct}
+            onChange={(v) => applyStyle({ concaveRadius: v })}
+          />
         </>
       )}
       {modeView === 'pixels' && (
         <>
+          {doc.gridType === 'square' && (
+            <>
+              <div className="text-muted text-overline font-semibold tracking-wider uppercase">
+                {t('style.group.shape')}
+              </div>
+              <ShapePicker style={styleView} onApply={applyStyle} />
+            </>
+          )}
           <div className="text-muted text-overline font-semibold tracking-wider uppercase">
             {t('style.group.size')}
           </div>
@@ -230,99 +198,12 @@ export function StyleSection({
             display={pct}
             onChange={(v) => applyStyle({ sizeY: v })}
           />
-          <div className="text-muted text-overline font-semibold tracking-wider uppercase">
-            {t('style.group.rounding')}
-          </div>
-          <div className="flex gap-1.5">
-            <Chip
-              active={styleView.radius === 0 && c.tl === null}
-              title={t('style.square.desc')}
-              onClick={() =>
-                applyStyle({ radius: 0, corners: { tl: null, tr: null, br: null, bl: null } })
-              }
-            >
-              {t('style.square')}
-            </Chip>
-            <Chip
-              active={styleView.radius > 0 && styleView.radius < 0.5 && c.tl === null}
-              title={t('style.rounded.desc')}
-              onClick={() =>
-                applyStyle({
-                  radius: 0.42,
-                  corners: { tl: null, tr: null, br: null, bl: null },
-                })
-              }
-            >
-              {t('style.rounded')}
-            </Chip>
-            <Chip
-              active={styleView.radius === 0.5 && c.tl === null}
-              title={t('style.circle.desc')}
-              onClick={() =>
-                applyStyle({ radius: 0.5, corners: { tl: null, tr: null, br: null, bl: null } })
-              }
-            >
-              {t('style.circle')}
-            </Chip>
-          </div>
-          {doc.gridType === 'square' && (
-            <>
-              <CheckRow
-                label={t('style.perCorner')}
-                title={t('style.perCorner.desc')}
-                checked={c.tl !== null}
-                onChange={(on) =>
-                  applyStyle({
-                    corners: {
-                      tl: on ? 0 : null,
-                      tr: on ? 0 : null,
-                      br: on ? 0 : null,
-                      bl: on ? 0 : null,
-                    },
-                  })
-                }
-              />
-              {c.tl !== null && (
-                <div className="border-line bg-chip flex flex-col gap-2 rounded-lg border p-2">
-                  <Slider
-                    label="↖"
-                    value={c.tl}
-                    min={0}
-                    max={0.5}
-                    step={0.01}
-                    display={pct}
-                    onChange={(v) => applyStyle({ corners: { ...c, tl: v } })}
-                  />
-                  <Slider
-                    label="↗"
-                    value={c.tr ?? 0}
-                    min={0}
-                    max={0.5}
-                    step={0.01}
-                    display={pct}
-                    onChange={(v) => applyStyle({ corners: { ...c, tr: v } })}
-                  />
-                  <Slider
-                    label="↘"
-                    value={c.br ?? 0}
-                    min={0}
-                    max={0.5}
-                    step={0.01}
-                    display={pct}
-                    onChange={(v) => applyStyle({ corners: { ...c, br: v } })}
-                  />
-                  <Slider
-                    label="↙"
-                    value={c.bl ?? 0}
-                    min={0}
-                    max={0.5}
-                    step={0.01}
-                    display={pct}
-                    onChange={(v) => applyStyle({ corners: { ...c, bl: v } })}
-                  />
-                </div>
-              )}
-            </>
+          {!curved && (
+            <RoundingControls
+              style={styleView}
+              isSquareGrid={doc.gridType === 'square'}
+              onApply={applyStyle}
+            />
           )}
         </>
       )}

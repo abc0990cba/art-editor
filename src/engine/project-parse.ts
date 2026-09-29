@@ -1,3 +1,4 @@
+import { isCellShapeId, normalizeShapeParams } from './cell-shapes.ts'
 import type { Doc, ElementStyle, Link, PixelStyle, SubDetail } from './doc'
 import { defaultDoc, makeCells, MAX_SIZE, MIN_SIZE } from './doc'
 import { validateGraph } from './nodes'
@@ -82,6 +83,8 @@ function normalizeStyle(raw: unknown, base: PixelStyle): PixelStyle {
     concaveRadius: clamp(Number(st.concaveRadius ?? base.concaveRadius), 0, 0.5),
     cornerStyle: st.cornerStyle === 'chamfer' ? 'chamfer' : 'arc',
     squareEdges: st.squareEdges === true,
+    shape: isCellShapeId(st.shape) ? st.shape : 'square',
+    shapeParams: normalizeShapeParams(st.shapeParams),
   }
 }
 

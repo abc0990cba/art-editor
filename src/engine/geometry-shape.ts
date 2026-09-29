@@ -1,3 +1,4 @@
+import { cellShapeFragment } from './cell-shapes.ts'
 import { bufferHeight, bufferWidth, cellColor, type Doc, type Link } from './doc.ts'
 import type { Geometry, Staging, StyledPath } from './geometry-types.ts'
 import { regionTextureFragments, type TextureCell } from './texture.ts'
@@ -91,19 +92,30 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
   ]
   const chamfer = doc.style.cornerStyle === 'chamfer'
   const squareEdges = doc.style.squareEdges
+  const shape = doc.style.shape
+  const sp = doc.style.shapeParams
+  // unrotated square keeps every classic fast path: run merging and rect-shaped texture holes
+  const plainSquare = shape === 'square' && sp.rotation === 0
   const tex = doc.texture
-  const textured = tex.effect !== 'none'
+  // texture holes are punched as evenodd subpaths of the cell rect — on rotated or non-square
+  // forms they would paint specks outside the ink, so baked texture stays a plain-square feature
+  const textured = tex.effect !== 'none' && plainSquare
   // texture is one continuous pattern per color: sides shared with the same
   // value stay connected (no seams), open sides carry the gap margin
   const texCells = textured ? new Map<number, TextureCell[]>() : undefined
 
   const groups = new Map<number, string[]>()
   // Horizontal runs of same-value cells collapse into one rect fragment when every per-cell
-  // fragment would be a plain square (zero radii, no texture, no size scaling): classic pixel-art
-  // ink then builds orders of magnitude fewer path fragments. Any rounding, texture effect or
-  // sizeX/sizeY scaling keeps the exact per-cell loop — fragments stop being plain rects there.
+  // fragment would be a plain square (zero radii, no texture, no size scaling, no cell form or
+  // rotation): classic pixel-art ink then builds orders of magnitude fewer path fragments. Any
+  // rounding, texture effect, sizeX/sizeY scaling or non-square form keeps the exact per-cell
+  // loop — fragments stop being plain rects there.
   const runMerge =
-    !textured && radii.every((r) => r === 0) && doc.style.sizeX === 1 && doc.style.sizeY === 1
+    !textured &&
+    radii.every((r) => r === 0) &&
+    doc.style.sizeX === 1 &&
+    doc.style.sizeY === 1 &&
+    plainSquare
   for (let by = 0; by < bh; by++) {
     const row = by * bw
     for (let bx = 0; bx < bw;) {
@@ -123,7 +135,20 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
           : borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
       let frags = groups.get(v)
       if (!frags) groups.set(v, (frags = []))
-      frags.push(roundedRectPath(x, y, w, ch, radiiHere, chamfer))
+      frags.push(
+        plainSquare
+          ? roundedRectPath(x, y, w, ch, radiiHere, chamfer)
+          : cellShapeFragment({
+              id: shape,
+              x,
+              y,
+              w,
+              h: ch,
+              params: sp,
+              radius: doc.style.radius,
+              chamfer,
+            }),
+      )
       if (texCells) {
         const same = (xx: number, yy: number) =>
           xx >= 0 && yy >= 0 && xx < bw && yy < bh && cells[yy * bw + xx] === v

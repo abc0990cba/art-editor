@@ -1,9 +1,14 @@
+import { sameShapeParams } from './cell-shapes.ts'
 import type { Doc, ElementStyle, PixelStyle, StyleScope } from './doc.ts'
 
 /** The element style non-element (global-scope) ink renders with. */
 export function elementFromDoc(doc: Doc): ElementStyle {
   return {
-    style: { ...doc.style, corners: { ...doc.style.corners } },
+    style: {
+      ...doc.style,
+      corners: { ...doc.style.corners },
+      shapeParams: { ...doc.style.shapeParams },
+    },
     renderMode: doc.renderMode,
     connectivity: doc.connectivity,
     metaball: { ...doc.metaball },
@@ -51,6 +56,8 @@ function samePixelStyle(a: PixelStyle, b: PixelStyle): boolean {
     a.concaveRadius === b.concaveRadius &&
     a.cornerStyle === b.cornerStyle &&
     a.squareEdges === b.squareEdges &&
+    a.shape === b.shape &&
+    sameShapeParams(a.shapeParams, b.shapeParams) &&
     a.corners.tl === b.corners.tl &&
     a.corners.tr === b.corners.tr &&
     a.corners.br === b.corners.br &&

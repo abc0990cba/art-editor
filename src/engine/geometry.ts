@@ -1,3 +1,4 @@
+import { cellShapeFragment } from './cell-shapes.ts'
 import type { Doc, ElementStyle, Link, PixelStyle } from './doc'
 import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from './doc'
 import { elementStyleKey, elementGeometry } from './geometry-elements.ts'
@@ -213,7 +214,21 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
       el.style.squareEdges && (bx === 0 || by === 0 || bx === bw - 1 || by === bh - 1)
         ? borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
         : radii
-    frags.push(roundedRectPath(x, y, cw, ch, radiiHere, el.style.cornerStyle === 'chamfer'))
+    const chamfer = el.style.cornerStyle === 'chamfer'
+    frags.push(
+      el.style.shape === 'square' && el.style.shapeParams.rotation === 0
+        ? roundedRectPath(x, y, cw, ch, radiiHere, chamfer)
+        : cellShapeFragment({
+            id: el.style.shape,
+            x,
+            y,
+            w: cw,
+            h: ch,
+            params: el.style.shapeParams,
+            radius: el.style.radius,
+            chamfer,
+          }),
+    )
   }
 
   const paths: StyledPath[] = []

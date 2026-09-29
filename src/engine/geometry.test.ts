@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { changeSub, defaultDoc, resizeDoc } from './doc.ts'
-import { buildGeometry, distanceToLinkSq } from './geometry.ts'
+import { buildGeometry, distanceToLinkSq, stagingPreview } from './geometry.ts'
 import { deserialize, serialize } from './project.ts'
 import { buildSvg } from './svg.ts'
 
@@ -56,6 +56,108 @@ describe('shape geometry', () => {
     expect(g.paths[0].stroke).toBeTruthy()
     expect(g.paths[0].strokeWidth).toBeCloseTo(doc.connectorWidth)
     expect(g.paths[0].d).toContain('M1.5 1.5L4.5 3.5')
+  })
+})
+
+describe('cell shapes (pixels mode)', () => {
+  it('non-square forms render per cell: a run of two circles keeps two subpaths', () => {
+    const doc = docWith([
+      [1, 1],
+      [2, 1],
+    ])
+    doc.style.shape = 'circle'
+    const g = buildGeometry(doc)
+    expect(g.paths).toHaveLength(1)
+    // the square fast path would merge the run into one rect fragment
+    expect(g.paths[0].d.match(/M/g)).toHaveLength(2)
+    expect(g.paths[0].d).toContain('A')
+  })
+
+  it('rotated squares also leave the run-merge fast path', () => {
+    const doc = docWith([
+      [1, 1],
+      [2, 1],
+    ])
+    doc.style.shapeParams = { thickness: 0.25, points: 5, rotation: 45 }
+    const g = buildGeometry(doc)
+    expect(g.paths[0].d.match(/M/g)).toHaveLength(2)
+  })
+
+  it('every registry form produces a closed fragment in pixels mode', () => {
+    for (const shape of [
+      'circle',
+      'ring',
+      'triangle',
+      'triangleDown',
+      'diamond',
+      'cross',
+      'xCross',
+      'star',
+      'sparkle',
+      'hexagon',
+      'heart',
+    ] as const) {
+      const doc = docWith([[2, 2]])
+      doc.style.shape = shape
+      const d = buildGeometry(doc).paths[0].d
+      expect(d.startsWith('M'), shape).toBe(true)
+      expect(d.endsWith('Z'), shape).toBe(true)
+    }
+  })
+
+  it('staging preview emits the same fragments as the full rebuild', () => {
+    const doc = docWith([[3, 3]])
+    doc.style.shape = 'star'
+    doc.style.shapeParams = { thickness: 0.3, points: 6, rotation: 20 }
+    doc.style.radius = 0.12
+    const staging = { cells: new Map([[3 * 8 + 3, 1]]) }
+    const preview = stagingPreview(doc, staging)
+    expect(preview).not.toBeNull()
+    expect(preview!.paths).toHaveLength(1)
+    expect(preview!.paths[0].d).toBe(buildGeometry(doc).paths[0].d)
+  })
+
+  it('baked texture is skipped for non-square forms (no floating evenodd holes)', () => {
+    const doc = docWith([[2, 2]])
+    doc.style.shape = 'circle'
+    doc.texture = { ...doc.texture, effect: 'grain', amount: 60, seed: 3 }
+    const withTex = buildGeometry(doc).paths[0].d
+    doc.texture = { ...doc.texture, effect: 'none' }
+    const clean = buildGeometry(doc).paths[0].d
+    expect(withTex).toBe(clean)
+  })
+
+  it('project round trip preserves shape settings; legacy JSON backfills squares', () => {
+    const doc = docWith([[1, 1]])
+    doc.style.shape = 'star'
+    doc.style.shapeParams = { thickness: 0.4, points: 8, rotation: 270 }
+    const restored = deserialize(JSON.parse(JSON.stringify(serialize(doc))))
+    expect(restored.style.shape).toBe('star')
+    expect(restored.style.shapeParams).toEqual({ thickness: 0.4, points: 8, rotation: 270 })
+
+    const legacy = deserialize({
+      cols: 2,
+      rows: 2,
+      cells: [1, 0, 0, 0],
+      links: [],
+      palette: ['#111111'],
+      style: { radius: 0.2 },
+      gridType: 'square',
+      renderMode: 'pixels',
+      connectivity: 'edge',
+      metaball: { strength: 40, perColor: true, quality: 4, squareEdges: false },
+      texture: { effect: 'none' },
+      bg: '',
+      connectorWidth: 0.34,
+    })
+    expect(legacy.style.shape).toBe('square')
+    expect(legacy.style.shapeParams).toEqual({ thickness: 0.25, points: 5, rotation: 0 })
+    // garbage shape ids fall back instead of poisoning the style
+    const bad = deserialize({
+      ...JSON.parse(JSON.stringify(serialize(doc))),
+      style: { ...doc.style, shape: 'blob' },
+    })
+    expect(bad.style.shape).toBe('square')
   })
 })
 

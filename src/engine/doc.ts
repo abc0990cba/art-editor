@@ -1,5 +1,6 @@
 /** Document model shared by the store, engine and serializers. Pure data, no React. */
 
+import { DEFAULT_SHAPE_PARAMS, type CellShapeId, type ShapeParams } from './cell-shapes.ts'
 import { docSize, type GridType } from './grids'
 import { CLASSIC_12 } from './palettes'
 import type { SceneLayer } from './scene'
@@ -39,6 +40,10 @@ export interface PixelStyle {
   cornerStyle: 'arc' | 'chamfer'
   /** Keep corners touching the canvas border square (no rounding toward the edge) */
   squareEdges: boolean
+  /** Cell form in `pixels` render mode (square keeps the classic fast path) */
+  shape: CellShapeId
+  /** Shared shape knobs (thickness/points/rotation); each shape reads what it needs */
+  shapeParams: ShapeParams
 }
 
 export interface MetaballSettings {
@@ -270,6 +275,8 @@ export function defaultDoc(): Doc {
       concaveRadius: 0,
       cornerStyle: 'arc',
       squareEdges: false,
+      shape: 'square',
+      shapeParams: { ...DEFAULT_SHAPE_PARAMS },
     },
     renderMode: 'pixels',
     connectivity: 'edge',

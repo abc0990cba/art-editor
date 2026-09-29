@@ -44,6 +44,8 @@ function entry(id: string, name: string, updatedAt: number): PixelProjectEntry {
         concaveRadius: 0.2,
         cornerStyle: 'arc',
         squareEdges: false,
+        shape: 'square',
+        shapeParams: { thickness: 0.25, points: 5, rotation: 0 },
       },
       gridType: 'square',
       renderMode: 'pixels',

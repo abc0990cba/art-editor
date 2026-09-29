@@ -1,5 +1,6 @@
 /** Editor config presets: named snapshots of every changeable parameter, no painted content. */
 
+import { isCellShapeId, normalizeShapeParams, sameShapeParams } from './cell-shapes.ts'
 import type {
   Connectivity,
   Doc,
@@ -14,6 +15,7 @@ import type {
 import { defaultDoc, MAX_SIZE, MIN_SIZE } from './doc'
 import type { EditorPreset, PresetConfig, PresetInput, PresetSeed } from './preset-configs'
 import { PRINT_PRESETS } from './preset-lists'
+import { FORMS_PRESETS } from './preset-lists-forms'
 import { RETRO_PRESETS } from './preset-lists-retro'
 import { STUDIO_PRESETS } from './preset-lists-studio'
 import { TEXTURE_PRESETS } from './preset-lists-textures'
@@ -113,6 +115,8 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
       concaveRadius: clamp(Number(st.concaveRadius ?? base.style.concaveRadius), 0, 0.5),
       cornerStyle: st.cornerStyle === 'chamfer' ? 'chamfer' : 'arc',
       squareEdges: st.squareEdges === true,
+      shape: isCellShapeId(st.shape) ? st.shape : base.style.shape,
+      shapeParams: normalizeShapeParams(st.shapeParams),
     },
     renderMode: renderModes.includes(d['renderMode'] as RenderMode)
       ? (d['renderMode'] as RenderMode)
@@ -205,6 +209,8 @@ function stylesEqual(a: PixelStyle, b: PixelStyle): boolean {
     a.concaveRadius === b.concaveRadius &&
     a.cornerStyle === b.cornerStyle &&
     a.squareEdges === b.squareEdges &&
+    a.shape === b.shape &&
+    sameShapeParams(a.shapeParams, b.shapeParams) &&
     a.corners.tl === b.corners.tl &&
     a.corners.tr === b.corners.tr &&
     a.corners.br === b.corners.br &&
@@ -282,13 +288,14 @@ function builtin(name: string, id: string, input: PresetInput): EditorPreset {
 
 /**
  * Built-in preset seeds, grouped by theme and kept in display order: print halftones, studio
- * variety, texture studies, retro machines. Each seed is expanded through `builtin`, so the
- * assembled list below matches the original single-array definition exactly.
+ * variety, texture studies, cell forms, retro machines. Each seed is expanded through `builtin`, so
+ * the assembled list below matches the original single-array definition exactly.
  */
 const BUILTIN_SEEDS: PresetSeed[] = [
   ...PRINT_PRESETS,
   ...STUDIO_PRESETS,
   ...TEXTURE_PRESETS,
+  ...FORMS_PRESETS,
   ...RETRO_PRESETS,
 ]
 

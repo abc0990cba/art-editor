@@ -18,6 +18,10 @@ const flat4096 = flatBenchDoc(4096, 4096, 0.05)
 const runs512 = flatRunsBenchDoc(512, 512, 0.5)
 const runs4096 = flatRunsBenchDoc(4096, 4096, 0.5)
 
+/** Cell-form variants of the flat docs: same cells, per-cell form rendering (no run merging). */
+const circles512a = { ...flat512a, style: { ...flat512a.style, shape: 'circle' as const } }
+const circlesRuns512 = { ...runs512, style: { ...runs512.style, shape: 'circle' as const } }
+
 /** Scene rebuild: 50/100 objects of random-walk clusters on one layer (~5–10% ink). */
 const scene2048 = sceneBenchDoc(2048, 2048, 100, 2100)
 
@@ -88,6 +92,20 @@ describe('buildGeometry (full-document rebuild)', () => {
       buildGeometry(runs4096)
     },
     { iterations: 3, warmupIterations: 1 },
+  )
+  bench(
+    'flat 512², 5% ink, circles',
+    () => {
+      buildGeometry(circles512a)
+    },
+    { iterations: 20, warmupIterations: 2 },
+  )
+  bench(
+    'flat 512², 50% runs-64, circles',
+    () => {
+      buildGeometry(circlesRuns512)
+    },
+    { iterations: 10, warmupIterations: 1 },
   )
 })
 

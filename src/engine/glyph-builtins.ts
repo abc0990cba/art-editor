@@ -18,6 +18,7 @@ import {
   glyphSetSilk,
   glyphSetSunburst,
   glyphSetTesserae,
+  glyphSetTriangles,
 } from './glyph-generators-art.ts'
 import {
   glyphSetBricks,
@@ -106,6 +107,7 @@ export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
   { id: 'glyph-morph16', family: 'shapes', set: glyphSetShapeMorph(16, 25, 'Морф 16×16') },
   { id: 'glyph-sunburst12', family: 'shapes', set: glyphSetSunburst(12, 17, 'Лучи') },
   { id: 'glyph-crystal12', family: 'shapes', set: glyphSetCrystal(12, 17, 'Кристалл') },
+  { id: 'glyph-triangles6', family: 'shapes', set: glyphSetTriangles(6, 13, 'Треугольники') },
   // patterns
   { id: 'glyph-checker', family: 'patterns', set: glyphSetChecker(4, 9, 'Шахматка') },
   { id: 'glyph-corner', family: 'patterns', set: glyphSetCorner(4, 9, 'Диагональный склон') },

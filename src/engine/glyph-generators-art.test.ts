@@ -13,11 +13,13 @@ import {
   glyphSetSilk,
   glyphSetSunburst,
   glyphSetTesserae,
+  glyphSetTriangles,
 } from './glyph-generators-art.ts'
 import { glyphRampField, tileCoverage, type GlyphTileSet } from './glyph-tiles.ts'
 
 const ART_SETS: [string, GlyphTileSet][] = [
   ['halftone', glyphSetHalftone(6, 13)],
+  ['triangles', glyphSetTriangles(6, 13)],
   ['bubbles', glyphSetBubbles(12, 17)],
   ['hatch', glyphSetHatch(8, 13)],
   ['ripples', glyphSetRipples(12, 17)],

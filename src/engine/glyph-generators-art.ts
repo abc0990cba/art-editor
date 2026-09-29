@@ -47,6 +47,32 @@ export function glyphSetHalftone(
   return finish(name, n, levelsOut, false)
 }
 
+/** Triangle screen: apex-up triangles on a staggered lattice stretch down with the tone. */
+export function glyphSetTriangles(n: number, levels: number, name = 'Треугольники'): GlyphTileSet {
+  const pitch = 2
+  // r sweeps 0 → pitch+1: cell centers sit ≥1 diagonal step from every apex, and the farthest
+  // corner of a tile sits exactly pitch+1 away, so the ramp starts empty and ends solid
+  const levelsOut: GlyphTileCells[] = []
+  for (let t = 0; t < levels; t++) {
+    const r = ramp(levels, t) * (pitch + 1)
+    const cells: GlyphTileCells = []
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        const px = x + 0.5
+        const py = y + 0.5
+        const row = Math.floor(py / pitch)
+        const off = (row % 2) * (pitch / 2)
+        const col = Math.floor((px - off) / pitch)
+        const dx = Math.abs(px - (col * pitch + off + pitch / 2))
+        const dy = py - row * pitch // apex sits on the tile's top edge
+        cells.push(dy + dx <= r + 0.01)
+      }
+    }
+    levelsOut.push(cells)
+  }
+  return finish(name, n, levelsOut, false)
+}
+
 /** Bokeh: discs of different size and depth fade in staggered; the deepest disc ends solid. */
 export function glyphSetBubbles(n: number, levels: number, name = 'Пузыри'): GlyphTileSet {
   const maxR = n / 2 + 0.5
