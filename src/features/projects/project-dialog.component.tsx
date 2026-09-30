@@ -4,6 +4,7 @@ import { MAX_SIZE } from '../../engine/doc.ts'
 import { GRID_TYPES, type GridType } from '../../engine/grids.ts'
 import { SIZE_GROUPS } from '../../engine/sizes.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+import { Chip, Slider } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
 import {
@@ -67,6 +68,7 @@ export function ProjectDialog({
   const newDoc = useStore((s) => s.newDoc)
   const setSize = useStore((s) => s.setSize)
   const setGridType = useStore((s) => s.setGridType)
+  const setGridRotation = useStore((s) => s.setGridRotation)
   const setRadialEven = useStore((s) => s.setRadialEven)
   const setProjectName = useStore((s) => s.setProjectName)
   const requestFit = useStore((s) => s.requestFit)
@@ -76,6 +78,7 @@ export function ProjectDialog({
   const [rows, setRows] = useState(mode === 'create' ? 128 : doc.rows)
   const [gridType, setGridTypeLocal] = useState<GridType>(mode === 'edit' ? doc.gridType : 'square')
   const [even, setEven] = useState(mode === 'edit' ? doc.radialEven : false)
+  const [rotation, setRotation] = useState(mode === 'edit' ? (doc.gridRotation ?? 0) : 0)
 
   const apply = () => {
     if (mode === 'create') newDoc()
@@ -83,6 +86,7 @@ export function ProjectDialog({
       setGridType(gridType)
       if (gridType === 'radial') setRadialEven(even)
       setSize(Math.max(1, cols), Math.max(1, rows))
+      setGridRotation(rotation)
     }
     setProjectName(name.trim())
     requestFit()
@@ -140,10 +144,12 @@ export function ProjectDialog({
             rows={rows}
             gridType={gridType}
             even={even}
+            rotation={rotation}
             onCols={setCols}
             onRows={setRows}
             onGridType={setGridTypeLocal}
             onEven={setEven}
+            onRotation={setRotation}
           />
         )}
 
@@ -170,25 +176,32 @@ export function ProjectDialog({
   )
 }
 
-/** Canvas setup half of the dialog: size inputs, preset picker, grid type (pixel projects only). */
+/**
+ * Canvas setup half of the dialog: size inputs, preset picker, grid type + rotation (pixel projects
+ * only).
+ */
 function CanvasSetupFields({
   cols,
   rows,
   gridType,
   even,
+  rotation,
   onCols,
   onRows,
   onGridType,
   onEven,
+  onRotation,
 }: {
   cols: number
   rows: number
   gridType: GridType
   even: boolean
+  rotation: number
   onCols: (v: number) => void
   onRows: (v: number) => void
   onGridType: (v: GridType) => void
   onEven: (v: boolean) => void
+  onRotation: (v: number) => void
 }): ReactElement {
   const { t } = useI18n()
   const currentKey = sizeKey(cols, rows)
@@ -278,6 +291,32 @@ function CanvasSetupFields({
           </SelectContent>
         </Select>
       </Field>
+
+      <div className="flex flex-col gap-1.5">
+        <div className="flex gap-1">
+          {[0, 15, 30, 45, 60].map((a) => (
+            <Chip
+              key={a}
+              active={rotation === a}
+              title={t('grid.rotation.desc')}
+              onClick={() => onRotation(a)}
+            >
+              {a}°
+            </Chip>
+          ))}
+        </div>
+        <Slider
+          label={t('grid.rotation')}
+          value={rotation}
+          min={0}
+          max={355}
+          step={5}
+          display={(v) => `${Math.round(v)}°`}
+          title={t('grid.rotation.desc')}
+          onChange={onRotation}
+        />
+      </div>
+
       {gridType === 'radial' && (
         <label className="text-body flex cursor-pointer items-center gap-2 text-xs max-lg:min-h-11 max-lg:text-sm">
           <input

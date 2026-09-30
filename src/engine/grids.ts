@@ -1,10 +1,28 @@
 import type { Doc, Link } from './doc.ts'
+import { rotatedGrid } from './grid-rotate.ts'
 import { buildGrid } from './grids-builders.ts'
 import type { Pt } from './marching-squares.ts'
 
-export type GridType = 'square' | 'hex' | 'triangle' | 'radial'
+export type GridType =
+  | 'square'
+  | 'hex'
+  | 'triangle'
+  | 'radial'
+  | 'diamond'
+  | 'iso'
+  | 'brick'
+  | 'octasquare'
 
-export const GRID_TYPES: GridType[] = ['square', 'hex', 'triangle', 'radial']
+export const GRID_TYPES: GridType[] = [
+  'square',
+  'hex',
+  'triangle',
+  'radial',
+  'diamond',
+  'iso',
+  'brick',
+  'octasquare',
+]
 
 /**
  * Cell lattice for a grid type. Square keeps the historical cols×rows lattice used by the square
@@ -33,14 +51,32 @@ export interface Grid {
 
 const cache = new Map<string, Grid>()
 
-export function makeGrid(type: GridType, cols: number, rows: number, even = false): Grid {
-  const key = `${type}:${cols}:${rows}:${even ? 'e' : 'u'}`
+export function makeGrid(
+  type: GridType,
+  cols: number,
+  rows: number,
+  even = false,
+  rotation = 0,
+): Grid {
+  const rot = ((rotation % 360) + 360) % 360
+  const key = `${type}:${cols}:${rows}:${even ? 'e' : 'u'}:${rot}`
   let g = cache.get(key)
   if (!g) {
     g = buildGrid(type, cols, rows, even)
+    if (rot !== 0) g = rotatedGrid(g, rot)
     cache.set(key, g)
   }
   return g
+}
+
+/**
+ * Square lattice in its canonical orientation. Square-buffer pipelines (selection moves,
+ * transforms, texture effects, connectivity, brush tips, repeat symmetry) index the flat cols×rows
+ * buffer directly and apply only to it; a rotated square renders and paints through the generic
+ * lattice paths like every other grid.
+ */
+export function isPlainSquare(doc: Pick<Doc, 'gridType' | 'gridRotation'>): boolean {
+  return doc.gridType === 'square' && (doc.gridRotation ?? 0) % 360 === 0
 }
 
 /** Canvas extent of a document grid. */
@@ -73,6 +109,19 @@ export function cellCoordLabel(grid: Grid, idx: number, bufferCols = 0): string 
     const row = Math.floor(idx / grid.cols)
     const col = idx % grid.cols
     return `row:${row} col:${col} ${(col + row) % 2 === 0 ? '▲' : '▼'}`
+  }
+  if (grid.type === 'diamond' || grid.type === 'iso' || grid.type === 'brick') {
+    const row = Math.floor(idx / grid.cols)
+    const col = idx % grid.cols
+    return `col:${col} row:${row}`
+  }
+  if (grid.type === 'octasquare') {
+    const octs = grid.cols * grid.rows
+    if (idx < octs) {
+      return `oct:${idx % grid.cols} ${Math.floor(idx / grid.cols)}`
+    }
+    const j = idx - octs
+    return `gap:${j % (grid.cols - 1)} ${Math.floor(j / (grid.cols - 1))}`
   }
   const rs = grid.ringSectorOf?.(idx)
   return rs ? `ring:${rs[0]}/${grid.rows} sector:${rs[1]}/${rs[2]}` : `i:${idx}`

@@ -6,6 +6,7 @@ import { elementStyleKey, elementGeometry } from './geometry-elements.ts'
 import { metaballGeometry } from './geometry-metaball.ts'
 import { borderRadii, mergedCells, roundedRectPath, shapeGeometry } from './geometry-shape.ts'
 import { gridBuildGeometry } from './grid-geometry.ts'
+import { isPlainSquare } from './grids.ts'
 import { evalGraphMemo } from './nodes/eval-memo.ts'
 import { outlineGeometry } from './outline'
 import { visibleObjs } from './scene'
@@ -104,7 +105,7 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
     const scoped: Doc = { ...doc, cells, cellObj: cellObjs, links }
     if (doc.styleScope === 'element') {
       paths.push(...elementGeometry(scoped, cells, links, undefined, preview).paths)
-    } else if (doc.gridType !== 'square') {
+    } else if (!isPlainSquare(scoped)) {
       paths.push(...gridBuildGeometry(scoped, cells, links))
     } else if (doc.renderMode === 'metaball') {
       paths.push(...metaballGeometry(scoped, cells, links, preview).paths)
@@ -125,7 +126,7 @@ export function buildGeometry(doc: Doc, staging?: Staging): Geometry {
   if (doc.styleScope === 'element' && (doc.cellObj || staging?.objs)) {
     return elementGeometry(doc, cells, links, staging?.objs, preview)
   }
-  if (doc.gridType !== 'square') return { paths: gridBuildGeometry(doc, cells, links) }
+  if (!isPlainSquare(doc)) return { paths: gridBuildGeometry(doc, cells, links) }
   if (doc.renderMode === 'metaball') return metaballGeometry(doc, cells, links, preview)
   if (doc.renderMode === 'outline') return { paths: outlineGeometry(doc, cells, links) }
   return shapeGeometry(doc, cells, links)
@@ -158,7 +159,8 @@ export interface StagingPreview {
 export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | null {
   const s = staging.cells
   if (!s || s.size === 0) return null
-  if (doc.gridType !== 'square') return null
+  // non-square lattices and rotated grids reshape content outside the staged cell set
+  if (!isPlainSquare(doc)) return null
   // connector add/remove redraws every link — needs the full rebuild
   if (staging.links && staging.links.length !== doc.links.length) return null
 

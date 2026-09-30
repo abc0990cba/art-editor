@@ -7,6 +7,7 @@ import {
   TIP_MIN_SIZE,
   type Brush,
 } from '../../engine/brush.ts'
+import { isPlainSquare } from '../../engine/grids.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
@@ -95,7 +96,7 @@ export function BrushSection() {
   const brushSnap = useStore((s) => s.brushSnap)
   const patchBrush = useStore((s) => s.patchBrush)
   const setBrushSnap = useStore((s) => s.setBrushSnap)
-  const isSquare = useStore((s) => s.doc.gridType === 'square')
+  const isSquare = useStore((s) => isPlainSquare(s.doc))
   const docStyle = useStore((s) => s.doc.style)
   const patchStyle = useStore((s) => s.patchStyle)
   const brushPresets = useStore((s) => s.brushPresets)

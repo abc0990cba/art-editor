@@ -2,6 +2,7 @@ import { bench, describe } from 'vitest'
 
 import { flatBenchDoc, flatRunsBenchDoc, sceneBenchDoc, strokeStaging } from './bench-doc.util.ts'
 import { buildGeometry, stagingPreview } from './geometry.ts'
+import { makeGrid } from './grids.ts'
 
 /**
  * Full-document geometry rebuild — the cost every commit, zoom, pan and resize pays today. Ink is
@@ -21,6 +22,14 @@ const runs4096 = flatRunsBenchDoc(4096, 4096, 0.5)
 /** Cell-form variants of the flat docs: same cells, per-cell form rendering (no run merging). */
 const circles512a = { ...flat512a, style: { ...flat512a.style, shape: 'circle' as const } }
 const circlesRuns512 = { ...runs512, style: { ...runs512.style, shape: 'circle' as const } }
+
+/** Octasquare has its own count-length buffer (octagons + gap squares): ink every 20th cell. */
+const octa256 = (() => {
+  const doc = flatBenchDoc(256, 256, 0)
+  const cells = new Uint16Array(makeGrid('octasquare', 256, 256).count)
+  for (let i = 0; i < cells.length; i += 20) cells[i] = (i % 2) + 1
+  return { ...doc, gridType: 'octasquare' as const, cells }
+})()
 
 /** Scene rebuild: 50/100 objects of random-walk clusters on one layer (~5–10% ink). */
 const scene2048 = sceneBenchDoc(2048, 2048, 100, 2100)
@@ -106,6 +115,22 @@ describe('buildGeometry (full-document rebuild)', () => {
       buildGeometry(circlesRuns512)
     },
     { iterations: 10, warmupIterations: 1 },
+  )
+
+  // new-lattice rebuilds: the generic per-cell path (no run merging) on diamond and octasquare
+  bench(
+    'diamond 512², 5% ink',
+    () => {
+      buildGeometry({ ...flat512a, gridType: 'diamond' })
+    },
+    { iterations: 5, warmupIterations: 1 },
+  )
+  bench(
+    'octasquare 256², 5% ink',
+    () => {
+      buildGeometry(octa256)
+    },
+    { iterations: 8, warmupIterations: 1 },
   )
 })
 

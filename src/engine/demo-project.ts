@@ -10,6 +10,12 @@ import { constellationProjectJSON } from './demo-constellation.ts'
 import { cubistProjectJSON } from './demo-cubist.ts'
 import { dollarProjectJSON } from './demo-dollar.ts'
 import { galaxyProjectJSON } from './demo-galaxy.ts'
+import {
+  diamondProjectJSON,
+  isoProjectJSON,
+  octaProjectJSON,
+  rotProjectJSON,
+} from './demo-grids.ts'
 import { hexreefProjectJSON } from './demo-hexreef.ts'
 import { invaderProjectJSON } from './demo-invader.ts'
 import { kaleidoProjectJSON } from './demo-kaleido.ts'
@@ -98,6 +104,26 @@ export const DEMO_PROJECTS: readonly DemoDef[] = [
     id: 'demo.hexreef',
     name: 'Hex Reef 96',
     build: () => ({ kind: 'pixel', doc: hexreefProjectJSON() }),
+  },
+  {
+    id: 'demo.diamond',
+    name: 'Diamond Bloom 72',
+    build: () => ({ kind: 'pixel', doc: diamondProjectJSON() }),
+  },
+  {
+    id: 'demo.iso',
+    name: 'Iso Harbor 96',
+    build: () => ({ kind: 'pixel', doc: isoProjectJSON() }),
+  },
+  {
+    id: 'demo.octa',
+    name: 'Octagon Weave 48',
+    build: () => ({ kind: 'pixel', doc: octaProjectJSON() }),
+  },
+  {
+    id: 'demo.rot',
+    name: 'Turned Mandala 96',
+    build: () => ({ kind: 'pixel', doc: rotProjectJSON() }),
   },
   {
     id: 'demo.mandala',

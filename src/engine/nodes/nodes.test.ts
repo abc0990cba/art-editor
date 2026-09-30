@@ -40,6 +40,7 @@ describe('node registry', () => {
     expect(ids).toContain('source.rect')
     expect(ids).toContain('source.ellipse')
     expect(ids).toContain('source.shape')
+    expect(ids).toContain('source.grid')
     expect(ids).toContain('ramp.gradient')
     expect(ids).toContain('mod.arrayGrid')
     expect(ids).toContain('mod.arrayCircle')
@@ -667,5 +668,40 @@ describe('draw → auto node graph (live sync)', () => {
     const cells = run([{ op: 'source.line', params: { x0: 0, y0: 0, x1: 4, y1: 0 } }])
     expect(cells.size).toBe(5)
     for (const i of cells.keys()) expect(Math.floor(i / 16)).toBe(0)
+  })
+
+  it('source.grid checker covers half the buffer in period blocks', () => {
+    const cells = run([{ op: 'source.grid', params: { pattern: 'checker', period: 4 } }])
+    expect(cells.size).toBe((16 * 16) / 2)
+    // (0,0) block on, (1,0) block off: sample one cell per block
+    expect(cells.has(0)).toBe(true)
+    expect(cells.has(4)).toBe(false)
+    expect(cells.has(4 * 16 + 4)).toBe(true)
+  })
+
+  it('source.grid linesV inks `thickness` columns per period and respects phase', () => {
+    const cells = run([
+      { op: 'source.grid', params: { pattern: 'linesV', period: 4, thickness: 0.5 } },
+    ])
+    // two inked columns per 4: columns 0,1 of every block
+    expect(cells.has(0)).toBe(true)
+    expect(cells.has(2)).toBe(false)
+    expect(cells.size).toBe(16 * 8)
+    const shifted = run([
+      { op: 'source.grid', params: { pattern: 'linesV', period: 4, thickness: 0.5, phase: 1 } },
+    ])
+    // phase shifts the bands: inked columns move from {0,1} to {3,0}
+    expect(shifted.has(1)).toBe(false)
+    expect(shifted.has(3)).toBe(true)
+  })
+
+  it('source.grid honeycomb packs dots in offset rows', () => {
+    const cells = run([
+      { op: 'source.grid', params: { pattern: 'honeycomb', period: 8, thickness: 0.4 } },
+    ])
+    expect(cells.size).toBeGreaterThan(0)
+    // dot centers of even bands sit on x ≡ 4, odd bands shifted by 4 → also 4; probe both bands
+    const centerRow = Math.floor((8 * 0.75 - 1) / 2) // middle of the first band
+    expect(cells.has(centerRow * 16 + 4)).toBe(true)
   })
 })

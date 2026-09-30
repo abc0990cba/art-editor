@@ -46,6 +46,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const toolOpts = useStore((s) => s.toolOpts)
   const concentricRadii = useStore((s) => s.concentricRadii)
   const showGrid = useStore((s) => s.showGrid)
+  const gridEmphasis = useStore((s) => s.gridEmphasis)
   const fillAt = useStore((s) => s.fillAt)
   const paintFillRegion = useStore((s) => s.paintFillRegion)
   const addLinks = useStore((s) => s.addLinks)
@@ -806,8 +807,21 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         pixel.lineTo(W, y)
       }
     }
-    return { cell, pixel }
-  }, [isSquare, bw, bh, doc.sub, extent.w, extent.h])
+    // graph-paper major lines every N doc cells (gridEmphasis ≥ 2)
+    let major: Path2D | null = null
+    if (gridEmphasis >= 2) {
+      major = new Path2D()
+      for (let x = gridEmphasis; x < W; x += gridEmphasis) {
+        major.moveTo(x, 0)
+        major.lineTo(x, H)
+      }
+      for (let y = gridEmphasis; y < H; y += gridEmphasis) {
+        major.moveTo(0, y)
+        major.lineTo(W, y)
+      }
+    }
+    return { cell, pixel, major }
+  }, [isSquare, bw, bh, doc.sub, extent.w, extent.h, gridEmphasis])
 
   // selection/hover contours (marching squares over the owned cells), cached per doc
   const cachedOutline = useOutlineCache(doc, bw, bh)
@@ -855,6 +869,11 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         if (gridLinePaths.pixel) {
           ctx.strokeStyle = stage.pixelLine
           ctx.stroke(gridLinePaths.pixel)
+        }
+        if (gridLinePaths.major) {
+          ctx.strokeStyle = stage.gridMajor
+          ctx.lineWidth = 1.6 / view.zoom
+          ctx.stroke(gridLinePaths.major)
         }
       } else if (gridOverlayPath) {
         ctx.strokeStyle = stage.gridLine

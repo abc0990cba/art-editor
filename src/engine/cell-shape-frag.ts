@@ -12,6 +12,15 @@ import {
   type ShapeParams,
 } from './cell-shape-defs.ts'
 import {
+  arrowPoly,
+  leafPoly,
+  trapezoidPoly,
+  UNIT_EGG,
+  UNIT_OCTAGON,
+  UNIT_PENTAGON,
+  UNIT_SHIELD,
+} from './cell-shape-ext.ts'
+import {
   asteriskPoly,
   chevronPoly,
   crossPoly,
@@ -154,6 +163,18 @@ const FRAG_OF: Record<CellShapeId, (pl: CellShapePlacement) => string> = {
   asterisk: (pl) => polyFrag(asteriskPoly(pl.params.points, pl.params.thickness), pl),
   lightning: (pl) => polyFrag(lightningPoly(pl.params.thickness), pl),
   chevron: (pl) => polyFrag(chevronPoly(pl.params.thickness), pl),
+  pentagon: (pl) => polyFrag(UNIT_PENTAGON, pl),
+  octagon: (pl) => polyFrag(UNIT_OCTAGON, pl),
+  // the cap radius IS the shape knob: user corner rounding/chamfer stay out of it
+  capsule: (pl) => {
+    const r = clamp(pl.params.thickness, 0.05, 0.5) * Math.min(pl.w, pl.h)
+    return roundedPolygonPath(placePoints(UNIT_SQUARE, pl, pl.params.rotation), r, false)
+  },
+  trapezoid: (pl) => polyFrag(trapezoidPoly(pl.params.thickness), pl),
+  shield: (pl) => polyFrag(UNIT_SHIELD, pl),
+  leaf: (pl) => polyFrag(leafPoly(pl.params.thickness), pl),
+  egg: (pl) => cubicFrag(UNIT_EGG, pl),
+  arrow: (pl) => polyFrag(arrowPoly(pl.params.thickness), pl),
 }
 
 /**

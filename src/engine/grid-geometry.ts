@@ -23,7 +23,7 @@ export function gridBuildGeometry(
   cells: Uint16Array,
   links: readonly Link[],
 ): StyledPath[] {
-  const grid = makeGrid(doc.gridType, doc.cols, doc.rows, doc.radialEven)
+  const grid = makeGrid(doc.gridType, doc.cols, doc.rows, doc.radialEven, doc.gridRotation ?? 0)
 
   // ordered color groups with their cell indices
   const groups = new Map<number, number[]>()

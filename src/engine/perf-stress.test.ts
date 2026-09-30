@@ -78,6 +78,10 @@ describe('stagingPreview correctness', () => {
     const hex = bigDoc()
     hex.gridType = 'hex'
     expect(stagingPreview(hex, strokeStaging(0))).toBeNull()
+
+    const rotated = bigDoc()
+    rotated.gridRotation = 45
+    expect(stagingPreview(rotated, strokeStaging(0))).toBeNull()
   })
 
   it('renders staged cells with per-element styles in element scope', () => {

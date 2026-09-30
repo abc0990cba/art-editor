@@ -1,5 +1,6 @@
 import { isCurvedShape } from '../../engine/cell-shapes.ts'
 import type { Doc } from '../../engine/doc.ts'
+import { isPlainSquare } from '../../engine/grids.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { RoundingControls } from './rounding-controls.component.tsx'
@@ -118,7 +119,7 @@ export function StyleSection({
           </Chip>
         ))}
       </div>
-      {modeView !== 'pixels' && doc.gridType === 'square' && (
+      {modeView !== 'pixels' && isPlainSquare(doc) && (
         <div className="flex flex-col gap-1">
           <span className="text-muted text-xs">{t('connectivity.label')}</span>
           <div className="flex gap-1.5">
@@ -215,7 +216,7 @@ export function StyleSection({
           {!curved && (
             <RoundingControls
               style={styleView}
-              isSquareGrid={doc.gridType === 'square'}
+              isSquareGrid={isPlainSquare(doc)}
               onApply={applyStyle}
             />
           )}

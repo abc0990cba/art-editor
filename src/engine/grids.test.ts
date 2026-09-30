@@ -7,7 +7,16 @@ import type { Pt } from './marching-squares'
 import { deserialize, serialize } from './project.ts'
 
 describe('grid geometry', () => {
-  for (const type of ['square', 'hex', 'triangle', 'radial'] as const) {
+  for (const type of [
+    'square',
+    'hex',
+    'triangle',
+    'radial',
+    'diamond',
+    'iso',
+    'brick',
+    'octasquare',
+  ] as const) {
     it(`${type}: cellAt(center(i)) round-trips for every cell`, () => {
       const g = makeGrid(type, 12, 10)
       for (let i = 0; i < g.count; i++) {
@@ -55,9 +64,90 @@ describe('grid geometry', () => {
     const i = 4 * 12 + 3
     expect(g.edgeNeighbors(i).length).toBeGreaterThanOrEqual(3)
   })
+
+  it('diamond and iso interior cells have 4 edge neighbors', () => {
+    for (const type of ['diamond', 'iso'] as const) {
+      const g = makeGrid(type, 10, 8)
+      const i = 4 * 10 + 4
+      expect(g.edgeNeighbors(i).length, type).toBe(4)
+    }
+  })
+
+  it('diamond and iso resolve off-center points inside the cell', () => {
+    const d = makeGrid('diamond', 8, 6)
+    const cd = d.center(3 * 8 + 3)
+    expect(d.cellAt(cd.x + 0.2, cd.y + 0.1)).toBe(3 * 8 + 3)
+    expect(d.cellAt(cd.x - 0.45, cd.y)).toBe(3 * 8 + 3)
+    // the shear boxes tile the plane: an off-cell point lands in the neighbor diamond,
+    // and only points outside the lattice bounds return -1
+    expect(d.cellAt(cd.x + 0.45, cd.y + 0.45)).toBe(3 * 8 + 4)
+    expect(d.cellAt(-5, -5)).toBe(-1)
+    const iso = makeGrid('iso', 8, 6)
+    const ci = iso.center(3 * 8 + 3)
+    expect(iso.cellAt(ci.x + 0.6, ci.y + 0.1)).toBe(3 * 8 + 3)
+    expect(iso.cellAt(ci.x - 0.9, ci.y)).toBe(3 * 8 + 3)
+  })
+
+  it('brick interior cells have 6 edge neighbors (2 sides + 2 above + 2 below)', () => {
+    const g = makeGrid('brick', 10, 8)
+    const i = 4 * 10 + 4
+    expect(g.edgeNeighbors(i).length).toBe(6)
+  })
+
+  it('octasquare: octagons have 8 neighbors, gap squares 4', () => {
+    const g = makeGrid('octasquare', 8, 6)
+    expect(g.edgeNeighbors(3 * 8 + 3).length).toBe(8)
+    const gap = 8 * 6 + 2 * (8 - 1) + 2
+    expect(g.edgeNeighbors(gap).length).toBe(4)
+  })
+
+  it('octasquare: cellAt resolves octagons, gaps and canvas corners', () => {
+    const g = makeGrid('octasquare', 4, 4)
+    expect(g.cellAt(1, 1)).toBe(0) // octagon center
+    expect(g.cellAt(3, 3)).toBe(1 * 4 + 1) // next octagon
+    expect(g.cellAt(2, 2)).toBe(16) // first interior gap square
+    expect(g.cellAt(2, 1.2)).toBe(1) // inside octagon 1's west flat
+    expect(g.cellAt(0.5, 1)).toBe(0) // on the north flat
+    expect(g.cellAt(0.2, 0.2)).toBe(-1) // canvas corner outside every cell
+  })
+
+  it('sheared and brick lattices are one connected component', () => {
+    for (const type of ['diamond', 'iso', 'brick', 'octasquare'] as const) {
+      const g = makeGrid(type, 9, 7)
+      const seen = new Set<number>([0])
+      const queue = [0]
+      while (queue.length > 0) {
+        const i = queue.pop()!
+        for (const j of g.edgeNeighbors(i)) {
+          if (!seen.has(j)) {
+            seen.add(j)
+            queue.push(j)
+          }
+        }
+      }
+      expect(seen.size, type).toBe(g.count)
+    }
+  })
+
+  it('sheared lattices place their vertices inside the canvas even at the edges', () => {
+    for (const type of ['diamond', 'iso', 'brick'] as const) {
+      const g = makeGrid(type, 7, 9)
+      for (const corner of [0, g.cols - 1, (g.rows - 1) * g.cols, g.count - 1]) {
+        for (const p of g.polygon(corner)) {
+          expect(p.x, type).toBeGreaterThanOrEqual(-1e-9)
+          expect(p.x, type).toBeLessThanOrEqual(g.w + 1e-9)
+          expect(p.y, type).toBeGreaterThanOrEqual(-1e-9)
+          expect(p.y, type).toBeLessThanOrEqual(g.h + 1e-9)
+        }
+      }
+    }
+  })
 })
 
-function docOn(type: 'hex' | 'triangle' | 'radial', cells: number[]): Doc {
+function docOn(
+  type: 'hex' | 'triangle' | 'radial' | 'diamond' | 'iso' | 'brick' | 'octasquare',
+  cells: number[],
+): Doc {
   const doc = defaultDoc()
   doc.gridType = type
   doc.cols = 12
@@ -149,6 +239,25 @@ describe('rendering on non-square grids', () => {
     expect(geo.paths).toHaveLength(1)
     expect((geo.paths[0].d.match(/M/g) ?? []).length).toBe(1)
   })
+
+  it('diamond: outline merges two edge-adjacent cells into one loop', () => {
+    const doc = docOn('diamond', [])
+    doc.cells[4 * 12 + 5] = 1
+    doc.cells[4 * 12 + 6] = 1 // neighbors across the shear lattice
+    doc.renderMode = 'outline'
+    const geo = buildGeometry(doc)
+    expect(geo.paths).toHaveLength(1)
+    expect((geo.paths[0].d.match(/M/g) ?? []).length).toBe(1)
+  })
+
+  it('iso and brick: pixels mode renders ink into native cells', () => {
+    for (const type of ['iso', 'brick'] as const) {
+      const doc = docOn(type, [5 * 12 + 5, 5 * 12 + 6])
+      const geo = buildGeometry(doc)
+      expect(geo.paths.length, type).toBeGreaterThan(0)
+      expect(geo.paths[0].d, type).toMatch(/^M/)
+    }
+  })
 })
 
 describe('grid project round trip', () => {
@@ -159,6 +268,19 @@ describe('grid project round trip', () => {
     expect(restored.gridType).toBe('hex')
     expect(Array.from(restored.cells.slice(5, 8))).toEqual([1, 1, 1])
     expect(deserialize({ gridType: 'nonsense' }).gridType).toBe('square')
+  })
+
+  it('restores the new lattices', () => {
+    for (const type of ['diamond', 'iso', 'brick', 'octasquare'] as const) {
+      const doc = docOn(type, [0, 1])
+      const restored = deserialize(JSON.parse(JSON.stringify(serialize(doc))))
+      expect(restored.gridType, type).toBe(type)
+      expect(Array.from(restored.cells.slice(0, 2)), type).toEqual([1, 1])
+      // the restored buffer holds every cell, gap squares included
+      expect(restored.cells.length, type).toBe(makeGrid(type, 12, 10).count)
+      // and the restored doc renders without throwing
+      expect(buildGeometry(restored).paths.length, type).toBeGreaterThan(0)
+    }
   })
 })
 
@@ -273,5 +395,21 @@ describe('cellCoordLabel', () => {
       const c = g.center(i)
       expect(g.cellAt(c.x, c.y)).toBe(i)
     }
+  })
+
+  it('sheared and brick lattices: col/row', () => {
+    for (const type of ['diamond', 'iso', 'brick'] as const) {
+      const g = makeGrid(type, 5, 4)
+      expect(cellCoordLabel(g, 0), type).toBe('col:0 row:0')
+      expect(cellCoordLabel(g, 2 * 5 + 3), type).toBe('col:3 row:2')
+    }
+  })
+
+  it('octasquare: oct/gap coordinates', () => {
+    const g = makeGrid('octasquare', 4, 3)
+    expect(cellCoordLabel(g, 0)).toBe('oct:0 0')
+    expect(cellCoordLabel(g, 5)).toBe('oct:1 1')
+    expect(cellCoordLabel(g, 12)).toBe('gap:0 0')
+    expect(cellCoordLabel(g, 12 + 2 * 3 + 1)).toBe('gap:1 2')
   })
 })

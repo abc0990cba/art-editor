@@ -106,6 +106,9 @@ export interface UiSlice {
   themePref: ThemePref
   resolvedTheme: ResolvedTheme
   showGrid: boolean
+  /** Graph-paper major lines every N cells on the square grid; 0/1 = off */
+  gridEmphasis: number
+  setGridEmphasis: (v: number) => void
   /** Left tool rail is expanded (names shown); false = collapsed to icon-only strip */
   railOpen: boolean
   /** Right settings panel collapsed to a section-icon strip (desktop only) */
@@ -164,6 +167,7 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
     themePref: initialThemePref(),
     resolvedTheme: resolvedTheme(initialThemePref()),
     showGrid: true,
+    gridEmphasis: 0,
     railOpen: initialRailOpen(),
     panelCollapsed: initialPanelCollapsed(),
     fabOpen: initialFabOpen(),
@@ -194,6 +198,7 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
       set({ themePref: pref, resolvedTheme: resolvedTheme(pref) })
     },
     setShowGrid: (showGrid) => set({ showGrid }),
+    setGridEmphasis: (gridEmphasis) => set({ gridEmphasis: Math.max(0, Math.round(gridEmphasis)) }),
     togglePanelCollapsed: () => set((s) => ({ panelCollapsed: !s.panelCollapsed })),
     toggleFab: () =>
       set((s) => {

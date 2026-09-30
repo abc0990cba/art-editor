@@ -10,7 +10,7 @@ import {
 } from '../../engine/doc.ts'
 import { applyFillStyle, patternCoord } from '../../engine/fillpatterns.ts'
 import { PENDING_OBJ, type Staging } from '../../engine/geometry.ts'
-import { makeGrid } from '../../engine/grids.ts'
+import { makeGrid, isPlainSquare } from '../../engine/grids.ts'
 import { regionCells, pointInPolys, fillCellsEvenOdd } from '../../engine/shapefill.ts'
 import {
   ellipsePoints,
@@ -80,10 +80,12 @@ export function useCanvasStaging({
   const paintCellsValues = useStore((s) => s.paintCellsValues)
   const selectElements = useStore((s) => s.selectElements)
 
-  const isSquare = doc.gridType === 'square'
+  // a rotated square paints through the generic lattice paths like every other grid
+  const gridRotation = doc.gridRotation ?? 0
+  const isSquare = isPlainSquare(doc)
   const grid = useMemo(
-    () => makeGrid(doc.gridType, doc.cols, doc.rows, doc.radialEven),
-    [doc.gridType, doc.cols, doc.rows, doc.radialEven],
+    () => makeGrid(doc.gridType, doc.cols, doc.rows, doc.radialEven, gridRotation),
+    [doc.gridType, doc.cols, doc.rows, doc.radialEven, gridRotation],
   )
   // rosette drawing knobs (fill/phase/twist), only meaningful for the radial modes
   const radialOpts = useMemo(
@@ -732,12 +734,30 @@ export function useCanvasStaging({
   )
 
   /**
-   * Fill scope on radial grids: a click can cover the whole sector wedge (every ring) or the whole
-   * ring instead of one cell. Returns null when the plain cell scope applies.
+   * Fill scope beyond the single cell: square grids fill the whole doc-cell row/column (every
+   * sub-cell), radial grids the sector wedge (every ring) or the whole ring. Returns null when the
+   * plain cell scope applies.
    */
   const fillSeeds = useCallback(
     (idx: number): number[] | null => {
-      if (doc.gridType !== 'radial' || fillScope === 'cell') return null
+      if (fillScope === 'cell') return null
+      if (fillScope === 'row' || fillScope === 'column') {
+        if (!isSquare) return null
+        const seeds: number[] = []
+        if (fillScope === 'row') {
+          const row = Math.floor(idx / bw / doc.sub)
+          for (let y = row * doc.sub; y < (row + 1) * doc.sub; y++) {
+            for (let x = 0; x < bw; x++) seeds.push(y * bw + x)
+          }
+        } else {
+          const col = Math.floor((idx % bw) / doc.sub)
+          for (let x = col * doc.sub; x < (col + 1) * doc.sub; x++) {
+            for (let y = 0; y < bh; y++) seeds.push(y * bw + x)
+          }
+        }
+        return seeds
+      }
+      if (doc.gridType !== 'radial') return null
       const seeds: number[] = []
       if (fillScope === 'ring') {
         const r0 = grid.radiusOf(idx)
@@ -766,7 +786,7 @@ export function useCanvasStaging({
       }
       return seeds
     },
-    [doc.gridType, fillScope, grid],
+    [bh, bw, doc.gridType, doc.sub, fillScope, grid, isSquare],
   )
 
   const commitStaging = useCallback(() => {

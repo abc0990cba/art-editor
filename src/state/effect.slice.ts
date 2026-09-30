@@ -1,4 +1,5 @@
 import { bufferWidth, resolveColor, type Doc } from '../engine/doc.ts'
+import { isPlainSquare } from '../engine/grids.ts'
 import {
   allObjs,
   objLayer,
@@ -116,7 +117,7 @@ export function createEffectSlice({ set, get }: SliceApi): EffectSlice {
   return {
     warpSelection: (kind, params) =>
       set((s) => {
-        if (s.selection.length === 0 || s.doc.gridType !== 'square') return s
+        if (s.selection.length === 0 || !isPlainSquare(s.doc)) return s
         const p = { ...DEFAULT_WARP_PARAMS, ...params }
         const next = bakeSelection(s.doc, s.selection, (src, box, bw, bh) =>
           warpInk(src, kind, p, { box, bw, bh }),
@@ -126,7 +127,7 @@ export function createEffectSlice({ set, get }: SliceApi): EffectSlice {
 
     stylizeSelection: (op, params, color) =>
       set((s) => {
-        if (s.selection.length === 0 || s.doc.gridType !== 'square') return s
+        if (s.selection.length === 0 || !isPlainSquare(s.doc)) return s
         const p = { ...DEFAULT_STYLIZE_PARAMS, ...params }
         const r = resolveColor(s.doc, color ?? s.color)
         const next = bakeSelection(r.doc, s.selection, (src, _box, bw, bh) =>

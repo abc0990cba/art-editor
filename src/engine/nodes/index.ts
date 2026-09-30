@@ -4,6 +4,7 @@
  */
 
 import { CROWN_NODES } from './crown.node.ts'
+import { GENERATOR_NODES } from './generators.node.ts'
 import { RAMP_NODES } from './ramps.node.ts'
 import { registerNodes } from './registry'
 import { REPEAT_NODES } from './repeats.node.ts'
@@ -15,6 +16,7 @@ import { WARP_NODES } from './warp.node.ts'
 registerNodes([
   ...CROWN_NODES,
   ...SOURCE_NODES,
+  ...GENERATOR_NODES,
   ...TRANSFORM_NODES,
   ...WARP_NODES,
   ...REPEAT_NODES,

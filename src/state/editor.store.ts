@@ -82,6 +82,8 @@ export interface State {
   /** Shape tools styling: interior fill + outline with placement, drawn as one object */
   shapePaint: ShapePaint
   showGrid: boolean
+  /** Graph-paper major lines every N cells on the square grid; 0/1 = off */
+  gridEmphasis: number
   /** On: picking a palette recolors the canvas; off: it only offers colors to paint with */
   paletteAutoApply: boolean
   /** Left tool rail is expanded (names shown); false = collapsed to icon-only strip */
@@ -134,6 +136,8 @@ export interface State {
   // actions on the document (undoable)
   setSize: (cols: number, rows: number) => void
   setGridType: (gridType: GridType) => void
+  /** Whole-grid rotation in degrees; geometry-only, the artwork stays in place */
+  setGridRotation: (deg: number) => void
   /** Radial grid only: toggle ~equal cells per ring, resampling the artwork */
   setRadialEven: (even: boolean) => void
   setSub: (sub: SubDetail) => void
@@ -281,6 +285,7 @@ export interface State {
   patchFillStyle: (patch: Partial<FillStyle>) => void
   patchShapePaint: (patch: Partial<ShapePaint>) => void
   setShowGrid: (v: boolean) => void
+  setGridEmphasis: (v: number) => void
   setPaletteAutoApply: (v: boolean) => void
   toggleRail: () => void
   togglePanelCollapsed: () => void

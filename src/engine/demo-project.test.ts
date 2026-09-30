@@ -8,6 +8,7 @@ import {
   POSTER_DEMO,
   ROWS,
 } from './demo-project.ts'
+import { buildGeometry } from './geometry.ts'
 import { deserialize } from './project.ts'
 
 describe('demo project generator', demo)
@@ -75,7 +76,8 @@ function registry() {
       expect(doc.cols, def.id).toBe(content.doc.cols)
       expect(doc.rows, def.id).toBe(content.doc.rows)
       expect(doc.layers?.length ?? 0, def.id).toBeGreaterThan(0)
-      expect(doc.cells.length, def.id).toBe(doc.cols * doc.rows)
+      // compound lattices (octasquare's gap squares) index past the cols×rows buffer
+      expect(doc.cells.length, def.id).toBeGreaterThanOrEqual(doc.cols * doc.rows)
       expect(
         doc.cells.some((v) => v > doc.palette.length),
         def.id,
@@ -105,6 +107,10 @@ function registry() {
       'demo.confetti': [64, 64],
       'demo.tone': [96, 96],
       'demo.hexreef': [96, 80],
+      'demo.diamond': [72, 72],
+      'demo.iso': [96, 52],
+      'demo.octa': [48, 36],
+      'demo.rot': [96, 96],
       'demo.mandala': [128, 128],
       'demo.kaleido': [128, 128],
       'demo.galaxy': [128, 64],
@@ -118,6 +124,28 @@ function registry() {
       'demo.dollar': [192, 96],
       'demo.landscape': [512, 256],
     })
+  })
+
+  it('the grid demos restore their lattices (and the turned mandala its rotation)', () => {
+    const byId = new Map(DEMO_PROJECTS.map((d) => [d.id, d]))
+    for (const [id, gridType] of [
+      ['demo.hexreef', 'hex'],
+      ['demo.diamond', 'diamond'],
+      ['demo.iso', 'iso'],
+      ['demo.octa', 'octasquare'],
+    ] as const) {
+      const content = byId.get(id)!.build()
+      if (content.kind !== 'pixel') continue
+      const doc = deserialize(content.doc)
+      expect(doc.gridType, id).toBe(gridType)
+      expect(buildGeometry(doc).paths.length, id).toBeGreaterThan(0)
+    }
+    const rot = byId.get('demo.rot')!.build()
+    if (rot.kind === 'pixel') {
+      const doc = deserialize(rot.doc)
+      expect(doc.gridRotation).toBe(45)
+      expect(buildGeometry(doc).paths.length).toBeGreaterThan(0)
+    }
   })
 
   it('trace demos ship a source raster with default params and no svg yet', () => {

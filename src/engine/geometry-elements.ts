@@ -3,6 +3,7 @@ import { metaballGeometry } from './geometry-metaball.ts'
 import { shapeGeometry } from './geometry-shape.ts'
 import type { Geometry, StyledPath } from './geometry-types.ts'
 import { gridBuildGeometry } from './grid-geometry.ts'
+import { isPlainSquare } from './grids.ts'
 import { outlineGeometry } from './outline'
 
 // element-scope scratch: reused across groups (see elementGeometry)
@@ -162,7 +163,7 @@ export function elementGeometry(
       links: g.links,
     }
     let out: StyledPath[]
-    if (doc.gridType !== 'square') out = gridBuildGeometry(vdoc, sub, g.links)
+    if (!isPlainSquare(doc)) out = gridBuildGeometry(vdoc, sub, g.links)
     else if (g.el.renderMode === 'metaball')
       out = metaballGeometry(vdoc, sub, g.links, preview).paths
     else if (g.el.renderMode === 'outline') out = outlineGeometry(vdoc, sub, g.links)

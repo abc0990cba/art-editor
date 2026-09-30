@@ -1,5 +1,6 @@
 import type { Doc, Link } from '../engine/doc.ts'
 import { bufferWidth } from '../engine/doc.ts'
+import { isPlainSquare } from '../engine/grids.ts'
 import type { GraphNode } from '../engine/nodes/index.ts'
 import {
   allObjs,
@@ -218,7 +219,7 @@ export function createTransformSlice({ set }: SliceApi): TransformSlice {
   return {
     transformSelection: (x) =>
       set((s) => {
-        if (s.selection.length === 0 || s.doc.gridType !== 'square') return s
+        if (s.selection.length === 0 || !isPlainSquare(s.doc)) return s
         const doc = s.doc
         if (doc.layers) {
           const next = transformScene(doc, s.selection, x)
@@ -230,7 +231,7 @@ export function createTransformSlice({ set }: SliceApi): TransformSlice {
 
     duplicateSelection: () =>
       set((s) => {
-        if (s.selection.length === 0 || s.doc.gridType !== 'square') return s
+        if (s.selection.length === 0 || !isPlainSquare(s.doc)) return s
         const doc = s.doc
         const bw = bufferWidth(doc)
         const bh = doc.rows * doc.sub

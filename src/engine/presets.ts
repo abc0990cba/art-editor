@@ -13,6 +13,7 @@ import type {
   TextureSettings,
 } from './doc'
 import { defaultDoc, MAX_SIZE, MIN_SIZE } from './doc'
+import { GRID_TYPES } from './grids'
 import type { EditorPreset, PresetConfig, PresetInput, PresetSeed } from './preset-configs'
 import { PRINT_PRESETS } from './preset-lists'
 import { FORMS_PRESETS } from './preset-lists-forms'
@@ -112,6 +113,7 @@ export function presetFromDoc(doc: Doc, symmetry: SymmetryState): PresetConfig {
     rows: doc.rows,
     sub: doc.sub,
     radialEven: doc.gridType === 'radial' && doc.radialEven,
+    ...(doc.gridRotation ? { gridRotation: doc.gridRotation } : {}),
     palette: [...doc.palette],
     style: { ...doc.style, corners: { ...doc.style.corners } },
     renderMode: doc.renderMode,
@@ -141,12 +143,11 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
   const sym = (d['symmetry'] ?? {}) as Partial<SymmetryState>
   const corner = (v: unknown) => (typeof v === 'number' ? clamp(v, 0, 0.5) : null)
   const palette = Array.isArray(d['palette']) ? d['palette'].map(hex).filter(Boolean) : base.palette
-  const gridTypes = ['square', 'hex', 'triangle', 'radial'] as const
   const renderModes = ['pixels', 'outline', 'metaball'] as const
   const connectivities = ['edge', 'corner', 'corner-bridge'] as const
   return {
     v: 1,
-    gridType: gridTypes.includes(d['gridType'] as GridType)
+    gridType: GRID_TYPES.includes(d['gridType'] as GridType)
       ? (d['gridType'] as GridType)
       : base.gridType,
     cols: clamp(Math.round(Number(d['cols']) || base.cols), MIN_SIZE, MAX_SIZE),
@@ -155,6 +156,9 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
       ? (d['sub'] as SubDetail)
       : base.sub,
     radialEven: d['radialEven'] === true,
+    ...(typeof d['gridRotation'] === 'number' && Number.isFinite(d['gridRotation'])
+      ? { gridRotation: ((Math.round(d['gridRotation']) % 360) + 360) % 360 }
+      : {}),
     palette: palette.length > 0 ? palette : base.palette,
     style: {
       radius: clamp(Number(st.radius ?? base.style.radius), 0, 0.5),
@@ -294,6 +298,7 @@ export function configMatchesState(
     c.rows === config.rows &&
     c.sub === config.sub &&
     c.radialEven === config.radialEven &&
+    (c.gridRotation ?? 0) === (config.gridRotation ?? 0) &&
     c.renderMode === config.renderMode &&
     c.connectivity === config.connectivity &&
     (!config.styleScope || c.styleScope === config.styleScope) &&

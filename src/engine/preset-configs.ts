@@ -20,6 +20,8 @@ export interface PresetConfig {
   sub: SubDetail
   /** Radial grid only: ~equal cells per ring */
   radialEven: boolean
+  /** Whole-grid rotation in degrees; absent when 0 */
+  gridRotation?: number
   palette: string[]
   style: PixelStyle
   renderMode: RenderMode

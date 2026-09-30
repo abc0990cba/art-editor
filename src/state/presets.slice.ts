@@ -134,6 +134,7 @@ export function createPresetsSlice({ set, get }: SliceApi): PresetsSlice {
         doc = {
           ...doc,
           radialEven: even,
+          gridRotation: c.gridRotation || undefined,
           palette: [...c.palette],
           style: { ...c.style, corners: { ...c.style.corners } },
           renderMode: c.renderMode,

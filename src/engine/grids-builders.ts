@@ -1,3 +1,5 @@
+import { byAngle } from './grid-polar.ts'
+import { buildLattice } from './grids-lattices.ts'
 import type { Grid, GridType } from './grids.ts'
 import type { Pt } from './marching-squares.ts'
 
@@ -5,7 +7,6 @@ const HEX_R = 1 // hexagon circumradius (pointy-top)
 const HEX_W = Math.sqrt(3) * HEX_R // column step
 const TRI_S = 1 // triangle side
 const TRI_H = (Math.sqrt(3) / 2) * TRI_S // band height
-const RING_TOL = 0.75 // radius bucket tolerance for symmetry (ring thickness 1)
 
 const q6 = (v: number) => Math.round(v * 1e6) / 1e6
 const edgeKey = (a: Pt, b: Pt) => {
@@ -14,30 +15,9 @@ const edgeKey = (a: Pt, b: Pt) => {
   return p < q ? `${p}|${q}` : `${q}|${p}`
 }
 
-function byAngle(
-  count: number,
-  radiusOf: (i: number) => number,
-  angleOf: (i: number) => number,
-  i: number,
-  target: number,
-): number {
-  const r0 = radiusOf(i)
-  let best = -1
-  let bestDa = Infinity
-  for (let j = 0; j < count; j++) {
-    if (j === i) continue
-    if (Math.abs(radiusOf(j) - r0) > RING_TOL) continue
-    let da = angleOf(j) - target
-    da = ((((da + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI
-    if (Math.abs(da) < bestDa) {
-      bestDa = Math.abs(da)
-      best = j
-    }
-  }
-  return best
-}
-
 export function buildGrid(type: GridType, cols: number, rows: number, even: boolean): Grid {
+  const lattice = buildLattice(type, cols, rows)
+  if (lattice) return attachEdgeMap(lattice)
   if (type === 'square') return makeSquare(cols, rows)
   if (type === 'hex') return attachEdgeMap(makeHex(cols, rows))
   if (type === 'triangle') return attachEdgeMap(makeTriangle(cols, rows))

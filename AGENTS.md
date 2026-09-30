@@ -138,9 +138,12 @@ override, когда файл вписывается в глобальные п�
 Разбитые (не увеличивать!): `editor.store` → слайсы `state/*.slice.ts` (в сторе осталась
 только композиция), `shapes` → фасад + `shape-*.ts`, `import-image` → фасад +
 `import-*.ts`, `texture` → баррель + `texture-*.ts`, `presets` → `preset-*.ts`,
-`app-top-bar` → `top-bar-*.component.tsx`. Ещё ждут разделения: `canvas-stage` 2439,
+`app-top-bar` → `top-bar-*.component.tsx`, `grids` → фасад `grids.ts` + `grids-builders.ts` +
+`grids-lattices.ts` (решётки diamond/iso/brick/octasquare) + `grid-geometry.ts` +
+`grid-rotate.ts` + `grid-polar.ts`, `cell-shapes` → `cell-shape-defs.ts` + `cell-shape-geom.ts` +
+`cell-shape-ext.ts` + `cell-shape-frag.ts`. Ещё ждут разделения: `canvas-stage` 2439,
 `tool-rail` 1334, `node-editor-canvas` 1233, `settings-panel` 1170, `geometry` 827,
-`scene` 802, `symmetry` 619, `fillpatterns` 559, `grids` 549, `doc` 527, `project` 485,
+`scene` 802, `symmetry` 619, `fillpatterns` 559, `doc` 527, `project` 485,
 `palettes` 455, `app.component` 482 — разбивай по фичам/слоям согласно структуре выше.
 
 ## TypeScript — жёсткий профиль

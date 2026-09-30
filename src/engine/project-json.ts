@@ -43,6 +43,8 @@ export interface ProjectJSON {
   rows: number
   sub: SubDetail
   radialEven: boolean
+  /** Whole-grid rotation in degrees; absent when 0 */
+  gridRotation?: number
   /** Legacy flat ink; absent on scene docs (the tree is the source of truth) */
   cells?: number[]
   links: Link[]
@@ -110,6 +112,7 @@ export function serialize(doc: Doc): ProjectJSON {
     rows: doc.rows,
     sub: doc.sub,
     radialEven: doc.radialEven,
+    ...(doc.gridRotation ? { gridRotation: doc.gridRotation } : {}),
     palette: doc.palette,
     style: doc.style,
     gridType: doc.gridType,

@@ -1,6 +1,7 @@
 import { isCellShapeId, normalizeShapeParams } from './cell-shapes.ts'
 import type { Doc, ElementStyle, Link, PixelStyle, SubDetail } from './doc'
-import { defaultDoc, makeCells, MAX_SIZE, MIN_SIZE } from './doc'
+import { defaultDoc, MAX_SIZE, MIN_SIZE } from './doc'
+import { GRID_TYPES, makeGrid } from './grids'
 import { validateGraph } from './nodes'
 import type { SceneGroup, SceneItem, SceneLayer, SceneObj } from './scene'
 import { decodeObjCells, sceneFromLegacy, syncDoc } from './scene'
@@ -282,8 +283,16 @@ export function deserializeInternal(data: unknown): Doc {
   const sub = ([1, 2, 3] as SubDetail[]).includes(d['sub'] as SubDetail)
     ? (d['sub'] as SubDetail)
     : 1
-  const length = cols * sub * rows * sub
-  const cells = makeCells(cols, rows, sub)
+  const gridType = GRID_TYPES.includes(d['gridType'] as Doc['gridType'])
+    ? (d['gridType'] as Doc['gridType'])
+    : 'square'
+  // non-square lattices index cells by grid count, which can exceed the cols×rows buffer
+  // (octasquare's gap squares) — allocate the larger of the two
+  const length = Math.max(
+    cols * sub * rows * sub,
+    makeGrid(gridType, cols, rows, gridType === 'radial' && d['radialEven'] === true).count,
+  )
+  const cells = new Uint16Array(length)
   if (Array.isArray(d['cells'])) {
     for (let i = 0; i < Math.min(cells.length, d['cells'].length); i++) {
       const v = Number(d['cells'][i])
@@ -302,10 +311,6 @@ export function deserializeInternal(data: unknown): Doc {
   const connectivity = CONNECTIVITIES.includes(d['connectivity'] as Doc['connectivity'])
     ? (d['connectivity'] as Doc['connectivity'])
     : 'edge'
-  const gridTypes = ['square', 'hex', 'triangle', 'radial'] as const
-  const gridType = gridTypes.includes(d['gridType'] as Doc['gridType'])
-    ? (d['gridType'] as Doc['gridType'])
-    : 'square'
   // v1 projects (and any payload without element data) load in global scope; element
   // elements are clamped against the base style table
   const styleScope =
@@ -325,12 +330,15 @@ export function deserializeInternal(data: unknown): Doc {
           ),
         )
       : []
+  const rotRaw = Number(d['gridRotation'])
+  const gridRotation = Number.isFinite(rotRaw) ? ((Math.round(rotRaw) % 360) + 360) % 360 : 0
   const doc: Doc = {
     gridType,
     cols,
     rows,
     sub,
     radialEven: gridType === 'radial' && d['radialEven'] === true,
+    ...(gridRotation ? { gridRotation } : {}),
     cells,
     links,
     palette: palette.length > 0 ? palette : base.palette,

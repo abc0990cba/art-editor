@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import type { PixelStyle } from '../../engine/doc.ts'
+import { isPlainSquare } from '../../engine/grids.ts'
 import { serializeGpl, serializeHex } from '../../engine/palette-io.ts'
 import { PALETTES, matchedPresetId } from '../../engine/palettes.ts'
 import { presetPreviewDataURL } from '../../engine/preset-preview.ts'
@@ -113,7 +114,7 @@ export function SettingsPanel({
   const presetName = (p: EditorPreset) =>
     isBuiltinPreset(p) ? t(`presetName.${p.id}` as 'presetName.builtin.mandala') : p.name
 
-  const isSquare = doc.gridType === 'square'
+  const isSquare = isPlainSquare(doc)
 
   // With a selection active in element scope the Style/Texture sections target the selected
   // elements (values shown from the first one); otherwise they edit the drawing style.
@@ -457,7 +458,7 @@ export function SettingsPanel({
           setStyleScope={setStyleScope}
         />
 
-        {doc.gridType === 'square' && <TextureSection target={target} />}
+        {isPlainSquare(doc) && <TextureSection target={target} />}
 
         <SymmetrySection />
 

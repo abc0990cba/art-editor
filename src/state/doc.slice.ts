@@ -51,6 +51,8 @@ export interface DocSlice {
   activeLayerId: number | null
   setSize: (cols: number, rows: number) => void
   setGridType: (gridType: GridType) => void
+  /** Whole-grid rotation in degrees; geometry-only, the artwork stays in place */
+  setGridRotation: (deg: number) => void
   /** Radial grid only: toggle ~equal cells per ring, resampling the artwork */
   setRadialEven: (even: boolean) => void
   setSub: (sub: SubDetail) => void
@@ -230,6 +232,12 @@ export function createDocSlice({ set }: SliceApi): DocSlice {
             ? { ...s.symmetry, mode: 'none' as const }
             : s.symmetry
         return { doc: convertedGridDoc(s.doc, gridType), symmetry }
+      }),
+    setGridRotation: (deg: number) =>
+      set((s) => {
+        const gridRotation = ((Math.round(deg) % 360) + 360) % 360
+        if ((s.doc.gridRotation ?? 0) === gridRotation) return {}
+        return { doc: { ...s.doc, gridRotation } }
       }),
     setRadialEven: (even: boolean) =>
       set((s) => {

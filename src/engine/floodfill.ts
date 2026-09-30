@@ -20,8 +20,8 @@ function gridTopology(doc: Doc): { neighbors: (i: number) => number[]; count: nu
       },
     }
   }
-  const neighbors = makeGrid(doc.gridType, doc.cols, doc.rows, doc.radialEven).edgeNeighbors
-  return { neighbors, count: doc.cols * doc.rows }
+  const grid = makeGrid(doc.gridType, doc.cols, doc.rows, doc.radialEven)
+  return { neighbors: grid.edgeNeighbors, count: grid.count }
 }
 
 /**

@@ -4,7 +4,7 @@ import { defaultDoc } from './doc.ts'
 import { buildGeometry } from './geometry.ts'
 import { makeGrid } from './grids.ts'
 
-type GridKind = 'hex' | 'triangle' | 'radial'
+type GridKind = 'hex' | 'triangle' | 'radial' | 'diamond' | 'iso' | 'brick' | 'octasquare'
 
 function gridDoc(gridType: GridKind, shape: 'square' | 'circle') {
   const doc = defaultDoc()
@@ -28,8 +28,15 @@ describe('cell forms on non-square grids', () => {
     expect(native.paths[0].d).not.toContain('A')
   })
 
-  it('forms render on triangle and radial grids too', () => {
-    for (const gridType of ['triangle', 'radial'] as const) {
+  it('forms render on every non-square lattice', () => {
+    for (const gridType of [
+      'triangle',
+      'radial',
+      'diamond',
+      'iso',
+      'brick',
+      'octasquare',
+    ] as const) {
       const g = buildGeometry(gridDoc(gridType, 'circle'))
       expect(g.paths.length, gridType).toBeGreaterThan(0)
       expect(g.paths[0].d, gridType).toContain('A')

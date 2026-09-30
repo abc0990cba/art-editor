@@ -8,6 +8,7 @@ import type {
   RenderMode,
   TextureSettings,
 } from '../engine/doc.ts'
+import { isPlainSquare } from '../engine/grids.ts'
 import { nodeDef, type GraphNode } from '../engine/nodes/index.ts'
 import {
   allObjs,
@@ -367,7 +368,7 @@ export function createSelectionSlice({ set }: SliceApi): SelectionSlice {
       set((s) => {
         if ((dx === 0 && dy === 0) || s.selection.length === 0) return s
         const doc = s.doc
-        if (doc.gridType !== 'square') return s
+        if (!isPlainSquare(doc)) return s
         if (doc.layers) {
           const next = moveSelectionScene(doc, s.selection, dx, dy)
           return next ? { doc: next } : s

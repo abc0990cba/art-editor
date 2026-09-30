@@ -1,3 +1,4 @@
+import { isPlainSquare } from '../../engine/grids.ts'
 import { MAX_CELL, MIN_CELL, TILING_MODES, WALLPAPER_MODES } from '../../engine/symmetry.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
@@ -9,7 +10,7 @@ export function SymmetrySection() {
   const { t } = useI18n()
   const symmetry = useStore((s) => s.symmetry)
   const patchSymmetry = useStore((s) => s.patchSymmetry)
-  const isSquare = useStore((s) => s.doc.gridType === 'square')
+  const isSquare = useStore((s) => isPlainSquare(s.doc))
   const isRadial = symmetry.mode === 'radial' || symmetry.mode === 'kaleido'
   const repeatActive = ['brick', 'halfdrop', ...WALLPAPER_MODES].includes(symmetry.mode)
 

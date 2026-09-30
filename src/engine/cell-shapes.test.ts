@@ -156,6 +156,14 @@ describe('cell form hit tests', () => {
       'asterisk',
       'lightning',
       'chevron',
+      'pentagon',
+      'octagon',
+      'capsule',
+      'trapezoid',
+      'shield',
+      'leaf',
+      'egg',
+      'arrow',
     ] as const) {
       expect(cellShapeHit(id, 0.01, 0.01, DEFAULT_SHAPE_PARAMS), id).toBe(false)
     }
@@ -225,6 +233,38 @@ describe('organic and graphic form geometry', () => {
     expect(cellShapeHit('gear', probe[0], probe[1], { ...DEFAULT_SHAPE_PARAMS, points: 4 })).toBe(
       true,
     )
+  })
+
+  it('capsule thickness plumps the pill', () => {
+    const slim = { ...DEFAULT_SHAPE_PARAMS, thickness: 0.05 }
+    const full = { ...DEFAULT_SHAPE_PARAMS, thickness: 0.5 }
+    expect(cellShapeHit('capsule', 0.02, 0.5, slim)).toBe(true) // caps always reach the side edges
+    expect(cellShapeHit('capsule', 0.5, 0.3, slim)).toBe(false) // slim pill hugs the axis
+    expect(cellShapeHit('capsule', 0.5, 0.3, full)).toBe(true) // fat pill fills the height
+  })
+
+  it('trapezoid thickness opens the top edge', () => {
+    expect(cellShapeHit('trapezoid', 0.9, 0.1, { ...DEFAULT_SHAPE_PARAMS, thickness: 0.5 })).toBe(
+      true,
+    )
+    expect(cellShapeHit('trapezoid', 0.9, 0.1, { ...DEFAULT_SHAPE_PARAMS, thickness: 0.2 })).toBe(
+      false,
+    )
+  })
+
+  it('leaf plumps from a sliver to a vesica', () => {
+    expect(cellShapeHit('leaf', 0.32, 0.32, { ...DEFAULT_SHAPE_PARAMS, thickness: 0.5 })).toBe(true)
+    expect(cellShapeHit('leaf', 0.32, 0.32, { ...DEFAULT_SHAPE_PARAMS, thickness: 0.05 })).toBe(
+      false,
+    )
+  })
+
+  it('arrow points right; rotation turns it', () => {
+    expect(cellShapeHit('arrow', 0.98, 0.5, DEFAULT_SHAPE_PARAMS)).toBe(true) // head tip
+    // above the head edge and past the shaft's end: empty for the right-arrow…
+    expect(cellShapeHit('arrow', 0.98, 0.53, DEFAULT_SHAPE_PARAMS)).toBe(false)
+    // …but the rotated shaft runs through the same spot
+    expect(cellShapeHit('arrow', 0.98, 0.53, { ...DEFAULT_SHAPE_PARAMS, rotation: 180 })).toBe(true)
   })
 
   it('asterisk arm count changes the silhouette', () => {

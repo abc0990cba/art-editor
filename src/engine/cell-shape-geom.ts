@@ -6,6 +6,15 @@
  */
 
 import { clamp, type CellShapeId, type ShapeParams } from './cell-shape-defs.ts'
+import {
+  arrowPoly,
+  leafPoly,
+  trapezoidPoly,
+  UNIT_EGG,
+  UNIT_OCTAGON,
+  UNIT_PENTAGON,
+  UNIT_SHIELD,
+} from './cell-shape-ext.ts'
 
 export type UnitPt = [number, number]
 
@@ -239,6 +248,7 @@ function cubicPolyPts(curve: readonly UnitPt[], samples = 6): UnitPt[] {
 
 const HEART_HITS = cubicPolyPts(UNIT_HEART)
 const TEARDROP_HITS = cubicPolyPts(UNIT_TEARDROP)
+const EGG_HITS = cubicPolyPts(UNIT_EGG)
 
 /**
  * Moon: the unit disc with a circular bite scooped out between the top and right poles. `thickness`
@@ -299,6 +309,21 @@ const HIT_OF: Record<CellShapeId, (x: number, y: number, p: ShapeParams) => bool
   asterisk: (x, y, p) => unitPolyHit(asteriskPoly(p.points, p.thickness), x, y),
   lightning: (x, y, p) => unitPolyHit(lightningPoly(p.thickness), x, y),
   chevron: (x, y, p) => unitPolyHit(chevronPoly(p.thickness), x, y),
+  pentagon: (x, y) => unitPolyHit(UNIT_PENTAGON, x, y),
+  octagon: (x, y) => unitPolyHit(UNIT_OCTAGON, x, y),
+  capsule: (x, y, p) => {
+    // horizontal stadium: waist half-height r, straight section half-length 0.5 − r
+    const r = clamp(p.thickness, 0.05, 0.5)
+    const dx = Math.abs(x - 0.5)
+    const dy = Math.abs(y - 0.5)
+    if (dy > r) return false
+    return dx <= 0.5 - r + Math.sqrt(Math.max(0, r * r - dy * dy))
+  },
+  trapezoid: (x, y, p) => unitPolyHit(trapezoidPoly(p.thickness), x, y),
+  shield: (x, y) => unitPolyHit(UNIT_SHIELD, x, y),
+  leaf: (x, y, p) => unitPolyHit(leafPoly(p.thickness), x, y),
+  egg: (x, y) => unitPolyHit(EGG_HITS, x, y),
+  arrow: (x, y, p) => unitPolyHit(arrowPoly(p.thickness), x, y),
 }
 
 /**

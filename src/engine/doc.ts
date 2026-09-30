@@ -175,6 +175,11 @@ export interface Doc {
   sub: SubDetail
   /** Radial grid only: sectors per ring scale with radius so cells stay ~equal across rings */
   radialEven: boolean
+  /**
+   * Whole-grid rotation in degrees (0..360); 0/absent = canonical orientation. Render/pick-time
+   * geometry only — the cell buffer keeps its base indexing
+   */
+  gridRotation?: number
   /** Buffer of cols_sub × rows_sub values; 0 = empty, v ≥ 1 → palette[v-1] */
   cells: Uint16Array
   links: Link[]
@@ -388,6 +393,8 @@ function resizeBuffer(doc: Doc, c: number, r: number, sub: SubDetail): Doc {
 
 /** Change sub-cell detail, resampling the buffer nearest-neighbor so content stays in place. */
 export function changeSub(doc: Doc, sub: SubDetail): Doc {
+  // sub-cells are a square-lattice feature: other grids index cells 1:1 and must not resample
+  if (doc.gridType !== 'square') return doc
   const fitted = fitSub(doc.cols, doc.rows, sub)
   if (fitted === doc.sub) return doc
   sub = fitted

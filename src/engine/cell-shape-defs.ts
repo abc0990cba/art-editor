@@ -26,6 +26,14 @@ export type CellShapeId =
   | 'asterisk'
   | 'lightning'
   | 'chevron'
+  | 'pentagon'
+  | 'octagon'
+  | 'capsule'
+  | 'trapezoid'
+  | 'shield'
+  | 'leaf'
+  | 'egg'
+  | 'arrow'
 
 /** Picker/display order. */
 export const CELL_SHAPE_IDS = [
@@ -49,6 +57,14 @@ export const CELL_SHAPE_IDS = [
   'asterisk',
   'lightning',
   'chevron',
+  'pentagon',
+  'octagon',
+  'capsule',
+  'trapezoid',
+  'shield',
+  'leaf',
+  'egg',
+  'arrow',
 ] as const satisfies readonly CellShapeId[]
 
 /** Shared shape knobs; every shape reads what it needs and ignores the rest. */
@@ -99,6 +115,14 @@ export const CELL_SHAPES: readonly CellShapeDef[] = [
   { id: 'asterisk', params: ['points', 'thickness', 'rotation'], curved: false },
   { id: 'lightning', params: ['thickness', 'rotation'], curved: false },
   { id: 'chevron', params: ['thickness', 'rotation'], curved: false },
+  { id: 'pentagon', params: ['rotation'], curved: false },
+  { id: 'octagon', params: ['rotation'], curved: false },
+  { id: 'capsule', params: ['thickness', 'rotation'], curved: true },
+  { id: 'trapezoid', params: ['thickness', 'rotation'], curved: false },
+  { id: 'shield', params: ['rotation'], curved: false },
+  { id: 'leaf', params: ['thickness', 'rotation'], curved: true },
+  { id: 'egg', params: ['rotation'], curved: true },
+  { id: 'arrow', params: ['thickness', 'rotation'], curved: false },
 ]
 
 export function isCellShapeId(v: unknown): v is CellShapeId {

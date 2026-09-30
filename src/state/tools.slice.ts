@@ -240,7 +240,7 @@ const DEFAULT_TOOL_OPTS: ToolOpts = {
 }
 
 /** What one fill click covers on a radial grid: a cell, the whole sector wedge or the ring. */
-export type FillScope = 'cell' | 'sector' | 'ring'
+export type FillScope = 'cell' | 'sector' | 'ring' | 'row' | 'column'
 
 /** The tool slice: active tool plus its knobs (brush, symmetry, fills, shape geometry). */
 export interface ToolsSlice {
