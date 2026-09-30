@@ -1,5 +1,5 @@
 import { cellShapeFragment } from './cell-shapes.ts'
-import { hexLuminance } from './color.ts'
+import { toneScale } from './color.ts'
 import { bufferHeight, bufferWidth, cellColor, type Doc, type Link } from './doc.ts'
 import type { Geometry, Staging, StyledPath } from './geometry-types.ts'
 import { regionTextureFragments, type TextureCell } from './texture.ts'
@@ -102,7 +102,7 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
   const toneScaleOf = (v: number): number => {
     let k = toneOf.get(v)
     if (k === undefined) {
-      k = toneSizeMin + (1 - toneSizeMin) * (1 - hexLuminance(cellColor(doc, v) ?? '#ffffff'))
+      k = toneScale(cellColor(doc, v) ?? '#ffffff', toneSizeMin)
       toneOf.set(v, k)
     }
     return k

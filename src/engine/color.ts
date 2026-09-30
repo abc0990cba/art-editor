@@ -134,3 +134,11 @@ export function hexLuminance(hex: string): number {
   if (!rgb) return 1
   return (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255
 }
+
+/**
+ * Figure scale of the tone-driven size option (toneSize): dark ink draws a full-size figure, light
+ * ink shrinks toward `min`. Shared by the square-grid, staging-preview and non-square-grid paths.
+ */
+export function toneScale(hex: string, min: number): number {
+  return min + (1 - min) * (1 - hexLuminance(hex))
+}

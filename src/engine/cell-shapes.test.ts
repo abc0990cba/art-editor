@@ -48,6 +48,11 @@ describe('cell shape registry', () => {
       'star',
       'sparkle',
       'hexagon',
+      'flower',
+      'gear',
+      'asterisk',
+      'lightning',
+      'chevron',
     ] as const
     for (const id of polyIds) {
       const d = frag(id, { ...DEFAULT_SHAPE_PARAMS, rotation: 0 })
@@ -137,7 +142,21 @@ describe('cell form hit tests', () => {
       expect(cellShapeHit(id, 0.5, 0.5, DEFAULT_SHAPE_PARAMS), id).toBe(centerInside)
     }
     expect(cellShapeHit('square', 0.01, 0.01, DEFAULT_SHAPE_PARAMS)).toBe(true)
-    for (const id of ['circle', 'diamond', 'star', 'hexagon', 'heart'] as const) {
+    for (const id of [
+      'circle',
+      'diamond',
+      'star',
+      'hexagon',
+      'heart',
+      'moon',
+      'teardrop',
+      'flower',
+      'semicircle',
+      'gear',
+      'asterisk',
+      'lightning',
+      'chevron',
+    ] as const) {
       expect(cellShapeHit(id, 0.01, 0.01, DEFAULT_SHAPE_PARAMS), id).toBe(false)
     }
   })
@@ -157,6 +176,80 @@ describe('cell form hit tests', () => {
     )
     expect(cellShapeHit('triangle', 0.3, 0.2, { ...DEFAULT_SHAPE_PARAMS, rotation: 180 })).toBe(
       true,
+    )
+  })
+})
+
+describe('organic and graphic form geometry', () => {
+  it('moon keeps the box center inked and always bites the tips chord', () => {
+    for (const thickness of [0.05, 0.25, 0.5]) {
+      const p = { ...DEFAULT_SHAPE_PARAMS, thickness }
+      expect(cellShapeHit('moon', 0.3, 0.7, p), `ink at ${thickness}`).toBe(true)
+      expect(cellShapeHit('moon', 0.75, 0.25, p), `bite at ${thickness}`).toBe(false)
+    }
+  })
+
+  it('semicircle is a dome; rotation 180 flips the flat side up', () => {
+    expect(cellShapeHit('semicircle', 0.5, 0.3, DEFAULT_SHAPE_PARAMS)).toBe(true)
+    expect(cellShapeHit('semicircle', 0.5, 0.7, DEFAULT_SHAPE_PARAMS)).toBe(false)
+    expect(cellShapeHit('semicircle', 0.5, 0.3, { ...DEFAULT_SHAPE_PARAMS, rotation: 180 })).toBe(
+      false,
+    )
+    expect(cellShapeHit('semicircle', 0.5, 0.7, { ...DEFAULT_SHAPE_PARAMS, rotation: 180 })).toBe(
+      true,
+    )
+  })
+
+  it('chevron rotates around the center', () => {
+    expect(cellShapeHit('chevron', 0.1, 0.8, DEFAULT_SHAPE_PARAMS)).toBe(true)
+    expect(cellShapeHit('chevron', 0.1, 0.8, { ...DEFAULT_SHAPE_PARAMS, rotation: 180 })).toBe(
+      false,
+    )
+  })
+
+  it('flower petal count moves the silhouettes', () => {
+    const probe: [number, number] = [0.725, 0.89] // angle 60°, radius 0.45
+    expect(cellShapeHit('flower', probe[0], probe[1], { ...DEFAULT_SHAPE_PARAMS, points: 6 })).toBe(
+      true,
+    )
+    expect(cellShapeHit('flower', probe[0], probe[1], { ...DEFAULT_SHAPE_PARAMS, points: 3 })).toBe(
+      false,
+    )
+  })
+
+  it('gear teeth open and close the gap between tips', () => {
+    const probe: [number, number] = [0.573, 0.0865] // angle -80°, radius 0.42
+    expect(cellShapeHit('gear', probe[0], probe[1], { ...DEFAULT_SHAPE_PARAMS, points: 8 })).toBe(
+      false,
+    )
+    expect(cellShapeHit('gear', probe[0], probe[1], { ...DEFAULT_SHAPE_PARAMS, points: 4 })).toBe(
+      true,
+    )
+  })
+
+  it('asterisk arm count changes the silhouette', () => {
+    const probe: [number, number] = [0.65, 0.2402] // angle -60°, radius 0.3
+    expect(
+      cellShapeHit('asterisk', probe[0], probe[1], { ...DEFAULT_SHAPE_PARAMS, points: 3 }),
+    ).toBe(false)
+    expect(
+      cellShapeHit('asterisk', probe[0], probe[1], { ...DEFAULT_SHAPE_PARAMS, points: 12 }),
+    ).toBe(true)
+  })
+
+  it('moon and semicircle are arc fragments, teardrop is cubic like the heart', () => {
+    expect(frag('moon').match(/A/g)).toHaveLength(2)
+    expect(frag('semicircle').match(/A/g)).toHaveLength(1)
+    expect(frag('teardrop')).toContain('C')
+    expect(frag('teardrop')).not.toContain('A')
+  })
+
+  it('params change the new-form fragments', () => {
+    expect(frag('gear', { ...DEFAULT_SHAPE_PARAMS, points: 3 })).not.toBe(
+      frag('gear', { ...DEFAULT_SHAPE_PARAMS, points: 12 }),
+    )
+    expect(frag('chevron', { ...DEFAULT_SHAPE_PARAMS, thickness: 0.05 })).not.toBe(
+      frag('chevron', { ...DEFAULT_SHAPE_PARAMS, thickness: 0.5 }),
     )
   })
 })

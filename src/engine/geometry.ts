@@ -1,5 +1,5 @@
 import { cellShapeFragment } from './cell-shapes.ts'
-import { hexLuminance } from './color.ts'
+import { toneScale } from './color.ts'
 import type { Doc, ElementStyle, Link, PixelStyle } from './doc'
 import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from './doc'
 import { elementStyleKey, elementGeometry } from './geometry-elements.ts'
@@ -226,7 +226,7 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
     let fh = ch
     if (el.style.toneSize) {
       // mirrors shapeGeometry: the figure shrinks with its color's lightness
-      const k = el.style.toneSizeMin + (1 - el.style.toneSizeMin) * (1 - hexLuminance(colorOf(v)))
+      const k = toneScale(colorOf(v), el.style.toneSizeMin)
       fw = cw * k
       fh = ch * k
       fx = bx / doc.sub + (1 / doc.sub - fw) / 2

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { BUILT_IN_GLYPH_SETS } from './glyph-builtins.ts'
 import { glyphSetForm, glyphSetFormDuo, glyphSetFormMorph } from './glyph-generators-forms.ts'
 import { glyphRampField, tileCoverage, type GlyphTileSet } from './glyph-tiles.ts'
 
@@ -11,6 +12,14 @@ const FORM_SETS: [string, GlyphTileSet][] = [
   ['form-ring', glyphSetForm('ring', 12, 17)],
   ['form-star', glyphSetForm('star', 12, 17)],
   ['form-heart', glyphSetForm('heart', 12, 17)],
+  ['form-moon', glyphSetForm('moon', 12, 17)],
+  ['form-teardrop', glyphSetForm('teardrop', 12, 17)],
+  ['form-flower', glyphSetForm('flower', 12, 17)],
+  ['form-semicircle', glyphSetForm('semicircle', 12, 17)],
+  ['form-gear', glyphSetForm('gear', 12, 17)],
+  ['form-asterisk', glyphSetForm('asterisk', 12, 17)],
+  ['form-lightning', glyphSetForm('lightning', 12, 17)],
+  ['form-chevron', glyphSetForm('chevron', 12, 17)],
   ['duo', glyphSetFormDuo('star', 'circle', 12, 17)],
   ['duo-pitch3', glyphSetFormDuo('heart', 'diamond', 12, 17, { name: 'Дуэт 3×3', pitch: 3 })],
   ['morph-star-heart', glyphSetFormMorph('star', 'heart', 12, 17)],
@@ -60,5 +69,22 @@ describe('form glyph ramps', () => {
     const coarse = glyphSetFormDuo('star', 'circle', 12, 17)
     const fine = glyphSetFormDuo('star', 'circle', 12, 17, { pitch: 3 })
     expect(fine.levels[8]).not.toEqual(coarse.levels[8])
+  })
+
+  it('every new form is registered with a forms-family ramp that pins the cell form', () => {
+    for (const id of [
+      'moon',
+      'teardrop',
+      'flower',
+      'semicircle',
+      'gear',
+      'asterisk',
+      'lightning',
+      'chevron',
+    ] as const) {
+      const entry = BUILT_IN_GLYPH_SETS.find((b) => b.form === id)
+      expect(entry, id).toBeDefined()
+      expect(entry!.family, id).toBe('forms')
+    }
   })
 })

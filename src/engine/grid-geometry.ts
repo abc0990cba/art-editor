@@ -1,3 +1,5 @@
+import { cellShapeFragment } from './cell-shapes.ts'
+import { toneScale } from './color.ts'
 import type { Doc, Link } from './doc'
 import { cellColor } from './doc'
 import type { StyledPath } from './geometry'
@@ -10,9 +12,11 @@ const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
 const q6 = (v: number) => Math.round(v * 1e6) / 1e6
 
 /**
- * Rendering for non-square grids (hex / triangle / radial). All three pixel styles are supported:
- * rounded cell polygons, generic union-silhouette outline tracing, and center-kernel metaball
- * fields. Corner connectivity and sub-cells are square-grid features.
+ * Rendering for non-square grids (hex / triangle / radial). All pixel styles are supported: rounded
+ * native cell polygons, the registered cell forms of the shape registry (form + tone-driven size in
+ * each cell's bounding box; `square` keeps the native polygon), generic union-silhouette outline
+ * tracing, and center-kernel metaball fields. Corner connectivity and sub-cells are square-grid
+ * features.
  */
 export function gridBuildGeometry(
   doc: Doc,
@@ -48,21 +52,78 @@ export function gridBuildGeometry(
       )
       if (d) paths.push({ d, fill: cellColor(doc, v) ?? '#888' })
     } else {
-      let d = ''
-      for (const i of list) {
-        const poly = scaledPolygon(grid.polygon(i), doc.style.sizeX, doc.style.sizeY)
-        d += roundedPolygonPath(
-          poly,
-          doc.style.radius * (minEdge(poly) / 2),
-          doc.style.cornerStyle === 'chamfer',
-        )
-      }
-      if (d) paths.push({ d, fill: cellColor(doc, v) ?? '#888' })
+      gridPixels(doc, grid, cells, list, paths)
     }
   }
 
   appendGridLinkStrokes(doc, links, grid, paths)
   return paths
+}
+
+/**
+ * Pixels mode of the non-square grids: the native cell polygon (form `square`, rounded and scaled),
+ * or a registered cell form drawn into each cell's bounding box — size and tone scaling collapse
+ * the box about its center, mirroring the square-grid per-cell path in geometry-shape.
+ */
+function gridPixels(
+  doc: Doc,
+  grid: Grid,
+  cells: Uint16Array,
+  list: number[],
+  paths: StyledPath[],
+): void {
+  const shape = doc.style.shape
+  const toneSize = doc.style.toneSize
+  const toneOf = new Map<number, number>()
+  const toneScaleOf = (val: number): number => {
+    let k = toneOf.get(val)
+    if (k === undefined) {
+      k = toneScale(cellColor(doc, val) ?? '#ffffff', doc.style.toneSizeMin)
+      toneOf.set(val, k)
+    }
+    return k
+  }
+  let d = ''
+  for (const i of list) {
+    const poly = grid.polygon(i)
+    if (shape === 'square') {
+      const scaled = scaledPolygon(poly, doc.style.sizeX, doc.style.sizeY)
+      d += roundedPolygonPath(
+        scaled,
+        doc.style.radius * (minEdge(scaled) / 2),
+        doc.style.cornerStyle === 'chamfer',
+      )
+    } else {
+      let minX = Infinity
+      let minY = Infinity
+      let maxX = -Infinity
+      let maxY = -Infinity
+      for (const p of poly) {
+        minX = Math.min(minX, p.x)
+        minY = Math.min(minY, p.y)
+        maxX = Math.max(maxX, p.x)
+        maxY = Math.max(maxY, p.y)
+      }
+      let w = (maxX - minX) * doc.style.sizeX
+      let h = (maxY - minY) * doc.style.sizeY
+      if (toneSize) {
+        const k = toneScaleOf(cells[i])
+        w *= k
+        h *= k
+      }
+      d += cellShapeFragment({
+        id: shape,
+        x: (minX + maxX) / 2 - w / 2,
+        y: (minY + maxY) / 2 - h / 2,
+        w,
+        h,
+        params: doc.style.shapeParams,
+        radius: doc.style.radius,
+        chamfer: doc.style.cornerStyle === 'chamfer',
+      })
+    }
+  }
+  if (d) paths.push({ d, fill: cellColor(doc, cells[list[0]]) ?? '#888' })
 }
 
 function appendGridLinkStrokes(

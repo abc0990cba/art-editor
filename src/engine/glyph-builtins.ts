@@ -187,6 +187,54 @@ export const BUILT_IN_GLYPH_SETS: readonly BuiltInGlyphSet[] = [
     form: 'heart',
     set: glyphSetForm('heart', 12, 17, 'Сердце'),
   },
+  {
+    id: 'glyph-form-moon12',
+    family: 'forms',
+    form: 'moon',
+    set: glyphSetForm('moon', 12, 17, 'Месяц'),
+  },
+  {
+    id: 'glyph-form-teardrop12',
+    family: 'forms',
+    form: 'teardrop',
+    set: glyphSetForm('teardrop', 12, 17, 'Капля'),
+  },
+  {
+    id: 'glyph-form-flower12',
+    family: 'forms',
+    form: 'flower',
+    set: glyphSetForm('flower', 12, 17, 'Цветок'),
+  },
+  {
+    id: 'glyph-form-semicircle12',
+    family: 'forms',
+    form: 'semicircle',
+    set: glyphSetForm('semicircle', 12, 17, 'Полукруг'),
+  },
+  {
+    id: 'glyph-form-gear12',
+    family: 'forms',
+    form: 'gear',
+    set: glyphSetForm('gear', 12, 17, 'Шестерня'),
+  },
+  {
+    id: 'glyph-form-asterisk12',
+    family: 'forms',
+    form: 'asterisk',
+    set: glyphSetForm('asterisk', 12, 17, 'Астериск'),
+  },
+  {
+    id: 'glyph-form-lightning12',
+    family: 'forms',
+    form: 'lightning',
+    set: glyphSetForm('lightning', 12, 17, 'Молния'),
+  },
+  {
+    id: 'glyph-form-chevron12',
+    family: 'forms',
+    form: 'chevron',
+    set: glyphSetForm('chevron', 12, 17, 'Шеврон'),
+  },
   // two figures at once on interleaved lattices (pitch = lattice density)
   {
     id: 'glyph-duo-stars-dots12',

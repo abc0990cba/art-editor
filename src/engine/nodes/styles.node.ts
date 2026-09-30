@@ -1,5 +1,6 @@
 /** Style nodes: write the object's appearance parameters (no raster input). */
 
+import { CELL_SHAPE_IDS, isCellShapeId, normalizeShapeParams } from '../cell-shapes.ts'
 import { defineNode } from './types.ts'
 
 export const STYLE_NODES = [
@@ -9,16 +10,31 @@ export const STYLE_NODES = [
     domain: { in: 'style', out: 'style' },
     label: 'Pixel shape',
     category: 'style',
-    tags: ['radius', 'rounding', 'corner', 'size'],
+    tags: ['radius', 'rounding', 'corner', 'size', 'shape', 'form', 'tone'],
     params: {
       radius: { kind: 'number', min: 0, max: 0.5, step: 0.01, default: 0.3 },
       sizeX: { kind: 'number', min: 0.05, max: 1, step: 0.05, default: 1 },
       sizeY: { kind: 'number', min: 0.05, max: 1, step: 0.05, default: 1 },
+      shape: { kind: 'select', options: CELL_SHAPE_IDS, default: 'square' },
+      thickness: { kind: 'number', min: 0.05, max: 0.5, step: 0.01, default: 0.25 },
+      points: { kind: 'int', min: 3, max: 12, default: 5 },
+      rotation: { kind: 'number', min: 0, max: 359, step: 1, default: 0 },
+      toneSize: { kind: 'bool', default: false },
+      toneSizeMin: { kind: 'number', min: 0.05, max: 1, step: 0.01, default: 0.2 },
     },
     evaluate: (_ctx, p, style) => {
       style.style.radius = p.num('radius')
       style.style.sizeX = p.num('sizeX')
       style.style.sizeY = p.num('sizeY')
+      const shape = p.str('shape')
+      if (isCellShapeId(shape)) style.style.shape = shape
+      style.style.shapeParams = normalizeShapeParams({
+        thickness: p.num('thickness'),
+        points: p.int('points'),
+        rotation: p.num('rotation'),
+      })
+      style.style.toneSize = p.bool('toneSize')
+      style.style.toneSizeMin = p.num('toneSizeMin')
     },
   }),
   defineNode({

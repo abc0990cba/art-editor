@@ -96,6 +96,14 @@ describe('cell shapes (pixels mode)', () => {
       'sparkle',
       'hexagon',
       'heart',
+      'moon',
+      'teardrop',
+      'flower',
+      'semicircle',
+      'gear',
+      'asterisk',
+      'lightning',
+      'chevron',
     ] as const) {
       const doc = docWith([[2, 2]])
       doc.style.shape = shape
@@ -114,6 +122,16 @@ describe('cell shapes (pixels mode)', () => {
     const preview = stagingPreview(doc, staging)
     expect(preview).not.toBeNull()
     expect(preview!.paths).toHaveLength(1)
+    expect(preview!.paths[0].d).toBe(buildGeometry(doc).paths[0].d)
+  })
+
+  it('staging preview matches the rebuild for the graphic forms too', () => {
+    const doc = docWith([[3, 3]])
+    doc.style.shape = 'gear'
+    doc.style.shapeParams = { thickness: 0.3, points: 7, rotation: 40 }
+    const staging = { cells: new Map([[3 * 8 + 3, 1]]) }
+    const preview = stagingPreview(doc, staging)
+    expect(preview).not.toBeNull()
     expect(preview!.paths[0].d).toBe(buildGeometry(doc).paths[0].d)
   })
 
@@ -158,6 +176,24 @@ describe('cell shapes (pixels mode)', () => {
       style: { ...doc.style, shape: 'blob' },
     })
     expect(bad.style.shape).toBe('square')
+  })
+
+  it('new form ids round-trip through project JSON', () => {
+    for (const shape of [
+      'moon',
+      'teardrop',
+      'flower',
+      'semicircle',
+      'gear',
+      'asterisk',
+      'lightning',
+      'chevron',
+    ] as const) {
+      const doc = docWith([[1, 1]])
+      doc.style.shape = shape
+      const restored = deserialize(JSON.parse(JSON.stringify(serialize(doc))))
+      expect(restored.style.shape, shape).toBe(shape)
+    }
   })
 })
 
