@@ -1,21 +1,23 @@
 import { bench, describe } from 'vitest'
 
-import { defaultDoc, makeCells, type Doc } from './doc.ts'
 import { elementFromDoc } from './doc-style.ts'
-import { evalGraph, evalGraphMemo, evalGraphStages } from './nodes/index.ts'
+import { defaultDoc, makeCells, type Doc } from './doc.ts'
+import { evalGraphMemo } from './nodes/eval-memo.ts'
+import { evalGraph, evalGraphStages } from './nodes/index.ts'
 import type { Cells, Graph } from './nodes/types.ts'
 import { newLayer, newObj, syncDoc, type SceneLayer, type SceneObj } from './scene.ts'
 
 /**
  * Node-graph evaluation benches — previously uncovered (the PERFLOG M4b row noted graph benches
  * were missing). Fixtures are representative procedural objects: an ellipse source, quad symmetry,
- * a ×3 linear array and a position gradient ramp. At 4096² that lands ~1M map cells per eval —
- * the cost every node edit (param scrub) or graph-object commit pays today.
+ * a ×3 linear array and a position gradient ramp. At 4096² that lands ~1M map cells per eval — the
+ * cost every node edit (param scrub) or graph-object commit pays today.
  *
  * Spike scenarios also measure the two PERFLOG research candidates:
- * - layout decoupling: a card `pos` change today clones the graph → identity memo miss → full
+ *
+ * - Layout decoupling: a card `pos` change today clones the graph → identity memo miss → full
  *   re-eval; with `pos` outside the `Graph` the memo hits and the eval disappears;
- * - dirty-suffix evaluation: only nodes downstream of the edited one re-run (the prefix result is
+ * - Dirty-suffix evaluation: only nodes downstream of the edited one re-run (the prefix result is
  *   cached; suffix re-eval via `evalGraph(suffix, base, prefixCells)`).
  */
 
@@ -150,7 +152,7 @@ function graphSceneDoc(bw: number): { base: Doc; layer: SceneLayer; obj: SceneOb
   doc.cols = bw
   doc.rows = bw
   doc.sub = 1
-  doc.cells = makeCells(bw, bw, 0)
+  doc.cells = makeCells(bw, bw, 1)
   doc.elements = []
   doc.layers = null
   const style = elementFromDoc(doc)

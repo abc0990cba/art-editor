@@ -1,5 +1,6 @@
 import { sceneBenchDoc, strokeCells } from '../../engine/bench-doc.util.ts'
 import { useStore } from '../../state/editor.store.ts'
+import { extraScenarioDefs } from './bench-scenarios-graph.ts'
 
 /**
  * Browser-side benchmark scenarios for the ?bench=1 harness. Each scenario drives the REAL app
@@ -325,6 +326,7 @@ export async function runBenchScenarios(
     ['zoom (wheel step → full art rebuild)', zoomScenario],
     ['pencil stroke e2e (60 moves + commit)', strokeScenario],
     ['undo (restore previous doc state)', undoScenario],
+    ...extraScenarioDefs,
   ]
   for (const [group, run] of scenarioDefs) {
     onProgress(`${group}…`)

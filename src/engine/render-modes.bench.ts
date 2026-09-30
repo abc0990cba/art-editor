@@ -1,15 +1,18 @@
 import { bench, describe } from 'vitest'
 
-import { flatBenchDoc } from './bench-doc.util.ts'
+import { flatBenchDoc, mulberry32 } from './bench-doc.util.ts'
 import { buildGeometry } from './geometry.ts'
 import { makeGrid } from './grids.ts'
 
 /**
- * Full-rebuild costs of the render modes and grids that have no bench coverage: outline and
- * metaball (both full-buffer field passes per color), baked texture (the per-commit stroke
- * fallback), and a non-square grid (generic per-cell path). These are the modes where the
- * in-stroke preview falls back to buildGeometry on every rAF frame — their rebuild cost IS the
- * per-frame cost.
+ * Full-rebuild costs of the render modes and grids that had no bench coverage: outline and metaball
+ * (both full-buffer field passes per color), baked texture (the per-commit stroke fallback), and a
+ * non-square grid (generic per-cell path). These are the modes where the in-stroke preview falls
+ * back to buildGeometry on every rAF frame — their rebuild cost IS the per-frame cost.
+ *
+ * `time` is capped on every point (tinybench floors each bench at its time budget): a texture
+ * rebuild is ~2 s per call, so uncapped sampling would burn minutes per point. Grain runs its
+ * explicit iterations and stops at the cap.
  */
 
 const flat512 = flatBenchDoc(512, 512, 0.05)
@@ -27,14 +30,13 @@ const grain512 = {
 const triCells = (() => {
   const grid = makeGrid('triangle', 512, 512)
   const cells = new Uint16Array(grid.count)
+  const rng = mulberry32(512 * 7919)
   const target = Math.round(grid.count * 0.05)
   let placed = 0
-  let seed = 512 * 7919
   while (placed < target) {
-    seed = (seed * 1103515245 + 12345) & 0x7fff_ffff
-    const i = seed % grid.count
+    const i = Math.floor(rng() * grid.count)
     if (cells[i] === 0) {
-      cells[i] = (seed >>> 8) % 2 ? 1 : 2
+      cells[i] = Math.floor(rng() * 2) + 1
       placed++
     }
   }
@@ -48,41 +50,41 @@ describe('buildGeometry — render modes (full rebuild = per-frame fallback cost
     () => {
       buildGeometry(flat512)
     },
-    { iterations: 15, warmupIterations: 2 },
+    { time: 200, warmupIterations: 2 },
   )
   bench(
     'outline 512², 5%',
     () => {
       buildGeometry(outline512)
     },
-    { iterations: 10, warmupIterations: 2 },
+    { time: 200, warmupIterations: 1 },
   )
   bench(
     'outline 2048², 5%',
     () => {
       buildGeometry(outline2048)
     },
-    { iterations: 3, warmupIterations: 1 },
+    { iterations: 3, time: 2500, warmupIterations: 1 },
   )
   bench(
     'metaball 512², 5%',
     () => {
       buildGeometry(metaball512)
     },
-    { iterations: 8, warmupIterations: 1 },
+    { time: 200, warmupIterations: 1 },
   )
   bench(
     'grain texture 512², 5%',
     () => {
       buildGeometry(grain512)
     },
-    { iterations: 8, warmupIterations: 1 },
+    { iterations: 3, time: 6500, warmupIterations: 1 },
   )
   bench(
     'triangle grid 512², 5%',
     () => {
       buildGeometry(triangle512)
     },
-    { iterations: 8, warmupIterations: 1 },
+    { time: 200, warmupIterations: 1 },
   )
 })

@@ -1,0 +1,327 @@
+{
+  "cores": 8,
+  "deviceMemoryGb": 8,
+  "dpr": 2,
+  "finishedAt": "2026-09-30T22:33:01.630Z",
+  "framesLive": false,
+  "groups": [
+    {
+      "group": "loadDoc (composite + geometry + effects)",
+      "points": [
+        {
+          "max": 107.79999999981374,
+          "mean": 92.7750000001397,
+          "median": 90.5,
+          "min": 77.1000000005588,
+          "n": 4,
+          "name": "loadDoc 512²",
+          "ok": true,
+          "p95": 107.79999999981374
+        },
+        {
+          "max": 424.20000000018626,
+          "mean": 366.43333333327126,
+          "median": 364.79999999981374,
+          "min": 310.29999999981374,
+          "n": 3,
+          "name": "loadDoc 2048²",
+          "ok": true,
+          "p95": 424.20000000018626
+        },
+        {
+          "max": 926.5999999996275,
+          "mean": 842.7999999998137,
+          "median": 759,
+          "min": 759,
+          "n": 2,
+          "name": "loadDoc 4096²",
+          "ok": true,
+          "p95": 926.5999999996275
+        }
+      ]
+    },
+    {
+      "group": "commit (paintCells 2000 cells → effects)",
+      "points": [
+        {
+          "max": 33.799999999813735,
+          "mean": 17.5250000001397,
+          "median": 13.200000000186265,
+          "min": 8.200000000186265,
+          "n": 4,
+          "name": "commit 2000 cells on 512²",
+          "ok": true,
+          "p95": 33.799999999813735
+        },
+        {
+          "max": 39,
+          "mean": 37.96666666679084,
+          "median": 38.5,
+          "min": 36.40000000037253,
+          "n": 3,
+          "name": "commit 2000 cells on 2048²",
+          "ok": true,
+          "p95": 39
+        },
+        {
+          "max": 119.8999999994412,
+          "mean": 116.29999999981374,
+          "median": 116.29999999981374,
+          "min": 112.70000000018626,
+          "n": 3,
+          "name": "commit 2000 cells on 4096²",
+          "ok": true,
+          "p95": 119.8999999994412
+        }
+      ]
+    },
+    {
+      "group": "zoom (wheel step → full art rebuild)",
+      "points": [
+        {
+          "max": 3.900000000372529,
+          "mean": 2.887500000069849,
+          "median": 2.7999999998137355,
+          "min": 2.1000000005587935,
+          "n": 8,
+          "name": "wheel zoom step on 512²",
+          "ok": true,
+          "p95": 3.900000000372529
+        },
+        {
+          "max": 2.7999999998137355,
+          "mean": 2.6000000000931323,
+          "median": 2.6000000005587935,
+          "min": 2.2999999998137355,
+          "n": 6,
+          "name": "wheel zoom step on 2048²",
+          "ok": true,
+          "p95": 2.7999999998137355
+        },
+        {
+          "max": 2.7999999998137355,
+          "mean": 2.6000000000931323,
+          "median": 2.5,
+          "min": 2.400000000372529,
+          "n": 4,
+          "name": "wheel zoom step on 4096²",
+          "ok": true,
+          "p95": 2.7999999998137355
+        }
+      ]
+    },
+    {
+      "group": "pencil stroke e2e (60 moves + commit)",
+      "points": [
+        {
+          "max": 179,
+          "mean": 176.90000000006208,
+          "median": 178.79999999981374,
+          "min": 172.90000000037253,
+          "n": 3,
+          "name": "pencil stroke e2e ×60 on 512²",
+          "ok": true,
+          "p95": 179
+        },
+        {
+          "max": 207.6000000005588,
+          "mean": 198.9333333335817,
+          "median": 205,
+          "min": 184.20000000018626,
+          "n": 3,
+          "name": "pencil stroke e2e ×60 on 2048²",
+          "ok": true,
+          "p95": 207.6000000005588
+        },
+        {
+          "max": 281.1000000005588,
+          "mean": 278.65000000037253,
+          "median": 276.20000000018626,
+          "min": 276.20000000018626,
+          "n": 2,
+          "name": "pencil stroke e2e ×60 on 4096²",
+          "ok": true,
+          "p95": 281.1000000005588
+        }
+      ]
+    },
+    {
+      "group": "undo (restore previous doc state)",
+      "points": [
+        {
+          "max": 6.7999999998137355,
+          "mean": 5.499999999767169,
+          "median": 4.7000000001862645,
+          "min": 4.2999999998137355,
+          "n": 4,
+          "name": "undo on 512²",
+          "ok": true,
+          "p95": 6.7999999998137355
+        },
+        {
+          "max": 37,
+          "mean": 36.56666666672876,
+          "median": 36.799999999813735,
+          "min": 35.90000000037253,
+          "n": 3,
+          "name": "undo on 2048²",
+          "ok": true,
+          "p95": 37
+        },
+        {
+          "max": 104.90000000037253,
+          "mean": 102.85000000009313,
+          "median": 100.79999999981374,
+          "min": 100.79999999981374,
+          "n": 2,
+          "name": "undo on 4096²",
+          "ok": true,
+          "p95": 104.90000000037253
+        }
+      ]
+    },
+    {
+      "group": "node drag (pos-only graph edits → full pipeline)",
+      "points": [
+        {
+          "max": 307.79999999981374,
+          "mean": 296.25,
+          "median": 284.70000000018626,
+          "min": 284.70000000018626,
+          "n": 2,
+          "name": "node drag ×24 (pos-only clones, per-tick effects) on 512²",
+          "ok": true,
+          "p95": 307.79999999981374
+        },
+        {
+          "max": 3759.899999999441,
+          "mean": 3201.7499999995343,
+          "median": 2643.5999999996275,
+          "min": 2643.5999999996275,
+          "n": 2,
+          "name": "node drag ×14 (pos-only clones, per-tick effects) on 2048²",
+          "ok": true,
+          "p95": 3759.899999999441
+        },
+        {
+          "max": 10482.799999999814,
+          "mean": 10321.94999999972,
+          "median": 10161.099999999627,
+          "min": 10161.099999999627,
+          "n": 2,
+          "name": "node drag ×6 (pos-only clones, per-tick effects) on 4096²",
+          "ok": true,
+          "p95": 10482.799999999814
+        }
+      ]
+    },
+    {
+      "group": "param scrub (semantic graph edits → full pipeline)",
+      "points": [
+        {
+          "max": 538.8999999994412,
+          "mean": 526.1999999997206,
+          "median": 513.5,
+          "min": 513.5,
+          "n": 2,
+          "name": "param scrub ×24 (semantic changes, per-tick effects) on 512²",
+          "ok": true,
+          "p95": 538.8999999994412
+        },
+        {
+          "max": 4889.299999999814,
+          "mean": 4879,
+          "median": 4868.700000000186,
+          "min": 4868.700000000186,
+          "n": 2,
+          "name": "param scrub ×14 (semantic changes, per-tick effects) on 2048²",
+          "ok": true,
+          "p95": 4889.299999999814
+        },
+        {
+          "max": 10355.700000000186,
+          "mean": 8397.600000000093,
+          "median": 6439.5,
+          "min": 6439.5,
+          "n": 2,
+          "name": "param scrub ×6 (semantic changes, per-tick effects) on 4096²",
+          "ok": true,
+          "p95": 10355.700000000186
+        }
+      ]
+    },
+    {
+      "group": "wheel burst (10 ticks, one flush → art rebuilds)",
+      "points": [
+        {
+          "max": 3.2999999998137355,
+          "mean": 3.0250000001396984,
+          "median": 2.900000000372529,
+          "min": 2.7000000001862645,
+          "n": 4,
+          "name": "wheel burst ×10 (one flush) on 512²",
+          "ok": true,
+          "p95": 3.2999999998137355
+        },
+        {
+          "max": 3.2999999998137355,
+          "mean": 3.1000000002483525,
+          "median": 3.1000000005587935,
+          "min": 2.900000000372529,
+          "n": 3,
+          "name": "wheel burst ×10 (one flush) on 2048²",
+          "ok": true,
+          "p95": 3.2999999998137355
+        },
+        {
+          "max": 3.5,
+          "mean": 3.25,
+          "median": 3,
+          "min": 3,
+          "n": 2,
+          "name": "wheel burst ×10 (one flush) on 4096²",
+          "ok": true,
+          "p95": 3.5
+        }
+      ]
+    },
+    {
+      "group": "idle selection (marching-ants overlay frames)",
+      "points": [
+        {
+          "max": 503.40000000037253,
+          "mean": 502.9000000001397,
+          "median": 502.90000000037253,
+          "min": 502,
+          "n": 4,
+          "name": "idle selection overlay ×30 frames on 512²",
+          "ok": true,
+          "p95": 503.40000000037253
+        },
+        {
+          "max": 535,
+          "mean": 524.6333333334575,
+          "median": 519.5,
+          "min": 519.4000000003725,
+          "n": 3,
+          "name": "idle selection overlay ×30 frames on 2048²",
+          "ok": true,
+          "p95": 535
+        },
+        {
+          "max": 687.1000000005588,
+          "mean": 662.7500000004657,
+          "median": 638.4000000003725,
+          "min": 638.4000000003725,
+          "n": 2,
+          "name": "idle selection overlay ×30 frames on 4096²",
+          "ok": true,
+          "p95": 687.1000000005588
+        }
+      ]
+    }
+  ],
+  "startedAt": "2026-09-30T22:29:57.407Z",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ZCode/3.14.3 Chrome/146.0.7680.80 Electron/41.0.3 Safari/537.36",
+  "viewport": "1280×720"
+}
