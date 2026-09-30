@@ -10,11 +10,13 @@ import { REPEAT_NODES } from './repeats.node.ts'
 import { SOURCE_NODES } from './sources.node.ts'
 import { STYLE_NODES } from './styles.node.ts'
 import { TRANSFORM_NODES } from './transforms.node.ts'
+import { WARP_NODES } from './warp.node.ts'
 
 registerNodes([
   ...CROWN_NODES,
   ...SOURCE_NODES,
   ...TRANSFORM_NODES,
+  ...WARP_NODES,
   ...REPEAT_NODES,
   ...RAMP_NODES,
   ...STYLE_NODES,

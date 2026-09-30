@@ -1,13 +1,16 @@
-import type { ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
 
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
+import { SelectionFxMenu } from './selection-fx-menu.component.tsx'
+import type { TransformStaging } from './use-selection-transform.hook.ts'
 
 /**
  * Contextual action bar of the selection transform box (Illustrator/Figma pattern): duplicate,
  * flips, exact 90° rotations and delete as one-tap plates — the transform itself is drag-only, so
- * nothing here depends on hotkeys. Positioned above the box by the stage, clamped on-screen.
+ * nothing here depends on hotkeys. Positioned above the box by the stage, clamped on-screen; the
+ * ••• plate opens the effects menu (warps + stylize) anchored to the bar.
  */
 
 function DuplicateIcon() {
@@ -67,6 +70,16 @@ function TrashIcon() {
   )
 }
 
+function MoreIcon() {
+  return (
+    <>
+      <circle cx="3.5" cy="8" r="0.9" />
+      <circle cx="8" cy="8" r="0.9" />
+      <circle cx="12.5" cy="8" r="0.9" />
+    </>
+  )
+}
+
 function BarButton({
   label,
   onClick,
@@ -100,9 +113,18 @@ function BarButton({
   )
 }
 
-export function SelectionActions({ x, y }: { x: number; y: number }) {
+export function SelectionActions({
+  x,
+  y,
+  staging,
+}: {
+  x: number
+  y: number
+  staging: TransformStaging
+}) {
   const { t } = useI18n()
   const gridSquare = useStore((st) => st.doc.gridType) === 'square'
+  const [menuOpen, setMenuOpen] = useState(false)
   if (!gridSquare) return null
   const half = Math.PI / 2
   const act = (fn: (s: ReturnType<typeof useStore.getState>) => void) => () =>
@@ -146,6 +168,10 @@ export function SelectionActions({ x, y }: { x: number; y: number }) {
       <BarButton label={t('sel.delete')} onClick={act((st) => st.deleteSelection())}>
         <TrashIcon />
       </BarButton>
+      <BarButton label={t('sel.more')} onClick={() => setMenuOpen((v) => !v)}>
+        <MoreIcon />
+      </BarButton>
+      {menuOpen && <SelectionFxMenu staging={staging} onClose={() => setMenuOpen(false)} />}
     </div>
   )
 }

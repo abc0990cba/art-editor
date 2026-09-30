@@ -32,6 +32,7 @@ import type { GradientProjectEntry } from '../storage/projects.ts'
 import type { VectorPresetEntry } from '../storage/vector-presets.ts'
 import { createBrushesSlice } from './brushes.slice.ts'
 import { createDocSlice } from './doc.slice.ts'
+import { createEffectSlice } from './effect.slice.ts'
 import { createFillSlice } from './fill.slice.ts'
 import { createGlyphSlice } from './glyph.slice.ts'
 import { createGradientSlice, type GradientResult, type GradientStatus } from './gradient.slice.ts'
@@ -187,6 +188,17 @@ export interface State {
   transformSelection: (x: import('../engine/selection-xform.ts').SelectionXform) => void
   /** Clone the selected objects offset one cell down-right; clones become the selection (undoable) */
   duplicateSelection: () => void
+  /** Warp the selected objects' ink through a displacement field (undoable; square grid only) */
+  warpSelection: (
+    kind: import('../engine/warp.ts').WarpKind,
+    params?: Partial<import('../engine/warp.ts').WarpParams>,
+  ) => void
+  /** Outline / shadow / glow post-ops on the selection ink (undoable; square grid only) */
+  stylizeSelection: (
+    op: import('../engine/stylize.ts').StylizeOp,
+    params?: Partial<import('../engine/stylize.ts').StylizeParams>,
+    color?: string,
+  ) => void
   // layers panel — structure actions mutate the doc's scene tree (undoable)
   setActiveLayer: (id: number | null) => void
   addLayer: () => void
@@ -378,6 +390,7 @@ export const useStore = create<State>()(
       ...createFillSlice({ set, get }),
       ...createSelectionSlice({ set, get }),
       ...createTransformSlice({ set, get }),
+      ...createEffectSlice({ set, get }),
       ...createProjectSlice({ set, get }),
       ...createPresetsSlice({ set, get }),
       ...createBrushesSlice({ set, get }),

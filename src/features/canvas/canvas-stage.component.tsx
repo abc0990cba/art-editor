@@ -1335,7 +1335,13 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         onPointerLeave={() => setHover(null)}
       />
       <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 touch-none" />
-      {actionsPos && <SelectionActions x={actionsPos.x} y={actionsPos.y} />}
+      {actionsPos && (
+        <SelectionActions
+          x={actionsPos.x}
+          y={actionsPos.y}
+          staging={{ ensureStaging, scheduleStaging }}
+        />
+      )}
       {pendingLink && (
         <div className="border-line bg-panel text-body pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full border px-3 py-1 text-xs backdrop-blur">
           {t('view.linkPending')}
