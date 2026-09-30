@@ -45,8 +45,63 @@ const DEFAULT_SYMMETRY: SymmetryState = {
 }
 
 const TEXTURE_EFFECTS = ['none', 'grain', 'grunge', 'halftone'] as const
-const TEXTURE_DISTS = ['scatter', 'clumps', 'streaks', 'perlin', 'voronoi'] as const
-const TEXTURE_SHAPES = ['square', 'dot', 'chip'] as const
+const TEXTURE_DISTS = [
+  'scatter',
+  'clumps',
+  'streaks',
+  'perlin',
+  'voronoi',
+  'waves',
+  'sunburst',
+  'spiral',
+  'honeycomb',
+  'scales',
+  'weave',
+  'checker',
+  'fade',
+  'bayer',
+] as const
+const TEXTURE_SHAPES = [
+  'square',
+  'dot',
+  'chip',
+  'triangle',
+  'diamond',
+  'cross',
+  'star',
+  'hex',
+  'ring',
+  'dash',
+] as const
+const TEXTURE_GAP_MODES = ['cell', 'figure'] as const
+
+/** Every compared texture field, in one place so equality checks never drift from the type. */
+const TEXTURE_FIELDS = [
+  'effect',
+  'amount',
+  'scale',
+  'sizeMin',
+  'sizeMax',
+  'shape',
+  'edge',
+  'dist',
+  'gap',
+  'gapMode',
+  'even',
+  'angle',
+  'seed',
+  'jitter',
+  'variation',
+  'wobble',
+  'merge',
+  'dropout',
+  'spray',
+  'ramp',
+] as const
+
+function textureEqual(a: TextureSettings, b: TextureSettings): boolean {
+  return TEXTURE_FIELDS.every((f) => a[f] === b[f])
+}
 
 /** Snapshot of the current editor configuration (document settings + symmetry). */
 export function presetFromDoc(doc: Doc, symmetry: SymmetryState): PresetConfig {
@@ -169,6 +224,10 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
           ? (tx.dist as TextureSettings['dist'])
           : base.texture.dist,
         gap: clamp(Number(tx.gap ?? base.texture.gap), 0, 0.45),
+        gapMode: TEXTURE_GAP_MODES.includes(tx.gapMode as TextureSettings['gapMode'])
+          ? (tx.gapMode as TextureSettings['gapMode'])
+          : base.texture.gapMode,
+        even: tx.even === undefined ? base.texture.even : tx.even === true,
         angle: clamp(Number(tx.angle ?? base.texture.angle), 0, 180),
         seed: Math.max(0, Math.round(Number(tx.seed) || base.texture.seed)),
         jitter: clamp(Number(tx.jitter ?? base.texture.jitter), 0, 100),
@@ -247,24 +306,7 @@ export function configMatchesState(
     c.metaball.perColor === config.metaball.perColor &&
     c.metaball.quality === config.metaball.quality &&
     c.metaball.squareEdges === config.metaball.squareEdges &&
-    c.texture.effect === config.texture.effect &&
-    c.texture.amount === config.texture.amount &&
-    c.texture.scale === config.texture.scale &&
-    c.texture.sizeMin === config.texture.sizeMin &&
-    c.texture.sizeMax === config.texture.sizeMax &&
-    c.texture.shape === config.texture.shape &&
-    c.texture.edge === config.texture.edge &&
-    c.texture.dist === config.texture.dist &&
-    c.texture.gap === config.texture.gap &&
-    c.texture.angle === config.texture.angle &&
-    c.texture.seed === config.texture.seed &&
-    c.texture.jitter === config.texture.jitter &&
-    c.texture.variation === config.texture.variation &&
-    c.texture.wobble === config.texture.wobble &&
-    c.texture.merge === config.texture.merge &&
-    c.texture.dropout === config.texture.dropout &&
-    c.texture.spray === config.texture.spray &&
-    c.texture.ramp === config.texture.ramp &&
+    textureEqual(c.texture, config.texture) &&
     c.symmetry.mode === config.symmetry.mode &&
     c.symmetry.n === config.symmetry.n &&
     c.symmetry.showGuides === config.symmetry.showGuides &&

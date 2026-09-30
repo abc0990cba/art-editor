@@ -65,10 +65,37 @@ export interface MetaballSettings {
 type TextureEffect = 'none' | 'grain' | 'grunge' | 'halftone'
 
 /** Spatial distribution of the texture specks. */
-type TextureDist = 'scatter' | 'clumps' | 'streaks' | 'perlin' | 'voronoi'
+type TextureDist =
+  | 'scatter'
+  | 'clumps'
+  | 'streaks'
+  | 'perlin'
+  | 'voronoi'
+  | 'waves'
+  | 'sunburst'
+  | 'spiral'
+  | 'honeycomb'
+  | 'scales'
+  | 'weave'
+  | 'checker'
+  | 'fade'
+  | 'bayer'
 
 /** Speck silhouette (halftone always uses dots). */
-type TextureShape = 'square' | 'dot' | 'chip'
+type TextureShape =
+  | 'square'
+  | 'dot'
+  | 'chip'
+  | 'triangle'
+  | 'diamond'
+  | 'cross'
+  | 'star'
+  | 'hex'
+  | 'ring'
+  | 'dash'
+
+/** What the clean gap margin keeps distance from. */
+type TextureGapMode = 'cell' | 'figure'
 
 export interface TextureSettings {
   effect: TextureEffect
@@ -88,6 +115,10 @@ export interface TextureSettings {
   dist: TextureDist
   /** Clean margin on sides facing empty space, 0..0.45 of a cell; connected sides stay textured */
   gap: number
+  /** Gap reference: every open pixel side ('cell') or the whole figure's outer silhouette ('figure') */
+  gapMode: TextureGapMode
+  /** Grain/grunge: keep specks a minimum distance apart for an even, Poisson-like scatter */
+  even: boolean
   /** Streaks: band direction; halftone: screen-angle grid rotation, degrees 0..180 */
   angle: number
   /** Random seed; the same seed reproduces the exact same texture */
@@ -297,6 +328,8 @@ export function defaultDoc(): Doc {
       edge: 100,
       dist: 'scatter',
       gap: 0,
+      gapMode: 'cell',
+      even: false,
       angle: 45,
       seed: 1,
       jitter: 0,

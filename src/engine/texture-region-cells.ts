@@ -1,5 +1,13 @@
-import { clamp, distWeight, emitFleck, lerp, MAX_REGION_FLECKS, valueNoise } from './texture-core'
+import {
+  clamp,
+  emitFleck,
+  fleckRotation,
+  lerp,
+  MAX_REGION_FLECKS,
+  valueNoise,
+} from './texture-core'
 import { htKey } from './texture-halftone'
+import { distWeight } from './texture-patterns'
 import type { CellRand, RegionBounds, RegionState, TextureCell } from './texture-region'
 
 /**
@@ -40,6 +48,35 @@ function openEdgeDist(c: TextureCell, b: RegionBounds, cx: number, cy: number): 
   if (!c.connectedT) d = Math.min(d, cy - b.top)
   if (!c.connectedB) d = Math.min(d, b.bottom - cy)
   return d
+}
+
+/** Edge reference for grunge wear: the figure silhouette in figure mode, cell sides otherwise. */
+function edgeRef(s: RegionState, k: number, cx: number, cy: number): number {
+  if (s.fig) return s.fig.edgeDist(cx, cy)
+  return openEdgeDist(s.cells[k], s.bounds[k], cx, cy)
+}
+
+/** Even-scatter gate: reject a center closer than 0.8 lattice pitches to an accepted one. */
+function spaced(s: RegionState, cx: number, cy: number): boolean {
+  const d = 0.8 * s.Ld
+  const bx = Math.floor(cx / d)
+  const by = Math.floor(cy / d)
+  for (let oy = -1; oy <= 1; oy++) {
+    for (let ox = -1; ox <= 1; ox++) {
+      const arr = s.taken.get((bx + ox) * 65_536 + by + oy)
+      if (!arr) continue
+      for (let i = 0; i < arr.length; i += 2) {
+        const dx = arr[i] - cx
+        const dy = arr[i + 1] - cy
+        if (dx * dx + dy * dy < d * d) return false
+      }
+    }
+  }
+  const key = bx * 65_536 + by
+  const arr = s.taken.get(key)
+  if (arr) arr.push(cx, cy)
+  else s.taken.set(key, [cx, cy])
+  return true
 }
 
 /** Halftone candidate on the (optionally rotated) screen grid, plus optional spray specks. */
@@ -118,21 +155,16 @@ export function regionScatterCell(s: RegionState, I: number, J: number, r: CellR
   const cy = (J + 0.5) * s.Ld
   const k = s.locate(cx, cy)
   if (k === undefined) return
-  let weight = distWeight(s.t, cx, cy, s.Ld)
+  let weight = distWeight(s.t, cx, cy, s.Ld, s.dc)
   if (s.t.effect === 'grunge') {
-    weight *= clamp(
-      1 +
-        0.5 * s.e -
-        (0.5 + 0.5 * s.e) * Math.min(1, openEdgeDist(s.cells[k], s.bounds[k], cx, cy) / s.band),
-      s.minW,
-      1,
-    )
+    const od = Math.min(1, edgeRef(s, k, cx, cy) / s.band)
+    weight *= clamp(1 + 0.5 * s.e - (0.5 + 0.5 * s.e) * od, s.minW, 1)
   }
   if (r.r1 >= s.p * weight * s.keep) return
   // speck bounding box: size range plus an edge-wear bonus for grunge
   let a: number = lerp(s.t.sizeMin, s.t.sizeMax, r.r3) * s.Ld
   if (s.t.effect === 'grunge') {
-    a *= 1 + 0.35 * (1 - Math.min(1, openEdgeDist(s.cells[k], s.bounds[k], cx, cy) / s.band))
+    a *= 1 + 0.35 * (1 - Math.min(1, edgeRef(s, k, cx, cy) / s.band))
   }
   a = Math.min(a, 0.6 * s.Ld)
   const jx = (r.r2 - 0.5) * (s.Ld - a) * 0.95
@@ -147,6 +179,7 @@ export function regionScatterCell(s: RegionState, I: number, J: number, r: CellR
     fx = pulled[0]
     fy = pulled[1]
   }
-  s.out += emitFleck(s.t.shape, fx, fy, a, s.t.shape === 'chip' ? r.r5 * (Math.PI / 2) : 0)
+  if (s.even && !spaced(s, fx + a / 2, fy + a / 2)) return
+  s.out += emitFleck(s.t.shape, fx, fy, a, fleckRotation(s.t.shape, s.t.angle, r.r5))
   s.count++
 }

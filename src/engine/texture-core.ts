@@ -1,9 +1,9 @@
 import type { TextureSettings } from './doc'
 
 /**
- * Shared primitives of the texture family: hashing / PRNG, path formatting, fleck emitters and the
- * speck distributions (scatter, clumps, perlin, voronoi, streaks). Everything here is pure and
- * platform-independent, so baked patterns stay identical across canvas, PNG and SVG export.
+ * Shared primitives of the texture family: hashing / PRNG, path formatting, fleck emitters and
+ * noise. Everything here is pure and platform-independent, so baked patterns stay identical across
+ * canvas, PNG and SVG export. Speck distributions live in `texture-patterns`.
  */
 
 /** Max flecks per region / metaball blob — bounds path data size. */
@@ -56,8 +56,8 @@ export function circleFleck(cx: number, cy: number, r: number): string {
 
 /**
  * Fleck emission for the configured shape. `a` is the bounding-box side; chips are squares rotated
- * by `rot` radians with their AABB kept equal to `a`, so the non-overlap lattice invariant holds
- * for every rotation.
+ * by `rot` radians with their AABB kept equal to `a`, and every other rotated silhouette stays
+ * inside its circumscribed circle, so the non-overlap lattice invariant holds for all shapes.
  */
 export function emitFleck(
   shape: TextureSettings['shape'],
@@ -68,24 +68,118 @@ export function emitFleck(
 ): string {
   if (shape === 'dot') return circleFleck(fx + a / 2, fy + a / 2, a / 2)
   if (shape === 'chip' && rot > 0) {
+    // side shrunk so the rotated AABB stays equal to a
+    const h = a / (2 * (Math.cos(rot) + Math.sin(rot)))
+    return polyFleck(
+      turnPts(
+        fx + a / 2,
+        fy + a / 2,
+        [
+          [-h, -h],
+          [h, -h],
+          [h, h],
+          [-h, h],
+        ],
+        rot,
+      ),
+    )
+  }
+  if (shape === 'triangle')
+    return polyFleck(ringPts(fx + a / 2, fy + a / 2, [a / 2, a / 2, a / 2], rot - Math.PI / 2))
+  if (shape === 'star') {
+    const R = a / 2
+    const radii = [R, a / 5, R, a / 5, R, a / 5, R, a / 5, R, a / 5]
+    return polyFleck(ringPts(fx + a / 2, fy + a / 2, radii, rot))
+  }
+  if (shape === 'hex')
+    return polyFleck(
+      ringPts(fx + a / 2, fy + a / 2, [a / 2, a / 2, a / 2, a / 2, a / 2, a / 2], rot),
+    )
+  if (shape === 'diamond') {
     const cx = fx + a / 2
     const cy = fy + a / 2
-    const s = a / (Math.cos(rot) + Math.sin(rot))
-    const h = s / 2
-    const ca = Math.cos(rot)
-    const sa = Math.sin(rot)
-    const corners: [number, number][] = [
-      [-h, -h],
-      [h, -h],
-      [h, h],
-      [-h, h],
-    ].map(([x, y]) => [cx + x * ca - y * sa, cy + x * sa + y * ca])
-    return `M${fmt(corners[0][0])} ${fmt(corners[0][1])}${corners
-      .slice(1)
-      .map(([x, y]) => `L${fmt(x)} ${fmt(y)}`)
-      .join('')}z`
+    return polyFleck([
+      [cx, fy],
+      [fx + a, cy],
+      [cx, fy + a],
+      [fx, cy],
+    ])
+  }
+  if (shape === 'cross') {
+    const hw = a * 0.18
+    const A = a / 2
+    const p: [number, number][] = [
+      [-hw, -A],
+      [hw, -A],
+      [hw, -hw],
+      [A, -hw],
+      [A, hw],
+      [hw, hw],
+      [hw, A],
+      [-hw, A],
+      [-hw, hw],
+      [-A, hw],
+      [-A, -hw],
+      [-hw, -hw],
+    ]
+    return polyFleck(turnPts(fx + a / 2, fy + a / 2, p, rot))
+  }
+  if (shape === 'ring') {
+    return circleFleck(fx + a / 2, fy + a / 2, a / 2) + circleFleck(fx + a / 2, fy + a / 2, a / 4)
+  }
+  if (shape === 'dash') {
+    // short bar through the box center, inside the circumscribed circle at every rotation
+    const hl = a * 0.46
+    const hh = a * 0.18
+    return polyFleck(
+      turnPts(
+        fx + a / 2,
+        fy + a / 2,
+        [
+          [-hl, -hh],
+          [hl, -hh],
+          [hl, hh],
+          [-hl, hh],
+        ],
+        rot,
+      ),
+    )
   }
   return squareFleck(fx, fy, a)
+}
+
+/** Polygon subpath from absolute points. */
+function polyFleck(pts: [number, number][]): string {
+  return `M${fmt(pts[0][0])} ${fmt(pts[0][1])}${pts
+    .slice(1)
+    .map(([x, y]) => `L${fmt(x)} ${fmt(y)}`)
+    .join('')}z`
+}
+
+/** Vertices of a regular polygon (one radius per vertex, evenly spaced from `rot`). */
+function ringPts(cx: number, cy: number, radii: number[], rot: number): [number, number][] {
+  return radii.map((r, k) => {
+    const th = rot + (k * 2 * Math.PI) / radii.length
+    return [cx + r * Math.cos(th), cy + r * Math.sin(th)]
+  })
+}
+
+/** Polygon rotated by `rot` around the given center. */
+function turnPts(cx: number, cy: number, pts: [number, number][], rot: number): [number, number][] {
+  const ca = Math.cos(rot)
+  const sa = Math.sin(rot)
+  return pts.map(([px, py]) => [cx + px * ca - py * sa, cy + px * sa + py * ca])
+}
+
+/**
+ * Random rotation a fleck of the given shape spins by: chips keep their classic quarter-turn range,
+ * dashes follow the configured angle with a seeded spread, triangles/stars/crosses tumble freely.
+ */
+export function fleckRotation(shape: TextureSettings['shape'], angle: number, r5: number): number {
+  if (shape === 'chip') return r5 * (Math.PI / 2)
+  if (shape === 'dash') return (clamp(angle, 0, 180) * Math.PI) / 180 + (r5 - 0.5) * 0.9
+  if (shape === 'triangle' || shape === 'star' || shape === 'cross') return r5 * Math.PI * 2
+  return 0
 }
 
 /** Smooth bilinear value noise on an integer lattice, 0..1. */
@@ -101,52 +195,4 @@ export function valueNoise(gx: number, gy: number, seed: number): number {
     (v(ix, iy) * (1 - sx) + v(ix + 1, iy) * sx) * (1 - sy) +
     (v(ix, iy + 1) * (1 - sx) + v(ix + 1, iy + 1) * sx) * sy
   )
-}
-
-/**
- * Probability multiplier for a candidate speck at doc-unit position (x, y): scatter = uniform;
- * clumps = single-octave stains; perlin = 3-octave fractal noise for natural multi-scale mottling;
- * voronoi = seeded stain colonies; streaks = directional wear bands along the configured angle.
- */
-export function distWeight(t: TextureSettings, x: number, y: number, pitch: number): number {
-  if (t.dist === 'clumps') {
-    return clamp(0.1 + 1.8 * valueNoise(x / (pitch * 3), y / (pitch * 3), t.seed), 0, 1)
-  }
-  if (t.dist === 'perlin') {
-    const n =
-      0.5 * valueNoise(x / (pitch * 3.2), y / (pitch * 3.2), t.seed) +
-      0.3 * valueNoise(x / (pitch * 1.6), y / (pitch * 1.6), t.seed + 101) +
-      0.2 * valueNoise(x / (pitch * 0.8), y / (pitch * 0.8), t.seed + 211)
-    return clamp(0.12 + 1.76 * n, 0, 1)
-  }
-  if (t.dist === 'voronoi') {
-    const step = pitch * 5
-    const ix = Math.floor(x / step)
-    const iy = Math.floor(y / step)
-    let w = 0.08
-    for (let oy = -1; oy <= 1; oy++) {
-      for (let ox = -1; ox <= 1; ox++) {
-        const lx = ix + ox
-        const ly = iy + oy
-        const r1 = hash2(lx, ly, t.seed) / 4_294_967_296
-        const r2 = hash2(lx, ly, t.seed + 17) / 4_294_967_296
-        const r3 = hash2(lx, ly, t.seed + 53) / 4_294_967_296
-        const px = (lx + 0.15 + 0.7 * r1) * step
-        const py = (ly + 0.15 + 0.7 * r2) * step
-        const radius = step * (0.6 + 0.8 * r3)
-        const dx = x - px
-        const dy = y - py
-        const d2 = (dx * dx + dy * dy) / (radius * radius)
-        if (d2 < 1) w = Math.max(w, (0.6 + 0.5 * r2) * (1 - d2 * d2))
-      }
-    }
-    return Math.min(1, w)
-  }
-  if (t.dist === 'streaks') {
-    const theta = (clamp(t.angle, 0, 180) * Math.PI) / 180
-    const phase = (t.seed % 7) * 0.9
-    const s = (x * Math.cos(theta) + y * Math.sin(theta)) / pitch
-    return clamp(0.85 + 0.55 * Math.sin((s * 2 * Math.PI) / 3 + phase), 0.15, 1)
-  }
-  return 1
 }

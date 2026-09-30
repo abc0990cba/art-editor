@@ -1,8 +1,8 @@
 import type { TextureSettings } from './doc'
 import {
   clamp,
-  distWeight,
   emitFleck,
+  fleckRotation,
   hash,
   ISO,
   lerp,
@@ -11,6 +11,7 @@ import {
   valueNoise,
 } from './texture-core'
 import { emitHalftoneDots, filterSpray, htKey, type HtDot } from './texture-halftone'
+import { angleRad, distWeight, type DistContext } from './texture-patterns'
 
 /**
  * Texture hole fragments for a metaball blob, sampled from its scalar field. A candidate survives
@@ -39,6 +40,8 @@ interface FieldMetrics {
   p: number
   e: number
   minW: number
+  /** Figure geometry the structured distributions anchor to */
+  dc: DistContext
 }
 
 /** Mutable accumulator for one field scan. */
@@ -252,7 +255,7 @@ function fieldScatterCell(s: FieldState, i: number, j: number, rand: () => numbe
   const r3 = rand()
   const r4 = rand()
   const r5 = rand()
-  let weight = distWeight(s.t, cx, cy, s.spacing)
+  let weight = distWeight(s.t, cx, cy, s.spacing, s.dc)
   if (s.t.effect === 'grunge') {
     // wear follows distance to the contour, not raw field magnitude
     weight *= clamp(1 + 0.5 * s.e - (0.5 + 0.5 * s.e) * Math.min(1, depth / s.band), s.minW, 1)
@@ -269,7 +272,7 @@ function fieldScatterCell(s: FieldState, i: number, j: number, rand: () => numbe
     fx = nudged[0]
     fy = nudged[1]
   }
-  s.out += emitFleck(s.t.shape, fx, fy, a, s.t.shape === 'chip' ? r5 * (Math.PI / 2) : 0)
+  s.out += emitFleck(s.t.shape, fx, fy, a, fleckRotation(s.t.shape, s.t.angle, r5))
   s.count++
 }
 
@@ -295,6 +298,13 @@ export function fieldTextureFragments(
   const minW = 1 - 0.85 * e
   const band = 0.25 * (clamp(t.scale, 0.1, 8) / sub)
   const gapU = clamp(t.gap, 0, 0.45) / sub
+  const dc: DistContext = {
+    cx: ((fw - 1) * field.scale) / 2,
+    cy: ((fh - 1) * field.scale) / 2,
+    rx: ((fw - 1) * field.scale) / 2,
+    ry: ((fh - 1) * field.scale) / 2,
+    theta: angleRad(t.angle),
+  }
   const grid = fieldGridConfig(field, t, pitch, halftone, p)
   const s: FieldState = {
     field,
@@ -306,6 +316,7 @@ export function fieldTextureFragments(
     p,
     e,
     minW,
+    dc,
     keep: grid.keep,
     ca: grid.ca,
     sa: grid.sa,

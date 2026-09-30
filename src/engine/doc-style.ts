@@ -35,6 +35,8 @@ export function sameElementStyle(a: ElementStyle, b: ElementStyle): boolean {
     a.texture.edge === b.texture.edge &&
     a.texture.dist === b.texture.dist &&
     a.texture.gap === b.texture.gap &&
+    a.texture.gapMode === b.texture.gapMode &&
+    a.texture.even === b.texture.even &&
     a.texture.angle === b.texture.angle &&
     a.texture.seed === b.texture.seed &&
     a.texture.jitter === b.texture.jitter &&

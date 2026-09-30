@@ -63,6 +63,8 @@ function entry(id: string, name: string, updatedAt: number): PixelProjectEntry {
         edge: 100,
         dist: 'scatter',
         gap: 0,
+        gapMode: 'cell',
+        even: false,
         angle: 45,
         seed: 1,
         jitter: 0,

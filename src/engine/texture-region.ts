@@ -1,6 +1,8 @@
 import type { TextureSettings } from './doc'
 import { clamp, hash2, mulberry32, MAX_REGION_FLECKS } from './texture-core'
+import type { FigureSpace } from './texture-figure'
 import { emitHalftoneDots, filterSpray, type HtDot } from './texture-halftone'
+import { angleRad, type DistContext } from './texture-patterns'
 import { regionHalftoneCell, regionScatterCell } from './texture-region-cells'
 
 /**
@@ -49,11 +51,18 @@ interface RegionMetrics {
   L: number
   /** Lattice pitch in doc units */
   Ld: number
+  /** Gap margin in doc units */
+  gapU: number
   band: number
   p: number
   e: number
   minW: number
   halftone: boolean
+  /** Whole-figure silhouette space (gapMode 'figure' only) */
+  fig: FigureSpace | undefined
+  /** Figure geometry the structured distributions anchor to */
+  dc: DistContext
+  even: boolean
 }
 
 /** Mutable accumulator for one region scan. */
@@ -65,6 +74,8 @@ export interface RegionState extends RegionMetrics {
   keep: number
   locate: (px: number, py: number) => number | undefined
   fits: (fx: number, fy: number, a: number) => boolean
+  /** Accepted fleck centers of the even-scatter mode, bucketed by minimum distance */
+  taken: Map<number, number[]>
   dots: HtDot[]
   dotKeys: number[]
   dotAt: Map<number, number>
@@ -119,6 +130,30 @@ function cornerPointOk({ px, py, ccx, ccy, r, corner, c }: CornerProbe): boolean
   return dx * dx + dy * dy <= r * r
 }
 
+/** Point inside the cell's painted fill rect, corner fillets included. */
+export function fillPointOk(c: TextureCell, px: number, py: number): boolean {
+  if (px < c.x || px > c.x + c.w || py < c.y || py > c.y + c.h) return false
+  const [tl, tr, br, bl] = c.radii
+  if (px < c.x + tl && py < c.y + tl)
+    return cornerPointOk({ px, py, ccx: c.x + tl, ccy: c.y + tl, r: tl, corner: 'tl', c })
+  if (px > c.x + c.w - tr && py < c.y + tr)
+    return cornerPointOk({ px, py, ccx: c.x + c.w - tr, ccy: c.y + tr, r: tr, corner: 'tr', c })
+  if (px > c.x + c.w - br && py > c.y + c.h - br) {
+    return cornerPointOk({
+      px,
+      py,
+      ccx: c.x + c.w - br,
+      ccy: c.y + c.h - br,
+      r: br,
+      corner: 'br',
+      c,
+    })
+  }
+  if (px < c.x + bl && py > c.y + c.h - bl)
+    return cornerPointOk({ px, py, ccx: c.x + bl, ccy: c.y + c.h - bl, r: bl, corner: 'bl', c })
+  return true
+}
+
 /** Connected sides run to the tile edge, open sides are inset by the gap margin. */
 function regionBounds(cells: TextureCell[], gapU: number): RegionBounds[] {
   return cells.map((c) => ({
@@ -134,6 +169,8 @@ function regionSampler(
   cells: TextureCell[],
   bounds: RegionBounds[],
   sub: number,
+  fig: FigureSpace | undefined,
+  gapU: number,
 ): Pick<RegionState, 'locate' | 'fits'> {
   // spatial lookup: buffer tile under a doc point
   const index = new Map<number, number>()
@@ -152,29 +189,11 @@ function regionSampler(
   const sampleOk = (px: number, py: number): boolean => {
     const k = locate(px, py)
     if (k === undefined) return false
-    const c = cells[k]
     const b = bounds[k]
-    if (px < c.x || px > c.x + c.w || py < c.y || py > c.y + c.h) return false
     if (px < b.left || px > b.right || py < b.top || py > b.bottom) return false
-    const [tl, tr, br, bl] = c.radii
-    if (px < c.x + tl && py < c.y + tl)
-      return cornerPointOk({ px, py, ccx: c.x + tl, ccy: c.y + tl, r: tl, corner: 'tl', c })
-    if (px > c.x + c.w - tr && py < c.y + tr)
-      return cornerPointOk({ px, py, ccx: c.x + c.w - tr, ccy: c.y + tr, r: tr, corner: 'tr', c })
-    if (px > c.x + c.w - br && py > c.y + c.h - br) {
-      return cornerPointOk({
-        px,
-        py,
-        ccx: c.x + c.w - br,
-        ccy: c.y + c.h - br,
-        r: br,
-        corner: 'br',
-        c,
-      })
-    }
-    if (px < c.x + bl && py > c.y + c.h - bl)
-      return cornerPointOk({ px, py, ccx: c.x + bl, ccy: c.y + c.h - bl, r: bl, corner: 'bl', c })
-    return true
+    if (!fillPointOk(cells[k], px, py)) return false
+    // figure mode: the margin is measured from the whole silhouette, not per side
+    return !(fig && gapU > 0 && fig.edgeDist(px, py) < gapU)
   }
   const fits = (fx: number, fy: number, a: number): boolean => {
     const mx = fx + a / 2
@@ -260,12 +279,14 @@ function regionGridRange(m: RegionMetrics): RegionGrid {
 
 /**
  * Texture hole fragments for a whole same-color region. Candidates are sampled against the actual
- * painted fills (including corner fillets), so holes never land outside the artwork.
+ * painted fills (including corner fillets), so holes never land outside the artwork. `fig` carries
+ * the combined-color silhouette for figure-level gaps; each color keeps its own seamless pattern.
  */
 export function regionTextureFragments(
   cells: TextureCell[],
   t: TextureSettings,
   key: number,
+  fig?: FigureSpace,
 ): string {
   if (cells.length === 0 || t.effect === 'none' || t.amount <= 0) return ''
   const sub = Math.max(1, Math.round(1 / (cells[0].cx1 - cells[0].cx0)))
@@ -277,18 +298,41 @@ export function regionTextureFragments(
   const p = t.amount / 100
   const e = clamp(t.edge, 0, 100) / 100
   const minW = 1 - 0.85 * e
+  // structured patterns anchor to the figure's tile envelope
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const c of cells) {
+    minX = Math.min(minX, c.cx0)
+    minY = Math.min(minY, c.cy0)
+    maxX = Math.max(maxX, c.cx1)
+    maxY = Math.max(maxY, c.cy1)
+  }
+  const dc: DistContext = {
+    cx: (minX + maxX) / 2,
+    cy: (minY + maxY) / 2,
+    rx: (maxX - minX) / 2,
+    ry: (maxY - minY) / 2,
+    theta: angleRad(t.angle),
+  }
+  // figure mode: no per-side insets — the silhouette distance test does the gap
   const metrics: RegionMetrics = {
     cells,
-    bounds: regionBounds(cells, gapU),
+    bounds: regionBounds(cells, fig ? 0 : gapU),
     t,
     sub,
     L,
     Ld,
+    gapU,
     band,
     p,
     e,
     minW,
     halftone,
+    fig,
+    dc,
+    even: t.even === true && !halftone,
   }
   const grid = regionGridRange(metrics)
   const s: RegionState = {
@@ -298,7 +342,8 @@ export function regionTextureFragments(
     prMin: grid.prMin,
     prMax: grid.prMax,
     keep: grid.keep,
-    ...regionSampler(cells, metrics.bounds, sub),
+    ...regionSampler(cells, metrics.bounds, sub, fig, gapU),
+    taken: new Map<number, number[]>(),
     dots: [],
     dotKeys: [],
     dotAt: new Map<number, number>(),

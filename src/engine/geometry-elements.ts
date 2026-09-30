@@ -68,6 +68,8 @@ export function elementStyleKey(el: ElementStyle): string {
     el.texture.edge,
     el.texture.dist,
     el.texture.gap,
+    el.texture.gapMode,
+    el.texture.even,
     el.texture.angle,
     el.texture.seed,
     el.texture.jitter,

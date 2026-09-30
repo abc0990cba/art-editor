@@ -24,8 +24,35 @@ const hex = (s: unknown): string =>
   typeof s === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(s) ? s.toLowerCase() : ''
 
 const TEXTURE_EFFECTS = ['none', 'grain', 'grunge', 'halftone'] as const
-const TEXTURE_DISTS = ['scatter', 'clumps', 'streaks', 'perlin', 'voronoi'] as const
-const TEXTURE_SHAPES = ['square', 'dot', 'chip'] as const
+const TEXTURE_DISTS = [
+  'scatter',
+  'clumps',
+  'streaks',
+  'perlin',
+  'voronoi',
+  'waves',
+  'sunburst',
+  'spiral',
+  'honeycomb',
+  'scales',
+  'weave',
+  'checker',
+  'fade',
+  'bayer',
+] as const
+const TEXTURE_SHAPES = [
+  'square',
+  'dot',
+  'chip',
+  'triangle',
+  'diamond',
+  'cross',
+  'star',
+  'hex',
+  'ring',
+  'dash',
+] as const
+const TEXTURE_GAP_MODES = ['cell', 'figure'] as const
 
 function deserializeTexture(raw: unknown, base: Doc['texture']): Doc['texture'] {
   const t = (raw ?? {}) as Partial<Doc['texture']> & { size?: unknown }
@@ -50,6 +77,10 @@ function deserializeTexture(raw: unknown, base: Doc['texture']): Doc['texture'] 
       ? (t.dist as Doc['texture']['dist'])
       : base.dist,
     gap: clamp(Number(t.gap ?? base.gap), 0, 0.45),
+    gapMode: TEXTURE_GAP_MODES.includes(t.gapMode as Doc['texture']['gapMode'])
+      ? (t.gapMode as Doc['texture']['gapMode'])
+      : base.gapMode,
+    even: t.even === undefined ? base.even : t.even === true,
     angle: clamp(Number(t.angle ?? base.angle), 0, 180),
     seed: Math.max(0, Math.round(Number(t.seed) || base.seed)),
     jitter: clamp(Number(t.jitter ?? base.jitter), 0, 100),

@@ -3,6 +3,7 @@ import { bufferHeight, bufferWidth, cellColor } from './doc'
 import type { StyledPath } from './geometry'
 import { marchingSquares, type Pt } from './marching-squares.ts'
 import { regionTextureFragments, type TextureCell } from './texture'
+import { figureSpace, type FigureSpace } from './texture-figure'
 
 /**
  * Outline render mode: same-color cells connected by an edge form one silhouette traced exactly
@@ -27,6 +28,13 @@ export function outlineGeometry(
       order.push(v)
     }
   }
+
+  // figure-level gap: one silhouette space over every color, so the margin hugs the merged
+  // outline of the whole picture and internal color borders stay seamless
+  const fig: FigureSpace | undefined =
+    doc.texture.effect !== 'none' && doc.texture.gapMode === 'figure'
+      ? figureSpace(allOutlineCells(doc, cells), doc.sub)
+      : undefined
 
   const paths: StyledPath[] = []
   for (const v of order) {
@@ -61,7 +69,8 @@ export function outlineGeometry(
       doc.style.cornerStyle === 'chamfer',
       keepCorner,
     )
-    if (d && doc.texture.effect !== 'none') d += cellTextureFragments(doc, cells, v, doc.texture)
+    if (d && doc.texture.effect !== 'none')
+      d += cellTextureFragments(doc, cells, v, doc.texture, fig)
     if (d) paths.push({ d, fill: cellColor(doc, v) ?? '#888' })
     // bridges go on a separate same-color path: inside the silhouette path their area would
     // cancel against the loops under the evenodd rule
@@ -95,6 +104,56 @@ function appendLinkStrokes(doc: Doc, links: readonly Link[], paths: StyledPath[]
 
 const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
 
+/** Texture cell record of one painted buffer cell (convex corner fillets included). */
+function outlineCell(
+  doc: Doc,
+  cells: Uint16Array,
+  bw: number,
+  bh: number,
+  x: number,
+  y: number,
+): TextureCell {
+  const v = cells[y * bw + x]
+  const isV = (xx: number, yy: number) =>
+    xx >= 0 && xx < bw && yy >= 0 && yy < bh && cells[yy * bw + xx] === v
+  const rConvex = doc.style.convexRadius / doc.sub
+  const cell = 1 / doc.sub
+  return {
+    x: x / doc.sub,
+    y: y / doc.sub,
+    w: cell,
+    h: cell,
+    radii: [
+      !isV(x - 1, y) && !isV(x, y - 1) ? rConvex : 0, // tl
+      !isV(x + 1, y) && !isV(x, y - 1) ? rConvex : 0, // tr
+      !isV(x + 1, y) && !isV(x, y + 1) ? rConvex : 0, // br
+      !isV(x - 1, y) && !isV(x, y + 1) ? rConvex : 0, // bl
+    ],
+    chamfer: doc.style.cornerStyle === 'chamfer',
+    cx0: x / doc.sub,
+    cy0: y / doc.sub,
+    cx1: (x + 1) / doc.sub,
+    cy1: (y + 1) / doc.sub,
+    connectedL: isV(x - 1, y),
+    connectedT: isV(x, y - 1),
+    connectedR: isV(x + 1, y),
+    connectedB: isV(x, y + 1),
+  }
+}
+
+/** Texture cells of every painted cell across all colors (figure-silhouette input). */
+function allOutlineCells(doc: Doc, cells: Uint16Array): TextureCell[] {
+  const bw = bufferWidth(doc)
+  const bh = bufferHeight(doc)
+  const list: TextureCell[] = []
+  for (let y = 0; y < bh; y++) {
+    for (let x = 0; x < bw; x++) {
+      if (cells[y * bw + x] !== 0) list.push(outlineCell(doc, cells, bw, bh, x, y))
+    }
+  }
+  return list
+}
+
 /**
  * Texture hole fragments for one color group, appended into the silhouette's own path. The
  * silhouette covers full cells; the gap margin applies only where a side faces another color or
@@ -108,43 +167,18 @@ function cellTextureFragments(
   cells: Uint16Array,
   v: number,
   tex: TextureSettings,
+  fig: FigureSpace | undefined,
 ): string {
   const bw = bufferWidth(doc)
   const bh = bufferHeight(doc)
-  const cell = 1 / doc.sub
-  const rConvex = doc.style.convexRadius / doc.sub
-  const chamfer = doc.style.cornerStyle === 'chamfer'
-  const isV = (xx: number, yy: number) =>
-    xx >= 0 && xx < bw && yy >= 0 && yy < bh && cells[yy * bw + xx] === v
   const list: TextureCell[] = []
   for (let y = 0; y < bh; y++) {
     for (let x = 0; x < bw; x++) {
       if (cells[y * bw + x] !== v) continue
-      const radii = [
-        !isV(x - 1, y) && !isV(x, y - 1) ? rConvex : 0, // tl
-        !isV(x + 1, y) && !isV(x, y - 1) ? rConvex : 0, // tr
-        !isV(x + 1, y) && !isV(x, y + 1) ? rConvex : 0, // br
-        !isV(x - 1, y) && !isV(x, y + 1) ? rConvex : 0, // bl
-      ]
-      list.push({
-        x: x / doc.sub,
-        y: y / doc.sub,
-        w: cell,
-        h: cell,
-        radii,
-        chamfer,
-        cx0: x / doc.sub,
-        cy0: y / doc.sub,
-        cx1: (x + 1) / doc.sub,
-        cy1: (y + 1) / doc.sub,
-        connectedL: isV(x - 1, y),
-        connectedT: isV(x, y - 1),
-        connectedR: isV(x + 1, y),
-        connectedB: isV(x, y + 1),
-      })
+      list.push(outlineCell(doc, cells, bw, bh, x, y))
     }
   }
-  return regionTextureFragments(list, tex, v)
+  return regionTextureFragments(list, tex, v, fig)
 }
 
 /**

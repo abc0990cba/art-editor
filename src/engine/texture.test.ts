@@ -4,6 +4,7 @@ import { defaultDoc, type TextureSettings } from './doc.ts'
 import { buildGeometry } from './geometry.ts'
 import { deserialize, serialize } from './project.ts'
 import { buildSvg } from './svg.ts'
+import { figureSpace } from './texture-figure.ts'
 import { fieldTextureFragments, regionTextureFragments, type TextureCell } from './texture.ts'
 
 const DEFAULTS: Omit<TextureSettings, 'effect'> = {
@@ -15,6 +16,8 @@ const DEFAULTS: Omit<TextureSettings, 'effect'> = {
   edge: 100,
   dist: 'scatter',
   gap: 0,
+  gapMode: 'cell',
+  even: false,
   angle: 45,
   seed: 1,
   jitter: 0,
@@ -385,7 +388,22 @@ describe('regionTextureFragments', () => {
   })
 
   it('distributions are deterministic and pairwise distinct', () => {
-    const dists = ['scatter', 'clumps', 'streaks', 'perlin', 'voronoi'] as const
+    const dists = [
+      'scatter',
+      'clumps',
+      'streaks',
+      'perlin',
+      'voronoi',
+      'waves',
+      'sunburst',
+      'spiral',
+      'honeycomb',
+      'scales',
+      'weave',
+      'checker',
+      'fade',
+      'bayer',
+    ] as const
     for (const effect of ['grain', 'grunge'] as const) {
       for (let k = 0; k < dists.length; k++) {
         const out = regionTextureFragments(
@@ -497,6 +515,117 @@ describe('regionTextureFragments', () => {
     const n = frag.split('M').length - 1
     expect(n).toBeLessThanOrEqual(20000)
     expect(n).toBeGreaterThan(5000)
+  })
+
+  it('emits the new speck silhouettes inside the fill', () => {
+    const EPS = 0.002
+    for (const shape of ['triangle', 'diamond', 'cross', 'star', 'hex', 'ring', 'dash'] as const) {
+      const frag = regionTextureFragments(
+        singleCell(),
+        settings({ amount: 100, shape, seed: 2 }),
+        8,
+      )
+      expect(frag).not.toBe('')
+      for (const [x0, y0, x1, y1] of fleckBoxes(frag)) {
+        expect(x0).toBeGreaterThanOrEqual(RECT_X - EPS)
+        expect(x1).toBeLessThanOrEqual(RECT_X + RECT_W + EPS)
+        expect(y0).toBeGreaterThanOrEqual(RECT_Y - EPS)
+        expect(y1).toBeLessThanOrEqual(RECT_Y + RECT_H + EPS)
+      }
+      if (shape === 'triangle') expect(frag).toMatch(/M[^M]*L/)
+      if (shape === 'ring') expect(frag).toMatch(/a[^M]*a/)
+    }
+    // rotated silhouettes differ per seed
+    const a = regionTextureFragments(
+      singleCell(),
+      settings({ amount: 100, shape: 'star', seed: 2 }),
+      8,
+    )
+    const b = regionTextureFragments(
+      singleCell(),
+      settings({ amount: 100, shape: 'star', seed: 3 }),
+      8,
+    )
+    expect(a).not.toBe(b)
+  })
+
+  it('figure gap hugs the merged outline and ignores internal color borders', () => {
+    // 2×2 figure: color A fills the left column, color B the right (size 100%)
+    const cell = (x: number, y: number, connectedT: boolean, connectedB: boolean): TextureCell => ({
+      x,
+      y,
+      w: 1,
+      h: 1,
+      radii: [0, 0, 0, 0],
+      chamfer: false,
+      cx0: x,
+      cy0: y,
+      cx1: x + 1,
+      cy1: y + 1,
+      connectedL: false,
+      connectedT,
+      connectedR: false,
+      connectedB,
+    })
+    const aCells = [cell(3, 2, false, true), cell(3, 3, true, false)]
+    const bCells = [cell(4, 2, false, true), cell(4, 3, true, false)]
+    const fig = figureSpace([...aCells, ...bCells], 1)
+    const args = { amount: 100, gap: 0.3, seed: 3 }
+
+    // cell mode: every open side insets — the A/B border carries the margin
+    const lone = regionTextureFragments(aCells, settings(args), 5)
+    for (const box of fleckBoxes(lone)) expect(box[2]).toBeLessThanOrEqual(4 - 0.3 + 0.002)
+    // figure mode: texture reaches the internal border from both sides
+    const figA = regionTextureFragments(aCells, settings(args), 5, fig)
+    for (const [x0, y0, , y1] of fleckBoxes(figA)) {
+      expect(x0).toBeGreaterThanOrEqual(3 + 0.3 - 0.002)
+      expect(y0).toBeGreaterThanOrEqual(2 + 0.3 - 0.002)
+      expect(y1).toBeLessThanOrEqual(4 - 0.3 + 0.002)
+    }
+    expect(Math.max(...fleckBoxes(figA).map((box) => box[2]))).toBeGreaterThan(4 - 0.3)
+    const figB = regionTextureFragments(bCells, settings(args), 5, fig)
+    expect(Math.min(...fleckBoxes(figB).map(([x0]) => x0))).toBeLessThan(4 + 0.3)
+  })
+
+  it('even spread enforces a minimum distance between fleck centers', () => {
+    const cells: TextureCell[] = []
+    for (let y = 0; y < 6; y++) {
+      for (let x = 0; x < 6; x++) {
+        cells.push({
+          x,
+          y,
+          w: 1,
+          h: 1,
+          radii: [0, 0, 0, 0],
+          chamfer: false,
+          cx0: x,
+          cy0: y,
+          cx1: x + 1,
+          cy1: y + 1,
+          connectedL: x > 0,
+          connectedT: y > 0,
+          connectedR: x < 5,
+          connectedB: y < 5,
+        })
+      }
+    }
+    const args = { amount: 100, scale: 1, seed: 5 }
+    const plain = fleckBoxes(regionTextureFragments(cells, settings(args), 3))
+    const even = fleckBoxes(regionTextureFragments(cells, settings({ ...args, even: true }), 3))
+    expect(even.length).toBeGreaterThan(20)
+    expect(even.length).toBeLessThan(plain.length)
+    const minD = 0.8 * 0.14 // 0.8 lattice pitches at scale 1, sub 1
+    let minPair = Infinity
+    for (let i = 0; i < even.length; i++) {
+      for (let j = i + 1; j < even.length; j++) {
+        const d = Math.hypot(
+          (even[j][0] + even[j][2]) / 2 - (even[i][0] + even[i][2]) / 2,
+          (even[j][1] + even[j][3]) / 2 - (even[i][1] + even[i][3]) / 2,
+        )
+        if (d < minPair) minPair = d
+      }
+    }
+    expect(minPair).toBeGreaterThanOrEqual(minD - 0.002)
   })
 })
 
@@ -650,6 +779,8 @@ describe('texture in geometry', () => {
       edge: 40,
       dist: 'clumps',
       gap: 0.2,
+      gapMode: 'figure',
+      even: true,
       angle: 90,
       seed: 12,
       jitter: 25,
@@ -678,6 +809,8 @@ describe('texture in geometry', () => {
       edge: 100,
       dist: 'scatter',
       gap: 0,
+      gapMode: 'cell',
+      even: false,
       angle: 45,
       seed: 1,
       jitter: 0,
@@ -705,6 +838,33 @@ describe('texture in geometry', () => {
     const grained = buildGeometry(doc).paths[0].d
     expect(grained.startsWith(plain)).toBe(true)
     expect(grained.length).toBeGreaterThan(plain.length)
+  })
+
+  it('figure gap textures multi-color figures in pixels and outline modes', () => {
+    for (const renderMode of ['pixels', 'outline'] as const) {
+      const doc = docWithTexture('none')
+      doc.renderMode = renderMode
+      doc.cols = 4
+      doc.rows = 4
+      // 2×2 figure: color 1 left column, color 2 right column
+      doc.cells = new Uint16Array(16)
+      doc.cells[1 * 4 + 1] = 1
+      doc.cells[2 * 4 + 1] = 1
+      doc.cells[1 * 4 + 2] = 2
+      doc.cells[2 * 4 + 2] = 2
+      const plain = buildGeometry(doc).paths.map((p) => p.d.length)
+      doc.texture = {
+        effect: 'grain',
+        ...DEFAULTS,
+        amount: 100,
+        gap: 0.3,
+        gapMode: 'figure',
+        seed: 3,
+      }
+      const fig = buildGeometry(doc)
+      expect(fig.paths.length).toBe(2)
+      for (const [k, p] of fig.paths.entries()) expect(p.d.length).toBeGreaterThan(plain[k])
+    }
   })
 
   it('textures metaball blobs via the field', () => {

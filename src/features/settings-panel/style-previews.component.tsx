@@ -11,6 +11,7 @@ import {
 } from '../../engine/doc.ts'
 import { buildGeometry } from '../../engine/geometry.ts'
 import { drawGeometry } from '../../engine/png.ts'
+import { figureSpace } from '../../engine/texture-figure.ts'
 import { regionTextureFragments, type TextureCell } from '../../engine/texture.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { ExpandablePreview } from '../../shared/ui/preview-expander.component.tsx'
@@ -273,7 +274,8 @@ export function TexturePreview() {
     for (const c of cells) cellSubpath(p, c.x, c.y, c.w, c.h, radii, chamfer)
     if (tex.effect !== 'none') {
       // texture specks punch out of the fill via even-odd, exactly like shapeGeometry
-      const holes = regionTextureFragments(cells, tex, 1)
+      const fig = tex.gapMode === 'figure' ? figureSpace(cells, 1) : undefined
+      const holes = regionTextureFragments(cells, tex, 1, fig)
       if (holes) p.addPath(new Path2D(holes))
     }
     // the path is built in cell units — draw through the cell-size transform

@@ -1,5 +1,5 @@
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { Chip, Section, Slider } from '../../shared/ui/index.tsx'
+import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { TexturePreview } from './style-previews.component.tsx'
 import type { StyleTarget } from './style-section.component.tsx'
 
@@ -63,6 +63,15 @@ export function TextureSection({ target }: { target: StyleTarget }) {
                       ['streaks', 'texture.dist.streaks'],
                       ['perlin', 'texture.dist.perlin'],
                       ['voronoi', 'texture.dist.voronoi'],
+                      ['waves', 'texture.dist.waves'],
+                      ['sunburst', 'texture.dist.sunburst'],
+                      ['spiral', 'texture.dist.spiral'],
+                      ['honeycomb', 'texture.dist.honeycomb'],
+                      ['scales', 'texture.dist.scales'],
+                      ['weave', 'texture.dist.weave'],
+                      ['checker', 'texture.dist.checker'],
+                      ['fade', 'texture.dist.fade'],
+                      ['bayer', 'texture.dist.bayer'],
                     ] as const
                   ).map(([dist, key]) => (
                     <Chip
@@ -84,6 +93,13 @@ export function TextureSection({ target }: { target: StyleTarget }) {
                       ['square', 'texture.shape.square'],
                       ['dot', 'texture.shape.dot'],
                       ['chip', 'texture.shape.chip'],
+                      ['triangle', 'texture.shape.triangle'],
+                      ['diamond', 'texture.shape.diamond'],
+                      ['cross', 'texture.shape.cross'],
+                      ['star', 'texture.shape.star'],
+                      ['hex', 'texture.shape.hex'],
+                      ['ring', 'texture.shape.ring'],
+                      ['dash', 'texture.shape.dash'],
                     ] as const
                   ).map(([shape, key]) => (
                     <Chip
@@ -217,8 +233,29 @@ export function TextureSection({ target }: { target: StyleTarget }) {
                   onChange={(v) => applyTexture({ edge: v })}
                 />
               )}
+              <CheckRow
+                label={t('texture.even')}
+                title={t('texture.even.desc')}
+                checked={texView.even}
+                onChange={(v) => applyTexture({ even: v })}
+              />
             </>
           )}
+          <div className="text-body flex items-center justify-between text-xs">
+            <span title={t('texture.gapMode.desc')}>{t('texture.gapMode')}</span>
+            <div className="flex gap-1">
+              {(['cell', 'figure'] as const).map((m) => (
+                <Chip
+                  key={m}
+                  active={texView.gapMode === m}
+                  title={t(`texture.gapMode.${m}.desc` as 'texture.gapMode.cell.desc')}
+                  onClick={() => applyTexture({ gapMode: m })}
+                >
+                  {t(`texture.gapMode.${m}` as 'texture.gapMode.cell')}
+                </Chip>
+              ))}
+            </div>
+          </div>
           <Slider
             label={t('texture.gap')}
             title={t('texture.gap.desc')}

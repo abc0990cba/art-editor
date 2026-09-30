@@ -2,6 +2,7 @@ import { cellShapeFragment } from './cell-shapes.ts'
 import { toneScale } from './color.ts'
 import { bufferHeight, bufferWidth, cellColor, type Doc, type Link } from './doc.ts'
 import type { Geometry, Staging, StyledPath } from './geometry-types.ts'
+import { figureSpace, type FigureSpace } from './texture-figure.ts'
 import { regionTextureFragments, type TextureCell } from './texture.ts'
 
 export const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
@@ -202,8 +203,18 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
     }
   }
   if (texCells) {
+    // figure-level gap: one silhouette space over every color, so the margin hugs the
+    // merged outline and internal color borders stay seamless
+    let fig: FigureSpace | undefined
+    if (tex.gapMode === 'figure') {
+      const all: TextureCell[] = []
+      for (const list of texCells.values()) {
+        for (const c of list) all.push(c)
+      }
+      fig = figureSpace(all, doc.sub)
+    }
     for (const [v, list] of texCells) {
-      const holes = regionTextureFragments(list, tex, v)
+      const holes = regionTextureFragments(list, tex, v, fig)
       if (holes) groups.get(v)!.push(holes)
     }
   }
