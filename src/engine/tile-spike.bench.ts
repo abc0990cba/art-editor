@@ -16,7 +16,7 @@ import { syncDoc, type SceneObj } from './scene.ts'
  *
  * Known seam effect: runs that cross a tile border split into two fragments. On scatter ink runs
  * are single cells, so tile fragmentation here is negligible; run-friendly ink needs tile-aligned
- * merging in a real implementation (noted in docs/perf-research.md).
+ * merging in a real implementation (noted in docs/research/performance.md).
  */
 
 const TILE = 256

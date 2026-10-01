@@ -12,7 +12,7 @@ import { buildGeometry } from './geometry.ts'
  *   3-decimal formatting pass (Math.round(v*1000)/1000 per coordinate) disappears;
  * - `stadium per run` — one merged capsule fragment per horizontal run instead of per cell (~1024
  *   fragments instead of 131k). APPEARANCE CHANGE: adjacent circles touch into capsules — viable
- *   only as a separate "merged forms" style, noted in docs/perf-research.md.
+ *   only as a separate "merged forms" style, noted in docs/research/performance.md.
  *
  * The emitters are bench-local string measurements of the emission stage (scan → fragment strings →
  * join), not a production pipeline; they bound what a pipeline change can save.

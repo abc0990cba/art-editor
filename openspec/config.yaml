@@ -4,6 +4,11 @@ context: |
   Language: en
   All artifacts must be written in en.
   Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+  Boundary: OpenSpec owns behavior contracts (what the product does, SHALL/scenarios).
+  Durable technical truth (how it works, why it was built this way) lives in docs/ —
+  see docs/README.md (architecture/, decisions/, modules/).
+  When archiving a change, promote its durable design decisions from design.md into
+  docs/decisions/ ADRs and update the affected docs/modules/ pages.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

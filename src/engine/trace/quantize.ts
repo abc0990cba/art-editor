@@ -1,5 +1,5 @@
 /**
- * Hierarchical color clustering — the vtracer V1 first stage (see docs/vectorization-research.md).
+ * Hierarchical color clustering — the vtracer V1 first stage (see docs/research/vectorization.md).
  * Colors are quantized to `colorPrecision` significant bits, identical pixels collapse into leaves
  * (real pixel sums, not bucket centers), then clusters agglomerate while their mean-color distance
  * stays within `layerDifference`. Candidate pairs come from a coarse RGB grid hash around each

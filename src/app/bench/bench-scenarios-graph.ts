@@ -7,10 +7,10 @@ import { useStore } from '../../state/editor.store.ts'
 import type { BenchPoint } from './bench-scenarios.ts'
 
 /**
- * Extra ?bench=1 scenario groups for the perf research (docs/perf-research.md): the node-graph edit
- * pipeline, gesture bursts and the idle-with-selection overlay burn. Same measurement contract as
- * bench-scenarios.ts — dispatch → render + canvas effects complete, per-tick flush where the
- * scenario models per-event work.
+ * Extra ?bench=1 scenario groups for the perf research (docs/research/performance.md): the
+ * node-graph edit pipeline, gesture bursts and the idle-with-selection overlay burn. Same
+ * measurement contract as bench-scenarios.ts — dispatch → render + canvas effects complete,
+ * per-tick flush where the scenario models per-event work.
  */
 
 export interface ExtraCanvasSize {

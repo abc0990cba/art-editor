@@ -1,13 +1,15 @@
-# Glyph Editor
+# Ditherlab (Glyph Editor)
 
-Минималистичный пиксельный веб-редактор с экспортом в чистый векторный SVG.
+A minimalist pixel web editor with clean vector SVG export.
 
-Холст-сетка до **100×100** ячеек, пиксели как настраиваемые формы (скругления — общие и по
-углам, независимое растяжение X/Y), режим **metaball** («жидкое» слияние соседних клеток),
-полный набор режимов симметрии, коннекторы между ячейками и подячейки. Превью на canvas и
-SVG-экспорт строятся одним геометрическим движком — вектор получается ровно таким, как на экране.
+A cell grid up to **4096×4096**, pixels as configurable shapes (per-corner rounding,
+independent X/Y stretch), a **metaball** mode ("liquid" merging of neighboring cells), a full
+symmetry suite, connectors between cells and sub-cells. Three project kinds share one shell:
+**pixel** documents, plus raster→vector workspaces — **vector** (image tracing) and
+**gradient** (fitted SVG gradients). Canvas preview and SVG export are built by one geometry
+engine — the vector is exactly what you see on screen.
 
-## Запуск
+## Running
 
 ```bash
 npm install
@@ -15,106 +17,119 @@ npm run dev        # http://localhost:5173
 ```
 
 ```bash
-npm test           # vitest — юнит-тесты движка
-npm run lint       # oxlint (0 ошибок — гейт; warnings — advisory)
-npm run lint:ai    # oxlint в agent-формате (машинная петля)
-npm run arch:check # границы слоёв/фич (dependency-cruiser)
-npm run knip       # мёртвые экспорты/файлы/зависимости
-npm run format     # oxfmt — форматирование
-npm run format:check  # проверка форматирования без записи
-
-Конвенции и границы слоёв — в AGENTS.md.
-npm run format     # oxfmt — строгое форматирование (валидатор AI-кода)
-npm run format:check  # проверка форматирования без записи
+npm test           # vitest — engine unit tests
+npm run lint       # oxlint (0 errors — the gate; warnings advisory)
+npm run lint:ai    # oxlint in agent format (machine feedback loop)
+npm run arch:check # layer/feature boundaries (dependency-cruiser)
+npm run knip       # dead exports/files/dependencies
+npm run format     # oxfmt — strict formatting (AI-code validator)
+npm run format:check
 npm run build      # tsc --noEmit + vite build
+npm run bench      # engine benches → bench/results/engine-bench.json
 ```
 
-## Возможности
+Conventions and layer boundaries: [AGENTS.md](AGENTS.md).
 
-- **Холст** — размер W×H от 1 до 512, зум колесом, панорамирование (пробел/средняя кнопка),
-  «Вписать», сетка, шахматный фон или цвет фона. Пресеты размеров по популярным пропорциям —
-  1:1, 4:3, 3:2, 16:9, 21:9, 2:1, Game Boy (10:9), NES (8:7); у каждого размера есть чётный
-  и нечётный вариант — нечётная сетка имеет центральную строку/столбец под ось симметрии.
-- **Инструменты** — один плоский список в левой панели: карандаш `B`, ластик `E` (стирает
-  и коннекторы), заливка `G`, пипетка `I`, линия `L`, прямоугольник `R`, окружность `O`,
-  коннектор `C` (два клика — скруглённая трасса между центрами ячеек), звезда `S`,
-  многоугольник `N`, ромб `D`, сердце `H`, спираль `Q`, стрелка `A` (от древка к острию),
-  молния `K`, полумесяц `M`, волна `W` (от точки к точке), крест `X`, цветок `J`,
-  шестерёнка `U`. В развёрнутой панели видны иконки и названия, в свёрнутой — только иконки;
-  если список не влезает по высоте — вертикальный скроллбар; состояние панели запоминается.
-  Двойной клик по инструменту открывает его настройки: у звезды — лучи, внутренний радиус
-  и поворот; у шестерёнки — число зубьев, высота зубьев и поворот; у спирали — витки,
-  направление и поворот; у стрелки — длина и ширина наконечника; у волны — периоды
-  и амплитуда; у каждого инструмента — свои параметры.
-- **Паттерн-заливка** — у заливки `G` два стиля: однотонная и паттерн. Паттерн смешивает
-  активный и второй цвет по библиотеке из 20 узоров: дизер Байера 2×2/4×4/8×8/16×16,
-  кластерная точка и полутоновый растр (как в печатной машине), синий шум и void-and-cluster,
-  шумовой дизер и градиентный шум (IGN), блочная шахматка, сетка, встречная диагональная
-  штриховка, полосы (—, |, /), зигзаг, точки, кирпичная кладка и концентрические кольца
-  вокруг точки клика. У масштабируемых узоров есть слайдер масштаба плитки, у шумовых —
-  размер зерна. Переход между цветами — ровный (слайдер плотности) или градиентный:
-  по вертикали, горизонтали, диагоналям или радиально от точки клика — так получаются
-  классические пиксель-арт дизер-градиенты. Двойной клик по заливке открывает настройки
-  с живым превью паттерна.
-- **Импорт изображений** — фото превращается в пиксели: размещение (заполнить/вписать/
-  растянуть/под размер холста), яркость/контраст/насыщенность и предобработка (размытие,
-  резкость, поворот тона, шумодав, сглаживание). Дизеринг — 23 алгоритма в трёх группах:
-  упорядоченные (Байер 2–16, кластерная точка, полутон, синий шум, void-and-cluster,
-  узор, перекрёстная штриховка), диффузия ошибок (Флойд–Стейнберг, Аткинсон, Сьерра,
-  Сьерра-лайт, Стуки, Бёркес, JJN, Стивенсон–Арсе, Накано) и особые (Остроухов,
-  переменная ошибка, точечная диффузия, Римерсма) — змеевидный проход, слайдеры силы
-  дизера и порога. Постобработка: свечение (screen-blend bloom), хроматическая аберрация,
-  шумодав и сглаживание после — всё оседает обратно в палитру. Палитра: документ, авто
-  (median-cut из фото) или любая из 23 встроенных — от PICO-8 и C64 до NES, ZX Spectrum,
-  CGA Mode 4, Macintosh, Телетекста и Gruvbox; «смешение палитры» добавляет промежуточные
-  цвета между соседними для плавных растяжек. Пресеты в один клик: Game Boy, Pocket,
-  Macintosh, Газета, Полутон, NES, ZX Spectrum, Vaporwave, Телетекст, Gruvbox. Палитры
-  импортируются и экспортируются файлами `.hex`/`.gpl`/PNG (в том числе полосой-картинкой).
-  Результат импорта — обычная геометрия редактора, поэтому SVG-экспорт работает сразу.
-- **Форма пикселей** — пресеты (квадрат/скруглённый/круг), радиус 0–50%, продвинутый режим
-  по-углового скругления (4 слайдера), независимое растяжение X/Y.
-- **Metaball** — включаемое слияние клеток в «жидкие» капли: сила 0–100, изоляция по цвету,
-  качество поля (низкое/среднее/высокое).
-- **Режимы рендера** — Пиксели / Контур (соединённые клетки дают один силуэт со скруглёнными
-  внешними углами) / Metaball; для Контура и Metaball — режимы соединения диагональных клеток:
-  только стороны, через угол (перетяжка) или через угол с мостом-накладкой.
-- **Стили по элементам** — переключатель «Стиль применяется: По элементам / Ко всему холсту».
-  В режиме «по элементам» каждый штрих, фигура, заливка и соединитель фиксируют снимок всех
-  стилей (форма, режим рендера, связность, metaball, текстура) на момент рисования: правки
-  настроек после этого меняют только новые штрихи. Соседние штрихи с одинаковым стилем
-  рендерятся одной группой (блобы metaball сливаются). Инструмент **Выделение** (`V`) выбирает
-  нарисованный элемент (Shift+клик — добавить, `Ctrl+A` — всё, `Esc` — снять): его стиль и
-  текстура правятся в тех же разделах правой панели, `Del` стирает, перетаскивание переносит
-  элемент вместе со стилем (квадратная сетка). Режим «ко всему холсту» — прежнее поведение:
-  настройки перекрашивают весь канвас сразу.
-- **Симметрия** — вертикальная, горизонтальная, 4-кратная, диагональная 8-кратная, радиальная
-  N-кратная (2–24), калейдоскоп (N-кратность + зеркало); направляющие-оси/спицы; действует на
-  все рисующие инструменты.
-- **Подячейки** — ×1/×2/×3: рисование «полупикселями» внутри ячейки (коннекторы остаются на
-  уровне ячеек).
-- **Экспорт** — SVG (векторные path, тот же движок, что и превью; с фоном или без), PNG 1×–16×,
-  сохранение/загрузка проекта в JSON.
-- **Прочее** — undo/redo (`Ctrl+Z` / `Ctrl+Shift+Z`), автосохранение в localStorage,
-  интерфейс на английском и русском (переключатель в шапке), `Esc` — отмена коннектора.
+## Features
 
-## Архитектура
+- **Canvas** — W×H from 1 to 4096, wheel zoom, panning (space / middle button), fit, grid,
+  checkerboard or solid background. Size presets by popular ratios — 1:1, 4:3, 3:2, 16:9,
+  21:9, 2:1, Game Boy (10:9), NES (8:7); each size has an even and an odd variant — an odd
+  grid has a central row/column to anchor symmetry axes.
+- **Tools** — one flat list in the left rail: pencil `B`, eraser `E`, fill `G`, picker `I`,
+  line `L`, rectangle `R`, ellipse `O`, connector `C` (two clicks — a rounded route between
+  cell centers), star `S`, polygon `N`, diamond `D`, heart `H`, spiral `Q`, arrow `A`,
+  lightning `K`, moon `M`, wave `W`, cross `X`, flower `J`, gear `U`, sun `4`, bento `5`,
+  ring `T`, arc `Y`, drop `P`, chevron `1`, concentric `2`/`3`, zigzag `Z`, selection `V`.
+  Double-click a tool opens its settings (star rays, gear teeth, spiral turns, arrowhead,
+  wave periods — each tool has its own parameters).
+- **Pattern fill** — the fill tool mixes the active and a second color across 22 patterns:
+  Bayer 2×2–16×16, cluster dot and halftone screen, blue noise and void-and-cluster, noise
+  and gradient-interleaved noise (IGN), block checker, grid, crosshatch, stripes, zigzag,
+  dots, bricks, concentric rings around the click, and glyph tiles. Scalable patterns get a
+  tile-scale slider, noisy ones a grain size. Color transitions are even (density slider) or
+  gradient (vertical/horizontal/diagonal/radial from the click) — classic pixel-art
+  dither gradients.
+- **Image import** — photos become pixels: placement (fill/fit/stretch/resize canvas),
+  brightness/contrast/saturation and preprocessing (blur, sharpen, hue rotate, denoise,
+  smoothing). Dithering — 23 algorithms in three groups: ordered (Bayer 2–16, cluster dot,
+  halftone, blue noise, void-and-cluster, pattern, crosshatch), error diffusion
+  (Floyd–Steinberg, Atkinson, Sierra, Sierra-Lite, Stucki, Burkes, JJN, Stevenson–Arce,
+  Nakano) and special (Ostromoukhov, variable-error, dot diffusion, Riemersma) — serpentine
+  scan, strength and threshold sliders. Post: glow (screen-blend bloom), chromatic
+  aberration, denoise and smoothing — all settled back into the palette. Palette: document,
+  auto (median-cut from the photo) or any of 22 built-ins — from PICO-8 and C64 to NES,
+  ZX Spectrum, CGA Mode 4, Macintosh, Teletext and Gruvbox; palette blending inserts ramp
+  midpoints for smoother dithers. One-click presets: Game Boy, Pocket, Macintosh, Newspaper,
+  Halftone, NES, ZX Spectrum, Vaporwave, Teletext, Gruvbox. Palettes import/export as
+  `.hex`/`.gpl`/PNG (including a swatch-strip image). The import result is ordinary editor
+  geometry, so SVG export works immediately.
+- **Pixel styling** — presets (square/rounded/circle) and 28 cell forms (circle, heart,
+  cross, star, gear, …), radius 0–50%, advanced per-corner rounding (4 sliders), independent
+  X/Y stretch, tone-driven sizing.
+- **Metaball** — opt-in "liquid" merging of cells: strength 0–100, per-color isolation,
+  field quality (low/medium/high).
+- **Render modes** — Pixels / Outline (connected cells form one silhouette with rounded
+  outer corners) / Metaball; for Outline and Metaball — diagonal-cell connection modes:
+  sides only, through-corner (pinch) or through-corner with a bridge overlay.
+- **Element styles** — a "style applies: per element / whole canvas" toggle. In element mode
+  every stroke, shape, fill and connector freezes a snapshot of all styles at draw time;
+  later setting changes affect only new strokes. Neighboring strokes with equal styles render
+  as one group (metaball blobs fuse). The selection tool (`V`) picks a drawn element: restyle
+  it in the same panels, move it, duplicate or delete it.
+- **Symmetry** — vertical, horizontal, 4-way, diagonal 8-way, radial N-way (2–24),
+  kaleidoscope (N-fold + mirror); guide axes/spokes; applies to all drawing tools.
+- **Sub-cells** — ×1/×2/×3: draw "half-pixels" inside a cell (connectors stay cell-level).
+- **Node graphs** — any object can become a **living recipe**: a chain of source → modifier →
+  ramp → style nodes (Blender-style card editor) re-evaluated on every edit; 19 operations,
+  preset recipes, JSON import/export and a machine-readable node registry for AI agents.
+- **Vector & gradient workspaces** — import a raster and get a clean SVG: outline/spline
+  tracing (the vtracer V1 pipeline, ported to TypeScript) or fitted `linearGradient`/
+  `radialGradient` paints; presets, live preview with an original-vs-result divider (and a
+  ΔE heatmap for gradients), SVG export. Heavy math runs in a Web Worker.
+- **Glyph tiles** — user-editable tone-ramp tile sets (Bayer-derived, drawn, or generated)
+  used as dither fields by the fill tool and image import; a tile editor with a photo
+  preview.
+- **Projects** — a home screen gallery with typed cards (pixel/vector/gradient), a Continue
+  card, 24 built-in demo projects, and ambient autosave into IndexedDB (debounced ~2 s,
+  instant localStorage mirror for small docs, thumbnails at most every 30 s).
+- **Export** — SVG (vector paths, same engine as the preview; with or without background),
+  PNG 1×–16× (side cap 5000 px), project save/load as JSON, plus a "Vectorize" handoff from
+  a pixel project into a new vector project.
+- **Misc** — undo/redo (`Ctrl+Z` / `Ctrl+Shift+Z`), UI in English and Russian, `Esc` cancels
+  the pending connector/transform.
+
+## Architecture
 
 ```
 src/
-├── engine/     # pure TS, без React: модель документа, marching squares, геометрия
-│               # (формы + metaball), симметрия, заливка, SVG/PNG, JSON проекта
-├── state/      # zustand store + zundo (undo/redo), автосейв
-├── i18n/       # типизированные словари EN/RU
-└── components/ # TopBar, ToolRail, SettingsPanel, CanvasStage, UI-примитивы
+├── app/       # shell: router, top bar, workspace, bench harness
+├── features/  # vertical UI modules: canvas, tools, nodes-editor, layers,
+│              # settings-panel, glyph-editor, projects, export, import,
+│              # vectorizer, gradient
+├── engine/    # pure TS, no React: document model, scene tree, geometry
+│              # (shapes, outline, metaball), grids, symmetry, brush, texture,
+│              # dithering, node graphs, tracing, SVG/PNG, project JSON
+├── state/     # zustand store + zundo (undo/redo), 16 slices, autosave effects
+├── storage/   # IndexedDB persistence (projects, presets, brushes, glyph tiles)
+└── shared/    # ui/ (primitives + vendored shadcn), lib/, i18n/
 ```
 
-Ключевой принцип: `buildGeometry(doc) → [{ d, fill }]` — единственный источник правды.
-Canvas-рендер рисует эти пути через `Path2D`, SVG-экспортёр сериализует те же пути, поэтому
-превью и вектор всегда идентичны (в т.ч. в режиме metaball — контуры извлекаются marching
-squares из скалярного поля, а не SVG-фильтрами).
+Key principle: `buildGeometry(doc) → StyledPath[]` — the single source of truth. The canvas
+renderer paints these paths through `Path2D`, the SVG exporter serializes the same paths, so
+preview and vector are always identical (including metaball mode — contours are extracted
+with marching squares from the scalar field, not SVG filters).
 
-## Спецификации
+## Documentation
 
-Проект разрабатывается через [OpenSpec](https://github.com/Fission-AI/OpenSpec): требования и
-сценарии — в `openspec/specs/`, история изменений — `openspec/changes/`
-(исходное изменение: `add-editor-core`).
+- [docs/README.md](docs/README.md) — the technical documentation index: architecture,
+  decision records (ADRs, incl. the Rust/WASM policy), per-module technical docs, research.
+- [AGENTS.md](AGENTS.md) — engineering conventions (check chain, naming, size ratchets).
+- [bench/PERFLOG.md](bench/PERFLOG.md) — the performance change log.
+
+## Specifications
+
+The project is developed via [OpenSpec](https://github.com/Fission-AI/OpenSpec): requirements
+and scenarios live in `openspec/specs/`, change history in `openspec/changes/` (the initial
+change: `add-editor-core`). OpenSpec owns *behavior*; `docs/` owns *how it works and why* —
+the boundary is defined in [docs/decisions/0007](docs/decisions/0007-openspec-docs-boundary.md).

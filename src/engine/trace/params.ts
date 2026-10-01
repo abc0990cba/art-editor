@@ -1,6 +1,6 @@
 /**
  * Trace parameters, defaults and built-in presets. Mirrors the vtracer V1 option surface (see
- * docs/vectorization-research.md), extended with the project's additions: the centerline tracer,
+ * docs/research/vectorization.md), extended with the project's additions: the centerline tracer,
  * hole handling and the mosaic composition. Values are clamped by `normalizeTraceParams` so any
  * partially-filled object (storage, presets) becomes valid.
  */

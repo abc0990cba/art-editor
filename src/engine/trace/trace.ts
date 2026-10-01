@@ -1,6 +1,6 @@
 /**
  * Trace facade: image (or explicit color layers) → SVG, mirroring the vtracer V1 pipeline (see
- * docs/vectorization-research.md). The stages — clustering, mask tracing, simplification, curve
+ * docs/research/vectorization.md). The stages — clustering, mask tracing, simplification, curve
  * fitting, composition — live in sibling modules and are public: hybrid pipelines (dithered
  * rasters, pattern fills) can call them directly instead of going through here.
  */

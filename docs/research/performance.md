@@ -1,6 +1,6 @@
 # Performance deep research — engine, rendering, node graph (2026-09-30)
 
-Companion to `bench/PERFLOG.md` (the canonical optimization log) and `docs/vectorization-research.md`.
+Companion to `bench/PERFLOG.md` (the canonical optimization log) and `docs/research/vectorization.md`.
 Scope: a measured answer to "what is actually slow, and what is worth building next" for the render
 core, the node-graph pipeline and the canvas layer — including decision spikes for Web Workers,
 Rust→WASM and the tile data model the PERFLOG M5/M6 rows deferred. **No production code was
