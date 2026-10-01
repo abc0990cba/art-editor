@@ -15,7 +15,7 @@ a product that nobody can discover cannot benefit from anything else in it.
   overview and a call-to-action into the editor. The pages are cross-linked with `hreflang`
   annotations; a language link persists the choice (`glyph.lang`) so the app opens in the chosen
   language.
-- **Editor moves to `/editor`**: the current SPA entry becomes a second HTML page (`editor.html`);
+- **Editor moves to `/editor`**: the current SPA entry becomes a directory entry (`editor/index.html`);
   the TanStack Router gains `basepath: '/editor'`. Relative routes are unchanged (`/` → home,
   `/p/$projectId` → editor), so deep links become `/editor` and `/editor/p/$projectId`; the bench
   harness moves to `/editor/?bench=1`. `/` stops being an app surface.
@@ -24,7 +24,7 @@ a product that nobody can discover cannot benefit from anything else in it.
   favicon set, web manifest and `theme-color`.
 - **Crawler files**: `robots.txt` (allow all, sitemap reference) and `sitemap.xml` listing exactly
   the landing pages — the editor page is `noindex` and stays out of the sitemap.
-- **Hosting rewrites**: `/editor` and `/editor/*` → `/editor.html` shipped as `public/_redirects`
+- **Hosting rewrites**: `/editor` and `/editor/*` → `/editor/index.html` shipped as `public/_redirects`
   (Netlify, Cloudflare Pages) and `vercel.json` (Vercel); dev and preview servers get the same
   mapping via a small Vite middleware so all three environments behave identically. No global SPA
   fallback: unknown paths keep returning real 404s.

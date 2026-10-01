@@ -109,7 +109,7 @@ Conventions and layer boundaries: [AGENTS.md](AGENTS.md).
 ```
 index.html    # static landing (ru) — the crawlable public entry
 en/index.html # static landing (en), hreflang-linked
-editor.html   # the editor SPA entry (mounted at /editor by the router)
+editor/       # the editor SPA entry (editor/index.html, mounted at /editor)
 landing/      # landing.css (design tokens + page styles) and main.ts (lang glue)
 src/
 ├── app/       # shell: router, top bar, workspace, bench harness
@@ -136,7 +136,7 @@ with marching squares from the scalar field, not SVG filters).
 The landing pages (`/`, `/en/`) are hand-written static HTML — crawlers see final markup with
 no JavaScript; the decision is recorded in
 [docs/decisions/0008](docs/decisions/0008-landing-static-mpa.md). Hosting needs one rewrite
-(`/editor` and `/editor/*` → `editor.html`): `public/_redirects` covers Netlify/Cloudflare
+(`/editor` and `/editor/*` → `editor/index.html`): `public/_redirects` covers Netlify/Cloudflare
 Pages, `vercel.json` covers Vercel, and the Vite dev/preview middleware mirrors both. The
 canonical/OG/sitemap URLs use the reserved placeholder `https://ditherlab.example` — replace
 it with the real domain in `index.html`, `en/index.html`, `public/robots.txt` and

@@ -82,10 +82,31 @@
               />
             </svg>
           </button>
-          <span class="lang">
-            <a href="/" hreflang="ru" aria-current="true">RU</a>
-            <a href="/en/" hreflang="en" lang="en" data-lang="en">EN</a>
-          </span>
+          <div class="lang-menu">
+            <button
+              class="lang-toggle"
+              type="button"
+              aria-label="Язык"
+              aria-haspopup="menu"
+              aria-expanded="false"
+            >
+              <svg
+                class="globe"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.2"
+                aria-hidden="true"
+              >
+                <circle cx="8" cy="8" r="6.2" />
+                <path d="M1.8 8h12.4M8 1.8c-4.4 4-4.4 8.4 0 12.4M8 1.8c4.4 4 4.4 8.4 0 12.4" />
+              </svg>
+            </button>
+            <div class="lang-dropdown" role="menu" hidden>
+              <a role="menuitemradio" aria-checked="true" href="/" data-lang="ru">Русский</a>
+              <a role="menuitemradio" aria-checked="false" href="/en/" data-lang="en">English</a>
+            </div>
+          </div>
           <a class="btn btn-accent btn-sm" href="/editor/" aria-label="Открыть редактор">
             <span class="btn-label-full" aria-hidden="true">Открыть редактор</span>
             <span class="btn-label-short" aria-hidden="true">Редактор</span>
@@ -100,9 +121,8 @@
           <p class="kicker">Бесплатно · В браузере · Без регистрации</p>
           <h1>Минималистичный пиксельный редактор с чистым векторным экспортом</h1>
           <p class="lead">
-            Рисуйте пиксели, превращайте фотографии в дизер-арт, меняйте форму каждой клетки и
-            собирайте живые рецепты из нод. Всё считается локально — проекты не покидают ваше
-            устройство.
+            Рисуйте пиксели, дизерингуйте фото и экспортируйте чистый вектор — всё считается
+            локально, в браузере.
           </p>
           <div class="cta-row">
             <a class="btn btn-accent" href="/editor/"
@@ -126,63 +146,51 @@
       <section class="section wrap" id="features">
         <p class="kicker"><span aria-hidden="true">⚡</span> Возможности</p>
         <h2>Один редактор — от клетки до живого рецепта</h2>
-        <p class="section-intro">
-          Пиксель-арт, дизеринг и вектор в одном приложении: превью на холсте и SVG-экспорт строит
-          один и тот же геометрический движок — вектор в точности повторяет то, что вы видите.
-        </p>
         <div class="features">
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🖼️</span>
             <h3>Холст до 4096×4096</h3>
-            <p>
-              Любая сетка от 1×1: пресеты Game Boy, NES, 16:9; зум колесом, панорама, шахматный фон.
-            </p>
+            <p>Пресеты Game Boy, NES, 16:9; зум и панорама.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">✏️</span>
             <h3>Около 30 инструментов</h3>
-            <p>От карандаша и заливки до спирали и шестерёнки — у каждого свои параметры.</p>
+            <p>У каждого — свои параметры.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🏁</span>
             <h3>Дизер-заливки</h3>
-            <p>
-              22 узора: Байер, halftone, blue noise, void-and-cluster — с градиентом от точки клика.
-            </p>
+            <p>22 узора: Байер, halftone, blue noise…</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">📸</span>
             <h3>Фото → пиксель-арт</h3>
-            <p>23 алгоритма дизеринга и 22 палитры: от PICO-8 и C64 до ZX Spectrum.</p>
+            <p>23 алгоритма и 22 палитры — от PICO-8 до ZX Spectrum.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🫧</span>
             <h3>Живая форма клеток</h3>
-            <p>
-              28 форм, скругление каждого угла и метаболы: соседние клетки сливаются в жидкость.
-            </p>
+            <p>Метаболы: клетки сливаются в жидкость.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">❄️</span>
             <h3>Симметрия</h3>
-            <p>
-              Радиальная до 24 осей, калейдоскоп, диагональная 8-лучевая — во всех инструментах.
-            </p>
+            <p>До 24 осей и калейдоскоп.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🧩</span>
             <h3>Нодовые рецепты</h3>
-            <p>Цепочка «источник → модификатор → стиль» (19 операций) живёт вместе с холстом.</p>
+            <p>19 операций, как в Blender.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🪄</span>
             <h3>Растр → вектор</h3>
-            <p>Трассировка vtracer и градиентные подгонки: чистый SVG с живым предпросмотром.</p>
+            <p>Чистый SVG из любого растра.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">💾</span>
             <h3>Экспорт без потерь</h3>
-            <p>SVG тем же движком, что рисует холст; PNG до 16×; автосохранение в IndexedDB.</p>
+            <p>SVG, PNG до 16×, JSON.</p>
           </article>
         </div>
       </section>
@@ -190,10 +198,6 @@
       <section class="section wrap" id="gallery">
         <p class="kicker"><span aria-hidden="true">🎨</span> Сделано в Ditherlab</p>
         <h2>Нарисовано движком Ditherlab</h2>
-        <p class="section-intro">
-          Постеры из встроенной демо-библиотеки редактора: каждый отрисован тем же движком, который
-          рисует холст, — это не скриншоты, а вектор.
-        </p>
         <div class="gallery">
           <figure class="frame tile-square reveal">
             <img
@@ -203,7 +207,27 @@
               loading="lazy"
               alt="Пиксельная мандала: розово-фиолетовый радиальный узор с дизерингом"
             />
-            <figcaption>«Mandala 128» — радиальная симметрия</figcaption>
+            <figcaption>Mandala 128</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/galaxy.svg"
+              width="780"
+              height="780"
+              loading="lazy"
+              alt="Радиальная галактика: разноцветные точки-звёзды на тёмном фоне"
+            />
+            <figcaption>Galaxy 130</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/kaleido.svg"
+              width="768"
+              height="768"
+              loading="lazy"
+              alt="Калейдоскопический узор из зеркальных сегментов"
+            />
+            <figcaption>Kaleido 128</figcaption>
           </figure>
           <figure class="frame tile-square reveal">
             <img
@@ -213,7 +237,47 @@
               loading="lazy"
               alt="Жидкие метабол-пятна жёлтого, бирюзового, лилового и розового на тёмном фоне"
             />
-            <figcaption>«Lava Blobs 96» — режим метаболов</figcaption>
+            <figcaption>Lava Blobs 96</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/portrait.svg"
+              width="704"
+              height="704"
+              loading="lazy"
+              alt="Портрет девушки, переложенный в пиксели дизерингом"
+            />
+            <figcaption>Portrait 64</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/neoncity.svg"
+              width="768"
+              height="576"
+              loading="lazy"
+              alt="Ночной неоновый город в пиксельной стилистике"
+            />
+            <figcaption>Neon City 128</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/hexreef.svg"
+              width="669"
+              height="482"
+              loading="lazy"
+              alt="Коралловый риф, собранный из шестиугольных клеток"
+            />
+            <figcaption>Hex Reef 96</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/tone.svg"
+              width="768"
+              height="768"
+              loading="lazy"
+              alt="Солнце из тональных растровых градиентов"
+            />
+            <figcaption>Tone Sun 96</figcaption>
           </figure>
           <figure class="frame tile-wide reveal">
             <img
@@ -223,7 +287,7 @@
               loading="lazy"
               alt="Изометрическая гавань на ромбовидной сетке: бирюзовый остров с корабликами"
             />
-            <figcaption>«Iso Harbor 96» — ромбовидная сетка</figcaption>
+            <figcaption>Iso Harbor 96</figcaption>
           </figure>
         </div>
         <div class="cta-row section-cta reveal">
@@ -240,8 +304,7 @@
           <span class="brand"><img class="brand-glyph" src="/favicon.svg" alt="" /> Ditherlab</span>
           <p class="footer-note">
             <span aria-hidden="true">🔒</span>
-            Работает локально в вашем браузере: автосохранение в IndexedDB, без аккаунта и отправки
-            данных на сервер.
+            Работает локально: автосохранение в IndexedDB, без аккаунта.
           </p>
         </div>
         <nav class="footer-nav" aria-label="Навигация по сайту">

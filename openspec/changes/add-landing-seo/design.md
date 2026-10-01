@@ -24,9 +24,11 @@ not invalidate anything built here.
 ### URL layout: `/` landing, `/en/` landing, `/editor` app
 
 `index.html` becomes the Russian landing; `en/index.html` the English one; the current app entry
-moves to `editor.html`. The router gets `basepath: '/editor'`, so its route tree and semantics are
+moves to `editor/index.html` — a real directory index, so `/editor/` serves on every static host
+without any rewrite (deep links still use the rewrites below). The router gets `basepath:
+'/editor'`, so its route tree and semantics are
 untouched — only the URL prefix changes. Hosting needs exactly one rewrite (`/editor` and
-`/editor/*` → `/editor.html`), shipped as `public/_redirects` + `vercel.json` and mirrored in dev
+`/editor/*` → `/editor/index.html`), shipped as `public/_redirects` + `vercel.json` and mirrored in dev
 and preview by a Vite middleware plugin (`configureServer` / `configurePreviewServer`). There is
 deliberately **no global SPA fallback**: the only client-side routes live under `/editor`, and
 keeping real 404s for everything else is the SEO-correct behavior.
@@ -55,7 +57,7 @@ Canonical, OG URLs and the sitemap need an absolute origin. Until one exists the
 
 ### Editor page is noindex
 
-`editor.html` is a JS-only shell with no crawlable content; it is marked `noindex` and excluded
+`editor/index.html` is a JS-only shell with no crawlable content; it is marked `noindex` and excluded
 from the sitemap so search engines do not index an empty shell competing with the landing.
 
 ### Artwork provenance

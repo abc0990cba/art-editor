@@ -10,7 +10,7 @@ workspace composition, the top bar, hotkeys, the vectorize bridge, the bench har
 
 | File | Role |
 |---|---|
-| `src/app/main.tsx` | entry dispatcher (editor.html): app boot or `?bench=1` harness (both dynamic imports) |
+| `src/app/main.tsx` | entry dispatcher (editor/index.html): app boot or `?bench=1` harness (both dynamic imports) |
 | `src/app/app-boot.tsx` | StrictMode + TooltipProvider; legacy migration + demo seed before first route |
 | `src/app/router.tsx` / `project-search.ts` | routes `/` and `/p/$projectId` under `basepath: '/editor'`; typed search params |
 | `src/app/project-route.component.tsx` | binds the library entry to the store; kind-switches the workspace |
@@ -29,7 +29,7 @@ branches load dynamically so the bench page never pays for app module side effec
 runs `migrateLegacySession()` and `seedDemoProject()` *before* the first route "so the home
 screen and Continue card never see unclaimed state".
 
-**Routing** (TanStack Router): the SPA is the `editor.html` page, mounted at `basepath:
+**Routing** (TanStack Router): the SPA is the `editor/index.html` page, mounted at `basepath:
 '/editor'` — the site root is the static landing (see
 [ADR-0008](../decisions/0008-landing-static-mpa.md)); hosting rewrites `/editor` and
 `/editor/*` to that page (`public/_redirects`, `vercel.json`, mirrored by the Vite dev/preview

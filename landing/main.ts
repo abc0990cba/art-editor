@@ -49,6 +49,41 @@ if (toggle) {
   })
 }
 
+/* --- language menu: mirrors the editor's LangMenu — globe chip → radio dropdown.
+   Choosing a language navigates (plain links); the data-lang handler below persists it */
+
+const langMenu = document.querySelector<HTMLElement>('.lang-menu')
+const langToggle = document.querySelector<HTMLButtonElement>('.lang-toggle')
+
+if (langMenu && langToggle) {
+  const dropdown = langMenu.querySelector<HTMLElement>('.lang-dropdown')
+  const setOpen = (open: boolean): void => {
+    langToggle.setAttribute('aria-expanded', String(open))
+    dropdown?.toggleAttribute('hidden', !open)
+  }
+
+  langToggle.addEventListener('click', () => {
+    setOpen(langToggle.getAttribute('aria-expanded') !== 'true')
+  })
+
+  document.addEventListener('click', (event) => {
+    if (
+      langToggle.getAttribute('aria-expanded') === 'true' &&
+      event.target instanceof Node &&
+      !langMenu.contains(event.target)
+    ) {
+      setOpen(false)
+    }
+  })
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && langToggle.getAttribute('aria-expanded') === 'true') {
+      setOpen(false)
+      langToggle.focus()
+    }
+  })
+}
+
 /* --- scroll-reveal: show each piece once, as it enters the viewport ---------- */
 
 const revealed = document.querySelectorAll<HTMLElement>('.reveal')

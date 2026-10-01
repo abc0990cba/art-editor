@@ -93,6 +93,95 @@ html {
   font-weight: 600;
 }
 
+/* header language switch — mirrors the editor's LangMenu: one globe chip opening a small
+   radio menu with native names (English / Русский), checked item marked with a dot */
+
+.lang-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.lang-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--chip-line);
+  border-radius: 6px;
+  background: var(--chip);
+  color: var(--body);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.lang-toggle:hover {
+  border-color: var(--chip-line);
+}
+
+.lang-toggle[aria-expanded='true'] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.lang-toggle .globe {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.lang-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px color-mix(in srgb, black 32%, transparent);
+}
+
+.lang-dropdown a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.lang-dropdown a:hover {
+  background: var(--chip-active);
+  color: var(--body);
+}
+
+/* radio dot, like the editor's DropdownMenuRadioItem indicator */
+.lang-dropdown a::before {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+}
+
+.lang-dropdown a[aria-checked='true'] {
+  color: var(--body);
+}
+
+.lang-dropdown a[aria-checked='true']::before {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
 /* theme toggle: one icon per resolved palette stop (dark / black OLED / light) */
 
 .theme-toggle {
@@ -425,6 +514,7 @@ h2 {
 
 .gallery {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* phones: two square tiles per row */
   gap: 12px;
   align-items: start;
 }
@@ -514,7 +604,8 @@ h2 {
     gap: 12px;
   }
 
-  .theme-toggle {
+  .theme-toggle,
+  .lang-toggle {
     width: 36px;
     height: 36px;
   }
@@ -555,7 +646,15 @@ h2 {
   }
 
   .gallery {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .gallery .reveal:nth-child(3n + 2) {
+    transition-delay: 70ms;
+  }
+
+  .gallery .reveal:nth-child(3n + 3) {
+    transition-delay: 140ms;
   }
 
   .gallery .reveal:nth-child(2) {

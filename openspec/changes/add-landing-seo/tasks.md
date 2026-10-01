@@ -2,8 +2,8 @@
 
 ## 1. Multi-page build + editor base path
 
-- [x] 1.1 `editor.html` (moved from `index.html`): same `/src/app/main.tsx` script, favicon links, `theme-color`, `meta robots noindex`
-- [x] 1.2 `vite.config.ts`: `build.rollupOptions.input` for `index.html`, `en/index.html`, `editor.html`; middleware plugin mapping `/editor` and `/editor/*` → `/editor.html` in dev and preview
+- [x] 1.1 `editor/index.html` (moved from `index.html`): same `/src/app/main.tsx` script, favicon links, `theme-color`, `meta robots noindex`
+- [x] 1.2 `vite.config.ts`: `build.rollupOptions.input` for `index.html`, `en/index.html`, `editor/index.html`; middleware plugin mapping `/editor` and `/editor/*` → `/editor/index.html` in dev and preview
 - [x] 1.3 `src/app/router.tsx`: `basepath: '/editor'`; routes and semantics unchanged
 - [x] 1.4 Update bench URL mentions (`/editor/?bench=1`) in AGENTS.md, README.md, docs
 
@@ -27,7 +27,7 @@
 
 ## 5. Hosting configs
 
-- [x] 5.1 `public/_redirects` (`/editor`, `/editor/*` → `/editor.html`, 200) for Netlify/CF Pages
+- [x] 5.1 `public/_redirects` (`/editor`, `/editor/*` → `/editor/index.html`, 200) for Netlify/CF Pages
 - [x] 5.2 `vercel.json` with the same rewrites
 
 ## 6. seo:check
@@ -48,3 +48,7 @@
 ## 9. Follow-up polish (same change)
 
 - [x] 9.1 Header theme toggle (dark → black OLED → light, persists `glyph.theme`), hero restyled to a centered minimal layout with a token-based glow, scroll-reveal animations (JS-gated, `prefers-reduced-motion`-safe), numbered feature cards with tightened copy (ru+en symmetric)
+
+## 10. Follow-up: hosting-proof editor entry (Vercel 404)
+
+- [x] 10.1 `editor.html` → `editor/index.html`: the bare `/editor/` URL is a real directory index, so the main entry needs no hosting rewrite (Vercel's `/editor/:path*` does not match the trailing-slash form and drag-and-drop deploys carry no rewrites at all); deep-link rewrites retargeted to `/editor/index.html`

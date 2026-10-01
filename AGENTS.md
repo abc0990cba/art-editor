@@ -64,7 +64,7 @@ run `git commit`.
 ```
 index.html    # static landing (ru) — the crawlable public entry, no React
 en/index.html # static landing (en); copy lives in the HTML, not in i18n dictionaries
-editor.html   # the editor SPA entry — the router mounts it at /editor
+editor/      # the editor SPA entry (editor/index.html) — mounted at /editor
 landing/      # landing support: plain-CSS page styles + lang persistence glue
 src/
   app/       # shell: app.component.tsx, app-top-bar.component.tsx, main.tsx

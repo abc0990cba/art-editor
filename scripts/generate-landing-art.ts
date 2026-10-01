@@ -25,8 +25,14 @@ const OG_H = 630
 const PICKS: readonly { file: string; id: string }[] = [
   { file: 'hero', id: POSTER_DEMO.id },
   { file: 'mandala', id: 'demo.mandala' },
-  { file: 'iso', id: 'demo.iso' },
+  { file: 'galaxy', id: 'demo.galaxy' },
+  { file: 'kaleido', id: 'demo.kaleido' },
   { file: 'lava', id: 'demo.lava' },
+  { file: 'portrait', id: 'demo.portrait' },
+  { file: 'neoncity', id: 'demo.neoncity' },
+  { file: 'hexreef', id: 'demo.hexreef' },
+  { file: 'tone', id: 'demo.tone' },
+  { file: 'iso', id: 'demo.iso' },
 ]
 
 interface Poster {

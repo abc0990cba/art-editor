@@ -15,7 +15,8 @@ The public surface becomes a **multi-page Vite build** with hand-written static 
 
 - `/` (Russian) and `/en/` (English) are complete static landing pages — no framework, no
   React, no client rendering. Crawlers and link previews get final markup.
-- The editor app moves to a second entry, `editor.html`, served under `/editor`; the TanStack
+- The editor app moves to a second entry, `editor/index.html`, served under `/editor` (a real
+  directory index, so the main entry needs no hosting rewrite); the TanStack
   Router gains `basepath: '/editor'`. Relative routes (`/`, `/p/$projectId`) and their semantics
   are unchanged; deep links become `/editor`, `/editor/p/$projectId`; the bench harness lives at
   `/editor/?bench=1`.
@@ -28,9 +29,9 @@ The public surface becomes a **multi-page Vite build** with hand-written static 
   (`og.png`, `apple-touch-icon.png`) are one-off headless-Chrome rasterizations of those
   sources, committed. No image library is added.
 - Crawler files: `robots.txt` allows all and references `sitemap.xml`, which lists exactly the
-  landing pages. `editor.html` is `noindex`. There is **no global SPA fallback** — unknown paths
+  landing pages. `editor/index.html` is `noindex`. There is **no global SPA fallback** — unknown paths
   keep returning real 404s.
-- Hosting rewrites (`/editor` and `/editor/*` → `/editor.html`) ship as `public/_redirects`
+- Hosting rewrites (`/editor` and `/editor/*` → `/editor/index.html`) ship as `public/_redirects`
   (Netlify, Cloudflare Pages) and `vercel.json` (Vercel); dev and preview get the same mapping
   from a small Vite middleware in `vite.config.ts`.
 

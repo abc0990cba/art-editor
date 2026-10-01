@@ -94,7 +94,7 @@ for (const page of LANDING_PAGES) {
 
 console.log('editor.html')
 try {
-  const editor = await readFile(new URL('editor.html', DIST), 'utf8')
+  const editor = await readFile(new URL('editor/index.html', DIST), 'utf8')
   if (!(editor.includes('name="robots"') && editor.includes('content="noindex"'))) {
     problem('editor page is not noindex')
   }

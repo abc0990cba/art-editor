@@ -82,10 +82,31 @@
               />
             </svg>
           </button>
-          <span class="lang">
-            <a href="/" hreflang="ru" lang="ru" data-lang="ru">RU</a>
-            <a href="/en/" hreflang="en" aria-current="true">EN</a>
-          </span>
+          <div class="lang-menu">
+            <button
+              class="lang-toggle"
+              type="button"
+              aria-label="Language"
+              aria-haspopup="menu"
+              aria-expanded="false"
+            >
+              <svg
+                class="globe"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.2"
+                aria-hidden="true"
+              >
+                <circle cx="8" cy="8" r="6.2" />
+                <path d="M1.8 8h12.4M8 1.8c-4.4 4-4.4 8.4 0 12.4M8 1.8c4.4 4 4.4 8.4 0 12.4" />
+              </svg>
+            </button>
+            <div class="lang-dropdown" role="menu" hidden>
+              <a role="menuitemradio" aria-checked="false" href="/" data-lang="ru">Русский</a>
+              <a role="menuitemradio" aria-checked="true" href="/en/" data-lang="en">English</a>
+            </div>
+          </div>
           <a class="btn btn-accent btn-sm" href="/editor/" aria-label="Open editor">
             <span class="btn-label-full" aria-hidden="true">Open editor</span>
             <span class="btn-label-short" aria-hidden="true">Editor</span>
@@ -100,8 +121,8 @@
           <p class="kicker">Free · In your browser · No sign-up</p>
           <h1>A minimalist pixel editor with clean vector export</h1>
           <p class="lead">
-            Draw pixels, turn photos into dithered art, reshape every cell and build living node
-            recipes. Everything is computed locally — your projects never leave your device.
+            Draw pixels, dither photos and export clean vectors — all computed locally, right in
+            your browser.
           </p>
           <div class="cta-row">
             <a class="btn btn-accent" href="/editor/"
@@ -125,62 +146,51 @@
       <section class="section wrap" id="features">
         <p class="kicker"><span aria-hidden="true">⚡</span> Features</p>
         <h2>One editor — from the single cell to a living recipe</h2>
-        <p class="section-intro">
-          Pixel art, dithering and vector in one app: the canvas preview and the SVG export are
-          built by the same geometry engine — the vector is exactly what you see on screen.
-        </p>
         <div class="features">
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🖼️</span>
             <h3>Canvas up to 4096×4096</h3>
-            <p>
-              Any grid from 1×1: Game Boy, NES and 16:9 presets; wheel zoom, panning, checkerboard.
-            </p>
+            <p>Game Boy, NES and 16:9 presets; zoom and panning.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">✏️</span>
             <h3>Around 30 drawing tools</h3>
-            <p>From pencil and fill to spiral and gear — each with its own parameters.</p>
+            <p>Each with its own parameters.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🏁</span>
             <h3>Dither fills</h3>
-            <p>
-              22 patterns — Bayer, halftone, blue noise, void-and-cluster — with click-anchored
-              gradients.
-            </p>
+            <p>22 patterns — Bayer, halftone, blue noise…</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">📸</span>
             <h3>Photos → pixel art</h3>
-            <p>23 dithering algorithms and 22 palettes: from PICO-8 and C64 to ZX Spectrum.</p>
+            <p>23 algorithms and 22 palettes — from PICO-8 to ZX Spectrum.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🫧</span>
             <h3>Living cell shapes</h3>
-            <p>28 forms, per-corner rounding and metaballs: neighbors merge into liquid.</p>
+            <p>Metaballs: neighbors merge into liquid.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">❄️</span>
             <h3>Symmetry</h3>
-            <p>Radial up to 24 axes, kaleidoscope, diagonal 8-way — in every tool.</p>
+            <p>Up to 24 axes, kaleidoscope.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🧩</span>
             <h3>Node recipes</h3>
-            <p>A source → modifier → style chain (19 operations) that lives with the canvas.</p>
+            <p>19 operations, Blender-style.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">🪄</span>
             <h3>Raster → vector</h3>
-            <p>vtracer tracing and gradient fits: clean SVG with a live preview.</p>
+            <p>Clean SVG from any bitmap.</p>
           </article>
           <article class="card reveal">
             <span class="card-emoji" aria-hidden="true">💾</span>
             <h3>Lossless export</h3>
-            <p>
-              SVG from the engine that draws the canvas; PNG up to 16×; autosave into IndexedDB.
-            </p>
+            <p>SVG, PNG up to 16×, JSON.</p>
           </article>
         </div>
       </section>
@@ -188,10 +198,6 @@
       <section class="section wrap" id="gallery">
         <p class="kicker"><span aria-hidden="true">🎨</span> Made in Ditherlab</p>
         <h2>Drawn by the Ditherlab engine</h2>
-        <p class="section-intro">
-          Posters from the editor's built-in demo library: each one is rendered by the same engine
-          that draws the canvas — these are not screenshots, they are vectors.
-        </p>
         <div class="gallery">
           <figure class="frame tile-square reveal">
             <img
@@ -201,7 +207,27 @@
               loading="lazy"
               alt="A pixel mandala: pink-and-violet radial pattern with dithering"
             />
-            <figcaption>“Mandala 128” — radial symmetry</figcaption>
+            <figcaption>Mandala 128</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/galaxy.svg"
+              width="780"
+              height="780"
+              loading="lazy"
+              alt="A radial galaxy of colorful star dots on a dark background"
+            />
+            <figcaption>Galaxy 130</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/kaleido.svg"
+              width="768"
+              height="768"
+              loading="lazy"
+              alt="A kaleidoscopic pattern of mirrored segments"
+            />
+            <figcaption>Kaleido 128</figcaption>
           </figure>
           <figure class="frame tile-square reveal">
             <img
@@ -211,7 +237,47 @@
               loading="lazy"
               alt="Liquid metaball blobs of yellow, cyan, violet and pink on a dark background"
             />
-            <figcaption>“Lava Blobs 96” — metaball mode</figcaption>
+            <figcaption>Lava Blobs 96</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/portrait.svg"
+              width="704"
+              height="704"
+              loading="lazy"
+              alt="A portrait photo re-laid as dithered pixels"
+            />
+            <figcaption>Portrait 64</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/neoncity.svg"
+              width="768"
+              height="576"
+              loading="lazy"
+              alt="A neon-lit night city in pixel style"
+            />
+            <figcaption>Neon City 128</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/hexreef.svg"
+              width="669"
+              height="482"
+              loading="lazy"
+              alt="A coral reef built from hexagonal cells"
+            />
+            <figcaption>Hex Reef 96</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/tone.svg"
+              width="768"
+              height="768"
+              loading="lazy"
+              alt="A sun made of tonal raster gradients"
+            />
+            <figcaption>Tone Sun 96</figcaption>
           </figure>
           <figure class="frame tile-wide reveal">
             <img
@@ -221,7 +287,7 @@
               loading="lazy"
               alt="An isometric harbor on a diamond grid: a teal island with tiny ships"
             />
-            <figcaption>“Iso Harbor 96” — diamond lattice</figcaption>
+            <figcaption>Iso Harbor 96</figcaption>
           </figure>
         </div>
         <div class="cta-row section-cta reveal">
