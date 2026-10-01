@@ -7,6 +7,7 @@ import {
   type GlyphFamily,
 } from '../../engine/glyph-builtins.ts'
 import type { GlyphTileSet } from '../../engine/glyph-tiles.ts'
+import type { ImportBitmap } from '../../engine/import-image.ts'
 import { useStore } from '../../state/editor.store.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { GlyphPhotoPreview } from './glyph-photo-preview.component.tsx'
@@ -29,29 +30,25 @@ function sampleLevels(set: GlyphTileSet): GlyphTileSet {
 }
 
 /**
- * One row of the glyph list: name + tile meta over the tone ramp. Hovering drives the large photo
- * preview on the left, clicking applies the set.
+ * One row of the glyph list: name + tile meta over the tone ramp. Clicking applies the set (the
+ * large preview keeps showing the currently applied one — what you press is what you get).
  */
 function GalleryRow({
   name,
   set,
   sourceId,
   onPick,
-  onHover,
 }: {
   name: string
   set: GlyphTileSet
   /** Library id of the set (null for ad-hoc sets) */
   sourceId: string | null
   onPick: (set: GlyphTileSet, id: string | null) => void
-  onHover: (set: GlyphTileSet) => void
 }) {
   return (
     <button
       type="button"
       onClick={() => onPick(set, sourceId)}
-      onMouseEnter={() => onHover(set)}
-      onFocus={() => onHover(set)}
       className="border-line bg-chip hover:border-chip-line flex min-w-0 flex-col gap-1.5 rounded-lg border p-2 text-left transition"
     >
       <span className="flex min-w-0 items-baseline justify-between gap-2">
@@ -66,25 +63,30 @@ function GalleryRow({
 }
 
 /**
- * Full-screen glyph gallery, master/detail: the left pane keeps the photo preview as large as the
- * dialog allows, the right pane is a single scrollable column of sets — hovering a row re-dithers
- * the photo live, clicking applies it. User library on top, then the built-in families. Stacks
- * above other dialogs (portal order); Escape and the backdrop close only this layer.
+ * Full-screen glyph gallery, master/detail: the left pane keeps the photo preview of the currently
+ * applied set as large as the dialog allows, the right pane is a single scrollable column of sets —
+ * clicking a row applies it. The preview picture is the dialog's imported photo when given, so sets
+ * are judged on the user's own image. User library on top, then the built-in families. Stacks above
+ * other dialogs (portal order); Escape and the backdrop close only this layer.
  */
 export function GlyphGallery({
   onClose,
   onPick,
+  initialSet,
+  photo,
 }: {
   onClose: () => void
   onPick: (set: GlyphTileSet, id: string | null) => void
+  /** The set in use right now — the preview starts on it (not on hover). */
+  initialSet?: GlyphTileSet | null
+  /** Imported picture to preview instead of the bundled sample. */
+  photo?: ImportBitmap | null
 }) {
   const { t } = useI18n()
   const glyphSets = useStore((s) => s.glyphSets)
   const [query, setQuery] = useState('')
-  // the photo preview shows this set; hovering a row swaps it live
-  const [previewSet, setPreviewSet] = useState<GlyphTileSet>(
-    () => builtInGlyphSetById('glyph-bayer8') ?? BUILT_IN_GLYPH_SETS[0].set,
-  )
+  // the preview shows the set in use; it changes only when a row is pressed (which applies it)
+  const previewSet = initialSet ?? builtInGlyphSetById('glyph-bayer8') ?? BUILT_IN_GLYPH_SETS[0].set
 
   const q = query.trim().toLowerCase()
   const matches = (name: string): boolean => q === '' || name.toLowerCase().includes(q)
@@ -128,7 +130,7 @@ export function GlyphGallery({
         <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
           {/* master: the live photo preview, as large as the dialog allows */}
           <div className="flex min-h-0 flex-col gap-1.5 lg:min-w-0 lg:flex-1">
-            <GlyphPhotoPreview set={previewSet} />
+            <GlyphPhotoPreview set={previewSet} photo={photo} />
             <p className="text-muted text-overline leading-snug">{t('glyph.preview.hint')}</p>
           </div>
 
@@ -155,7 +157,6 @@ export function GlyphGallery({
                         name={e.set.name}
                         set={e.set}
                         sourceId={e.id}
-                        onHover={setPreviewSet}
                         onPick={(picked, pickedId) => {
                           onPick(picked, pickedId)
                           onClose()
@@ -177,7 +178,6 @@ export function GlyphGallery({
                         name={b.set.name}
                         set={b.set}
                         sourceId={b.id}
-                        onHover={setPreviewSet}
                         onPick={(picked, pickedId) => {
                           onPick(picked, pickedId)
                           onClose()

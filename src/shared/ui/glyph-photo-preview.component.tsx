@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ditherImageWithGlyph, type DitherStyle } from '../../engine/glyph-preview.ts'
-import { type GlyphTileSet } from '../../engine/glyph-tiles.ts'
+import type { GlyphTileSet } from '../../engine/glyph-tiles.ts'
+import type { ImportBitmap } from '../../engine/import-image.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { Chip } from './index.tsx'
 
@@ -62,39 +63,65 @@ function fallbackImage(): ImageData | null {
   return g.getImageData(0, 0, 640, 400)
 }
 
+/** Rasterize an imported picture into preview ImageData, downscaled like the bundled sample. */
+function importedToImageData(photo: ImportBitmap): ImageData | null {
+  const off = document.createElement('canvas')
+  off.width = photo.width
+  off.height = photo.height
+  off
+    .getContext('2d')
+    ?.putImageData(
+      new ImageData(new Uint8ClampedArray(photo.data), photo.width, photo.height),
+      0,
+      0,
+    )
+  return toImageData(off, photo.width, photo.height)
+}
+
 /**
- * Live photo preview for the glyph gallery: a bundled public-domain sample photo (replaceable on
- * the fly) dithered through the hovered/selected glyph set on a chosen cell grid — the bigger the
- * grid, the finer the dithering.
+ * Live photo preview for the glyph gallery: the picture under preview (an imported one when given,
+ * otherwise the bundled public-domain sample, replaceable on the fly) dithered through the selected
+ * glyph set on a chosen cell grid — the bigger the grid, the finer the dithering.
  */
-export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
+export function GlyphPhotoPreview({
+  set,
+  photo,
+}: {
+  set: GlyphTileSet
+  /** Imported picture to preview instead of the bundled sample (the import dialog's case). */
+  photo?: ImportBitmap | null
+}) {
   const { t } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [source, setSource] = useState<ImageData | null>(null)
+  const [sample, setSample] = useState<ImageData | null>(null)
   // coarse by default: individual glyphs read clearly (fine grids melt them into gray)
   const [cols, setCols] = useState(24)
   const [mode, setMode] = useState(COLOR_MODES[0])
 
-  // load the bundled sample once; on failure fall back to a procedural gradient
+  // the imported picture wins over the bundled sample; the sample loads only without one
+  const photoData = useMemo(() => (photo ? importedToImageData(photo) : null), [photo])
+  const source = photoData ?? sample
+
   useEffect(() => {
+    if (photo) return
     let cancelled = false
     const img = new Image()
     img.onload = () => {
       if (cancelled) return
-      setSource(toImageData(img, img.width, img.height))
+      setSample(toImageData(img, img.width, img.height))
     }
     img.onerror = () => {
       if (cancelled) return
-      setSource(fallbackImage())
+      setSample(fallbackImage())
     }
     img.src = DEFAULT_PHOTO_URL
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [photo])
 
-  // redraw whenever the hovered set or the grid changes
+  // redraw whenever the selected set or the grid changes
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || !source) return
@@ -111,7 +138,7 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
       .then((bitmap) => {
         const next = toImageData(bitmap, bitmap.width, bitmap.height)
         bitmap.close()
-        if (next) setSource(next)
+        if (next) setSample(next)
       })
       .catch(() => {})
   }
@@ -148,9 +175,13 @@ export function GlyphPhotoPreview({ set }: { set: GlyphTileSet }) {
           </Chip>
         ))}
         <span className="flex-1" />
-        <Chip onClick={() => fileRef.current?.click()} className="max-lg:min-h-11 max-lg:px-3">
-          {t('glyph.preview.replace')}
-        </Chip>
+        {/* with an imported picture the replace chip is hidden — the picture is owned
+            by the import dialog and swapped there ("Change" in its header) */}
+        {!photo && (
+          <Chip onClick={() => fileRef.current?.click()} className="max-lg:min-h-11 max-lg:px-3">
+            {t('glyph.preview.replace')}
+          </Chip>
+        )}
         <input
           ref={fileRef}
           type="file"

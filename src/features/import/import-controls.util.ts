@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 
-import type { ImportDither, ImportFit } from '../../engine/import-image.ts'
+import { hexToRgb } from '../../engine/color.ts'
+import type { ImportDither, ImportFit, ImportResult } from '../../engine/import-image.ts'
 
 /** Canvas placement options of the import, in display order. */
 export const FITS: ImportFit[] = ['cover', 'contain', 'stretch', 'resize']
@@ -67,3 +68,39 @@ export const checkerStyle: CSSProperties = {
 
 /** Signed slider readout (-100..100 → «-12» / «+12»). */
 export const signed = (v: number): string => (v > 0 ? `+${v}` : `${v}`)
+
+export interface Rgb {
+  r: number
+  g: number
+  b: number
+}
+
+/** Result palette hex → rgb lookup for the canvas painters. */
+export function importRgbOf(palette: string[]): Map<string, Rgb> {
+  const m = new Map<string, Rgb>()
+  for (const hex of palette) m.set(hex, hexToRgb(hex) ?? { r: 0, g: 0, b: 0 })
+  return m
+}
+
+/** Paint the converted cells at 1:1 (cols×sub, rows×sub); empty cells stay transparent. */
+export function paintResult(
+  ctx: CanvasRenderingContext2D,
+  result: ImportResult,
+  rgbOf: Map<string, Rgb>,
+  sub: number,
+): void {
+  const w = result.cols * sub
+  const h = result.rows * sub
+  const img = ctx.createImageData(w, h)
+  for (let i = 0; i < result.cells.length; i++) {
+    const v = result.cells[i]
+    if (v === 0) continue
+    const rgb = rgbOf.get(result.palette[(v - 1) % result.palette.length])
+    if (!rgb) continue
+    img.data[i * 4] = rgb.r
+    img.data[i * 4 + 1] = rgb.g
+    img.data[i * 4 + 2] = rgb.b
+    img.data[i * 4 + 3] = 255
+  }
+  ctx.putImageData(img, 0, 0)
+}

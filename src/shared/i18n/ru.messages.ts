@@ -81,7 +81,8 @@ export const ru: Dict = {
   'glyph.preview.blue': 'Синий',
   'glyph.preview.grid': 'Сетка превью',
   'glyph.preview.replace': 'Заменить фото…',
-  'glyph.preview.hint': 'Наведите на набор — превью покажет его на фото. Фото можно заменить.',
+  'glyph.preview.hint':
+    'Превью показывает текущий набор на вашем фото — нажмите на набор, чтобы применить. Фото можно заменить.',
   'glyph.picker.builtin': 'Встроенные наборы',
   'glyph.picker.placeholder': 'Выберите набор…',
   'glyph.gallery': 'Галерея глифов',

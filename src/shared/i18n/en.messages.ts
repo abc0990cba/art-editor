@@ -77,7 +77,8 @@ export const en = {
   'glyph.preview.blue': 'Blueprint',
   'glyph.preview.grid': 'Preview grid',
   'glyph.preview.replace': 'Replace photo…',
-  'glyph.preview.hint': 'Hover a set to see it dither the photo — replace the photo any time.',
+  'glyph.preview.hint':
+    'The preview shows the set in use on your picture — press a set to apply it. Replace the photo any time.',
   'glyph.picker.builtin': 'Built-in sets',
   'glyph.picker.placeholder': 'Pick a set…',
   'glyph.gallery': 'Glyph gallery',

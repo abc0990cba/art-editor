@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 
 import { BUILT_IN_GLYPH_SETS } from '../../engine/glyph-builtins.ts'
 import type { GlyphTileSet } from '../../engine/glyph-tiles.ts'
+import type { ImportBitmap } from '../../engine/import-image.ts'
 import { useStore } from '../../state/editor.store.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { GlyphGallery } from './glyph-gallery.component.tsx'
@@ -25,9 +26,12 @@ import {
 export function GlyphSetPicker({
   value,
   onChange,
+  photo,
 }: {
   value: GlyphTileSet | null
   onChange: (set: GlyphTileSet | null) => void
+  /** Imported picture shown in the gallery preview instead of the bundled sample. */
+  photo?: ImportBitmap | null
 }) {
   const { t } = useI18n()
   const glyphSets = useStore((s) => s.glyphSets)
@@ -93,6 +97,8 @@ export function GlyphSetPicker({
       {galleryOpen && (
         <GlyphGallery
           onClose={() => setGalleryOpen(false)}
+          initialSet={selected}
+          photo={photo}
           onPick={(set) => {
             onChange(set)
             setGalleryOpen(false)

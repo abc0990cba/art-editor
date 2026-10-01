@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { hexToRgb } from '../../engine/color.ts'
 import {
   convertImage,
   DEFAULT_IMPORT_OPTIONS,
@@ -19,21 +18,25 @@ import { GlyphSetPicker } from '../../shared/ui/glyph-set-picker.component.tsx'
 import { Chip, CheckRow, Slider } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '../../shared/ui/shadcn/select.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import { BeforeAfterPreview } from './before-after-preview.component.tsx'
 import { ImportAdjustSections } from './import-adjust-sections.component.tsx'
-import { checkerStyle, DITHER_GROUPS, FITS, SELECT_TRIGGER } from './import-controls.util.ts'
+import { checkerStyle, FITS, importRgbOf } from './import-controls.util.ts'
+import {
+  ImportDitherField,
+  ImportPaletteField,
+  ImportPresetsField,
+} from './import-option-fields.component.tsx'
 import { ImportPaletteEditor } from './import-palette-editor.component.tsx'
+
+/** Resolve a palette-select value into a conversion palette choice. */
+const paletteChoice = (sel: string, colors: number): ImportPaletteChoice => {
+  if (sel === 'current') return { kind: 'current' }
+  if (sel === 'auto') return { kind: 'auto', colors }
+  const preset = PALETTES.find((p) => p.id === sel) ?? PALETTES[0]
+  return { kind: 'preset', colors: [...preset.colors] }
+}
 
 export function ImportDialog({
   bitmap: initialBitmap,
@@ -65,11 +68,19 @@ export function ImportDialog({
   const square = doc.gridType === 'square'
   const patch = (p: Partial<ImportOptions>) => setOpts((o) => ({ ...o, ...p }))
 
-  const paletteChoice = (sel: string, colors: number): ImportPaletteChoice => {
-    if (sel === 'current') return { kind: 'current' }
-    if (sel === 'auto') return { kind: 'auto', colors }
-    const preset = PALETTES.find((p) => p.id === sel) ?? PALETTES[0]
-    return { kind: 'preset', colors: [...preset.colors] }
+  // resolved palette choice for the option-field tiles (stable identity between changes)
+  const galleryPalette = useMemo(
+    () => paletteChoice(paletteSel, autoColors),
+    [paletteSel, autoColors],
+  )
+
+  /** One-click recipe: pins the full option snapshot and syncs the palette select. */
+  const applyPreset = (id: string) => {
+    const preset = IMPORT_PRESETS.find((x) => x.id === id)
+    if (!preset) return
+    setPresetSel(id)
+    setOpts(preset.opts)
+    setPaletteSel(preset.paletteId ?? 'auto')
   }
 
   // conversion runs off the render path so slider drags stay smooth
@@ -96,13 +107,7 @@ export function ImportDialog({
     [result, paletteEdit],
   )
 
-  const rgbOf = useMemo(() => {
-    const m = new Map<string, { r: number; g: number; b: number }>()
-    if (finalResult) {
-      for (const hex of finalResult.palette) m.set(hex, hexToRgb(hex) ?? { r: 0, g: 0, b: 0 })
-    }
-    return m
-  }, [finalResult])
+  const rgbOf = useMemo(() => importRgbOf(finalResult?.palette ?? []), [finalResult])
 
   const colorsUsed = finalResult
     ? new Set(finalResult.cells).size - (finalResult.cells.includes(0) ? 1 : 0)
@@ -197,34 +202,7 @@ export function ImportDialog({
                 onChange={setPaletteEdit}
               />
 
-              <div className="flex flex-col gap-1">
-                <span className="text-muted text-xs">{t('import.presets')}</span>
-                <Select
-                  value={presetSel || undefined}
-                  onValueChange={(v) => {
-                    const preset = IMPORT_PRESETS.find((x) => x.id === v)
-                    if (!preset) return
-                    setPresetSel(v)
-                    setOpts(preset.opts)
-                    setPaletteSel(preset.paletteId ?? 'auto')
-                  }}
-                >
-                  <SelectTrigger className={SELECT_TRIGGER}>
-                    <SelectValue placeholder={t('import.presets')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {IMPORT_PRESETS.map((p) => (
-                      <SelectItem
-                        key={p.id}
-                        value={p.id}
-                        title={t(`import.preset.${p.id}.desc` as 'import.preset.gameboy.desc')}
-                      >
-                        {t(`import.preset.${p.id}` as 'import.preset.gameboy')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <ImportPresetsField bitmap={bitmap} value={presetSel} onPick={applyPreset} />
 
               <div className="flex flex-col gap-1">
                 <span className="text-muted text-xs">{t('import.fit')}</span>
@@ -243,36 +221,14 @@ export function ImportDialog({
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-muted text-xs">{t('import.palette')}</span>
-                <Select
-                  value={paletteSel}
-                  onValueChange={(v) => {
-                    setPaletteSel(v)
-                    patch({ palette: paletteChoice(v, autoColors) })
-                  }}
-                >
-                  <SelectTrigger className={SELECT_TRIGGER}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="auto">{t('import.palette.auto')}</SelectItem>
-                      <SelectItem value="current">{t('import.palette.current')}</SelectItem>
-                    </SelectGroup>
-                    <SelectGroup>
-                      <SelectLabel className="text-muted text-overline">
-                        {t('palette.presets')}
-                      </SelectLabel>
-                      {PALETTES.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {t(`palette.${p.id}` as 'palette.classic12')}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
+              <ImportPaletteField
+                value={paletteSel}
+                autoColors={autoColors}
+                onPick={(v) => {
+                  setPaletteSel(v)
+                  patch({ palette: paletteChoice(v, autoColors) })
+                }}
+              />
 
               {opts.palette.kind === 'auto' && (
                 <Slider
@@ -288,29 +244,14 @@ export function ImportDialog({
                 />
               )}
 
-              <div className="flex flex-col gap-1">
-                <span className="text-muted text-xs">{t('import.dither')}</span>
-                <Select
-                  value={opts.dither}
-                  onValueChange={(v) => patch({ dither: v as ImportDither })}
-                >
-                  <SelectTrigger className={SELECT_TRIGGER}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DITHER_GROUPS.map((g) => (
-                      <SelectGroup key={g.label}>
-                        <SelectLabel className="text-muted text-overline">{t(g.label)}</SelectLabel>
-                        {g.dithers.map((d) => (
-                          <SelectItem key={d} value={d}>
-                            {t(`import.dither.${d}` as 'import.dither.none')}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <ImportDitherField
+                bitmap={bitmap}
+                palette={galleryPalette}
+                docPalette={doc.palette}
+                glyphSet={opts.glyphSet}
+                value={opts.dither}
+                onPick={(d) => patch({ dither: d as ImportDither })}
+              />
 
               {opts.dither !== 'none' && (
                 <Slider
@@ -327,6 +268,7 @@ export function ImportDialog({
                 <GlyphSetPicker
                   value={opts.glyphSet}
                   onChange={(set) => patch({ glyphSet: set })}
+                  photo={bitmap}
                 />
               )}
               {ORDERED_DITHERS.has(opts.dither) && (

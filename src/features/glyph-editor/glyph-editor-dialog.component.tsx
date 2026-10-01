@@ -31,6 +31,7 @@ function GlyphLibrary() {
   const { t } = useI18n()
   const glyphSets = useStore((s) => s.glyphSets)
   const glyphDraftId = useStore((s) => s.glyphDraftId)
+  const glyphDraft = useStore((s) => s.glyphDraft)
   const renameGlyphSet = useStore((s) => s.renameGlyphSet)
   const deleteGlyphSet = useStore((s) => s.deleteGlyphSet)
   const applyGlyphSet = useStore((s) => s.applyGlyphSet)
@@ -68,6 +69,7 @@ function GlyphLibrary() {
       {galleryOpen && (
         <GlyphGallery
           onClose={() => setGalleryOpen(false)}
+          initialSet={glyphDraft}
           onPick={(set, id) => {
             applyGlyphSet(id, set)
             setGalleryOpen(false)

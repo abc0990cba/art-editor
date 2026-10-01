@@ -43,7 +43,8 @@ export function PixelCanvasArea(): ReactElement {
     if (!container) return
     const rect = container.getBoundingClientRect()
     const move = (ev: PointerEvent) => {
-      useStore.getState().setNodeEditorSplit((ev.clientX - rect.left) / rect.width)
+      // the editor pane sits on the right, so its width is the distance to the RIGHT edge
+      useStore.getState().setNodeEditorSplit((rect.right - ev.clientX) / rect.width)
     }
     const up = () => {
       window.removeEventListener('pointermove', move)

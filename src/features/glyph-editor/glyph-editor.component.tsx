@@ -65,6 +65,7 @@ export function GlyphEditor() {
       {galleryOpen && (
         <GlyphGallery
           onClose={() => setGalleryOpen(false)}
+          initialSet={glyphDraft}
           onPick={(set, id) => {
             applyGlyphSet(id, set)
             setGalleryOpen(false)

@@ -2,12 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 
 import type { ImportBitmap, ImportFit, ImportResult } from '../../engine/import-image.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-
-interface Rgb {
-  r: number
-  g: number
-  b: number
-}
+import { paintResult, type Rgb } from './import-controls.util.ts'
 
 /**
  * Draw the source photo into the result's geometry — the same cover-crop / contain-letterbox /
@@ -37,29 +32,6 @@ function drawFittedOriginal(
     // stretch — and 'resize', whose grid already matches the photo proportions
     ctx.drawImage(src, 0, 0, W, H, 0, 0, w, h)
   }
-}
-
-/** Paint the converted cells at 1:1 (cols×sub, rows×sub); empty cells stay transparent. */
-function paintResult(
-  ctx: CanvasRenderingContext2D,
-  result: ImportResult,
-  rgbOf: Map<string, Rgb>,
-  sub: number,
-): void {
-  const w = result.cols * sub
-  const h = result.rows * sub
-  const img = ctx.createImageData(w, h)
-  for (let i = 0; i < result.cells.length; i++) {
-    const v = result.cells[i]
-    if (v === 0) continue
-    const rgb = rgbOf.get(result.palette[(v - 1) % result.palette.length])
-    if (!rgb) continue
-    img.data[i * 4] = rgb.r
-    img.data[i * 4 + 1] = rgb.g
-    img.data[i * 4 + 2] = rgb.b
-    img.data[i * 4 + 3] = 255
-  }
-  ctx.putImageData(img, 0, 0)
 }
 
 /**

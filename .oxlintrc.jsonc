@@ -768,8 +768,9 @@
         "error",
         {
           // 597→601: shadcn migration; →577: presets→Select; →576: SliderGroup; →401: slider
-          // sections + static data extracted, palette editor added as components (2026-09)
-          "max": 401,
+          // sections + static data extracted, palette editor added as components (2026-09);
+          // →338: the three option selects moved into import-option-fields with tile galleries
+          "max": 338,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -777,8 +778,9 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          // 501→512: shadcn Dialog/Select migration; →366: sections extracted (2026-09)
-          "max": 366,
+          // 501→512: shadcn Dialog/Select migration; →366: sections extracted (2026-09);
+          // →332: the three option selects moved into import-option-fields
+          "max": 332,
           "skipComments": true,
           "skipBlankLines": true
         }
