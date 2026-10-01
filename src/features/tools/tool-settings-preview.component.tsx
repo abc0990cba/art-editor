@@ -8,6 +8,9 @@ import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import type { Tool } from '../../state/editor.store.ts'
 import { ToolPreview } from './tool-preview.component.tsx'
 
+/** Square sample-grid presets in cells (powers of two), filtered by the current canvas size. */
+const GRID_PRESETS = [8, 16, 32, 64, 128, 256]
+
 /** Viewport width, reactive — sizes the mobile preview's cells to the real screen. */
 function useViewportWidth(): number {
   const [w, setW] = useState(() => window.innerWidth)
@@ -20,11 +23,11 @@ function useViewportWidth(): number {
 }
 
 /**
- * The live tool sample plus its editable sample-grid row, shared by the desktop popover and the
- * mobile full-screen settings sheet. `big` sizes the cells to the phone viewport and the grid
- * inputs to 44px touch targets. The large expandable copy uses the same cells as the compact one
- * when overridden, with the cell size fitted to the floating panel so any grid up to the canvas
- * size stays readable.
+ * The live tool sample plus its sample-grid presets, shared by the desktop popover and the mobile
+ * full-screen settings sheet. `big` sizes the cells to the phone viewport and the preset chips to
+ * 44px touch targets. The large expandable copy uses the same cells as the compact one when
+ * overridden, with the cell size fitted to the floating panel so any grid up to the canvas size
+ * stays readable.
  */
 export function ToolSettingsPreview({
   tool,
@@ -44,22 +47,6 @@ export function ToolSettingsPreview({
 }) {
   const { t } = useI18n()
   const vw = useViewportWidth()
-  // text mirrors of the grid inputs so typing stays responsive while values clamp
-  const [gridText, setGridText] = useState<{ cols: string | null; rows: string | null }>({
-    cols: null,
-    rows: null,
-  })
-
-  const commitGrid = (axis: 'cols' | 'rows', raw: string) => {
-    setGridText((prev) => ({ ...prev, [axis]: raw }))
-    const n = Math.round(Number(raw))
-    if (raw.trim() === '' || !Number.isFinite(n)) return
-    // the preview can never exceed the current canvas, and stays at 4+ cells so a
-    // shape still has a (cols-3)×(rows-3) box to rasterize into
-    const max = axis === 'cols' ? maxCols : maxRows
-    const clamped = Math.max(4, Math.min(max, n))
-    setPreviewGrid({ ...(previewGrid ?? { cols: 37, rows: 24 }), [axis]: clamped })
-  }
   const grid = previewGrid ?? { cols: 37, rows: 24 }
   // mobile (big): the inline preview is the only preview — no floating expander below lg — so its
   // cells fill the screen width (24px cap for sparse grids, 560px max height like the large copy)
@@ -74,10 +61,9 @@ export function ToolSettingsPreview({
     : tipTool
       ? { cols: 15, rows: 9, cell: 48 }
       : { cols: 72, rows: 44, cell: 10 }
-  const inputClass = cn(
-    'border-line bg-chip text-body focus:border-accent-line w-14 rounded-md border px-1.5 py-1 text-right text-xs outline-none',
-    big && 'h-11 w-16 px-2 text-base',
-  )
+  // presets never exceed the canvas, so a shape keeps room to rasterize on either axis
+  const presets = GRID_PRESETS.filter((n) => n <= maxCols && n <= maxRows)
+  const chipSizing = big ? 'h-11 px-3 text-sm' : undefined
 
   return (
     <>
@@ -95,37 +81,29 @@ export function ToolSettingsPreview({
       >
         <ToolPreview tool={tool} cols={grid.cols} rows={grid.rows} cell={cell} />
       </ExpandablePreview>
-      {/* editable sample-grid size, clamped to the current canvas dimensions */}
-      <div className={cn('text-body flex items-center gap-1.5 text-xs', big && 'text-sm')}>
+      {/* square sample-grid presets (N → N×N cells); Auto returns to the per-tool default */}
+      <div
+        className={cn('text-body flex flex-wrap items-center gap-1.5 text-xs', big && 'text-sm')}
+      >
         <Tooltip label={t('preview.grid.desc')}>
           <span className="text-muted">{t('preview.grid')}</span>
         </Tooltip>
-        <input
-          type="number"
-          min={4}
-          max={maxCols}
-          value={gridText.cols ?? grid.cols}
-          onChange={(e) => commitGrid('cols', e.target.value)}
-          onBlur={() => setGridText((prev) => ({ ...prev, cols: null }))}
-          title={`${t('preview.grid.desc')} (max ${maxCols})`}
-          className={inputClass}
-        />
-        <span className="text-muted">×</span>
-        <input
-          type="number"
-          min={4}
-          max={maxRows}
-          value={gridText.rows ?? grid.rows}
-          onChange={(e) => commitGrid('rows', e.target.value)}
-          onBlur={() => setGridText((prev) => ({ ...prev, rows: null }))}
-          title={`${t('preview.grid.desc')} (max ${maxRows})`}
-          className={inputClass}
-        />
+        {presets.map((n) => (
+          <Chip
+            key={n}
+            active={grid.cols === n && grid.rows === n}
+            title={`${t('preview.grid.desc')} (${n}×${n})`}
+            onClick={() => setPreviewGrid({ cols: n, rows: n })}
+            className={chipSizing}
+          >
+            {n}
+          </Chip>
+        ))}
         {previewGrid && (
           <Chip
             title={t('preview.gridReset.desc')}
             onClick={() => setPreviewGrid(null)}
-            className={big ? 'h-11 px-3 text-sm' : undefined}
+            className={chipSizing}
           >
             {t('preview.gridReset')}
           </Chip>

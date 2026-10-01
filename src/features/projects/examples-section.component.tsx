@@ -5,6 +5,7 @@ import { renderThumbnailDataURL } from '../../engine/png.ts'
 import { deserialize } from '../../engine/project.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { materializeDemo } from '../../storage/demo-seed.ts'
+import { ExamplesScroller } from './examples-scroller.component.tsx'
 
 /** Media demos have no document to render — their source raster becomes the preview. */
 function rasterThumb(content: DemoContent): string {
@@ -33,9 +34,10 @@ function rasterThumb(content: DemoContent): string {
 }
 
 /**
- * The home screen's «Примеры» row: the built-in demo projects across grid scales and workspace
- * kinds. Thumbnails render lazily after mount (one per tick — the 512-wide demo is not free); a
- * click materializes the demo into the library under its stable `demo.` id and opens it.
+ * The home screen's «Примеры» band: the built-in demo projects across grid scales and workspace
+ * kinds, one horizontal line with chevron buttons and a draggable track (ExamplesScroller).
+ * Thumbnails render lazily after mount (one per tick — the 512-wide demo is not free); a click
+ * materializes the demo into the library under its stable `demo.` id and opens it.
  */
 export function ExamplesSection({ onOpen }: { onOpen: (id: string) => void }): ReactElement {
   const { t } = useI18n()
@@ -84,18 +86,15 @@ export function ExamplesSection({ onOpen }: { onOpen: (id: string) => void }): R
   }
 
   return (
-    <section className="flex flex-col gap-2">
-      <p className="text-muted text-overline font-semibold tracking-widest uppercase">
-        {t('home.examples')}
-      </p>
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-7">
+    <>
+      <ExamplesScroller label={t('home.examples')}>
         {DEMO_PROJECTS.map((def) => (
           <button
             key={def.id}
             type="button"
             onClick={() => void open(def)}
             disabled={busy === def.id}
-            className="border-line bg-panel hover:border-accent-line flex min-w-0 flex-col overflow-hidden rounded-lg border text-left transition disabled:opacity-60 max-lg:min-h-11"
+            className="border-line bg-panel hover:border-accent-line flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-lg border text-left transition disabled:opacity-60 max-lg:min-h-11 lg:w-40"
           >
             {thumbs[def.id] ? (
               <img src={thumbs[def.id]} alt="" className="aspect-[4/3] w-full object-contain" />
@@ -109,8 +108,8 @@ export function ExamplesSection({ onOpen }: { onOpen: (id: string) => void }): R
             </span>
           </button>
         ))}
-      </div>
+      </ExamplesScroller>
       <p className="text-muted text-overline leading-snug">{t('home.examples.hint')}</p>
-    </section>
+    </>
   )
 }

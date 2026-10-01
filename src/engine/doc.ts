@@ -284,9 +284,12 @@ export function bufferHeight(doc: Pick<Doc, 'rows' | 'sub'>): number {
   return doc.rows * doc.sub
 }
 
-/** Canvas extent of the document grid (doc units). */
-export function docExtent(doc: Pick<Doc, 'gridType' | 'cols' | 'rows'>): { w: number; h: number } {
-  return docSize(doc.gridType, doc.cols, doc.rows)
+/** Canvas extent of the document grid (doc units), rotation-aware (turned rect bounding box). */
+export function docExtent(doc: Pick<Doc, 'gridType' | 'cols' | 'rows' | 'gridRotation'>): {
+  w: number
+  h: number
+} {
+  return docSize(doc.gridType, doc.cols, doc.rows, doc.gridRotation ?? 0)
 }
 
 export function makeCells(cols: number, rows: number, sub: SubDetail): Uint16Array {

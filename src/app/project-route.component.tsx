@@ -151,6 +151,9 @@ function PixelSurface({
     }
     s.openProject(entry)
     s.markProjectSaved()
+    // opening a project (home screen, switcher, reload) always fits the canvas to the
+    // screen — a one-shot automatic zoom at open time, never on later edits
+    s.requestFit()
   }, [entry, loadDoc])
 
   return (

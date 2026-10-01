@@ -25,18 +25,62 @@ describe('rotated grids', () => {
     }
   })
 
-  it('rotates about the canvas center and keeps the extent', () => {
+  it('rotates about the canvas center and fits the rotated bounding box', () => {
     const base = makeGrid('square', 8, 6)
     const rot = makeGrid('square', 8, 6, false, 90)
-    expect(rot.w).toBe(base.w)
-    expect(rot.h).toBe(base.h)
+    // a 90° turn swaps the rect sides in the extent
+    expect(rot.w).toBeCloseTo(base.h, 9)
+    expect(rot.h).toBeCloseTo(base.w, 9)
     expect(rot.count).toBe(base.count)
-    const c = { x: base.w / 2, y: base.h / 2 }
+    // every turned cell sits fully inside the new extent, centered in it
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (let i = 0; i < rot.count; i++) {
+      for (const p of rot.polygon(i)) {
+        expect(p.x).toBeGreaterThanOrEqual(-1e-9)
+        expect(p.x).toBeLessThanOrEqual(rot.w + 1e-9)
+        expect(p.y).toBeGreaterThanOrEqual(-1e-9)
+        expect(p.y).toBeLessThanOrEqual(rot.h + 1e-9)
+        minX = Math.min(minX, p.x)
+        minY = Math.min(minY, p.y)
+        maxX = Math.max(maxX, p.x)
+        maxY = Math.max(maxY, p.y)
+      }
+    }
+    expect((minX + maxX) / 2).toBeCloseTo(rot.w / 2, 9)
+    expect((minY + maxY) / 2).toBeCloseTo(rot.h / 2, 9)
+    const c = { x: rot.w / 2, y: rot.h / 2 }
     for (let i = 0; i < 5; i++) {
       const p = base.center(i)
       const q = rot.center(i)
-      expect(Math.hypot(q.x - c.x, q.y - c.y)).toBeCloseTo(Math.hypot(p.x - c.x, p.y - c.y), 9)
+      expect(Math.hypot(q.x - c.x, q.y - c.y)).toBeCloseTo(
+        Math.hypot(p.x - base.w / 2, p.y - base.h / 2),
+        9,
+      )
     }
+  })
+
+  it('a 45° turn ends symmetrically: the diamond touches every edge midpoint', () => {
+    const rot = makeGrid('square', 8, 8, false, 45)
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (let i = 0; i < rot.count; i++) {
+      for (const p of rot.polygon(i)) {
+        minX = Math.min(minX, p.x)
+        minY = Math.min(minY, p.y)
+        maxX = Math.max(maxX, p.x)
+        maxY = Math.max(maxY, p.y)
+      }
+    }
+    expect(minX).toBeCloseTo(0, 6)
+    expect(minY).toBeCloseTo(0, 6)
+    expect(maxX).toBeCloseTo(rot.w, 6)
+    expect(maxY).toBeCloseTo(rot.h, 6)
+    expect(rot.w).toBeCloseTo(rot.h, 9)
   })
 
   it('adjacent cells keep sharing edges after rotation (outline merge)', () => {

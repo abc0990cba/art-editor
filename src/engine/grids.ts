@@ -79,9 +79,14 @@ export function isPlainSquare(doc: Pick<Doc, 'gridType' | 'gridRotation'>): bool
   return doc.gridType === 'square' && (doc.gridRotation ?? 0) % 360 === 0
 }
 
-/** Canvas extent of a document grid. */
-export function docSize(type: GridType, cols: number, rows: number): { w: number; h: number } {
-  const g = makeGrid(type, cols, rows)
+/** Canvas extent of a document grid; a rotated grid spans the bounding box of the turned rect. */
+export function docSize(
+  type: GridType,
+  cols: number,
+  rows: number,
+  rotation = 0,
+): { w: number; h: number } {
+  const g = makeGrid(type, cols, rows, false, rotation)
   return { w: g.w, h: g.h }
 }
 

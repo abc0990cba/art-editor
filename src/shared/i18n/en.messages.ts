@@ -815,6 +815,8 @@ export const en = {
   'home.open': 'To my projects',
   'home.addProject': 'Add New Project',
   'home.examples': 'Examples',
+  'home.examples.prev': 'Previous examples',
+  'home.examples.next': 'Next examples',
   'home.examples.hint':
     'Ready-made projects at different grid scales — a click copies one into your library.',
   'examples.poster': 'DITHER LAB · 200×100',
@@ -960,7 +962,8 @@ export const en = {
   'preview.expand': 'Show large preview',
   'preview.large': 'Large preview',
   'preview.grid': 'Grid',
-  'preview.grid.desc': 'Preview sample grid in cells; the maximum equals the current canvas.',
+  'preview.grid.desc':
+    'Preview sample grid preset: N means an N×N cell grid, up to the canvas size.',
   'preview.gridReset': 'Auto',
   'preview.gridReset.desc': 'Return the preview grid to the automatic size',
   'preview.close': 'Close',
