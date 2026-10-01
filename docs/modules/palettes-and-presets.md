@@ -12,7 +12,7 @@ content). Plus the misc engine utilities that have no better home: `color.ts`, `
 
 | File | Role |
 |---|---|
-| `src/engine/palettes-data.ts` | `CLASSIC_12` + `PALETTES` (22 entries) — "canonical published colors" |
+| `src/engine/palettes-data.ts` | `CLASSIC_12` + `PALETTES` (35 entries) — "canonical published colors" |
 | `src/engine/palettes.ts` | `PalettePreset`, `matchedPresetId` (exact length + order-insensitive-case match) |
 | `src/engine/palette-io.ts` | DOM-free `parsePaletteText` (GPL or hex scan), `serializeHex` (Lospec), `serializeGpl` |
 | `src/shared/lib/palette-files.util.ts` | DOM glue: `readPaletteFile` (image → `medianCut(·, 64)`), `palettePngBlob` (1-row swatch strip) |
@@ -27,9 +27,11 @@ content). Plus the misc engine utilities that have no better home: `color.ts`, `
 
 ## How it works
 
-**Palettes.** 22 built-ins (Classic 12, PICO-8, Game Boy, C64, Sweetie 16, Endesga 32,
+**Palettes.** 35 built-ins (Classic 12, PICO-8, Game Boy, C64, Sweetie 16, Endesga 32,
 Vinik24, Resurrect 64, NYX8, Oil 6, Twilight 5, Ice Cream GB, Apollo, IBM CGA, B&W,
-Game Boy Pocket, NES, ZX Spectrum, CGA Mode 4, Macintosh, Teletext, Gruvbox). Import parses
+Game Boy Pocket, NES, ZX Spectrum, CGA Mode 4, Macintosh, Teletext, Gruvbox, Sepia, SLSO8,
+Amber CRT, Green Phosphor, Harvest, Blueprint, Amiga Workbench, Windows 95, Nokia LCD,
+DawnBringer 16, Vaporwave, Pastel Pop, Tokyo Night). Import parses
 GIMP `.gpl` or any `#rrggbb` list (Lospec `.hex`); any bitmap imports as a palette via
 median-cut (cap 64). Export: `.hex` (one color per line), `.gpl` (right-padded triplets), or
 PNG (1-row swatch strip). `matchedPresetId` detects "this is built-in palette X" for UI

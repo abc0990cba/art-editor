@@ -1147,8 +1147,7 @@
   {
     "files": [
       "src/engine/project-parse.ts",
-      "src/engine/doc-style.ts",
-      "src/engine/palettes-data.ts"
+      "src/engine/doc-style.ts"
     ],
     "rules": {
       "eslint/complexity": [
@@ -1161,6 +1160,21 @@
         "error",
         {
           "max": 444,
+          "skipComments": true,
+          "skipBlankLines": true
+        }
+      ]
+    }
+  },
+  {
+    "files": [
+      "src/engine/palettes-data.ts"
+    ],
+    "rules": {
+      "eslint/max-lines": [
+        "error",
+        {
+          "max": 602,
           "skipComments": true,
           "skipBlankLines": true
         }
