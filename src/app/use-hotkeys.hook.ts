@@ -4,6 +4,7 @@ import { shiftTarget } from '../engine/scene.ts'
 import { useStore, undo, redo, type Tool } from '../state/editor.store.ts'
 
 const toolKeys: Record<string, Tool> = {
+  h: 'hand',
   v: 'select',
   b: 'pencil',
   e: 'eraser',
@@ -16,7 +17,6 @@ const toolKeys: Record<string, Tool> = {
   s: 'star',
   n: 'polygon',
   d: 'diamond',
-  h: 'heart',
   q: 'spiral',
   a: 'arrow',
   k: 'lightning',
@@ -131,7 +131,8 @@ export function useHotkeys(): void {
         return
       }
       if (!mod && toolKeys[key]) {
-        useStore.getState().setTool(toolKeys[key])
+        // plain H is the hand tool; Shift+H stays on the heart shape (the only shifted tool key)
+        useStore.getState().setTool(key === 'h' && e.shiftKey ? 'heart' : toolKeys[key])
         return
       }
       if (!mod && (key === '[' || key === ']')) {

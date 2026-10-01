@@ -12,6 +12,7 @@ import { DEFAULT_CONCENTRIC_RADII } from '../engine/shapes.ts'
 import type { State } from './editor.store.ts'
 
 export type Tool =
+  | 'hand'
   | 'select'
   | 'pencil'
   | 'eraser'

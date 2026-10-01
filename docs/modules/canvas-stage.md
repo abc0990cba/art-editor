@@ -3,16 +3,19 @@
 ## Scope
 
 `src/features/canvas/`: the render surface and all pointer interaction — the two-canvas
-stage (`canvas-stage.component.tsx`, ~1460 lines), the stroke staging hook
-(`use-canvas-staging.hook.ts`, ~885), selection UI (actions bar, FX menu, warp popover,
-transform hook), hit-testing/marquee/coordinate utils, and the scrollbars. Engine-side
+stage (`canvas-stage.component.tsx`, ~1380 lines), the stroke staging hook
+(`use-canvas-staging.hook.ts`, ~885), the view/navigation hook (`use-canvas-view.hook.ts`),
+selection UI (actions bar, FX menu, warp popover, transform hook),
+hit-testing/marquee/coordinate utils, and the scrollbars. Engine-side
 rendering it consumes: [geometry](geometry.md), [render-pipeline](../architecture/render-pipeline.md).
 
 ## Module map
 
 | File | Role |
 |---|---|
-| `src/features/canvas/canvas-stage.component.tsx` | base + overlay canvases, zoom/pan, grid overlay, effects wiring |
+| `src/features/canvas/canvas-stage.component.tsx` | base + overlay canvases, pointer tools, grid overlay, effects wiring |
+| `src/features/canvas/use-canvas-view.hook.ts` | view navigation: wheel/pinch zoom, pan inputs, view keys (`use-canvas-view`) |
+| `src/features/canvas/canvas-view-math.util.ts` | pure view math: deltaMode normalization, anchored zoom + clamps, offscreen test |
 | `src/features/canvas/use-canvas-staging.hook.ts` | staging state, rAF loop, symmetry/shape stamping, commit |
 | `src/features/canvas/canvas-stage.util.ts` | `MAX_STAMPS`, `sizeCanvas` (dpr), `blobCells` cache, marquee/label utils |
 | `src/features/canvas/use-selection-transform.hook.ts` | scale/rotate/flip handle interaction |
@@ -42,9 +45,18 @@ undoable step via `paintCells`/`paintCellsValues`; in element scope the fresh sh
 itself (Illustrator-style). Window-level pointerup/pointercancel/blur finish drags "so a lost
 pointerup can never turn later hover moves into stray stamps".
 
-**Zoom/pan.** Wheel zoom `k = exp(−deltaY·0.0015)`, clamped 0.5..80, cursor-anchored; pan via
-space or middle button; `fit()` = min scale ×0.88 centered, re-run on `fitSignal` and first
-mount. Measured cost: 2.5–4.9 ms per wheel step — not a bottleneck (research §7).
+**Zoom/pan.** Navigation lives in `use-canvas-view.hook.ts` over the pure math in
+`canvas-view-math.util.ts` (`anchoredZoom` clamps 0.5..80 and keeps the doc point under the
+cursor fixed). Wheel = zoom, cursor-anchored; `wheelDeltaPx` normalizes line/page `deltaMode`
+(a line-mode notch is ×16) and `ctrlKey` wheel (trackpad pinch) gets a stiffer curve;
+Shift+wheel or a horizontal-dominant `deltaX` pans horizontally. Pan inputs: middle button,
+right button (context menu suppressed over the wrap), held Space, and the hand tool (H;
+Shift+H stays the heart shape). Plain `+`/`−` step zoom ×1.25 around the center, `0` = 100% —
+deliberately plain keys: Cmd/Ctrl plus/minus/zero belong to the browser's page zoom. Touch:
+two fingers pinch/pan (Procreate-style). `fit()` = min scale ×0.88 centered, re-run on
+`fitSignal` and first mount; the wrap's `ResizeObserver` also refits when a resize (browser
+zoom, panel toggle) leaves the artwork fully outside the viewport — never mid-gesture.
+Measured cost: 2.5–4.9 ms per wheel step — not a bottleneck (research §7).
 
 **Grid overlay.** Square-grid lines are prebuilt `Path2D`s in a useMemo ("up to ~3000
 moveTo/lineTo segments per direction on a 500×500 grid are far too costly to rebuild on every

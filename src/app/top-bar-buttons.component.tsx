@@ -9,6 +9,7 @@ import { IconButton } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
 import { useStore, undo, redo, useCanUndoRedo } from '../state/editor.store.ts'
 import type { ProjectKind } from '../storage/projects.ts'
+import { BrowserZoomChip } from './browser-zoom-hint.component.tsx'
 
 /** Desktop import pill: labeled plate opening the hidden file input. */
 export function ImportPillButton({ onClick }: { onClick: () => void }) {
@@ -165,6 +166,7 @@ export function MobileHeader({
           </IconButton>
         </>
       )}
+      <BrowserZoomChip />
       <IconButton big plate title={t('project.settings')} onClick={onSettings}>
         <svg
           viewBox="0 0 16 16"

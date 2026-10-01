@@ -4,6 +4,15 @@ import { SHAPE_TOOLS } from '../../engine/shapes.ts'
 import type { Tool } from '../../state/editor.store.ts'
 
 const icons: Record<Tool, JSX.Element> = {
+  hand: (
+    // lucide "hand", scaled from the 24-grid to the shared 16-grid
+    <g transform="scale(0.667)" strokeWidth={1.8}>
+      <path d="M18 11V6a2 2 0 00-4 0v5" />
+      <path d="M14 10V4a2 2 0 00-4 0v2" />
+      <path d="M10 10.5V6a2 2 0 00-4 0v8" />
+      <path d="M18 8a2 2 0 114 0v6a8 8 0 01-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 012.83-2.82L7 15" />
+    </g>
+  ),
   select: <path d="M5 2.2l7.6 6.6-3.5.5 2 3.8-1.8.9-2-3.8-2.3 2.6z" />,
   pencil: <path d="M11.5 2.5a1.7 1.7 0 012.4 2.4L6 12.8l-3.2.8.8-3.2 7.9-7.9z" />,
   eraser: (
@@ -113,6 +122,7 @@ const icons: Record<Tool, JSX.Element> = {
 }
 
 export const toolKeys: Record<Tool, string> = {
+  hand: 'H',
   select: 'V',
   pencil: 'B',
   eraser: 'E',
@@ -125,7 +135,7 @@ export const toolKeys: Record<Tool, string> = {
   star: 'S',
   polygon: 'N',
   diamond: 'D',
-  heart: 'H',
+  heart: '⇧H',
   spiral: 'Q',
   arrow: 'A',
   lightning: 'K',
@@ -148,6 +158,7 @@ export const toolKeys: Record<Tool, string> = {
 
 const order: Tool[] = [
   'select',
+  'hand',
   'pencil',
   'eraser',
   'fill',
@@ -161,9 +172,9 @@ const order: Tool[] = [
 /** The rail shows every tool in one flat list; the mobile strip reuses the order. */
 export const allOrder: Tool[] = [...order, ...SHAPE_TOOLS]
 
-/** Tools whose settings popover carries real controls (everything but select/picker). */
+/** Tools whose settings popover carries real controls (everything but hand/select/picker). */
 export function toolHasSettings(tool: Tool): boolean {
-  return tool !== 'select' && tool !== 'picker'
+  return tool !== 'select' && tool !== 'picker' && tool !== 'hand'
 }
 
 /**

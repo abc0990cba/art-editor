@@ -230,6 +230,7 @@ export const en = {
   'workspace.processing': 'Processing…',
   'workspace.demo.error': 'Could not load the demo image',
 
+  'tool.hand': 'Hand',
   'tool.select': 'Select',
   'tool.pencil': 'Pencil',
   'tool.eraser': 'Eraser',
@@ -748,6 +749,9 @@ export const en = {
   'view.scrollX': 'Horizontal scroll',
   'view.scrollY': 'Vertical scroll',
   'view.linkPending': 'Click the second cell · Esc to cancel',
+  'view.browserZoom.hint':
+    'Browser zoom is about {p}% — the app switched to the compact layout. Press {k} to restore the normal scale.',
+  'view.browserZoom.chip': 'Browser zoom {p}% — press {k} to reset',
   'view.cursor.desc':
     'Cursor position: cell x, y and the flat cell-buffer index (sub-cells counted).',
 
@@ -790,6 +794,8 @@ export const en = {
   'warp.cancel': 'Cancel',
   'warp.back': 'Back',
   'warp.identityHint': 'Amount 0 — drag the slider to bend the selection.',
+  'tool.hand.desc':
+    'Drag to pan the canvas; Space, the middle or right button also pan. Wheel zooms, Shift+wheel pans.',
   'tool.select.desc':
     'Click a shape — or its whole group (Shift adds). Drag empty space for a rubber band; drag the box handles to scale, the corner zones to rotate; Alt+drag duplicates, arrows nudge.',
   'tool.eraser.desc':

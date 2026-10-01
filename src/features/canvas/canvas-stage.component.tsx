@@ -26,11 +26,13 @@ import {
   type DragState,
   type Hover,
 } from './canvas-stage.util.ts'
+import { viewOffscreen } from './canvas-view-math.util.ts'
 import { drawToolHover } from './draw-tool-hover.util.ts'
 import { clickSelectionIds } from './select-hit.util.ts'
 import { SelectionActions } from './selection-actions.component.tsx'
 import { cursorForHandle, drawTransformBox } from './selection-transform.util.ts'
 import { useCanvasStaging } from './use-canvas-staging.hook.ts'
+import { useCanvasView } from './use-canvas-view.hook.ts'
 import { useOutlineCache } from './use-outline-cache.hook.ts'
 import { useSelectionTransform } from './use-selection-transform.hook.ts'
 
@@ -84,6 +86,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const drawOverlayRef = useRef<() => void>(() => {})
   // kept fresh for the staging rAF loop, which draws without a React re-render
   const drawBaseRef = useRef<() => void>(() => {})
+  // registered once below; the live body sees the current view/doc without re-observing
+  const resizeRef = useRef<() => void>(() => {})
   // lazily-initialized prefers-reduced-motion (null = not queried yet)
   const reducedMotionRef = useRef<boolean | null>(null)
   // image file dragged over the stage — shows the import drop hint
@@ -152,18 +156,6 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   useEffect(() => {
     if (fitSignal > 0) fit()
   }, [fitSignal, fit])
-
-  useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const ro = new ResizeObserver(() => {
-      bumpResize()
-      setWrapSize({ w: el.clientWidth, h: el.clientHeight })
-    })
-    ro.observe(el)
-    setWrapSize({ w: el.clientWidth, h: el.clientHeight })
-    return () => ro.disconnect()
-  }, [])
 
   const {
     stagingRef,
@@ -252,6 +244,59 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   // reactive mirror of drag.current so the overlay layer can react to stroke start/end
   const [dragKind, setDragKind] = useState<DragState['kind'] | null>(null)
   const [pendingLink, setPendingLink] = useState<{ ax: number; ay: number } | null>(null)
+
+  // shared cancel of any in-flight gesture (stroke, transform, connector preview, staging):
+  // used by the pinch landing and Escape, lives in the view hook
+  const cancelGestureRef = useRef<() => void>(() => {})
+  cancelGestureRef.current = () => {
+    drag.current = null
+    xformCancelRef.current()
+    shapeStartRef.current = null
+    shapeLastRef.current = null
+    setPendingLink(null)
+    if (stagingRef.current) {
+      stagingRef.current = null
+      bumpStaging()
+    }
+  }
+
+  // wheel / pinch / view keys live in the extracted navigation hook
+  useCanvasView({
+    wrapRef,
+    viewRef,
+    setView,
+    spaceRef,
+    onSpaceChange: setSpaceDown,
+    cancelGestureRef,
+    clearSelection,
+  })
+
+  // wrap resize (browser zoom, panel toggles, node-editor split): redraw + scrollbar
+  // metrics — and if the artwork ended up fully out of view, fit it back so the user
+  // never faces an empty wrap; never mid-gesture, never on a collapsed pane
+  resizeRef.current = () => {
+    const el = wrapRef.current
+    if (!el) return
+    bumpResize()
+    setWrapSize({ w: el.clientWidth, h: el.clientHeight })
+    if (
+      el.clientWidth > 0 &&
+      el.clientHeight > 0 &&
+      !drag.current &&
+      !stagingRef.current &&
+      viewOffscreen(viewRef.current, extent.w, extent.h, el.clientWidth, el.clientHeight)
+    ) {
+      fit()
+    }
+  }
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => resizeRef.current())
+    ro.observe(el)
+    resizeRef.current()
+    return () => ro.disconnect()
+  }, [resizeRef, wrapRef])
 
   /** Doc-space point under the pointer */
   const toDoc = useCallback(
@@ -431,7 +476,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     } catch {
       /* synthetic pointers have no active id — drawing still works uncaptured */
     }
-    if (e.button === 1 || spaceRef.current) {
+    // middle/right button, held Space or the hand tool all pan instead of drawing
+    if (e.button === 1 || e.button === 2 || spaceRef.current || tool === 'hand') {
       drag.current = { kind: 'pan', sx: e.clientX, sy: e.clientY, panX: view.x, panY: view.y }
       setDragKind('pan')
       setPanning(true)
@@ -635,128 +681,6 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const onPointerUp = () => {
     finishDragRef.current()
   }
-
-  // ---- two-finger touch: pinch to zoom, move to pan (Procreate-style) ----
-  // capture-phase listeners see both pointers before the drawing handlers; the
-  // in-progress stroke is cancelled the moment the second finger lands
-  useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const pts = new Map<number, { x: number; y: number }>()
-    let start: null | {
-      d0: number
-      cx0: number
-      cy0: number
-      view: { zoom: number; x: number; y: number }
-    } = null
-    const cancelStroke = () => {
-      drag.current = null
-      xformCancelRef.current()
-      shapeStartRef.current = null
-      shapeLastRef.current = null
-      setPendingLink(null)
-      if (stagingRef.current) {
-        stagingRef.current = null
-        bumpStaging()
-      }
-    }
-    const down = (e: PointerEvent) => {
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (pts.size === 2 && !start) {
-        cancelStroke()
-        const [a, b] = [...pts.values()]
-        const r = el.getBoundingClientRect()
-        start = {
-          d0: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
-          cx0: (a.x + b.x) / 2 - r.left,
-          cy0: (a.y + b.y) / 2 - r.top,
-          view: { ...viewRef.current },
-        }
-      }
-    }
-    const move = (e: PointerEvent) => {
-      if (!pts.has(e.pointerId)) return
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (!start || pts.size < 2) return
-      e.stopPropagation()
-      e.preventDefault()
-      const [a, b] = [...pts.values()]
-      const d = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y))
-      const r = el.getBoundingClientRect()
-      const cx = (a.x + b.x) / 2 - r.left
-      const cy = (a.y + b.y) / 2 - r.top
-      // computed eagerly from the gesture-start snapshot: the setState updater may
-      // flush after the gesture ended and `start` was cleared
-      const zoom = Math.min(80, Math.max(0.5, start.view.zoom * (d / start.d0)))
-      const wx = (start.cx0 - start.view.x) / start.view.zoom
-      const wy = (start.cy0 - start.view.y) / start.view.zoom
-      setView({ zoom, x: cx - wx * zoom, y: cy - wy * zoom })
-    }
-    const up = (e: PointerEvent) => {
-      pts.delete(e.pointerId)
-      if (pts.size < 2) start = null
-    }
-    el.addEventListener('pointerdown', down, true)
-    el.addEventListener('pointermove', move, true)
-    el.addEventListener('pointerup', up, true)
-    el.addEventListener('pointercancel', up, true)
-    return () => {
-      el.removeEventListener('pointerdown', down, true)
-      el.removeEventListener('pointermove', move, true)
-      el.removeEventListener('pointerup', up, true)
-      el.removeEventListener('pointercancel', up, true)
-    }
-  }, [])
-
-  // ---- zoom ----
-  useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      const r = el.getBoundingClientRect()
-      const mx = e.clientX - r.left
-      const my = e.clientY - r.top
-      setView((v) => {
-        const k = Math.exp(-e.deltaY * 0.0015)
-        const z = Math.min(80, Math.max(0.5, v.zoom * k))
-        const s = z / v.zoom
-        return { zoom: z, x: mx - (mx - v.x) * s, y: my - (my - v.y) * s }
-      })
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [])
-
-  // ---- space to pan ----
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !(e.target as HTMLElement).closest('input,textarea,select')) {
-        spaceRef.current = true
-        setSpaceDown(true)
-        e.preventDefault()
-      }
-      if (e.key === 'Escape') {
-        xformCancelRef.current()
-        setPendingLink(null)
-        stagingRef.current = null
-        bumpStaging()
-        clearSelection()
-      }
-    }
-    const up = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        spaceRef.current = false
-        setSpaceDown(false)
-      }
-    }
-    window.addEventListener('keydown', down)
-    window.addEventListener('keyup', up)
-    return () => {
-      window.removeEventListener('keydown', down)
-      window.removeEventListener('keyup', up)
-    }
-  }, [clearSelection])
 
   // cancel a pending connector when the tool changes
   useEffect(() => {
@@ -1173,7 +1097,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
     // brush footprint + symmetry ghosts under the cursor; hidden mid-stroke, where the
     // staging preview already shows the full result
-    if (hover && dragKind === null && tool !== 'picker' && tool !== 'select') {
+    if (hover && dragKind === null && tool !== 'picker' && tool !== 'select' && tool !== 'hand') {
       drawToolHover({
         ctx,
         zoom: view.zoom,
@@ -1255,7 +1179,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const cursor =
     panning || spaceDown
       ? 'grabbing'
-      : (handleCursor ?? (tool === 'select' ? 'default' : 'crosshair'))
+      : tool === 'hand'
+        ? 'grab'
+        : (handleCursor ?? (tool === 'select' ? 'default' : 'crosshair'))
 
   // ---- overlay scrollbars: the track maps the canvas extent, the thumb mirrors the viewport ----
   const vwDoc = wrapSize.w / view.zoom
@@ -1323,6 +1249,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     <div
       ref={wrapRef}
       className="bg-app relative min-w-0 flex-1 overflow-hidden"
+      // right-drag pans (like Figma/Blender); the context menu has no use over the canvas
+      onContextMenu={(e) => e.preventDefault()}
       onDragOver={(e) => {
         if (!onDropFile || !e.dataTransfer?.types.includes('Files')) return
         e.preventDefault()

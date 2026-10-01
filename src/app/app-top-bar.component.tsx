@@ -5,6 +5,7 @@ import { IconButton, useMediaQuery } from '../shared/ui/index.tsx'
 import { Tooltip } from '../shared/ui/tooltip.component.tsx'
 import { useStore } from '../state/editor.store.ts'
 import type { ProjectKind } from '../storage/projects.ts'
+import { BrowserZoomChip } from './browser-zoom-hint.component.tsx'
 import {
   ExportPillButton,
   HomeButton,
@@ -108,16 +109,20 @@ export function TopBar({
     <header className="border-line flex h-12 shrink-0 items-center gap-3 border-b px-3">
       <div className="flex shrink-0 items-center gap-1">
         <HomeButton />
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <Logo />
-          <span className="text-sm font-semibold tracking-wide">{t('app.title')}</span>
+          <span className="min-w-0 truncate text-sm font-semibold tracking-wide">
+            {t('app.title')}
+          </span>
         </div>
       </div>
 
       <TopBarProjectControls onSettings={() => setSetupOpen(true)} />
 
+      {/* the pixel size is ambient info — the first thing sacrificed when the bar gets tight
+          (a small MacBook at browser zoom lands right in this 1024–1280px band) */}
       {!isVector && (
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="hidden shrink-0 items-center gap-1 xl:flex">
           <span
             className="border-line bg-chip text-muted flex h-7 items-center rounded-md border px-2 text-xs"
             title={`${t('top.sizePreset')} — ${t('canvas.size')}`}
@@ -130,6 +135,7 @@ export function TopBar({
       {!isVector && <TopBarDocumentButtons onClear={() => setClearConfirm(true)} />}
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <BrowserZoomChip />
         {!isVector && (
           <>
             <Tooltip label={`${t('top.panel')} — ${t('top.panel.desc')}`}>

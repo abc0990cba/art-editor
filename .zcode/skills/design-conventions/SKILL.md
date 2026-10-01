@@ -29,7 +29,9 @@ adjacent code; then propose the new token in the PR description instead of a mag
 
 Breakpoint: **`lg` (1024px)** is the only structural switch. Use `useMediaQuery('(max-width: 1023px)')`
 in React and `lg:`/`max-lg:` in classes — never invent other structural breakpoints.
-`sm:`/`md:` are only for cosmetic degradation inside the top bar.
+`sm:`/`md:` are only for cosmetic degradation inside the top bar, and `xl:` may progressively
+hide secondary top-bar info (the doc-size chip) so the 1024–1280px band — a small MacBook at
+browser zoom — keeps every control reachable; the bar never recomposes structurally.
 
 ## 2. Touch targets and controls
 
@@ -87,7 +89,8 @@ Tooltips and dropdown bubbles always portal to body. Anything above `z-50` needs
 
 ## 6. Editor interaction conventions
 
-- Canvas: pointer events + `touch-none`; one finger draws, two fingers = pinch/pan (capture-phase listeners win over drawing). Keyboard shortcuts work globally; inputs excluded via `closest('input,textarea,select')`.
+- Canvas: pointer events + `touch-none`; one finger draws, two fingers = pinch/pan (capture-phase listeners win over drawing). Wheel zooms cursor-anchored; Shift+wheel / sideways scroll pans horizontally. Pan: middle or right button (context menu suppressed over the canvas), held Space, or the hand tool (`H`; `Shift+H` stays the heart). Plain `+`/`−`/`0` zoom the canvas; `F` fits. Keyboard shortcuts work globally; inputs excluded via `closest('input,textarea,select,[contenteditable]')`.
+- Browser zoom belongs to the browser: the app never intercepts Cmd/Ctrl plus/minus/zero. Page zoom that pushes a desktop screen (≥1024px) into the compact layout raises a dismissible explainer banner (`BrowserZoomBanner`, z-20, with a Fit action) and a persistent `%` chip in both top bars (`BrowserZoomChip`); the level is estimated as `screen.width / innerWidth` (`src/app/browser-zoom.util.ts`).
 - Destructive actions (clear canvas, delete project) require a `ConfirmDialog`; the action must stay undoable where possible and say so in the message.
 - Every list row of a library (projects, brushes, glyph sets) = thumbnail + name + meta + actions; the current entry is marked with the accent border + «current» chip.
 - New project flow: startup catalog (home) → create dialog (name + size + grid) → canvas. Never drop the user straight onto a destructive replace without `ConfirmDialog`.

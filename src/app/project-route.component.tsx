@@ -22,6 +22,7 @@ import type {
   VectorProjectEntry,
 } from '../storage/projects.ts'
 import { TopBar } from './app-top-bar.component.tsx'
+import { BrowserZoomBanner } from './browser-zoom-hint.component.tsx'
 import {
   MobilePanelDrawer,
   MobileToolStrip,
@@ -105,6 +106,8 @@ export function ProjectRoute(): ReactElement {
             onClose={() => setImportBitmap(null)}
           />
         )}
+        {/* explains browser-zoomed desktops stuck in the compact layout (the ⌘0 hint) */}
+        <BrowserZoomBanner />
       </div>
     </I18nProvider>
   )
