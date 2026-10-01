@@ -71,6 +71,7 @@ At OpenSpec archive time the `openspec-archive-change` flow adds one step: promo
 | [0005](decisions/0005-zustand-single-store.md) | Single zustand store, sliced, with zundo history | accepted |
 | [0006](decisions/0006-indexeddb-persistence.md) | IndexedDB persistence with debounced ambient autosave | accepted |
 | [0007](decisions/0007-openspec-docs-boundary.md) | OpenSpec ↔ docs/ boundary and promotion flow | accepted |
+| [0008](decisions/0008-landing-static-mpa.md) | Landing as a hand-rolled static MPA page, editor SPA at `/editor` | accepted |
 
 ## Module docs
 

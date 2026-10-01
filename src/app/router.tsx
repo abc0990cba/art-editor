@@ -46,6 +46,9 @@ function HomeRouteView() {
 const routeTree = rootRoute.addChildren([homeRoute, projectRoute])
 
 export const router = createRouter({
+  // the app lives under /editor (the site root is the static landing page); routes and their
+  // semantics are unchanged relative to the base — see openspec/changes/add-landing-seo
+  basepath: '/editor',
   routeTree,
   defaultNotFoundComponent: () => <HomeRouteView />,
 })

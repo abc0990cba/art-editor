@@ -201,6 +201,16 @@
     }
   },
   {
+    // Node CLI scripts (landing art generator, dist/ SEO self-check): console output and
+    // process.exit are the interface, not a code smell.
+    "files": [
+      "scripts/**"
+    ],
+    "rules": {
+      "no-console": "off"
+    }
+  },
+  {
     "files": [
       "src/features/projects/projects-dialog.component.tsx"
     ],

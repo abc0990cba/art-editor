@@ -16,6 +16,9 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
+Routes: `/` — landing (Russian), `/en/` — landing (English), `/editor` — the app
+(projects home first), `/editor/?bench=1&autorun=1` — the browser perf harness.
+
 ```bash
 npm test           # vitest — engine unit tests
 npm run lint       # oxlint (0 errors — the gate; warnings advisory)
@@ -25,6 +28,8 @@ npm run knip       # dead exports/files/dependencies
 npm run format     # oxfmt — strict formatting (AI-code validator)
 npm run format:check
 npm run build      # tsc --noEmit + vite build
+npm run seo:check  # validate dist/ after build: meta, sitemap, robots
+npm run art:generate # re-render landing artwork from engine demos → public/art
 npm run bench      # engine benches → bench/results/engine-bench.json
 ```
 
@@ -102,6 +107,10 @@ Conventions and layer boundaries: [AGENTS.md](AGENTS.md).
 ## Architecture
 
 ```
+index.html    # static landing (ru) — the crawlable public entry
+en/index.html # static landing (en), hreflang-linked
+editor.html   # the editor SPA entry (mounted at /editor by the router)
+landing/      # landing.css (design tokens + page styles) and main.ts (lang glue)
 src/
 ├── app/       # shell: router, top bar, workspace, bench harness
 ├── features/  # vertical UI modules: canvas, tools, nodes-editor, layers,
@@ -113,12 +122,27 @@ src/
 ├── state/     # zustand store + zundo (undo/redo), 16 slices, autosave effects
 ├── storage/   # IndexedDB persistence (projects, presets, brushes, glyph tiles)
 └── shared/    # ui/ (primitives + vendored shadcn), lib/, i18n/
+scripts/       # landing artwork generator, dist/ SEO self-check
+public/        # favicons, OG image, manifest, robots.txt, sitemap.xml, engine art
 ```
 
 Key principle: `buildGeometry(doc) → StyledPath[]` — the single source of truth. The canvas
 renderer paints these paths through `Path2D`, the SVG exporter serializes the same paths, so
 preview and vector are always identical (including metaball mode — contours are extracted
 with marching squares from the scalar field, not SVG filters).
+
+## Landing & SEO
+
+The landing pages (`/`, `/en/`) are hand-written static HTML — crawlers see final markup with
+no JavaScript; the decision is recorded in
+[docs/decisions/0008](docs/decisions/0008-landing-static-mpa.md). Hosting needs one rewrite
+(`/editor` and `/editor/*` → `editor.html`): `public/_redirects` covers Netlify/Cloudflare
+Pages, `vercel.json` covers Vercel, and the Vite dev/preview middleware mirrors both. The
+canonical/OG/sitemap URLs use the reserved placeholder `https://ditherlab.example` — replace
+it with the real domain in `index.html`, `en/index.html`, `public/robots.txt` and
+`public/sitemap.xml` before go-live (`npm run seo:check` reminds about it). Landing artwork is
+generated from engine demos: `npm run art:generate`, then rasterize `public/og-source.svg` and
+`public/icon-source.svg` (headless Chrome screenshot) into `og.png` / `apple-touch-icon.png`.
 
 ## Documentation
 

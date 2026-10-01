@@ -1,0 +1,593 @@
+/*
+ * Landing pages (`/`, `/en/`) — plain CSS over the app's design tokens.
+ *
+ * src/index.css is imported wholesale: it brings the Tailwind preflight, the token
+ * definitions and all seven `data-theme` blocks, so the landing follows the stored app
+ * theme without duplicating a single color value. Everything below uses only those
+ * tokens (var(--app), var(--panel), …) — no raw colors, the 4px spacing grid, and `lg`
+ * (1024px) as the only structural breakpoint, mirroring the app conventions.
+ *
+ * Animation policy: entrance/scroll-reveal only, decorative, and fully disabled under
+ * `prefers-reduced-motion`. Reveal-hiding is scoped to `.js` (set by landing/main.ts),
+ * so crawlers and no-JS visitors always see the full content.
+ */
+
+@import '../src/index.css';
+
+html {
+  scroll-behavior: smooth;
+}
+
+.wrap {
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
+/* header ---------------------------------------------------------------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--app) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px; /* mobile: brand + toggle + lang + CTA must fit 390px */
+  min-height: 56px;
+}
+
+.brand {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--body);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.brand-glyph {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* mobile: matches .topbar-in so the CTA fits */
+  min-width: 0;
+}
+
+.lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.lang a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 14px 2px; /* 44px touch target with the 13px text */
+  min-width: 44px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.lang a:hover {
+  color: var(--body);
+}
+
+.lang a[aria-current='true'] {
+  color: var(--body);
+  font-weight: 600;
+}
+
+/* theme toggle: one icon per resolved palette stop (dark / black OLED / light) */
+
+.theme-toggle {
+  display: inline-flex;
+  flex-shrink: 0; /* a squeezed toggle looks broken — the CTA label yields instead */
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--chip-line);
+  border-radius: 6px;
+  background: var(--chip);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.theme-toggle:hover {
+  color: var(--body);
+  background: var(--chip-active);
+}
+
+.theme-toggle .ti {
+  width: 16px;
+  height: 16px;
+  display: none;
+}
+
+.theme-toggle .ti-dark,
+.theme-toggle .ti-black {
+  fill: currentColor;
+}
+
+.theme-toggle .ti-paper {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+/* icon per resolved palette stop: moon for dark-family, dot for black OLED, sun for light;
+   dark is the default shown for every theme the 3-stop toggle doesn't cover */
+.theme-toggle .ti-dark {
+  display: block;
+}
+
+html[data-theme='oled'] .ti-dark,
+html[data-theme='paper'] .ti-dark,
+html[data-theme='tokyo-night'] .ti-dark {
+  display: none;
+}
+
+html[data-theme='oled'] .ti-black {
+  display: block;
+}
+
+html[data-theme='paper'] .ti-paper,
+html[data-theme='tokyo-night'] .ti-paper {
+  display: block;
+}
+
+/* buttons ---------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding-inline: 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    filter 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.btn-accent {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.btn-accent:hover {
+  filter: brightness(1.1);
+}
+
+.btn-ghost {
+  background: var(--chip);
+  border: 1px solid var(--chip-line);
+  color: var(--body);
+}
+
+.btn-ghost:hover {
+  background: var(--chip-active);
+}
+
+.btn-sm {
+  padding-inline: 12px;
+}
+
+/* the header CTA carries two labels: the long one swaps to a short one on narrow
+   phones, where brand + toggle + lang + long label cannot share 390px (cosmetic
+   top-bar degradation, per design conventions). The anchor keeps a full aria-label. */
+.btn-label-short {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .btn-label-full {
+    display: none;
+  }
+
+  .btn-label-short {
+    display: inline;
+  }
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+/* hero — centered, one axis, display type ---------------------------------- */
+
+.hero {
+  display: grid;
+  gap: 48px;
+  padding-block: 64px 72px;
+  text-align: center;
+  justify-items: center;
+  /* the poster glow bleeds past the frame — clip it at the section edge so it can
+     never create horizontal page overflow on phones (clip ≠ scroll container, so
+     the sticky header is unaffected) */
+  overflow: clip;
+}
+
+.kicker {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.hero-copy {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  max-width: 46rem;
+}
+
+h1 {
+  font-size: clamp(32px, 5.5vw, 56px); /* landing display scale, not app chrome */
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.lead {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 36rem;
+  margin: 0;
+}
+
+.hero .cta-row {
+  margin-top: 8px;
+}
+
+.frame {
+  margin: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.frame figcaption {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 10px 2px 2px;
+}
+
+.hero-art {
+  width: min(100%, 880px);
+  position: relative;
+}
+
+/* a soft accent glow behind the poster — pure token, no raw colors */
+.hero-art::before {
+  content: '';
+  position: absolute;
+  inset: -14% -10%;
+  background: radial-gradient(
+    55% 55% at 50% 42%,
+    color-mix(in oklab, var(--accent-text) 26%, transparent),
+    transparent 72%
+  );
+  filter: blur(44px);
+}
+
+.hero-art img {
+  transition: transform 0.35s ease;
+}
+
+.hero-art:hover img {
+  transform: scale(1.012);
+}
+
+/* entrance animation (pure CSS — runs without JavaScript) */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.hero-copy > * {
+  animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+
+.hero-copy > *:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.hero-copy > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+.hero-copy > *:nth-child(4) {
+  animation-delay: 0.18s;
+}
+
+.hero-art {
+  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) 0.16s backwards;
+}
+
+/* scroll-reveal — armed only when JS is present (.js on <html> from main.ts) */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.js .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* sections ---------------------------------------------------------------- */
+
+.section {
+  padding-block: 56px;
+}
+
+h2 {
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+  margin: 0 0 8px;
+  text-wrap: balance;
+}
+
+.section-intro {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 44rem;
+  margin: 0 0 40px;
+}
+
+.features {
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px 16px 16px;
+}
+
+.card-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  background: var(--chip);
+  border: 1px solid var(--chip-line);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: var(--body);
+}
+
+.card p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--muted);
+}
+
+.gallery {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+}
+
+/* square tiles crop their posters uniformly; the wide tile spans the full row */
+.tile-square img {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.tile-wide {
+  grid-column: 1 / -1;
+}
+
+.gallery .frame {
+  padding: 8px;
+}
+
+.section-cta {
+  margin-top: 40px;
+  justify-content: center;
+}
+
+/* footer ------------------------------------------------------------------ */
+
+.footer {
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  margin-top: 24px;
+}
+
+.footer-in {
+  display: grid;
+  gap: 20px;
+  padding-block: 32px;
+}
+
+.footer-note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 28rem;
+  margin: 8px 0 0;
+}
+
+.footer-note > span[aria-hidden] {
+  margin-right: 4px;
+}
+
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.footer-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 8px 0;
+}
+
+.footer-nav a:hover {
+  color: var(--body);
+}
+
+.footer-copy {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* desktop ------------------------------------------------------------------ */
+
+@media (min-width: 1024px) {
+  .wrap {
+    padding-inline: 32px;
+  }
+
+  .topbar-in {
+    gap: 12px;
+    min-height: 48px;
+  }
+
+  .topnav {
+    gap: 12px;
+  }
+
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .btn {
+    min-height: 36px;
+  }
+
+  .lang a {
+    min-width: 0;
+    padding: 4px 2px;
+  }
+
+  .hero {
+    gap: 56px;
+    padding-block: 104px 112px;
+  }
+
+  .lead {
+    font-size: 18px;
+  }
+
+  .section {
+    padding-block: 96px;
+  }
+
+  .features {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* stagger the scroll-reveal within each desktop row */
+  .features .reveal:nth-child(3n + 2) {
+    transition-delay: 70ms;
+  }
+
+  .features .reveal:nth-child(3n + 3) {
+    transition-delay: 140ms;
+  }
+
+  .gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gallery .reveal:nth-child(2) {
+    transition-delay: 80ms;
+  }
+
+  .footer-in {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+}
+
+/* reduced motion: everything visible, nothing moves */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .hero-copy > *,
+  .hero-art {
+    animation: none;
+  }
+
+  .js .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .btn,
+  .theme-toggle,
+  .hero-art img {
+    transition: none;
+  }
+}

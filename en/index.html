@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ditherlab — pixel editor in your browser with clean SVG export</title>
+    <meta
+      name="description"
+      content="A free pixel editor that runs in your browser: around 30 drawing tools, photo dithering with 23 algorithms, 22 palettes, metaballs, symmetry and node recipes. Clean SVG and PNG export — no sign-up, projects stay on your device."
+    />
+    <!-- TODO(domain): https://ditherlab.example is a reserved-placeholder origin — replace it
+         in canonical/hreflang/OG below, in index.html, robots.txt and sitemap.xml. -->
+    <link rel="canonical" href="https://ditherlab.example/en/" />
+    <link rel="alternate" hreflang="ru" href="https://ditherlab.example/" />
+    <link rel="alternate" hreflang="en" href="https://ditherlab.example/en/" />
+    <link rel="alternate" hreflang="x-default" href="https://ditherlab.example/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ditherlab" />
+    <meta
+      property="og:title"
+      content="Ditherlab — minimalist pixel editor with clean vector export"
+    />
+    <meta
+      property="og:description"
+      content="Dithering, metaballs, symmetry and node recipes — all local in your browser, no sign-up. SVG and PNG export."
+    />
+    <meta property="og:url" content="https://ditherlab.example/en/" />
+    <meta property="og:image" content="https://ditherlab.example/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#131316" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      // theme bootstrap — before paint; mirrors state/ui.slice.ts (no stored value = dark)
+      try {
+        var t = localStorage.getItem('glyph.theme') || 'dark'
+        if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'paper' : 'dark'
+        if (['dark', 'paper', 'oled', 'nord', 'tokyo-night', 'vscode', 'catppuccin'].includes(t)) {
+          document.documentElement.dataset.theme = t
+        }
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="/landing/landing.css" />
+    <script type="module" src="/landing/main.ts"></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Ditherlab",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Web",
+        "url": "https://ditherlab.example/en/",
+        "description": "A pixel editor in your browser with clean vector export to SVG and PNG.",
+        "inLanguage": ["en", "ru"],
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="wrap topbar-in">
+        <a class="brand" href="/en/"
+          ><img class="brand-glyph" src="/favicon.svg" alt="" /> Ditherlab</a
+        >
+        <nav class="topnav">
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+            <svg class="ti ti-dark" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+            <svg class="ti ti-black" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="7" />
+            </svg>
+            <svg class="ti ti-paper" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+              />
+            </svg>
+          </button>
+          <span class="lang">
+            <a href="/" hreflang="ru" lang="ru" data-lang="ru">RU</a>
+            <a href="/en/" hreflang="en" aria-current="true">EN</a>
+          </span>
+          <a class="btn btn-accent btn-sm" href="/editor/" aria-label="Open editor">
+            <span class="btn-label-full" aria-hidden="true">Open editor</span>
+            <span class="btn-label-short" aria-hidden="true">Editor</span>
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <div class="hero-copy">
+          <p class="kicker">Free · In your browser · No sign-up</p>
+          <h1>A minimalist pixel editor with clean vector export</h1>
+          <p class="lead">
+            Draw pixels, turn photos into dithered art, reshape every cell and build living node
+            recipes. Everything is computed locally — your projects never leave your device.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-accent" href="/editor/"
+              ><span aria-hidden="true">🚀</span> Open editor</a
+            >
+            <a class="btn btn-ghost" href="#gallery">See examples</a>
+          </div>
+        </div>
+        <figure class="frame hero-art">
+          <img
+            src="/art/hero.svg"
+            width="800"
+            height="400"
+            fetchpriority="high"
+            alt="Ditherlab demo poster: a vaporwave pixel-art sunset rendered with dithering"
+          />
+          <figcaption>A poster from the demo set — drawn by the Ditherlab engine</figcaption>
+        </figure>
+      </section>
+
+      <section class="section wrap" id="features">
+        <p class="kicker"><span aria-hidden="true">⚡</span> Features</p>
+        <h2>One editor — from the single cell to a living recipe</h2>
+        <p class="section-intro">
+          Pixel art, dithering and vector in one app: the canvas preview and the SVG export are
+          built by the same geometry engine — the vector is exactly what you see on screen.
+        </p>
+        <div class="features">
+          <article class="card reveal">
+            <span class="card-emoji" aria-hidden="true">🖼️</span>
+            <h3>Canvas up to 4096×4096</h3>
+            <p>
+              Any grid from 1×1: Game Boy, NES and 16:9 presets; wheel zoom, panning, checkerboard.
+            </p>
+          </article>
+          <article class="card reveal">
+            <span class="card-emoji" aria-hidden="true">✏️</span>
+            <h3>Around 30 drawing tools</h3>
+            <p>From pencil and fill to spiral and gear — each with its own parameters.</p>
+          </article>
+          <article class="card reveal">
+            <span class="card-emoji" aria-hidden="true">🏁</span>
+            <h3>Dither fills</h3>
+            <p>
+              22 patterns — Bayer, halftone, blue noise, void-and-cluster — with click-anchored
+              gradients.
+            </p>
+          </article>
+          <article class="card reveal">
+            <span class="card-emoji" aria-hidden="true">📸</span>
+            <h3>Photos → pixel art</h3>
+            <p>23 dithering algorithms and 22 palettes: from PICO-8 and C64 to ZX Spectrum.</p>
+          </article>
+          <article class="card reveal">
+            <span class="card-emoji" aria-hidden="true">🫧</span>
+            <h3>Living cell shapes</h3>
+            <p>28 forms, per-corner rounding and metaballs: neighbors merge into liquid.</p>
+          </article>
+          <article class="card reveal">
+            <span class="card-emoji" aria-hidden="true">❄️</span>
+            <h3>Symmetry</h3>
+            <p>Radial up to 24 axes, kaleidoscope, diagonal 8-way — in every tool.</p>
+          </article>
+          <article class="card reveal">
+            <span class="card-emoji" aria-hidden="true">🧩</span>
+            <h3>Node recipes</h3>
+            <p>A source → modifier → style chain (19 operations) that lives with the canvas.</p>
+          </article>
+          <article class="card reveal">
+            <span class="card-emoji" aria-hidden="true">🪄</span>
+            <h3>Raster → vector</h3>
+            <p>vtracer tracing and gradient fits: clean SVG with a live preview.</p>
+          </article>
+          <article class="card reveal">
+            <span class="card-emoji" aria-hidden="true">💾</span>
+            <h3>Lossless export</h3>
+            <p>
+              SVG from the engine that draws the canvas; PNG up to 16×; autosave into IndexedDB.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section wrap" id="gallery">
+        <p class="kicker"><span aria-hidden="true">🎨</span> Made in Ditherlab</p>
+        <h2>Drawn by the Ditherlab engine</h2>
+        <p class="section-intro">
+          Posters from the editor's built-in demo library: each one is rendered by the same engine
+          that draws the canvas — these are not screenshots, they are vectors.
+        </p>
+        <div class="gallery">
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/mandala.svg"
+              width="768"
+              height="768"
+              loading="lazy"
+              alt="A pixel mandala: pink-and-violet radial pattern with dithering"
+            />
+            <figcaption>“Mandala 128” — radial symmetry</figcaption>
+          </figure>
+          <figure class="frame tile-square reveal">
+            <img
+              src="/art/lava.svg"
+              width="768"
+              height="1024"
+              loading="lazy"
+              alt="Liquid metaball blobs of yellow, cyan, violet and pink on a dark background"
+            />
+            <figcaption>“Lava Blobs 96” — metaball mode</figcaption>
+          </figure>
+          <figure class="frame tile-wide reveal">
+            <img
+              src="/art/iso.svg"
+              width="740"
+              height="370"
+              loading="lazy"
+              alt="An isometric harbor on a diamond grid: a teal island with tiny ships"
+            />
+            <figcaption>“Iso Harbor 96” — diamond lattice</figcaption>
+          </figure>
+        </div>
+        <div class="cta-row section-cta reveal">
+          <a class="btn btn-accent" href="/editor/"
+            ><span aria-hidden="true">🎨</span> Try it in your browser</a
+          >
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-in">
+        <div>
+          <span class="brand"><img class="brand-glyph" src="/favicon.svg" alt="" /> Ditherlab</span>
+          <p class="footer-note">
+            <span aria-hidden="true">🔒</span>
+            Runs locally in your browser: autosave into IndexedDB, no account, nothing sent to a
+            server.
+          </p>
+        </div>
+        <nav class="footer-nav" aria-label="Site navigation">
+          <a href="/editor/">Open editor</a>
+          <span class="lang">
+            <a href="/" hreflang="ru" lang="ru" data-lang="ru">RU</a>
+            <a href="/en/" hreflang="en" aria-current="true">EN</a>
+          </span>
+        </nav>
+        <p class="footer-copy">© <span id="year">2026</span> Ditherlab</p>
+      </div>
+    </footer>
+  </body>
+</html>

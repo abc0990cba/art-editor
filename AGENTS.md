@@ -62,6 +62,10 @@ run `git commit`.
 ## Structure and boundaries (enforced by `arch:check`)
 
 ```
+index.html    # static landing (ru) — the crawlable public entry, no React
+en/index.html # static landing (en); copy lives in the HTML, not in i18n dictionaries
+editor.html   # the editor SPA entry — the router mounts it at /editor
+landing/      # landing support: plain-CSS page styles + lang persistence glue
 src/
   app/       # shell: app.component.tsx, app-top-bar.component.tsx, main.tsx
   features/  # vertical UI modules: canvas, tools, nodes-editor, layers,
@@ -70,6 +74,7 @@ src/
   state/     # editor.store.ts (zustand) — the single app store
   storage/   # IndexedDB persistence (projects, presets, brushes, db)
   shared/    # cross-slice: ui/ (primitives + vendored shadcn), lib/ (utils), i18n/
+scripts/     # landing artwork generator (art:generate), dist/ SEO self-check (seo:check)
 ```
 
 Dependency rules (`.dependency-cruiser.cjs`):
@@ -212,7 +217,7 @@ npm run bench        # vitest bench over the engine → bench/results/engine-ben
 npx vitest bench --run --compare bench/results/engine-bench.json   # + delta columns
 ```
 
-Browser harness for real frames: `npm run dev` → `http://localhost:5174/?bench=1&autorun=1`
+Browser harness for real frames: `npm run dev` → `http://localhost:5174/editor/?bench=1&autorun=1`
 (CanvasStage on the live store: loadDoc / commit / zoom / e2e stroke / undo; report —
 `window.__benchReport`, copy/download buttons on the panel). Metric — dispatch → effects
 complete (robust to window occlusion); the `framesLive` flag marks runs without live frames.

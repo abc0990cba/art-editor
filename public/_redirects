@@ -1,0 +1,4 @@
+# The editor SPA is a second HTML page (editor.html) mounted at /editor by the router.
+# Everything else keeps real 404s — the landing pages are static and need no SPA fallback.
+/editor    /editor.html    200
+/editor/*  /editor.html    200

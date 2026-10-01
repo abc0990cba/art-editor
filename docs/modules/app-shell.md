@@ -10,9 +10,9 @@ workspace composition, the top bar, hotkeys, the vectorize bridge, the bench har
 
 | File | Role |
 |---|---|
-| `src/app/main.tsx` | entry dispatcher: app boot or `?bench=1` harness (both dynamic imports) |
+| `src/app/main.tsx` | entry dispatcher (editor.html): app boot or `?bench=1` harness (both dynamic imports) |
 | `src/app/app-boot.tsx` | StrictMode + TooltipProvider; legacy migration + demo seed before first route |
-| `src/app/router.tsx` / `project-search.ts` | routes `/` and `/p/$projectId`; typed search params |
+| `src/app/router.tsx` / `project-search.ts` | routes `/` and `/p/$projectId` under `basepath: '/editor'`; typed search params |
 | `src/app/project-route.component.tsx` | binds the library entry to the store; kind-switches the workspace |
 | `src/app/pixel-workspace.component.tsx` | tool rail \| editor pane (stage + node editor, split/overlay) \| settings column; mobile drawers |
 | `src/app/app-top-bar*.component.tsx` | identity/actions/view controls; mobile composition |
@@ -29,12 +29,16 @@ branches load dynamically so the bench page never pays for app module side effec
 runs `migrateLegacySession()` and `seedDemoProject()` *before* the first route "so the home
 screen and Continue card never see unclaimed state".
 
-**Routing** (TanStack Router): rootRoute → homeRoute `/` (`HomeScreen`, navigation injected
-as `onOpen` — "features stay app-agnostic") and projectRoute `/p/$projectId` whose loader
-loads the library entry (missing → redirect home: "the library entry is the single source of
-truth"). Typed search params (`panel`, `nodeOpen`, `node: 'split'|'overlay'`, `nodeSplit`
-0.25..0.8) are view state: "every write is a replace", synced store ↔ URL by
-`useViewSearchSync` — reload restores the workspace layout Figma-style.
+**Routing** (TanStack Router): the SPA is the `editor.html` page, mounted at `basepath:
+'/editor'` — the site root is the static landing (see
+[ADR-0008](../decisions/0008-landing-static-mpa.md)); hosting rewrites `/editor` and
+`/editor/*` to that page (`public/_redirects`, `vercel.json`, mirrored by the Vite dev/preview
+middleware). rootRoute → homeRoute `/` (`HomeScreen`, navigation injected as `onOpen` —
+"features stay app-agnostic") and projectRoute `/p/$projectId` whose loader loads the library
+entry (missing → redirect home: "the library entry is the single source of truth"). Typed
+search params (`panel`, `nodeOpen`, `node: 'split'|'overlay'`, `nodeSplit` 0.25..0.8) are view
+state: "every write is a replace", synced store ↔ URL by `useViewSearchSync` — reload restores
+the workspace layout Figma-style.
 
 **Project route**: binds the loaded entry (`openProject`) and fills the workspace the kind
 calls for — pixel (`loadDoc(deserialize(entry.doc))`, corrupted → fresh doc; bound "before
