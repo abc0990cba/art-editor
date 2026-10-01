@@ -840,6 +840,7 @@ export const ru: Dict = {
   'examples.constellation': 'Созвездия · 128×96',
   'examples.neoncity': 'Неоновый город · 128×96',
   'examples.tripeaks': 'Треугольные пики · 128×88',
+  'examples.cascade': 'Шашечный каскад · 96×120',
   'examples.lava': 'Лава · 96×128',
   'examples.dollar': 'Банкнота · 192×96',
   'examples.landscape': 'Пейзаж · 512×256',

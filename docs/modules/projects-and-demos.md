@@ -3,7 +3,7 @@
 ## Scope
 
 The home screen (`src/features/projects/`): project library gallery, Continue card, creation
-flow — plus the demo registry (`src/engine/demo-project.ts` + 23 `demo-*.ts` builders) and
+flow — plus the demo registry (`src/engine/demo-project.ts` + 24 `demo-*.ts` builders) and
 first-launch seeding (`src/storage/demo-seed.ts`). Persistence beneath:
 [storage](storage.md); routing above: [app-shell](app-shell.md).
 
@@ -37,7 +37,7 @@ with an odd sibling variant).
 
 **Demo registry** (header): "ready-made examples the home screen offers. Each def has a
 stable id (the library entry id, `demo.`-prefixed) and a lazy build, so nothing is computed
-until a thumbnail or an open click needs it." 24 demo ids total — pixel examples (poster,
+until a thumbnail or an open click needs it." 25 demo ids total — pixel examples (poster,
 invader, portrait, confetti, tone ramp, hexreef, diamond/iso/octasquare/rotated grid
 showcases, mandala, kaleido, galaxy, wallpaper, …) plus vector and gradient demos sourcing
 rasters from `demo-media.ts`. Display order: "the poster, growing grid scales, then the trace

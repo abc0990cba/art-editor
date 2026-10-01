@@ -838,6 +838,7 @@ export const en = {
   'examples.constellation': 'Constellations · 128×96',
   'examples.neoncity': 'Neon City · 128×96',
   'examples.tripeaks': 'Triangle Peaks · 128×88',
+  'examples.cascade': 'Checker Cascade · 96×120',
   'examples.lava': 'Lava Blobs · 96×128',
   'examples.dollar': 'Banknote · 192×96',
   'examples.landscape': 'Landscape · 512×256',

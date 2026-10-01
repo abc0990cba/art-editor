@@ -5,6 +5,7 @@
  * storage/demo-seed.ts and reuses the `demo.poster` def.
  */
 
+import { cascadeProjectJSON } from './demo-cascade.ts'
 import { confettiProjectJSON } from './demo-confetti.ts'
 import { constellationProjectJSON } from './demo-constellation.ts'
 import { cubistProjectJSON } from './demo-cubist.ts'
@@ -169,6 +170,11 @@ export const DEMO_PROJECTS: readonly DemoDef[] = [
     id: 'demo.tripeaks',
     name: 'Triangle Peaks 128',
     build: () => ({ kind: 'pixel', doc: tripeaksProjectJSON() }),
+  },
+  {
+    id: 'demo.cascade',
+    name: 'Checker Cascade 96',
+    build: () => ({ kind: 'pixel', doc: cascadeProjectJSON() }),
   },
   {
     id: 'demo.lava',

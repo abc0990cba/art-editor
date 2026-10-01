@@ -120,6 +120,7 @@ function registry() {
       'demo.constellation': [128, 96],
       'demo.neoncity': [128, 96],
       'demo.tripeaks': [128, 88],
+      'demo.cascade': [96, 120],
       'demo.lava': [96, 128],
       'demo.dollar': [192, 96],
       'demo.landscape': [512, 256],
