@@ -1,5 +1,7 @@
 # The editor SPA is a real directory entry (editor/index.html), so /editor/ is served by any
-# static host without rewrites. Only the client-side deep links need this rule. Everything else
+# static host without rewrites. The explicit lines cover deep links — and hosts whose routing
+# skips directory-index resolution once rewrites are defined (Vercel does). Everything else
 # keeps real 404s — the landing pages are static and need no SPA fallback.
 /editor    /editor/index.html    200
+/editor/   /editor/index.html    200
 /editor/*  /editor/index.html    200

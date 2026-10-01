@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     { "source": "/editor", "destination": "/editor/index.html" },
+    { "source": "/editor/", "destination": "/editor/index.html" },
     { "source": "/editor/:path*", "destination": "/editor/index.html" }
   ]
 }

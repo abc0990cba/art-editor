@@ -31,9 +31,12 @@ The public surface becomes a **multi-page Vite build** with hand-written static 
 - Crawler files: `robots.txt` allows all and references `sitemap.xml`, which lists exactly the
   landing pages. `editor/index.html` is `noindex`. There is **no global SPA fallback** — unknown paths
   keep returning real 404s.
-- Hosting rewrites (`/editor` and `/editor/*` → `/editor/index.html`) ship as `public/_redirects`
-  (Netlify, Cloudflare Pages) and `vercel.json` (Vercel); dev and preview get the same mapping
-  from a small Vite middleware in `vite.config.ts`.
+- Hosting rewrites (`/editor`, `/editor/` and `/editor/*` → `/editor/index.html`) ship as
+  `public/_redirects` (Netlify, Cloudflare Pages) and `vercel.json` (Vercel); dev and preview get
+  the same mapping from a small Vite middleware in `vite.config.ts`. The explicit `/editor/`
+  rule matters: once `vercel.json` defines rewrites, Vercel's routing stops resolving directory
+  indexes implicitly, and `:path*` does not match a trailing slash — without it, the CTA URL
+  404s in production while the file is deployed.
 
 ## Alternatives considered
 

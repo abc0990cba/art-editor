@@ -52,3 +52,4 @@
 ## 10. Follow-up: hosting-proof editor entry (Vercel 404)
 
 - [x] 10.1 `editor.html` → `editor/index.html`: the bare `/editor/` URL is a real directory index, so the main entry needs no hosting rewrite (Vercel's `/editor/:path*` does not match the trailing-slash form and drag-and-drop deploys carry no rewrites at all); deep-link rewrites retargeted to `/editor/index.html`
+- [x] 10.2 Live Vercel check: with rewrites defined, Vercel skips directory-index resolution entirely — `/editor/` 404'd while `/editor/index.html` served. Added the explicit `/editor/` rewrite to `vercel.json` and the matching `_redirects` line
