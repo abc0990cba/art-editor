@@ -14,6 +14,7 @@ const base = {
   bh: BH,
   paletteLen: 4,
   hexValue: () => 1,
+  luma: () => 1,
   baseStyle: elementFromDoc(defaultDoc()),
 }
 

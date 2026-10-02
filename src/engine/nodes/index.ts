@@ -5,11 +5,13 @@
 
 import { CROWN_NODES } from './crown.node.ts'
 import { GENERATOR_NODES } from './generators.node.ts'
+import { HALFTONE_NODES } from './halftone.node.ts'
 import { RAMP_NODES } from './ramps.node.ts'
 import { registerNodes } from './registry'
 import { REPEAT_NODES } from './repeats.node.ts'
 import { SOURCE_NODES } from './sources.node.ts'
 import { STYLE_NODES } from './styles.node.ts'
+import { TEXT_NODES } from './text.node.ts'
 import { TRANSFORM_NODES } from './transforms.node.ts'
 import { WARP_NODES } from './warp.node.ts'
 
@@ -21,6 +23,8 @@ registerNodes([
   ...WARP_NODES,
   ...REPEAT_NODES,
   ...RAMP_NODES,
+  ...HALFTONE_NODES,
+  ...TEXT_NODES,
   ...STYLE_NODES,
 ])
 

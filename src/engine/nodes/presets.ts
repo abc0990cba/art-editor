@@ -4,6 +4,7 @@
  * 16×16 sample grid; `fitGraphToCanvas` rescales them to the current canvas at apply time.
  */
 
+import { DITHER_GRAPH_PRESETS } from './presets-dither.ts'
 import type { Graph, GraphNode, ParamValue } from './types'
 
 export interface GraphPreset {
@@ -57,6 +58,7 @@ export function fitGraphToCanvas(graph: Graph, bw: number, bh: number): Graph {
 }
 
 export const GRAPH_PRESETS: GraphPreset[] = [
+  ...DITHER_GRAPH_PRESETS,
   {
     id: 'flower-circle-array',
     label: 'Цветок — круговой массив',

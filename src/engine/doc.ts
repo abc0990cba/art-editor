@@ -4,6 +4,7 @@ import { DEFAULT_SHAPE_PARAMS, type CellShapeId, type ShapeParams } from './cell
 import { docSize, type GridType } from './grids'
 import { CLASSIC_12 } from './palettes'
 import type { SceneLayer } from './scene'
+import type { ScreenLattice } from './screen-engine.ts'
 
 export { elementFromDoc, sameElementStyle, withStyleScope } from './doc-style.ts'
 export { STAGE_THEMES, type StageTheme } from './stage-themes.ts'
@@ -97,7 +98,7 @@ type TextureDist =
   | 'bayer'
 
 /** Speck silhouette (halftone always uses dots). */
-type TextureShape =
+export type TextureShape =
   | 'square'
   | 'dot'
   | 'chip'
@@ -153,6 +154,8 @@ export interface TextureSettings {
   spray: number
   /** Directional tone ramp: dot size grows along the angle direction, 0..100 */
   ramp: number
+  /** Halftone mark arrangement; 'grid' is the classic rotated screen (undefined = grid) */
+  htLattice?: ScreenLattice
 }
 
 /** How painted cells turn into geometry. */

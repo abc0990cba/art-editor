@@ -4,6 +4,7 @@
  * palette across tile levels for a per-color glyph mosaic. Pure.
  */
 
+import type { ImportDither } from './dither-catalog.ts'
 import { glyphCellAt, type GlyphTileSet } from './glyph-tiles.ts'
 import { nearestIndex, type PaletteRgb } from './import-shared.ts'
 
@@ -13,6 +14,15 @@ export interface GlyphCtx {
   set: GlyphTileSet
   strength: number
 }
+
+/** One glyph strategy: fills `out` with palette indices for the sample. */
+export type GlyphMapper = (
+  sample: Float64Array,
+  tw: number,
+  th: number,
+  ctx: GlyphCtx,
+  out: Int32Array,
+) => void
 
 /** Deterministic [0,1) hash of the cell position — mixes nearest fallback under strength < 1. */
 function cellHash(x: number, y: number): number {
@@ -119,4 +129,12 @@ export function mapGlyphPalette(
       out[p] = order[nextRank]
     }
   }
+}
+
+/** Glyph strategies by catalog id — the dispatch table behind the 'glyph' family. */
+export const GLYPH_MAPPERS: Partial<Record<ImportDither, GlyphMapper>> = {
+  glyph: mapGlyphTone,
+  'palette-glyph': mapGlyphPalette,
+  ascii: mapGlyphTone,
+  braille: mapGlyphTone,
 }

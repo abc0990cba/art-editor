@@ -1,5 +1,20 @@
-import type { TextureSettings } from './doc'
+import { DEFAULT_SHAPE_PARAMS, type CellShapeId } from './cell-shape-defs.ts'
+import { cellShapeFragment } from './cell-shape-frag.ts'
+import type { TextureSettings, TextureShape } from './doc'
 import { circleFleck, fmt, hash2, valueNoise } from './texture-core'
+
+/** Cell-form silhouette behind every texture shape; undefined keeps the classic circle. */
+const TEXTURE_MARK_FORM: Partial<Record<TextureShape, CellShapeId>> = {
+  square: 'square',
+  chip: 'square',
+  triangle: 'triangle',
+  diamond: 'diamond',
+  cross: 'cross',
+  star: 'star',
+  hex: 'hexagon',
+  ring: 'ring',
+  dash: 'capsule',
+}
 
 /**
  * Halftone distress machinery: candidate dots collected by the region/field scanners are fused,
@@ -107,6 +122,25 @@ export interface CollectedDots {
   dotAt: Map<number, number>
 }
 
+/** One isolated dot: the configured silhouette, or a plain / wobbled circle. */
+function singleDotPath(t: TextureSettings, d: HtDot, amp: number): string {
+  const form = TEXTURE_MARK_FORM[t.shape]
+  if (!form) {
+    return amp > 0 ? wobblyCirclePath(d.cx, d.cy, d.r, amp, t.seed) : circleFleck(d.cx, d.cy, d.r)
+  }
+  const chip = t.shape === 'chip'
+  return cellShapeFragment({
+    id: form,
+    x: d.cx - d.r,
+    y: d.cy - d.r,
+    w: d.r * 2,
+    h: d.r * 2,
+    params: chip ? { ...DEFAULT_SHAPE_PARAMS, thickness: 0.5 } : DEFAULT_SHAPE_PARAMS,
+    radius: chip ? d.r * 0.6 : 0,
+    chamfer: false,
+  })
+}
+
 /**
  * Emit collected halftone dots. Singletons stay plain circles (or wobbled ones); grid neighbors
  * whose circles touch or overlap — or come within the merge neck — fuse into one star-union blob
@@ -180,8 +214,7 @@ export function emitHalftoneDots(
   let out = ''
   for (const [root, list] of clusters) {
     if (list.length === 1) {
-      const d = dots[list[0]]
-      out += amp > 0 ? wobblyCirclePath(d.cx, d.cy, d.r, amp, t.seed) : circleFleck(d.cx, d.cy, d.r)
+      out += singleDotPath(t, dots[list[0]], amp)
     } else {
       out += clusterBlobPath(
         list.map((i) => dots[i]),

@@ -1,16 +1,16 @@
 /**
  * Special diffusion strategies for the image import: tone-adaptive error weights (Ostromoukhov,
- * Variable-Error), class-ordered dot diffusion and the decaying-error-memory Riemersma trace.
- * Pure.
+ * Variable-Error), class-ordered dot diffusion and the decaying-error-memory Riemersma trace. The
+ * adaptive FS variants live in import-adaptive.ts, the palette-mix search in import-yliluoma.ts;
+ * this file owns the strategy registry. Pure.
  */
 
-import { clamp255, nearestIndex, type PaletteRgb } from './import-shared.ts'
-
-/** Per-pipeline parameters shared by the special diffusion strategies. */
-export interface SpecialCtx {
-  pal: PaletteRgb
-  strength: number
-}
+import type { ImportDither } from './dither-catalog.ts'
+import { mapEdgeAware, mapNoiseThreshold } from './import-adaptive.ts'
+import { mapCmyk } from './import-cmyk.ts'
+import type { SpecialCtx, SpecialMapper } from './import-shared.ts'
+import { clamp255, nearestIndex } from './import-shared.ts'
+import { mapYliluoma } from './import-yliluoma.ts'
 
 /**
  * Ostromoukhov: simple, error-diffusion weights that vary with the pixel's tone (32 luminance
@@ -247,4 +247,16 @@ export function mapRiemersma(
       head = (head + 1) % 16
     }
   }
+}
+
+/** Special-diffusion strategies by catalog id — the dispatch table behind the 'special' family. */
+export const SPECIAL_MAPPERS: Partial<Record<ImportDither, SpecialMapper>> = {
+  ostromoukhov: mapOstromoukhov,
+  'variable-error': mapVariableError,
+  'dot-diffusion': mapDotDiffusion,
+  riemersma: mapRiemersma,
+  'noise-threshold': mapNoiseThreshold,
+  'edge-aware': mapEdgeAware,
+  yliluoma: mapYliluoma,
+  cmyk: mapCmyk,
 }

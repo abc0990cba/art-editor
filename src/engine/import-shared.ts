@@ -20,6 +20,21 @@ export interface PaletteRgb {
   b: number[]
 }
 
+/** Per-pipeline parameters shared by the special diffusion strategies. */
+export interface SpecialCtx {
+  pal: PaletteRgb
+  strength: number
+}
+
+/** One special-diffusion strategy: fills `out` with palette indices for the sample. */
+export type SpecialMapper = (
+  sample: Float64Array,
+  tw: number,
+  th: number,
+  ctx: SpecialCtx,
+  out: Int32Array,
+) => void
+
 export function paletteChannels(palette: string[]): PaletteRgb {
   const r: number[] = []
   const g: number[] = []

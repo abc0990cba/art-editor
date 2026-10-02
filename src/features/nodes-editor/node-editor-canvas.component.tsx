@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { paletteLuma } from '../../engine/color.ts'
 import { elementFromDoc } from '../../engine/doc.ts'
 import {
   GRAPH_PRESETS,
@@ -199,6 +200,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
         bh: doc.rows * doc.sub,
         paletteLen: doc.palette.length,
         hexValue,
+        luma: (value: number) => paletteLuma(doc.palette, value),
         baseStyle: obj ? obj.obj.style : elementFromDoc(doc),
       },
       obj?.obj.cells,
@@ -1220,6 +1222,15 @@ function ParamInput({
           className="border-line h-4 w-6 cursor-pointer rounded border bg-transparent"
         />
       </span>
+    )
+  }
+  if (spec.kind === 'string') {
+    return (
+      <input
+        value={String(value)}
+        onChange={(e) => onChange(e.target.value)}
+        className="border-line bg-chip text-body focus:border-accent-line text-overline w-24 rounded border px-1 py-0.5 outline-none"
+      />
     )
   }
   return (

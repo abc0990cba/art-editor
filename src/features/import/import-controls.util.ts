@@ -1,7 +1,13 @@
 import type { CSSProperties } from 'react'
 
 import { hexToRgb } from '../../engine/color.ts'
-import type { ImportDither, ImportFit, ImportResult } from '../../engine/import-image.ts'
+import {
+  DITHER_FAMILIES,
+  dithersOfFamily,
+  type DitherFamily,
+  type ImportDither,
+} from '../../engine/dither-catalog.ts'
+import type { ImportFit, ImportResult } from '../../engine/import-image.ts'
 
 /** Canvas placement options of the import, in display order. */
 export const FITS: ImportFit[] = ['cover', 'contain', 'stretch', 'resize']
@@ -10,54 +16,17 @@ export const FITS: ImportFit[] = ['cover', 'contain', 'stretch', 'resize']
 export const SELECT_TRIGGER =
   'border-line bg-chip text-body dark:border-line dark:bg-chip h-auto w-full rounded-md px-2 py-1 text-xs max-lg:min-h-11 max-lg:px-3 max-lg:py-2.5 max-lg:text-sm'
 
+/**
+ * Dialog groups derived from the engine catalog: a new algorithm shows up in select + gallery
+ * automatically.
+ */
 export const DITHER_GROUPS: {
-  label:
-    | 'import.ditherGroup.off'
-    | 'import.ditherGroup.ordered'
-    | 'import.ditherGroup.diffusion'
-    | 'import.ditherGroup.special'
-    | 'import.ditherGroup.glyph'
+  label: `import.ditherGroup.${DitherFamily}`
   dithers: ImportDither[]
-}[] = [
-  { label: 'import.ditherGroup.off', dithers: ['none'] },
-  {
-    label: 'import.ditherGroup.ordered',
-    dithers: [
-      'bayer2',
-      'bayer4',
-      'bayer8',
-      'bayer16',
-      'cluster-dot',
-      'halftone',
-      'blue-noise',
-      'void-cluster',
-      'pattern',
-      'crosshatch',
-    ],
-  },
-  {
-    label: 'import.ditherGroup.diffusion',
-    dithers: [
-      'floyd',
-      'atkinson',
-      'sierra',
-      'sierra-lite',
-      'stucki',
-      'burkes',
-      'jjn',
-      'stevenson-arce',
-      'nakano',
-    ],
-  },
-  {
-    label: 'import.ditherGroup.special',
-    dithers: ['ostromoukhov', 'variable-error', 'dot-diffusion', 'riemersma'],
-  },
-  {
-    label: 'import.ditherGroup.glyph',
-    dithers: ['glyph', 'palette-glyph'],
-  },
-]
+}[] = DITHER_FAMILIES.map((family) => ({
+  label: `import.ditherGroup.${family}`,
+  dithers: dithersOfFamily(family),
+}))
 
 /** Checkerboard under transparent preview pixels. */
 export const checkerStyle: CSSProperties = {

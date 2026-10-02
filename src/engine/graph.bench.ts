@@ -1,5 +1,6 @@
 import { bench, describe } from 'vitest'
 
+import { paletteLuma } from './color.ts'
 import { elementFromDoc } from './doc-style.ts'
 import { defaultDoc, makeCells, type Doc } from './doc.ts'
 import { evalGraphMemo } from './nodes/eval-memo.ts'
@@ -38,6 +39,7 @@ function evalInput(bw: number) {
     bh: bw,
     paletteLen: PALETTE.length,
     hexValue: (hex: string): number => Math.max(1, PALETTE.indexOf(hex.toLowerCase()) + 1),
+    luma: (value: number): number => paletteLuma(PALETTE, value),
     baseStyle: elementFromDoc(defaultDoc()),
   }
 }

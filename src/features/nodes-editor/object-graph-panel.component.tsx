@@ -89,6 +89,18 @@ function ParamControl({
       </div>
     )
   }
+  if (spec.kind === 'string') {
+    return (
+      <label className="flex items-center justify-between gap-2">
+        <span className="text-muted text-xs">{pkey}</span>
+        <input
+          value={String(value)}
+          onChange={(e) => onChange(e.target.value)}
+          className="border-line bg-chip focus:border-accent-line w-32 rounded-md border px-1.5 py-1 text-xs outline-none"
+        />
+      </label>
+    )
+  }
   return <CheckRow label={pkey} checked={value === true} onChange={onChange} />
 }
 

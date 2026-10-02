@@ -148,3 +148,18 @@ defaults"), `nodes/params.test.ts`, `nodes/crown.test.ts`; bench `graph.bench.ts
 - Editor previews unmemoized (above); pos-split not implemented (roadmap P0).
 - With edges, `evalGraph` returns the last topological stage — the header's "union of sinks"
   wording describes merge semantics, not the return value.
+
+## Halftone, text and the luma service (2026-10)
+
+- `mod.halftone` re-renders the input raster as a screen of marks through
+  `screen-engine.ts` (lattice × mark × size/density/twist × pitch). Tone per cell comes
+  from `EvalContext.luma(value)` — the palette-luminance service added alongside
+  `hexValue` (built in `scene.ts` from the derived palette; the sanctioned context-service
+  extension point). `keepColor` reuses each mark's source palette value instead of a fixed
+  ink.
+- `source.text` rasterizes the embedded 5×7 bitmap font (`bitmap-font.ts`) into ink cells
+  (offset/scale/tracking/ink). It needs no DOM, so it evaluates anywhere the graph does.
+  Enabled by the `string` param kind threaded through the schema, resolver and both node
+  editors.
+- Registered presets showcase both: halftone-print, stipple-garden, engrave-rings,
+  type-stamp, type-halftone, duotone-sun.

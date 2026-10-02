@@ -99,3 +99,35 @@ trace/gradient workers).
 
 - Main-thread conversion (P5 roadmap).
 - `resize` placement mutates the canvas size (documented UX), not the photo.
+
+## Dither catalog expansion (2026-10)
+
+The algorithm library grew from 24 to 65 entries behind a declarative catalog
+(`src/engine/dither-catalog.ts`): every id declares its strategy family
+(off / ordered / diffusion / path / hybrid / special / glyph) and the switches it enables
+(threshold slider, glyph picker). The pipeline dispatch (`ditherSample`), the ordered set,
+the dialog groups and both visual galleries all derive from the catalog — a new algorithm
+is one union member + one catalog row + its implementation entry + i18n, never a UI edit.
+
+- **Ordered**: Bayer 32; rosette / elliptical / Euclidean print screens (rank-by-spot);
+  line screens h/v/diag; IGN; generated 16×16 blue noise; spiral, rings, sunburst,
+  phyllotaxis, zigzag, fractal-noise fields; weave / twill / houndstooth ranks;
+  `custom-matrix` (the user's glyph tile set as the threshold field via `glyphSetToField`).
+- **Diffusion**: Sierra-2, 1D horizontal, anisotropic h/v spread.
+- **Scan paths** (decaying 16-slot error memory along a path): column serpentine,
+  anti-diagonals, spiral, Hilbert (true Riemersma), seeded random — `diffusion-scans.ts`
+  builds visit-order permutations, `import-path.ts` walks them.
+- **Special**: Yliluoma palette-mix search (`import-yliluoma.ts`), noise-threshold and
+  edge-aware FS variants (`import-adaptive.ts`, shared `fsCore`), CMYK rosette separation
+  (`import-cmyk.ts`, C15/M75/Y0/K45 plates overprinted subtractively).
+- **Hybrid bands** (`import-hybrid.ts`): three registered algorithms (any family) run as
+  ordinary whole-image passes; the composite reads each pixel from its luminance band.
+  Hybrid as a band id degrades to nearest (no recursion).
+- **Combos**: gradient-map duotone (pre-quantization), edge outline (post-dither inked
+  edges, 4-neighborhood), posterize with Bayer-boundary jitter, custom ASCII ramp for the
+  `ascii` dither; `ascii`/`braille` glyph dithers use built-in tile sets from
+  `text-raster.ts` (5×7 bitmap font; all 256 eight-dot braille patterns as a 2×4 ramp).
+- Conformance (all ids, `dither-catalog.test.ts`): determinism, palette bounds,
+  transparency survival, strength-0 ≡ nearest for diffusion/path/special/glyph,
+  threshold-bias direction for every ordered id; cost baseline in
+  `src/engine/dither.bench.ts` + `bench/PERFLOG.md` (2026-10-02 row).

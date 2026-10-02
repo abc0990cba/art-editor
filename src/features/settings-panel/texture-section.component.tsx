@@ -24,7 +24,9 @@ export function TextureSection({ target }: { target: StyleTarget }) {
             key={effect}
             active={texView.effect === effect}
             title={t(`texture.${effect}.desc` as 'texture.grain.desc')}
-            onClick={() => applyTexture({ effect })}
+            onClick={() =>
+              applyTexture(effect === 'halftone' ? { effect, shape: 'dot' } : { effect })
+            }
           >
             {t(key)}
           </Chip>
@@ -41,16 +43,47 @@ export function TextureSection({ target }: { target: StyleTarget }) {
             onChange={(v) => applyTexture({ amount: v })}
           />
           {texView.effect === 'halftone' ? (
-            <Slider
-              label={t('texture.htAngle')}
-              title={t('texture.htAngle.desc')}
-              value={texView.angle}
-              min={0}
-              max={180}
-              step={5}
-              display={(v) => `${Math.round(v)}°`}
-              onChange={(v) => applyTexture({ angle: v })}
-            />
+            <>
+              <Slider
+                label={t('texture.htAngle')}
+                title={t('texture.htAngle.desc')}
+                value={texView.angle}
+                min={0}
+                max={180}
+                step={5}
+                display={(v) => `${Math.round(v)}°`}
+                onChange={(v) => applyTexture({ angle: v })}
+              />
+              <div className="text-body flex flex-col gap-1 text-xs">
+                <span title={t('texture.htLattice.desc')}>{t('texture.htLattice')}</span>
+                <div className="flex flex-wrap gap-1">
+                  {(
+                    [
+                      ['grid', 'texture.htLattice.grid'],
+                      ['hex', 'texture.htLattice.hex'],
+                      ['rings', 'texture.htLattice.rings'],
+                      ['sunburst', 'texture.htLattice.sunburst'],
+                      ['spiral', 'texture.htLattice.spiral'],
+                      ['phyllotaxis', 'texture.htLattice.phyllotaxis'],
+                      ['scatter', 'texture.htLattice.scatter'],
+                    ] as const
+                  ).map(([lattice, key]) => (
+                    <Chip
+                      key={lattice}
+                      active={(texView.htLattice ?? 'grid') === lattice}
+                      title={t(
+                        `texture.htLattice.${lattice}.desc` as 'texture.htLattice.grid.desc',
+                      )}
+                      onClick={() =>
+                        applyTexture({ htLattice: lattice === 'grid' ? undefined : lattice })
+                      }
+                    >
+                      {t(key)}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+            </>
           ) : (
             <>
               <div className="text-body flex flex-col gap-1 text-xs">

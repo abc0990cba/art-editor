@@ -8,22 +8,25 @@
  * import-shared (common palette helpers); this file owns the public types and the pipeline glue.
  */
 
+import { hexToRgb } from './color.ts'
+import { DITHER_CATALOG, type ImportDither } from './dither-catalog.ts'
 import type { SubDetail } from './doc'
 import type { GlyphTileSet } from './glyph-tiles.ts'
+import { mapPosterizeJitter } from './import-adaptive.ts'
 import { DIFFUSION_KERNELS, mapErrorDiffusion } from './import-diffusion.ts'
+import { mapDuotone } from './import-duotone.ts'
 import type { SampleLayout } from './import-fit.ts'
 import { prepareSample, resolveLayout } from './import-fit.ts'
-import { mapGlyphPalette, mapGlyphTone } from './import-glyph.ts'
-import { ORDERED_FIELDS, mapOrdered } from './import-ordered.ts'
+import { GLYPH_MAPPERS } from './import-glyph.ts'
+import { mapHybrid, type HybridPlan } from './import-hybrid.ts'
+import { mapOrdered, orderedFieldFor } from './import-ordered.ts'
+import { mapPathDiffusion, pathOrderFor } from './import-path.ts'
 import { applyPostEffects } from './import-post.ts'
+import { applyEdgeOutline } from './import-post.ts'
 import { expandPaletteWithBlend, medianCut, normalizePalette } from './import-quantize.ts'
 import { mapNearest, paletteChannels, type PaletteRgb } from './import-shared.ts'
-import {
-  mapDotDiffusion,
-  mapOstromoukhov,
-  mapRiemersma,
-  mapVariableError,
-} from './import-special.ts'
+import { SPECIAL_MAPPERS } from './import-special.ts'
+import { asciiGlyphSet, builtinDitherSets } from './text-raster.ts'
 
 /** Decoded raster ready for conversion; straight (non-premultiplied) RGBA. */
 export interface ImportBitmap {
@@ -40,51 +43,11 @@ export type ImportFit =
   | 'stretch' // distort to the exact canvas size
   | 'resize' // resize the canvas to the photo proportions, then stretch
 
-export type ImportDither =
-  | 'none'
-  // ordered (threshold matrices)
-  | 'bayer2'
-  | 'bayer4'
-  | 'bayer8'
-  | 'bayer16'
-  | 'cluster-dot'
-  | 'halftone'
-  | 'blue-noise'
-  | 'void-cluster'
-  | 'pattern'
-  | 'crosshatch'
-  // error diffusion (coefficient kernels)
-  | 'floyd'
-  | 'atkinson'
-  | 'sierra'
-  | 'sierra-lite'
-  | 'stucki'
-  | 'burkes'
-  | 'jjn'
-  | 'stevenson-arce'
-  | 'nakano'
-  // glyph tiles (user-editable, see engine/glyph-tiles.ts)
-  | 'glyph'
-  | 'palette-glyph'
-  // special diffusion
-  | 'ostromoukhov'
-  | 'variable-error'
-  | 'dot-diffusion'
-  | 'riemersma'
+/** Every import dither id; the catalog (dither-catalog.ts) owns the list and the families. */
+export type { ImportDither } from './dither-catalog.ts'
 
 /** Ordered dithers: tone compared against a threshold matrix; the threshold bias applies. */
-export const ORDERED_DITHERS: ReadonlySet<ImportDither> = new Set([
-  'bayer2',
-  'bayer4',
-  'bayer8',
-  'bayer16',
-  'cluster-dot',
-  'halftone',
-  'blue-noise',
-  'void-cluster',
-  'pattern',
-  'crosshatch',
-])
+export { ORDERED_DITHERS } from './dither-catalog.ts'
 
 /** Color reduction target: the document palette, a fixed set of colors, or auto (median cut). */
 export type ImportPaletteChoice =
@@ -132,6 +95,21 @@ export interface ImportOptions {
   blend: number
   /** Tile set for 'glyph' / 'palette-glyph' dithering; null falls back to nearest */
   glyphSet: GlyphTileSet | null
+  /** Hybrid band dithering: the algorithm per tone band (dither = 'hybrid') */
+  hybridLow: ImportDither
+  hybridMid: ImportDither
+  hybridHigh: ImportDither
+  /** Shadows end / highlights start at this luminance, 0..255 (hybrid) */
+  bandLow: number
+  bandHigh: number
+  /** Posterize band count 2..32 (dither = 'posterize') */
+  posterizeLevels: number
+  /** Gradient-map duotone endpoints; null keeps the photo colors */
+  duotone: { dark: string; light: string } | null
+  /** Edge outline 0..100: darkest ink over detected luminance edges after dithering */
+  edgeOutline: number
+  /** Custom character ramp override (dither = 'ascii'); null uses the builtin ramp */
+  asciiRamp: string | null
 }
 
 export const DEFAULT_IMPORT_OPTIONS: ImportOptions = {
@@ -156,6 +134,15 @@ export const DEFAULT_IMPORT_OPTIONS: ImportOptions = {
   glowIntensity: 0,
   aberration: 0,
   blend: 0,
+  hybridLow: 'sierra-lite',
+  hybridMid: 'floyd',
+  hybridHigh: 'bayer8',
+  bandLow: 85,
+  bandHigh: 170,
+  posterizeLevels: 5,
+  duotone: null,
+  edgeOutline: 0,
+  asciiRamp: null,
 }
 
 export interface ImportGrid {
@@ -233,6 +220,12 @@ export function convertImage(
 ): ImportResult {
   const layout = resolveLayout(src, opts, grid)
   const sample = prepareSample(src, opts, layout)
+  if (opts.duotone) {
+    const dark = hexToRgb(opts.duotone.dark)
+    const light = hexToRgb(opts.duotone.light)
+    if (dark && light)
+      mapDuotone(sample, { dark: [dark.r, dark.g, dark.b], light: [light.r, light.g, light.b] })
+  }
   const palette = normalizePalette(
     opts.palette.kind === 'current'
       ? currentPalette
@@ -247,8 +240,12 @@ export function convertImage(
   const idx = ditherSample(sample, opts, layout, pal)
   // post effects run on the snapped colors and land back on the palette
   const post =
-    (opts.glowRadius > 0 && opts.glowIntensity > 0) || opts.postDenoise > 0 || opts.postSmooth > 0
+    (opts.glowRadius > 0 && opts.glowIntensity > 0) ||
+    opts.postDenoise > 0 ||
+    opts.postSmooth > 0 ||
+    opts.edgeOutline > 0
   if (post) applyPostEffects(idx, pal, layout.tw, layout.th, opts)
+  if (opts.edgeOutline > 0) applyEdgeOutline(idx, pal, layout.tw, layout.th, opts.edgeOutline)
   return {
     cols: layout.cols,
     rows: layout.rows,
@@ -264,33 +261,96 @@ function ditherSample(
   layout: SampleLayout,
   pal: PaletteRgb,
 ): Int32Array {
+  return runDither(sample, opts, layout, pal, opts.dither)
+}
+
+/** Dispatch one algorithm id; hybrid bands re-enter here with plain ids only. */
+function runDither(
+  sample: Float64Array,
+  opts: ImportOptions,
+  layout: SampleLayout,
+  pal: PaletteRgb,
+  id: ImportDither,
+): Int32Array {
   const { tw, th } = layout
   const strength = Math.max(0, Math.min(100, opts.ditherStrength)) / 100
   const idx = new Int32Array(tw * th)
-  const field = ORDERED_FIELDS[opts.dither]
-  const kernel = DIFFUSION_KERNELS[opts.dither]
-  if (opts.dither === 'none') {
-    mapNearest(sample, tw * th, pal, idx)
-  } else if (field) {
-    mapOrdered(sample, tw, th, { pal, fieldAt: field, strength, threshold: opts.threshold }, idx)
-  } else if (kernel) {
-    mapErrorDiffusion(sample, tw, th, { pal, kernel, strength }, idx)
-  } else if (opts.dither === 'glyph' && opts.glyphSet) {
-    mapGlyphTone(sample, tw, th, { pal, set: opts.glyphSet, strength }, idx)
-  } else if (opts.dither === 'palette-glyph' && opts.glyphSet) {
-    mapGlyphPalette(sample, tw, th, { pal, set: opts.glyphSet, strength }, idx)
-  } else if (opts.dither === 'ostromoukhov') {
-    mapOstromoukhov(sample, tw, th, { pal, strength }, idx)
-  } else if (opts.dither === 'variable-error') {
-    mapVariableError(sample, tw, th, { pal, strength }, idx)
-  } else if (opts.dither === 'dot-diffusion') {
-    mapDotDiffusion(sample, tw, th, { pal, strength }, idx)
-  } else if (opts.dither === 'riemersma') {
-    mapRiemersma(sample, tw, th, { pal, strength }, idx)
-  } else {
+  const nearest = (): void => {
     mapNearest(sample, tw * th, pal, idx)
   }
+  switch (DITHER_CATALOG[id].family) {
+    case 'off':
+      nearest()
+      break
+    case 'ordered': {
+      const field = orderedFieldFor(id, opts.glyphSet)
+      if (field) {
+        mapOrdered(
+          sample,
+          tw,
+          th,
+          { pal, fieldAt: field, strength, threshold: opts.threshold },
+          idx,
+        )
+      } else nearest()
+      break
+    }
+    case 'diffusion': {
+      const kernel = DIFFUSION_KERNELS[id]
+      if (kernel) mapErrorDiffusion(sample, tw, th, { pal, kernel, strength }, idx)
+      else nearest()
+      break
+    }
+    case 'path': {
+      const order = pathOrderFor(id, tw, th)
+      if (order) mapPathDiffusion(sample, tw, th, { pal, order, strength }, idx)
+      else nearest()
+      break
+    }
+    case 'glyph': {
+      const map = GLYPH_MAPPERS[id]
+      const ramp =
+        id === 'ascii' && opts.asciiRamp ? asciiGlyphSet(opts.asciiRamp, 'custom') : undefined
+      const set = opts.glyphSet ?? ramp ?? builtinDitherSets()[id]
+      if (map && set) map(sample, tw, th, { pal, set, strength }, idx)
+      else nearest()
+      break
+    }
+    case 'special': {
+      if (id === 'posterize') {
+        mapPosterizeJitter(sample, tw, th, { pal, strength, levels: opts.posterizeLevels }, idx)
+        break
+      }
+      const map = SPECIAL_MAPPERS[id]
+      if (map) map(sample, tw, th, { pal, strength }, idx)
+      else nearest()
+      break
+    }
+    case 'hybrid': {
+      const plan: HybridPlan = {
+        low: plainBandId(opts.hybridLow),
+        mid: plainBandId(opts.hybridMid),
+        high: plainBandId(opts.hybridHigh),
+        bandLow: Math.max(0, Math.min(255, opts.bandLow)),
+        bandHigh: Math.max(0, Math.min(255, opts.bandHigh)),
+        strength,
+      }
+      mapHybrid(
+        sample,
+        tw,
+        th,
+        { plan, pal, run: (d) => runDither(sample, opts, layout, pal, d) },
+        idx,
+      )
+      break
+    }
+  }
   return idx
+}
+
+/** Hybrid bands accept any id except hybrid itself — nested hybrid degrades to nearest. */
+function plainBandId(id: ImportDither): ImportDither {
+  return DITHER_CATALOG[id].family === 'hybrid' ? 'none' : id
 }
 
 /** Expand the sample-level indices into full-resolution document cells (0 = empty). */

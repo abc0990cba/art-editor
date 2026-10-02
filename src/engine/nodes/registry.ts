@@ -51,6 +51,11 @@ export function resolveParams(op: string, params: Record<string, ParamValue>): R
         values[key] = /^#[0-9a-fA-F]{6}$/.test(s) ? s.toLowerCase() : spec.default
         break
       }
+      case 'string': {
+        const s = typeof raw === 'string' ? raw : spec.default
+        values[key] = s.slice(0, spec.maxLength ?? 120)
+        break
+      }
       case 'bool': {
         values[key] = typeof raw === 'boolean' ? raw : spec.default
         break

@@ -230,7 +230,7 @@ describe('regionTextureFragments', () => {
   it('halftone at zero distress emits plain circles on an unrotated grid', () => {
     const frag = regionTextureFragments(
       singleCell(),
-      settings({ effect: 'halftone', angle: 0, amount: 40 }),
+      settings({ effect: 'halftone', angle: 0, amount: 40, shape: 'dot' }),
       5,
     )
     expect(frag).not.toBe('')
@@ -273,12 +273,12 @@ describe('regionTextureFragments', () => {
   it('halftone wobble replaces circles with wobbled outlines', () => {
     const plain = regionTextureFragments(
       singleCell(),
-      settings({ effect: 'halftone', angle: 0, amount: 80 }),
+      settings({ effect: 'halftone', angle: 0, amount: 80, shape: 'dot' }),
       7,
     )
     const wobbled = regionTextureFragments(
       singleCell(),
-      settings({ effect: 'halftone', angle: 0, amount: 80, wobble: 80 }),
+      settings({ effect: 'halftone', angle: 0, amount: 80, wobble: 80, shape: 'dot' }),
       7,
     )
     expect(plain).toMatch(/a[\d.]+ [\d.]+/)

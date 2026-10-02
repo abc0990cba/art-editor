@@ -1,26 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_IMPORT_OPTIONS, ORDERED_DITHERS } from './import-image'
+import { DITHER_CATALOG } from './dither-catalog.ts'
+import { DEFAULT_IMPORT_OPTIONS } from './import-image'
 import { IMPORT_PRESETS } from './import-presets'
 import { PALETTES } from './palettes.ts'
 
-const VALID_DITHERS: ReadonlySet<string> = new Set([
-  'none',
-  ...ORDERED_DITHERS,
-  'floyd',
-  'atkinson',
-  'sierra',
-  'sierra-lite',
-  'stucki',
-  'burkes',
-  'jjn',
-  'stevenson-arce',
-  'nakano',
-  'ostromoukhov',
-  'variable-error',
-  'dot-diffusion',
-  'riemersma',
-])
+const VALID_DITHERS: ReadonlySet<string> = new Set(Object.keys(DITHER_CATALOG))
 
 const inRange = (v: number, lo: number, hi: number) => v >= lo && v <= hi
 

@@ -2,6 +2,7 @@ import type { TextureSettings } from './doc'
 import { clamp, hash2, mulberry32, MAX_REGION_FLECKS } from './texture-core'
 import type { FigureSpace } from './texture-figure'
 import { emitHalftoneDots, filterSpray, type HtDot } from './texture-halftone'
+import { latticeHalftoneDots } from './texture-lattices.ts'
 import { angleRad, type DistContext } from './texture-patterns'
 import { regionHalftoneCell, regionScatterCell } from './texture-region-cells'
 
@@ -350,6 +351,10 @@ export function regionTextureFragments(
     sprayCand: [],
     out: '',
     count: 0,
+  }
+  if (halftone && t.htLattice && t.htLattice !== 'grid') {
+    latticeHalftoneDots(s, t.htLattice, Ld)
+    return emitHalftoneDots({ dots: s.dots, keys: s.dotKeys, dotAt: s.dotAt }, 1, t, Ld)
   }
   for (let J = grid.J0; J <= grid.J1 && s.count < MAX_REGION_FLECKS; J += grid.stride) {
     for (let I = grid.I0; I <= grid.I1 && s.count < MAX_REGION_FLECKS; I += grid.stride) {

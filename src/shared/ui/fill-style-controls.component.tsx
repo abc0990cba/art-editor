@@ -80,6 +80,79 @@ function FillPreview({ size = 232 }: { size?: number }) {
   )
 }
 
+/** Screen-pattern controls (lattice, mark shape, distress sliders), split out of the main body. */
+function ScreenControls({
+  style,
+  patch,
+}: {
+  style: FillStyle
+  patch: (patch: Partial<FillStyle>) => void
+}) {
+  const { t } = useI18n()
+  return (
+    <>
+      <div>
+        <div className="text-muted mb-1 text-xs" title={t('fill.lattice.desc')}>
+          {t('fill.lattice')}
+        </div>
+        <div className="grid grid-cols-3 gap-1">
+          {(['grid', 'hex', 'rings'] as const).map((lat) => (
+            <Chip
+              key={lat}
+              active={style.htLattice === lat}
+              title={t(`fill.lattice.${lat}.desc`)}
+              onClick={() => patch({ htLattice: lat })}
+            >
+              {t(`fill.lattice.${lat}`)}
+            </Chip>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="text-muted mb-1 text-xs">{t('fill.htShape')}</div>
+        <div className="grid grid-cols-3 gap-1">
+          {HT_SHAPES.map((sh) => (
+            <Chip
+              key={sh}
+              active={style.htShape === sh}
+              title={t(`fill.htShape.${sh}.desc`)}
+              onClick={() => patch({ htShape: sh })}
+            >
+              {t(`fill.htShape.${sh}`)}
+            </Chip>
+          ))}
+        </div>
+      </div>
+      <Slider
+        label={t('fill.htAngle')}
+        title={t('fill.htAngle.desc')}
+        value={style.htAngle}
+        min={0}
+        max={180}
+        step={5}
+        display={(v) => `${Math.round(v)}°`}
+        onChange={(v) => patch({ htAngle: v })}
+      />
+      <Slider
+        label={t('fill.htJitter')}
+        title={t('fill.htJitter.desc')}
+        value={style.htJitter}
+        min={0}
+        max={100}
+        onChange={(v) => patch({ htJitter: v })}
+      />
+      <Slider
+        label={t('fill.htDropout')}
+        title={t('fill.htDropout.desc')}
+        value={style.htDropout}
+        min={0}
+        max={100}
+        onChange={(v) => patch({ htDropout: v })}
+      />
+    </>
+  )
+}
+
 /**
  * Style controls of the fill tool: solid vs pattern fills, dither library, transitions and the
  * second color. Edits go through `patchFillStyle`, or through `onPatch` when the caller needs to
@@ -154,51 +227,7 @@ export function FillStyleControls({
           {style.pattern === 'glyph' && (
             <GlyphSetPicker value={style.glyphSet} onChange={(set) => patch({ glyphSet: set })} />
           )}
-          {style.pattern === 'screen' && (
-            <>
-              <div>
-                <div className="text-muted mb-1 text-xs">{t('fill.htShape')}</div>
-                <div className="grid grid-cols-3 gap-1">
-                  {HT_SHAPES.map((sh) => (
-                    <Chip
-                      key={sh}
-                      active={style.htShape === sh}
-                      title={t(`fill.htShape.${sh}.desc`)}
-                      onClick={() => patch({ htShape: sh })}
-                    >
-                      {t(`fill.htShape.${sh}`)}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-              <Slider
-                label={t('fill.htAngle')}
-                title={t('fill.htAngle.desc')}
-                value={style.htAngle}
-                min={0}
-                max={180}
-                step={5}
-                display={(v) => `${Math.round(v)}°`}
-                onChange={(v) => patch({ htAngle: v })}
-              />
-              <Slider
-                label={t('fill.htJitter')}
-                title={t('fill.htJitter.desc')}
-                value={style.htJitter}
-                min={0}
-                max={100}
-                onChange={(v) => patch({ htJitter: v })}
-              />
-              <Slider
-                label={t('fill.htDropout')}
-                title={t('fill.htDropout.desc')}
-                value={style.htDropout}
-                min={0}
-                max={100}
-                onChange={(v) => patch({ htDropout: v })}
-              />
-            </>
-          )}
+          {style.pattern === 'screen' && <ScreenControls style={style} patch={patch} />}
           <div>
             <div className="text-muted mb-1 text-xs">{t('fill.gradient')}</div>
             <div className="grid grid-cols-3 gap-1">

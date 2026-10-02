@@ -1,5 +1,5 @@
 import { cellShapeFragment } from './cell-shapes.ts'
-import { toneScale } from './color.ts'
+import { paletteLuma, toneScale } from './color.ts'
 import type { Doc, ElementStyle, Link, PixelStyle } from './doc'
 import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from './doc'
 import { elementStyleKey, elementGeometry } from './geometry-elements.ts'
@@ -44,6 +44,7 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
     const i = doc.palette.findIndex((c) => c.toLowerCase() === hex.toLowerCase())
     return (i === -1 ? 0 : i) + 1
   }
+  const luma = (value: number) => paletteLuma(doc.palette, value)
   for (const layer of layers) {
     if (!layer.visible) continue
     const objs = visibleObjs(layer)
@@ -68,6 +69,7 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
               bh: doc.rows * doc.sub,
               paletteLen: length,
               hexValue,
+              luma,
               baseStyle: o.style,
             },
             o.cells,
@@ -183,6 +185,7 @@ export function metaballOverlayContours(doc: Doc): string[] {
       const i = doc.palette.findIndex((c) => c.toLowerCase() === hex.toLowerCase())
       return (i === -1 ? 0 : i) + 1
     }
+    const luma = (value: number) => paletteLuma(doc.palette, value)
     for (const o of visibleObjs(layer)) {
       const { cells: ink } = o.graph
         ? evalGraphMemo(
@@ -192,6 +195,7 @@ export function metaballOverlayContours(doc: Doc): string[] {
               bh: doc.rows * doc.sub,
               paletteLen: length,
               hexValue,
+              luma,
               baseStyle: o.style,
             },
             o.cells,

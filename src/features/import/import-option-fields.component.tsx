@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 
+import { DITHER_CATALOG } from '../../engine/dither-catalog.ts'
 import { BUILT_IN_GLYPH_SETS } from '../../engine/glyph-builtins.ts'
 import {
   convertImage,
@@ -15,6 +16,7 @@ import { IMPORT_PRESETS } from '../../engine/import-presets.ts'
 import { PALETTES } from '../../engine/palettes.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { cn } from '../../shared/lib/utils.ts'
+import { GlyphSetPicker } from '../../shared/ui/glyph-set-picker.component.tsx'
 import {
   Select,
   SelectContent,
@@ -245,6 +247,7 @@ export function ImportDitherField({
   glyphSet,
   value,
   onPick,
+  onGlyphSet,
 }: {
   bitmap: ImportBitmap
   /** Resolved palette choice shared with the main conversion. */
@@ -253,6 +256,7 @@ export function ImportDitherField({
   glyphSet: ImportOptions['glyphSet']
   value: ImportDither
   onPick: (d: ImportDither) => void
+  onGlyphSet: (set: ImportOptions['glyphSet']) => void
 }) {
   const { t } = useI18n()
   const thumb = useMemo(() => thumbOf(bitmap), [bitmap])
@@ -307,6 +311,9 @@ export function ImportDitherField({
           </button>
         ))}
       </div>
+      {DITHER_CATALOG[value].glyphPicker && (
+        <GlyphSetPicker value={glyphSet} onChange={onGlyphSet} photo={bitmap} />
+      )}
     </div>
   )
 }

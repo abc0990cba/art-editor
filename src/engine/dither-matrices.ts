@@ -29,6 +29,105 @@ function expandBayer(prev: readonly (readonly number[])[]): number[][] {
 export const BAYER4 = expandBayer(BAYER2)
 export const BAYER8 = expandBayer(BAYER4)
 export const BAYER16 = expandBayer(BAYER8)
+export const BAYER32 = expandBayer(BAYER16)
+
+/**
+ * Rank cells of an n×n tile by a spot function (toroidal distance to the nearest dot center):
+ * ascending spot value = the order ink appears as tone darkens. `spot(x, y, dx, dy)` receives the
+ * wrapped offsets to the nearest center and returns a comparable number.
+ */
+function screenRanks(
+  n: number,
+  centers: readonly (readonly [number, number])[],
+  spot: (dx: number, dy: number) => number,
+): number[][] {
+  const wrapped = (d: number): number => {
+    const m = ((d % n) + n) % n
+    return Math.min(m, n - m)
+  }
+  const cells: { x: number; y: number; v: number }[] = []
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      let best = Infinity
+      for (const [cx, cy] of centers) {
+        const dx = wrapped(x - cx)
+        const dy = wrapped(y - cy)
+        const v = spot(dx, dy)
+        if (v < best) best = v
+      }
+      cells.push({ x, y, v: best })
+    }
+  }
+  cells.sort((a, b) => a.v - b.v || a.y - b.y || a.x - b.x)
+  const out: number[][] = Array.from({ length: n }, () => Array.from({ length: n }, () => 0))
+  cells.forEach((c, rank) => {
+    out[c.y][c.x] = rank
+  })
+  return out
+}
+
+/** Binary pattern → ranks: ink cells take ranks 0..k-1 in scan order, the rest follow. */
+function patternRanks(rows: readonly (readonly number[])[]): number[][] {
+  const n = rows.length
+  let ink = 0
+  for (const row of rows) for (const v of row) ink += v
+  const out: number[][] = rows.map((row) => row.slice())
+  let lo = 0
+  let hi = ink
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) out[y][x] = rows[y][x] ? lo++ : hi++
+  }
+  return out
+}
+
+const DOT_CENTERS: readonly (readonly [number, number])[] = [
+  [2, 2],
+  [6, 6],
+]
+
+/** 8×8 rosette screen — round dots growing along the 45° print-screen diagonal. */
+export const ROSETTE8 = screenRanks(8, DOT_CENTERS, (dx, dy) => Math.hypot(dx, dy))
+
+/** 8×8 elliptical screen — dots elongated across the diagonal, the chain-like print look. */
+export const ELLIPTICAL8 = screenRanks(
+  8,
+  DOT_CENTERS,
+  (dx, dy) => (dx - dy) * (dx - dy) * 4 + (dx + dy) * (dx + dy),
+)
+
+/** 8×8 Euclidean screen — square-shouldered dot growth, dots linking into checker lattices. */
+export const EUCLIDEAN8 = screenRanks(
+  8,
+  DOT_CENTERS,
+  (dx, dy) => Math.max(dx, dy) + 0.3 * Math.min(dx, dy),
+)
+
+/** 8×8 basket weave — 2×2 checker blocks, the coarse textile binding. */
+export const WEAVE8 = patternRanks(
+  Array.from({ length: 8 }, (_row, y) =>
+    Array.from({ length: 8 }, (_cell, x) => (((x >> 1) + (y >> 1)) % 2 === 0 ? 1 : 0)),
+  ),
+)
+
+/** 8×8 two-up-two-down twill — the denim diagonal ribs. */
+export const TWILL8 = patternRanks(
+  Array.from({ length: 8 }, (_row, y) =>
+    Array.from({ length: 8 }, (_cell, x) => ((((x - y) % 8) + 8) % 8 < 2 ? 1 : 0)),
+  ),
+)
+
+/** 8×8 houndstooth — 2/2 twill in a 4-and-4 color sequence, the pied-de-poule classic. */
+const HOUNDSTOOTH_PATTERN: readonly (readonly number[])[] = [
+  [1, 1, 0, 0, 1, 1, 0, 0],
+  [1, 1, 0, 0, 1, 1, 0, 0],
+  [0, 1, 1, 0, 0, 1, 1, 0],
+  [0, 1, 1, 0, 0, 1, 1, 0],
+  [0, 0, 1, 1, 0, 0, 1, 1],
+  [0, 0, 1, 1, 0, 0, 1, 1],
+  [1, 0, 0, 1, 1, 0, 0, 1],
+  [1, 0, 0, 1, 1, 0, 0, 1],
+]
+export const HOUNDSTOOTH8 = patternRanks(HOUNDSTOOTH_PATTERN)
 
 /** 4×4 clustered-dot spiral — ink-growth order of a print screen. */
 export const CLUSTER4 = [

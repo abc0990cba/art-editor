@@ -141,6 +141,7 @@ const evalCtx: EvalInput = {
   bh,
   paletteLen: 12,
   hexValue: () => 1,
+  luma: () => 1,
   baseStyle: elementFromDoc(defaultDoc()),
 }
 

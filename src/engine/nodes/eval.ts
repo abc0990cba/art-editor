@@ -22,6 +22,8 @@ export interface EvalInput {
   paletteLen: number
   /** Hex color → 1-based palette value */
   hexValue: (hex: string) => number
+  /** Palette value (1-based) → luminance 0..1 (1 = white) */
+  luma: (value: number) => number
   /** The object's appearance the style nodes write on top of (never mutated) */
   baseStyle: ElementStyle
 }

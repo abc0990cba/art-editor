@@ -1,4 +1,10 @@
-import type { FillGradient, FillHtShape, FillPatternId, FillStyle } from './fillpatterns-data.ts'
+import type {
+  FillGradient,
+  FillHtLattice,
+  FillHtShape,
+  FillPatternId,
+  FillStyle,
+} from './fillpatterns-data.ts'
 export * from './fillpatterns-data.ts'
 
 import {
@@ -48,6 +54,8 @@ export interface PatternOpts {
   htJitter?: number
   /** Halftone screen: randomly missing dots, 0..100 */
   htDropout?: number
+  /** Halftone screen: mark arrangement */
+  htLattice?: FillHtLattice
 }
 
 /** Smooth bilinear value noise over `hash2` — clustered dropout patches. */
@@ -70,6 +78,65 @@ function htNoise(x: number, y: number): number {
  * dithering compares t against a Bayer threshold; stripes, hatching and shapes grow with t; scaled
  * patterns repeat every 4·scale cells.
  */
+
+/** One cell of the halftone screen pattern (grid / hex / rings), tone in dot area. */
+function screenPatternAt(o: PatternOpts, x: number, y: number, c: number, s: number): boolean {
+  // true halftone screen: a rotated dot grid in screen space, tone in dot
+  // area. Shapes morph like print screens — round dots, squares, diamonds,
+  // elliptical chains or plain bands; jitter scatters the grid, dropout
+  // wears patches of dots away.
+  const pitch = 6 * s
+  const deg = ((((o.htAngle ?? 45) % 180) + 180) % 180) * (Math.PI / 180)
+  const ca = Math.cos(deg)
+  const sa = Math.sin(deg)
+  let iu = 0
+  let iv = 0
+  let du = 0
+  let dv = 0
+  if (o.htLattice === 'rings') {
+    // polar screen: dot rings around the pattern anchor, tone in dot area
+    const ax = x - (o.seed?.x ?? 0)
+    const ay = y - (o.seed?.y ?? 0)
+    const r = Math.hypot(ax, ay) / pitch
+    const a = Math.atan2(ay, ax)
+    const k = Math.max(1, Math.round(r))
+    const count = Math.max(6, Math.round(2 * Math.PI * k))
+    const ang = ((a / (2 * Math.PI)) * count + count) % count
+    iu = Math.floor(ang)
+    iv = k
+    du = ang - iu - 0.5
+    dv = r - k
+  } else {
+    const u = (x * ca + y * sa) / pitch
+    let v = (y * ca - x * sa) / pitch
+    if (o.htLattice === 'hex') v /= 0.866
+    iu = Math.floor(u + (o.htLattice === 'hex' ? (Math.floor(v) % 2 === 0 ? 0 : 0.5) : 0))
+    iv = Math.floor(v)
+    du = u - iu - 0.5
+    dv = v - iv - 0.5
+  }
+  const jit = Math.max(0, Math.min(100, o.htJitter ?? 0)) / 100
+  if (jit > 0) {
+    du += (hash2(iu * 7 + 1, iv * 7 + 3) - 0.5) * jit
+    dv += (hash2(iu * 7 + 5, iv * 7 + 9) - 0.5) * jit
+  }
+  const dropout = Math.max(0, Math.min(100, o.htDropout ?? 0)) / 100
+  if (dropout > 0 && htNoise(iu / 2, iv / 2) < dropout * 0.95) return false
+  if (c >= 0.999) return true
+  switch (o.htShape ?? 'dot') {
+    case 'dot':
+    case 'square':
+    case 'diamond':
+    case 'line':
+    case 'ellipse':
+    case 'star':
+    case 'heart':
+    case 'cross':
+      return screenShapeHit(o.htShape ?? 'dot', du, dv, c)
+    default:
+      return screenShapeHit('dot', du, dv, c)
+  }
+}
 
 /** Silhouette test of one screen dot at the normalized in-cell offset (du, dv); c = tone. */
 function screenShapeHit(shape: FillHtShape, du: number, dv: number, c: number): boolean {
@@ -149,41 +216,7 @@ export function patternAt(
       return c > thresholdAt(HALFTONE4, 4, 16, x, y)
     }
     case 'screen': {
-      // true halftone screen: a rotated dot grid in screen space, tone in dot
-      // area. Shapes morph like print screens — round dots, squares, diamonds,
-      // elliptical chains or plain bands; jitter scatters the grid, dropout
-      // wears patches of dots away.
-      const pitch = 6 * s
-      const deg = ((((o.htAngle ?? 45) % 180) + 180) % 180) * (Math.PI / 180)
-      const ca = Math.cos(deg)
-      const sa = Math.sin(deg)
-      const u = (x * ca + y * sa) / pitch
-      const v = (y * ca - x * sa) / pitch
-      const iu = Math.floor(u)
-      const iv = Math.floor(v)
-      let du = u - iu - 0.5
-      let dv = v - iv - 0.5
-      const jit = Math.max(0, Math.min(100, o.htJitter ?? 0)) / 100
-      if (jit > 0) {
-        du += (hash2(iu * 7 + 1, iv * 7 + 3) - 0.5) * jit
-        dv += (hash2(iu * 7 + 5, iv * 7 + 9) - 0.5) * jit
-      }
-      const dropout = Math.max(0, Math.min(100, o.htDropout ?? 0)) / 100
-      if (dropout > 0 && htNoise(iu / 2, iv / 2) < dropout * 0.95) return false
-      if (c >= 0.999) return true
-      switch (o.htShape ?? 'dot') {
-        case 'dot':
-        case 'square':
-        case 'diamond':
-        case 'line':
-        case 'ellipse':
-        case 'star':
-        case 'heart':
-        case 'cross':
-          return screenShapeHit(o.htShape ?? 'dot', du, dv, c)
-        default:
-          return screenShapeHit('dot', du, dv, c)
-      }
+      return screenPatternAt(o, x, y, c, s)
     }
     case 'blue-noise': {
       // aperiodic high-frequency mask — no visible grid, evenly speckled
@@ -358,6 +391,7 @@ export function applyFillStyle(
     glyph: style.glyphSet,
     htShape: style.htShape,
     htAngle: style.htAngle,
+    htLattice: style.htLattice,
     htJitter: style.htJitter,
     htDropout: style.htDropout,
   }

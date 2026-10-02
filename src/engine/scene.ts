@@ -14,6 +14,7 @@
  * The layers panel displays the reversed order, like every major editor.
  */
 
+import { paletteLuma } from './color.ts'
 import type { Doc, ElementStyle, Link } from './doc'
 import { elementFromDoc } from './doc-style.ts'
 import { graphColors, type Graph } from './nodes'
@@ -281,6 +282,7 @@ function buildComposite(doc: Doc, dims: string): Composite {
     }
   }
   const hexValue = (hex: string) => (hexIdx.get(hex.toLowerCase()) ?? 0) + 1
+  const luma = (value: number) => paletteLuma(derived, value)
 
   // pass 2: evaluate graphs (or take the stored ink) and paint bottom → top
   for (const obj of all) elements[obj.id - 1] = obj.style
@@ -296,6 +298,7 @@ function buildComposite(doc: Doc, dims: string): Composite {
             bh: doc.rows * doc.sub,
             paletteLen: derived.length,
             hexValue,
+            luma,
             baseStyle: obj.style,
           },
           obj.cells,

@@ -57,4 +57,20 @@ export const IMPORT_PRESETS: ImportPreset[] = [
   }),
   preset('teletext', 'teletext', { dither: 'bayer8' }),
   preset('gruvbox', 'gruvbox', { dither: 'sierra', glowRadius: 5, glowIntensity: 35 }),
+  // tri-band hybrid: hatched shadows, FS midtones, screened highlights
+  preset('tri-band', 'bw', {
+    dither: 'hybrid',
+    hybridLow: 'lines-diag',
+    hybridMid: 'floyd',
+    hybridHigh: 'halftone',
+    contrast: 12,
+  }),
+  // duotone print: two-ink gradient map under a coarse screen
+  preset('duotone-print', 'sepia', {
+    dither: 'screen-45',
+    duotone: { dark: '#1a1433', light: '#ffd9a0' },
+    preSmooth: 1,
+  }),
+  // flat poster bands with ordered boundary jitter
+  preset('silk-poster', 'slso8', { dither: 'posterize', posterizeLevels: 6, preSmooth: 1 }),
 ]

@@ -14,7 +14,6 @@ import { curateImportPalette, type PaletteEdit } from '../../engine/import-palet
 import { IMPORT_PRESETS } from '../../engine/import-presets.ts'
 import { PALETTES } from '../../engine/palettes.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { GlyphSetPicker } from '../../shared/ui/glyph-set-picker.component.tsx'
 import { Chip, CheckRow, Slider } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
@@ -23,6 +22,7 @@ import { useStore } from '../../state/editor.store.ts'
 import { BeforeAfterPreview } from './before-after-preview.component.tsx'
 import { ImportAdjustSections } from './import-adjust-sections.component.tsx'
 import { checkerStyle, FITS, importRgbOf } from './import-controls.util.ts'
+import { ImportEffectsSection } from './import-effects-section.component.tsx'
 import {
   ImportDitherField,
   ImportPaletteField,
@@ -251,7 +251,10 @@ export function ImportDialog({
                 glyphSet={opts.glyphSet}
                 value={opts.dither}
                 onPick={(d) => patch({ dither: d as ImportDither })}
+                onGlyphSet={(set) => patch({ glyphSet: set })}
               />
+
+              <ImportEffectsSection opts={opts} patch={patch} />
 
               {opts.dither !== 'none' && (
                 <Slider
@@ -262,13 +265,6 @@ export function ImportDialog({
                   value={opts.ditherStrength}
                   display={(v) => `${v}%`}
                   onChange={(v) => patch({ ditherStrength: v })}
-                />
-              )}
-              {(opts.dither === 'glyph' || opts.dither === 'palette-glyph') && (
-                <GlyphSetPicker
-                  value={opts.glyphSet}
-                  onChange={(set) => patch({ glyphSet: set })}
-                  photo={bitmap}
                 />
               )}
               {ORDERED_DITHERS.has(opts.dither) && (

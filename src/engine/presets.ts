@@ -98,6 +98,7 @@ const TEXTURE_FIELDS = [
   'dropout',
   'spray',
   'ramp',
+  'htLattice',
 ] as const
 
 function textureEqual(a: TextureSettings, b: TextureSettings): boolean {

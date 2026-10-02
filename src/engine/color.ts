@@ -142,3 +142,10 @@ export function hexLuminance(hex: string): number {
 export function toneScale(hex: string, min: number): number {
   return min + (1 - min) * (1 - hexLuminance(hex))
 }
+
+/** Luminance of a 1-based palette value (0..1, 1 = white); out-of-range reads white. */
+export function paletteLuma(palette: readonly string[], value: number): number {
+  const c = hexToRgb(palette[value - 1] ?? '')
+  if (!c) return 1
+  return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255
+}

@@ -24,6 +24,8 @@ const ctx = (over?: Partial<EvalInput>): EvalInput => ({
   paletteLen: 12,
   hexValue: (hex) =>
     (({ '#e63946': 1, '#2a9d8f': 2, '#e9c46a': 3 }) as Record<string, number>)[hex] ?? 1,
+  // mid-light ramp so tone-aware nodes (mod.halftone) see ink, not blank paper
+  luma: (v: number) => 1 - (v % 4) / 4,
   baseStyle: elementFromDoc(defaultDoc()),
   ...over,
 })

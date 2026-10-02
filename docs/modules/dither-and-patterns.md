@@ -11,7 +11,11 @@ matrices — see [image-import](image-import.md).
 
 | File | Role |
 |---|---|
-| `src/engine/dither-matrices.ts` | `BAYER2/4/8/16`, `CLUSTER4`, `HALFTONE4`, `BLUE_NOISE8`, `VOID_CLUSTER8`, `PATTERN8`, `thresholdAt`, `crosshatchAt` |
+| `src/engine/dither-matrices.ts` | `BAYER2/4/8/16/32`, `CLUSTER4`, `HALFTONE4`, `ROSETTE8`, `ELLIPTICAL8`, `EUCLIDEAN8`, `WEAVE8`, `TWILL8`, `HOUNDSTOOTH8`, `BLUE_NOISE8`, `VOID_CLUSTER8`, `PATTERN8`, `thresholdAt`, `crosshatchAt`, `screenRanks`, `patternRanks` |
+| `src/engine/dither-fields.ts` | procedural threshold fields: lines h/v/diag, IGN, spiral, rings, sunburst, phyllotaxis, zigzag, fractal noise, screen-45, screen-wave |
+| `src/engine/dither-blue-noise.ts` | generated 16×16 blue-noise mask (toroidal farthest-point ranking) |
+| `src/engine/dither-catalog.ts` | the declarative import-dither catalog (see image-import) |
+| `src/engine/screen-engine.ts` | halftone screen core shared by fills, textures and the node graph: 7 lattices, 10 marks, size/density/twist tone mappings, `LatticeIndex` |
 | `src/engine/fillpatterns.ts` | `patternAt`, `gradientAt`, `applyFillStyle`, `FillStyle`, `fillSelectionCells` |
 | `src/engine/fillpatterns-data.ts` | pattern catalog data |
 
@@ -29,11 +33,15 @@ consumers' visual baselines.
 second color (B); a transition profile sets the mix ratio t per position, so the same
 patterns double as flat textures (flat) or dithered gradients." 22 patterns in UI order:
 bayer2/4/8/16, cluster, halftone, screen, blue-noise, void-cluster, noise, ign, checker, grid,
-hatch, stripes-h/v/diag, zigzag, dots, bricks, rings, glyph.
+hatch, stripes-h/v/diag, zigzag, dots, bricks, rings, glyph. The `screen` pattern takes a
+lattice (`htLattice: grid | hex | rings`) alongside the angle/jitter/dropout knobs.
 
 - Matrix-based patterns compare `t > thresholdAt(...)`; `screen` is a true rotated halftone
   screen (pitch `6·scale`, tone → dot area through one of 8 silhouettes — dot, square,
   diamond, line, chain-dot ellipse, star, heart, cross — with jitter and dropout knobs).
+  New (2026-10): the mark silhouettes are mirrored by `screen-engine.ts` (10 marks reusing
+  the cell-form registry) so textures and `mod.halftone` share one geometry; halftone marks
+  cap below touching on non-grid lattices so evenodd never XORs.
 - `noise` = hashed block noise; `ign` = interleaved gradient noise
   (`fract(52.9829189·fract(0.06711056x + 0.00583715y))`), both grain-sized.
 - Line-work patterns (grid/hatch/stripes/zigzag/dots/bricks/rings) grow band width with t;

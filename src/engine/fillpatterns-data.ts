@@ -44,6 +44,9 @@ export type FillHtShape =
   | 'heart'
   | 'cross'
 
+/** Halftone screen mark arrangement. */
+export type FillHtLattice = 'grid' | 'hex' | 'rings'
+
 /** Halftone screen shapes in UI order. */
 export const HT_SHAPES: FillHtShape[] = [
   'dot',
@@ -76,6 +79,8 @@ export interface FillStyle {
   htJitter: number
   /** Halftone screen: randomly missing dots, 0..100 */
   htDropout: number
+  /** Halftone screen: mark arrangement */
+  htLattice: FillHtLattice
   /** Tile set for the 'glyph' pattern; null falls back to a flat half fill */
   glyphSet: GlyphTileSet | null
 }
@@ -93,6 +98,7 @@ export const DEFAULT_FILL_STYLE: FillStyle = {
   htAngle: 45,
   htJitter: 0,
   htDropout: 0,
+  htLattice: 'grid',
 }
 
 /** Pattern library in UI order. */

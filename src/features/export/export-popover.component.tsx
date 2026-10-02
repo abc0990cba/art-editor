@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { docExtent } from '../../engine/doc.ts'
+import { buildAscii } from '../../engine/ascii-export.ts'
+import { docExtent, type Doc } from '../../engine/doc.ts'
 import { autoPngSize, clampPngSide, renderPng } from '../../engine/png.ts'
 import { deserialize, serialize } from '../../engine/project.ts'
 import { buildSvg } from '../../engine/svg.ts'
@@ -11,6 +12,27 @@ import { CheckRow, Chip } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
+
+/** ASCII .txt action: one character per cell, tone from palette luminance. */
+function AsciiExportButton({ doc, base }: { doc: Doc; base: string }) {
+  const { t } = useI18n()
+  return (
+    <Tooltip label={t('export.ascii.desc')}>
+      <button
+        type="button"
+        onClick={() =>
+          download(
+            new Blob([buildAscii(doc)], { type: 'text/plain;charset=utf-8' }),
+            `${base}-ascii-${stamp()}.txt`,
+          )
+        }
+        className="border-line bg-chip hover:border-chip-line hover:text-body w-full rounded-md border px-3 py-1.5 transition"
+      >
+        {t('export.ascii')}
+      </button>
+    </Tooltip>
+  )
+}
 
 /**
  * Small popover anchored under the top bar's export button: SVG/PNG export with the size knobs,
@@ -176,6 +198,7 @@ export function ExportPopover({
             {t('export.svg')}
           </Button>
         </Tooltip>
+        <AsciiExportButton doc={doc} base={base} />
         <Tooltip label={t('export.png.desc')}>
           <button
             type="button"

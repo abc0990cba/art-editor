@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/knip/schema.json",
+  "entry": ["src/app/main.tsx", "landing/landing.css", "src/**/*.test.ts", "src/**/*.bench.ts"],
   "ignore": ["src/shared/ui/shadcn/**"],
   "ignoreExportsUsedInFile": true
 }

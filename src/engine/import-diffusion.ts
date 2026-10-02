@@ -4,7 +4,7 @@
  * quantization error spreads to not-yet-visited neighbors, self-correcting the tone. Pure.
  */
 
-import type { ImportDither } from './import-image.ts'
+import type { ImportDither } from './dither-catalog.ts'
 import { clamp255, nearestIndex, type PaletteRgb } from './import-shared.ts'
 
 /** One error-diffusion kernel: (dx, dy, weight numerator) steps in scan direction, over `div`. */
@@ -141,6 +141,46 @@ export const DIFFUSION_KERNELS: Partial<Record<ImportDither, DiffusionKernel>> =
       [-2, 2, 1],
       [-1, 2, 2],
       [0, 2, 1],
+    ],
+  },
+  'sierra-2': {
+    div: 32,
+    steps: [
+      [1, 0, 4],
+      [2, 0, 3],
+      [-2, 1, 1],
+      [-1, 1, 2],
+      [0, 1, 3],
+      [1, 1, 2],
+      [2, 1, 1],
+    ],
+  },
+  'diffusion-1d': {
+    div: 8,
+    steps: [
+      [1, 0, 7],
+      [2, 0, 1],
+    ],
+  },
+  'spread-h': {
+    div: 16,
+    steps: [
+      [1, 0, 6],
+      [2, 0, 4],
+      [3, 0, 2],
+      [-1, 1, 1],
+      [0, 1, 2],
+      [1, 1, 1],
+    ],
+  },
+  'spread-v': {
+    div: 16,
+    steps: [
+      [0, 1, 6],
+      [0, 2, 4],
+      [0, 3, 2],
+      [-1, 1, 2],
+      [1, 1, 2],
     ],
   },
 }

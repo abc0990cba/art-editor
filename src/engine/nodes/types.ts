@@ -33,6 +33,7 @@ export type NodeParamSpec =
   | { kind: 'int'; min: number; max: number; default: number; span?: ParamSpan }
   | { kind: 'select'; options: readonly string[]; default: string }
   | { kind: 'hex'; default: string }
+  | { kind: 'string'; default: string; maxLength?: number }
   | { kind: 'bool'; default: boolean }
 
 export type ParamValue = number | string | boolean
@@ -86,6 +87,8 @@ export interface EvalContext {
   paletteLen: number
   /** Hex color → 1-based palette value */
   hexValue: (hex: string) => number
+  /** Palette value (1-based) → luminance 0..1 (1 = white); tone-aware nodes read it here */
+  luma: (value: number) => number
   /** Deterministic [0,1) randomness, stable for (node, key) pairs */
   rng: (key: string) => number
 }
