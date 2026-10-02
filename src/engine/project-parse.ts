@@ -24,7 +24,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const hex = (s: unknown): string =>
   typeof s === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(s) ? s.toLowerCase() : ''
 
-const TEXTURE_EFFECTS = ['none', 'grain', 'grunge', 'halftone'] as const
+const TEXTURE_EFFECTS = ['none', 'grain', 'grunge', 'halftone', 'hatch'] as const
 const TEXTURE_DISTS = [
   'scatter',
   'clumps',

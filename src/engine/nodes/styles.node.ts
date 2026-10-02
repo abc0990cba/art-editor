@@ -83,11 +83,11 @@ export const STYLE_NODES = [
     domain: { in: 'style', out: 'style' },
     label: 'Texture',
     category: 'style',
-    tags: ['grain', 'grunge', 'halftone', 'texture', 'seed'],
+    tags: ['grain', 'grunge', 'halftone', 'hatch', 'texture', 'seed'],
     params: {
       effect: {
         kind: 'select',
-        options: ['none', 'grain', 'grunge', 'halftone'] as const,
+        options: ['none', 'grain', 'grunge', 'halftone', 'hatch'] as const,
         default: 'grain',
       },
       amount: { kind: 'number', min: 0, max: 100, default: 40 },

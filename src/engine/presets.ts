@@ -45,7 +45,7 @@ const DEFAULT_SYMMETRY: SymmetryState = {
   twist: 0,
 }
 
-const TEXTURE_EFFECTS = ['none', 'grain', 'grunge', 'halftone'] as const
+const TEXTURE_EFFECTS = ['none', 'grain', 'grunge', 'halftone', 'hatch'] as const
 const TEXTURE_DISTS = [
   'scatter',
   'clumps',
@@ -99,6 +99,7 @@ const TEXTURE_FIELDS = [
   'spray',
   'ramp',
   'htLattice',
+  'hatchStyle',
 ] as const
 
 function textureEqual(a: TextureSettings, b: TextureSettings): boolean {

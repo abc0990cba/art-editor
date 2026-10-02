@@ -6,6 +6,7 @@
 import { CROWN_NODES } from './crown.node.ts'
 import { GENERATOR_NODES } from './generators.node.ts'
 import { HALFTONE_NODES } from './halftone.node.ts'
+import { HATCH_NODES } from './hatch.node.ts'
 import { RAMP_NODES } from './ramps.node.ts'
 import { registerNodes } from './registry'
 import { REPEAT_NODES } from './repeats.node.ts'
@@ -24,6 +25,7 @@ registerNodes([
   ...REPEAT_NODES,
   ...RAMP_NODES,
   ...HALFTONE_NODES,
+  ...HATCH_NODES,
   ...TEXT_NODES,
   ...STYLE_NODES,
 ])

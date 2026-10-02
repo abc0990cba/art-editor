@@ -78,7 +78,7 @@ export interface MetaballSettings {
 }
 
 /** Baked vector texture punched into the inner pixel fill (all render modes). */
-type TextureEffect = 'none' | 'grain' | 'grunge' | 'halftone'
+type TextureEffect = 'none' | 'grain' | 'grunge' | 'halftone' | 'hatch'
 
 /** Spatial distribution of the texture specks. */
 type TextureDist =
@@ -156,6 +156,8 @@ export interface TextureSettings {
   ramp: number
   /** Halftone mark arrangement; 'grid' is the classic rotated screen (undefined = grid) */
   htLattice?: ScreenLattice
+  /** Hatch only: one line system (undefined/'straight') or a crossed pair at +90° */
+  hatchStyle?: 'straight' | 'cross'
 }
 
 /** How painted cells turn into geometry. */

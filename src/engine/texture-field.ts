@@ -11,6 +11,7 @@ import {
   valueNoise,
 } from './texture-core'
 import { emitHalftoneDots, filterSpray, htKey, type HtDot } from './texture-halftone'
+import { hatchFieldFragments } from './texture-hatch'
 import { angleRad, distWeight, type DistContext } from './texture-patterns'
 
 /**
@@ -45,7 +46,7 @@ interface FieldMetrics {
 }
 
 /** Mutable accumulator for one field scan. */
-interface FieldState extends FieldMetrics {
+export interface FieldState extends FieldMetrics {
   ca: number
   sa: number
   prMin: number
@@ -73,7 +74,7 @@ interface FieldGrid {
 }
 
 /** Bilinear field sample at doc-unit coordinates. */
-function fieldAt(field: TextureField, x: number, y: number): number {
+export function fieldAt(field: TextureField, x: number, y: number): number {
   const { f, fw, fh, scale } = field
   const gx = clamp(x / scale, 0, fw - 1.001)
   const gy = clamp(y / scale, 0, fh - 1.001)
@@ -107,7 +108,7 @@ function fieldGradDir(field: TextureField, x: number, y: number): [number, numbe
 }
 
 /** A fleck is only safe when all four corners sit strictly inside the blob. */
-function fieldSolid(field: TextureField, x: number, y: number, s: number): boolean {
+export function fieldSolid(field: TextureField, x: number, y: number, s: number): boolean {
   return (
     fieldAt(field, x, y) > ISO &&
     fieldAt(field, x + s, y) > ISO &&
@@ -330,6 +331,7 @@ export function fieldTextureFragments(
     out: '',
     count: 0,
   }
+  if (t.effect === 'hatch') return hatchFieldFragments(s, pitch)
   for (let j = 1; j < fh - 1 && s.count < MAX_REGION_FLECKS; j += grid.stride) {
     for (let i = 1; i < fw - 1 && s.count < MAX_REGION_FLECKS; i += grid.stride) {
       if (halftone) fieldHalftoneCell(s, i, j, s.rand)
