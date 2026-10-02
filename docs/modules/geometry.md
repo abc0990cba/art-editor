@@ -17,7 +17,8 @@ staging) into `StyledPath[]`. Files: `src/engine/geometry.ts` (dispatch + stagin
 | `src/engine/geometry-types.ts` | `StyledPath { d, fill?, stroke?, strokeWidth? }`, `Staging` |
 | `src/engine/geometry-elements.ts` | per-element grouping, style-key merge, unattributed bottom group |
 | `src/engine/geometry-shape.ts` | rect/run fragments, `roundedRectPath`, connectors, texture append |
-| `src/engine/geometry-metaball.ts` | kernel field, marching-squares trace, per-color fields |
+| `src/engine/geometry-metaball.ts` | square metaball adapter, per-color fields, overlay field |
+| `src/engine/metaball-field.ts` | shared scalar field: kernel power falloff, splats + capsules, border mirror |
 
 ## How it works
 
@@ -55,12 +56,24 @@ scope, doc-level in global scope). That null matrix *is* the stroke-fallback cli
 
 ## Algorithms
 
-- **Metaball**: splat a cubic kernel (`t = 1−d²/R²; f += t³`, `R` from strength:
-  `(0.815 + strength/100·0.44)/sub`) per cell center at `quality` samples/cell; trace at
-  ISO = 0.5 with marching squares; midpoint-quadratic smoothing. `perColor` builds one
-  field per palette value; `corner` connectivity adds kernels at diagonal junctions;
-  `squareEdges` mirrors the field at the canvas border. Field side is capped at 360 nodes
-  for the in-stroke preview vs 700 committed — the preview quality drop is intentional.
+- **Metaball**: one shared field builder (`metaball-field.ts`) serves both square and
+  non-square grids — sources (cell centers + corner junctions) and link capsules arrive in
+  doc units, quality/preview resolution folds into the node `step`. Kernel:
+  `t = 1−d²/R²; f += t^power`, `R = (0.815 + strength/100·0.44)/sub`; the falloff setting
+  maps `tight|smooth|gooey` → power `3|2|1` (gooier = field reaches further, fatter merge).
+  Trace runs at `metaball.iso` (0.2–0.8, default 0.5) with marching squares and
+  midpoint-quadratic smoothing. `perColor` builds one field per palette value (link capsules
+  filtered by value on every grid); `corner` connectivity adds kernels at diagonal junctions
+  (square only); `squareEdges` mirrors the field at the canvas border. Field side is capped
+  at 360 nodes for the in-stroke preview vs 700 committed — the preview quality drop is
+  intentional. `metaballOverlayContours` (`geometry.ts`) traces the merged threshold line of
+  every visible layer for the diffusion-guides canvas overlay (global scope only, never
+  exported); see [canvas-stage](canvas-stage.md) for the overlay drawing.
+- **Cell-form jitter** (`jitter.ts`): pixels-mode per-cell size/angle variation from two
+  smooth value-noise samples over an 8-cell lattice (seeded, deterministic — neighbors
+  correlate). Applied multiplicatively after tone scaling in both the square and grid pixel
+  paths; any spread disables the RLE run merge and baked texture on that document (same gate
+  family as toneSize). Zero spread = byte-identical rendering.
 - **Element merge**: groups whose frozen styles are equal (deep equality, cached as a string
   key in a WeakMap — O(ids) once instead of O(ids²) per frame) render as one group;
   `fuseObjects: false` appends the id to the key (Illustrator-style stacking).

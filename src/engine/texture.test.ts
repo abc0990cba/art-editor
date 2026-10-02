@@ -870,7 +870,14 @@ describe('texture in geometry', () => {
   it('textures metaball blobs via the field', () => {
     const doc = docWithTexture('none')
     doc.renderMode = 'metaball'
-    doc.metaball = { strength: 60, perColor: true, quality: 6, squareEdges: false }
+    doc.metaball = {
+      strength: 60,
+      perColor: true,
+      quality: 6,
+      squareEdges: false,
+      iso: 0.5,
+      falloff: 'smooth',
+    }
     doc.cols = 8
     doc.rows = 8
     doc.cells = new Uint16Array(64)

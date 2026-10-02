@@ -675,7 +675,8 @@
       "eslint/max-lines": [
         "error",
         {
-          "max": 830,
+          // 830→837: metaball literal gains iso/falloff fields (diffusion controls, 2026-10)
+          "max": 837,
           "skipComments": true,
           "skipBlankLines": true
         }

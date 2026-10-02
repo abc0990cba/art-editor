@@ -44,6 +44,9 @@ const THEME_KEY = 'glyph.theme'
 const RECENT_KEY = 'glyph.recent'
 const RAIL_KEY = 'glyph.rail'
 const FAB_KEY = 'glyph.fab'
+const GRID_KEY = 'glyph.grid'
+const EMPHASIS_KEY = 'glyph.gridEmphasis'
+const DIFFUSION_KEY = 'glyph.diffusionGuides'
 
 function initialThemePref(): ThemePref {
   try {
@@ -100,6 +103,34 @@ function initialRecent(): string[] {
   return []
 }
 
+function initialShowGrid(): boolean {
+  try {
+    return localStorage.getItem(GRID_KEY) !== '0'
+  } catch {
+    /* ignore */
+  }
+  return true
+}
+
+function initialGridEmphasis(): number {
+  try {
+    const v = Number(localStorage.getItem(EMPHASIS_KEY))
+    if (Number.isFinite(v) && v >= 0 && v <= 16) return Math.round(v)
+  } catch {
+    /* ignore */
+  }
+  return 0
+}
+
+function initialDiffusionGuides(): boolean {
+  try {
+    return localStorage.getItem(DIFFUSION_KEY) === '1'
+  } catch {
+    /* ignore */
+  }
+  return false
+}
+
 /** The UI slice: appearance, layout and canvas-area chrome (outside undo history). */
 export interface UiSlice {
   lang: 'en' | 'ru'
@@ -109,6 +140,8 @@ export interface UiSlice {
   /** Graph-paper major lines every N cells on the square grid; 0/1 = off */
   gridEmphasis: number
   setGridEmphasis: (v: number) => void
+  /** Metaball diffusion aids: threshold contour, half-cell grid and kernel ring */
+  showDiffusionGuides: boolean
   /** Left tool rail is expanded (names shown); false = collapsed to icon-only strip */
   railOpen: boolean
   /** Right settings panel collapsed to a section-icon strip (desktop only) */
@@ -136,6 +169,7 @@ export interface UiSlice {
   setLang: (lang: 'en' | 'ru') => void
   setThemePref: (pref: ThemePref) => void
   setShowGrid: (v: boolean) => void
+  setShowDiffusionGuides: (v: boolean) => void
   toggleRail: () => void
   togglePanelCollapsed: () => void
   toggleFab: () => void
@@ -166,8 +200,9 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
     lang: initialLang(),
     themePref: initialThemePref(),
     resolvedTheme: resolvedTheme(initialThemePref()),
-    showGrid: true,
-    gridEmphasis: 0,
+    showGrid: initialShowGrid(),
+    gridEmphasis: initialGridEmphasis(),
+    showDiffusionGuides: initialDiffusionGuides(),
     railOpen: initialRailOpen(),
     panelCollapsed: initialPanelCollapsed(),
     fabOpen: initialFabOpen(),
@@ -197,8 +232,31 @@ export function createUiSlice({ set }: SliceApi): UiSlice {
       }
       set({ themePref: pref, resolvedTheme: resolvedTheme(pref) })
     },
-    setShowGrid: (showGrid) => set({ showGrid }),
-    setGridEmphasis: (gridEmphasis) => set({ gridEmphasis: Math.max(0, Math.round(gridEmphasis)) }),
+    setShowGrid: (showGrid) => {
+      try {
+        localStorage.setItem(GRID_KEY, showGrid ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+      set({ showGrid })
+    },
+    setShowDiffusionGuides: (showDiffusionGuides) => {
+      try {
+        localStorage.setItem(DIFFUSION_KEY, showDiffusionGuides ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+      set({ showDiffusionGuides })
+    },
+    setGridEmphasis: (gridEmphasis) => {
+      const v = Math.max(0, Math.round(gridEmphasis))
+      try {
+        localStorage.setItem(EMPHASIS_KEY, String(v))
+      } catch {
+        /* ignore */
+      }
+      set({ gridEmphasis: v })
+    },
     togglePanelCollapsed: () => set((s) => ({ panelCollapsed: !s.panelCollapsed })),
     toggleFab: () =>
       set((s) => {

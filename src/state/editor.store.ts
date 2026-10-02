@@ -84,6 +84,8 @@ export interface State {
   showGrid: boolean
   /** Graph-paper major lines every N cells on the square grid; 0/1 = off */
   gridEmphasis: number
+  /** Metaball diffusion aids: threshold contour, half-cell grid and kernel ring */
+  showDiffusionGuides: boolean
   /** On: picking a palette recolors the canvas; off: it only offers colors to paint with */
   paletteAutoApply: boolean
   /** Left tool rail is expanded (names shown); false = collapsed to icon-only strip */
@@ -286,6 +288,7 @@ export interface State {
   patchShapePaint: (patch: Partial<ShapePaint>) => void
   setShowGrid: (v: boolean) => void
   setGridEmphasis: (v: number) => void
+  setShowDiffusionGuides: (v: boolean) => void
   setPaletteAutoApply: (v: boolean) => void
   toggleRail: () => void
   togglePanelCollapsed: () => void

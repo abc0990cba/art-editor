@@ -27,7 +27,14 @@ import {
   type Hover,
 } from './canvas-stage.util.ts'
 import { viewOffscreen } from './canvas-view-math.util.ts'
+import {
+  diffusionContourPath,
+  hoverCellCenter,
+  strokeDiffusionContour,
+  strokeKernelRing,
+} from './diffusion-guides.util.ts'
 import { drawToolHover } from './draw-tool-hover.util.ts'
+import { cellPolygonOverlayPath, squareGridLines } from './grid-overlay.util.ts'
 import { clickSelectionIds } from './select-hit.util.ts'
 import { SelectionActions } from './selection-actions.component.tsx'
 import { cursorForHandle, drawTransformBox } from './selection-transform.util.ts'
@@ -49,6 +56,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const concentricRadii = useStore((s) => s.concentricRadii)
   const showGrid = useStore((s) => s.showGrid)
   const gridEmphasis = useStore((s) => s.gridEmphasis)
+  const showDiffusionGuides = useStore((s) => s.showDiffusionGuides)
   const fillAt = useStore((s) => s.fillAt)
   const paintFillRegion = useStore((s) => s.paintFillRegion)
   const addLinks = useStore((s) => s.addLinks)
@@ -692,60 +700,36 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   }, [tool, pendingLink])
 
   // cached overlay path of every cell polygon (non-square grids)
-  const gridOverlayPath = useMemo(() => {
-    if (isSquare) return null
-    const p = new Path2D()
-    for (let i = 0; i < grid.count; i++) {
-      const poly = grid.polygon(i)
-      p.moveTo(poly[0].x, poly[0].y)
-      for (let k = 1; k < poly.length; k++) p.lineTo(poly[k].x, poly[k].y)
-      p.closePath()
-    }
-    return p
-  }, [isSquare, grid])
+  const gridOverlayPath = useMemo(
+    () => (isSquare ? null : cellPolygonOverlayPath(grid)),
+    [isSquare, grid],
+  )
 
-  // square-grid lines as one prebuilt Path2D: up to ~3000 moveTo/lineTo segments per
-  // direction on a 500×500 grid are far too costly to rebuild on every rendered frame
-  const gridLinePaths = useMemo(() => {
-    if (!isSquare) return null
-    const W = extent.w
-    const H = extent.h
-    const cell = new Path2D()
-    for (let x = 1; x < bw; x++) {
-      cell.moveTo(x / doc.sub, 0)
-      cell.lineTo(x / doc.sub, H)
-    }
-    for (let y = 1; y < bh; y++) {
-      cell.moveTo(0, y / doc.sub)
-      cell.lineTo(W, y / doc.sub)
-    }
-    let pixel: Path2D | null = null
-    if (doc.sub > 1) {
-      pixel = new Path2D()
-      for (let x = 1; x < W; x++) {
-        pixel.moveTo(x, 0)
-        pixel.lineTo(x, H)
-      }
-      for (let y = 1; y < H; y++) {
-        pixel.moveTo(0, y)
-        pixel.lineTo(W, y)
-      }
-    }
-    // graph-paper major lines every N doc cells (gridEmphasis ≥ 2)
-    let major: Path2D | null = null
-    if (gridEmphasis >= 2) {
-      major = new Path2D()
-      for (let x = gridEmphasis; x < W; x += gridEmphasis) {
-        major.moveTo(x, 0)
-        major.lineTo(x, H)
-      }
-      for (let y = gridEmphasis; y < H; y += gridEmphasis) {
-        major.moveTo(0, y)
-        major.lineTo(W, y)
-      }
-    }
-    return { cell, pixel, major }
-  }, [isSquare, bw, bh, doc.sub, extent.w, extent.h, gridEmphasis])
+  // diffusion aids active only while metaball mode renders (guides toggle)
+  const showDiffusion = showDiffusionGuides && doc.renderMode === 'metaball'
+
+  // square-grid lines + diffusion half-pitch, prebuilt and rebuilt only when the grid changes
+  const gridLinePaths = useMemo(
+    () =>
+      isSquare
+        ? squareGridLines({
+            bw,
+            bh,
+            sub: doc.sub,
+            w: extent.w,
+            h: extent.h,
+            emphasis: gridEmphasis,
+            half: showDiffusion,
+          })
+        : null,
+    [isSquare, bw, bh, doc.sub, extent.w, extent.h, gridEmphasis, showDiffusion],
+  )
+
+  // dashed threshold contour of the merged metaball field (diffusion guides)
+  const contourPath = useMemo(
+    () => (showDiffusion ? diffusionContourPath(doc) : null),
+    [showDiffusion, doc],
+  )
 
   // selection/hover contours (marching squares over the owned cells), cached per doc
   const cachedOutline = useOutlineCache(doc, bw, bh)
@@ -799,11 +783,20 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
           ctx.lineWidth = 1.6 / view.zoom
           ctx.stroke(gridLinePaths.major)
         }
+        if (gridLinePaths.half) {
+          ctx.strokeStyle = stage.pixelLine
+          ctx.lineWidth = 1 / view.zoom
+          ctx.stroke(gridLinePaths.half)
+        }
       } else if (gridOverlayPath) {
         ctx.strokeStyle = stage.gridLine
         ctx.lineWidth = 1 / view.zoom
         ctx.stroke(gridOverlayPath)
       }
+    }
+    // dashed threshold contour of the diffusion field, independent of the cell grid toggle
+    const strokeDiffusion = () => {
+      if (contourPath && view.zoom >= 2) strokeDiffusionContour(ctx, contourPath, view.zoom, stage)
     }
 
     // committed artwork bitmap: rebuilt only when the committed geometry or the view
@@ -882,6 +875,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       ctx.globalCompositeOperation = 'source-over'
       drawGeometry(ctx, preview.paths)
       strokeGrid()
+      strokeDiffusion()
       ctx.restore()
     } else {
       let paths = geometry.paths
@@ -895,6 +889,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       fillBg()
       drawGeometry(ctx, paths)
       strokeGrid()
+      strokeDiffusion()
       ctx.restore()
     }
   }, [
@@ -910,6 +905,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     isSquare,
     gridOverlayPath,
     gridLinePaths,
+    contourPath,
     extent,
   ])
 
@@ -1120,6 +1116,11 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         selOutPath: selOut?.path ?? null,
         theme: stage,
       })
+      // fusion reach: kernel-radius ring around the hovered cell while painting metaballs
+      if (showDiffusion) {
+        const c = hoverCellCenter(hover.idx, bw, doc.sub, grid, isSquare)
+        strokeKernelRing(ctx, c, view.zoom, doc, stage)
+      }
     }
     ctx.restore()
 
@@ -1146,6 +1147,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     isSquare,
     grid,
     gridOverlayPath,
+    showDiffusion,
     extent,
     expand,
     cachedOutline,

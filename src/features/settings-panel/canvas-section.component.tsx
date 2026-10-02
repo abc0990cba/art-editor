@@ -18,6 +18,8 @@ export function CanvasSection() {
   const setShowGrid = useStore((s) => s.setShowGrid)
   const gridEmphasis = useStore((s) => s.gridEmphasis)
   const setGridEmphasis = useStore((s) => s.setGridEmphasis)
+  const showDiffusionGuides = useStore((s) => s.showDiffusionGuides)
+  const setShowDiffusionGuides = useStore((s) => s.setShowDiffusionGuides)
   const pct = (v: number) => `${Math.round(v * 100)}%`
 
   return (
@@ -112,6 +114,14 @@ export function CanvasSection() {
         checked={showGrid}
         onChange={setShowGrid}
       />
+      {doc.renderMode === 'metaball' && (
+        <CheckRow
+          label={t('canvas.diffusion')}
+          title={t('canvas.diffusion.desc')}
+          checked={showDiffusionGuides}
+          onChange={setShowDiffusionGuides}
+        />
+      )}
       <Slider
         label={t('grid.emphasis')}
         title={t('grid.emphasis.desc')}

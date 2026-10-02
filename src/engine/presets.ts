@@ -12,7 +12,7 @@ import type {
   SymmetryState,
   TextureSettings,
 } from './doc'
-import { defaultDoc, MAX_SIZE, MIN_SIZE } from './doc'
+import { defaultDoc, MAX_SIZE, METABALL_FALLOFFS, MIN_SIZE } from './doc'
 import { GRID_TYPES } from './grids'
 import type { EditorPreset, PresetConfig, PresetInput, PresetSeed } from './preset-configs'
 import { PRINT_PRESETS } from './preset-lists'
@@ -178,6 +178,9 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
       shapeParams: normalizeShapeParams(st.shapeParams),
       toneSize: st.toneSize === true,
       toneSizeMin: clamp(Number(st.toneSizeMin ?? base.style.toneSizeMin), 0.05, 1),
+      sizeJitter: clamp(Number(st.sizeJitter ?? base.style.sizeJitter), 0, 1),
+      angleJitter: clamp(Number(st.angleJitter ?? base.style.angleJitter), 0, 180),
+      jitterSeed: clamp(Math.round(Number(st.jitterSeed) || base.style.jitterSeed), 1, 9999),
     },
     renderMode: renderModes.includes(d['renderMode'] as RenderMode)
       ? (d['renderMode'] as RenderMode)
@@ -190,6 +193,10 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
       perColor: Boolean(mb.perColor ?? base.metaball.perColor),
       quality: clamp(Math.round(Number(mb.quality) || base.metaball.quality), 2, 8),
       squareEdges: mb.squareEdges === true,
+      iso: clamp(Number(mb.iso ?? base.metaball.iso), 0.2, 0.8),
+      falloff: METABALL_FALLOFFS.includes(mb.falloff as MetaballSettings['falloff'])
+        ? (mb.falloff as MetaballSettings['falloff'])
+        : base.metaball.falloff,
     },
     texture: (() => {
       const sizeMin =
@@ -278,6 +285,9 @@ function stylesEqual(a: PixelStyle, b: PixelStyle): boolean {
     sameShapeParams(a.shapeParams, b.shapeParams) &&
     a.toneSize === b.toneSize &&
     a.toneSizeMin === b.toneSizeMin &&
+    a.sizeJitter === b.sizeJitter &&
+    a.angleJitter === b.angleJitter &&
+    a.jitterSeed === b.jitterSeed &&
     a.corners.tl === b.corners.tl &&
     a.corners.tr === b.corners.tr &&
     a.corners.br === b.corners.br &&
@@ -311,6 +321,8 @@ export function configMatchesState(
     c.metaball.perColor === config.metaball.perColor &&
     c.metaball.quality === config.metaball.quality &&
     c.metaball.squareEdges === config.metaball.squareEdges &&
+    c.metaball.iso === config.metaball.iso &&
+    c.metaball.falloff === config.metaball.falloff &&
     textureEqual(c.texture, config.texture) &&
     c.symmetry.mode === config.symmetry.mode &&
     c.symmetry.n === config.symmetry.n &&

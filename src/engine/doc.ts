@@ -48,7 +48,18 @@ export interface PixelStyle {
   toneSize: boolean
   /** Smallest figure at the light end of the tone scale, fraction of the cell box, 0.05..1 */
   toneSizeMin: number
+  /** Per-cell size spread 0..1: shrink each figure by a smooth seeded noise factor */
+  sizeJitter: number
+  /** Per-cell angle spread in degrees 0..180: offset each rotated form's angle deterministically */
+  angleJitter: number
+  /** Noise seed 1..9999 — the same seed reproduces the same size/angle field */
+  jitterSeed: number
 }
+
+/** Kernel falloff curve: how far outside the cell center a kernel still pushes the field up. */
+export type MetaballFalloff = 'tight' | 'smooth' | 'gooey'
+
+export const METABALL_FALLOFFS: readonly MetaballFalloff[] = ['tight', 'smooth', 'gooey']
 
 export interface MetaballSettings {
   /** Merge strength 0..100 → kernel radius grows from cell size to ~1.6 cells */
@@ -59,6 +70,10 @@ export interface MetaballSettings {
   quality: number
   /** Blobs meeting the canvas border join it with straight edges instead of rounded shoulders */
   squareEdges: boolean
+  /** Field value counted as inside: lower fattens blobs, higher shrinks them (0.2..0.8) */
+  iso: number
+  /** Falloff curve: smooth (cubic), soft (quadratic), tight (linear) */
+  falloff: MetaballFalloff
 }
 
 /** Baked vector texture punched into the inner pixel fill (all render modes). */
@@ -322,10 +337,20 @@ export function defaultDoc(): Doc {
       shapeParams: { ...DEFAULT_SHAPE_PARAMS },
       toneSize: false,
       toneSizeMin: 0.15,
+      sizeJitter: 0,
+      angleJitter: 0,
+      jitterSeed: 1,
     },
     renderMode: 'pixels',
     connectivity: 'edge',
-    metaball: { strength: 45, perColor: true, quality: 4, squareEdges: false },
+    metaball: {
+      strength: 45,
+      perColor: true,
+      quality: 4,
+      squareEdges: false,
+      iso: 0.5,
+      falloff: 'tight',
+    },
     texture: {
       effect: 'none',
       amount: 40,

@@ -1,9 +1,6 @@
-# metaball-rendering Specification
+# metaball-rendering — Delta
 
-## Purpose
-TBD - created by archiving change add-editor-core. Update Purpose after archive.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Metaball merge mode
 
@@ -11,7 +8,7 @@ The editor SHALL offer a metaball render mode in which adjacent painted cells me
 liquid blobs, controlled by a strength value 0–100 that grows the merge radius from the cell size
 up to roughly 1.6 cells. The merge SHALL additionally be shaped by a merge threshold
 (`metaball.iso`, 0.2–0.8, default 0.5) and a falloff curve (`metaball.falloff`:
-`tight` cubic / `smooth` quadratic / `gooey` linear, default `tight`), and both square and
+`smooth` cubic / `soft` quadratic / `tight` linear, default `smooth`), and both square and
 non-square grids SHALL honor the same controls through one shared field builder.
 
 #### Scenario: Two cells merge
@@ -34,7 +31,7 @@ non-square grids SHALL honor the same controls through one shared field builder.
 
 #### Scenario: Falloff changes the skirt
 
-- **WHEN** two cells are painted and the falloff chip switches from `gooey` to `tight`
+- **WHEN** two cells are painted and the falloff chip switches from `smooth` to `tight`
 - **THEN** the neck between the two blobs becomes narrower at equal strength and threshold
 
 #### Scenario: Non-square parity
@@ -42,27 +39,6 @@ non-square grids SHALL honor the same controls through one shared field builder.
 - **WHEN** the same single-cell layout is drawn on the hex grid and on the square grid with equal
   strength, threshold and falloff
 - **THEN** both grids respond to the threshold and falloff controls in the same way
-
-### Requirement: Per-color isolation
-
-The editor SHALL compute metaball fields per color by default so that blobs of different colors
-never blend, with an option to merge all colors into one field.
-
-#### Scenario: Red and blue stay separate
-
-- **WHEN** a red pixel and a blue pixel merge with their own neighbors while per-color isolation is
-  on
-- **THEN** the red blob and the blue blob render as distinct solid-color paths
-
-### Requirement: Shared geometry pipeline
-
-The metaball contours SHALL be produced by the same geometry engine used for SVG export, so the
-canvas preview and exported SVG paths are identical.
-
-#### Scenario: Export parity
-
-- **WHEN** an SVG is exported while metaball mode is active
-- **THEN** the SVG paths match the shapes visible in the viewport, not a filtered raster effect
 
 ### Requirement: Field quality
 
@@ -79,6 +55,8 @@ large grids.
 
 - **WHEN** the user picks the ultra quality chip
 - **THEN** fields sample at 8 nodes per cell and contours smooth accordingly
+
+## ADDED Requirements
 
 ### Requirement: Diffusion guides overlay
 

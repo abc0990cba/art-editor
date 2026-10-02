@@ -1,5 +1,5 @@
 import { sameShapeParams } from './cell-shapes.ts'
-import type { Doc, ElementStyle, PixelStyle, StyleScope } from './doc.ts'
+import type { Doc, ElementStyle, MetaballSettings, PixelStyle, StyleScope } from './doc.ts'
 
 /** The element style non-element (global-scope) ink renders with. */
 export function elementFromDoc(doc: Doc): ElementStyle {
@@ -16,16 +16,25 @@ export function elementFromDoc(doc: Doc): ElementStyle {
   }
 }
 
+/** Equality of the metaball block of two frozen element styles. */
+function sameMetaball(a: MetaballSettings, b: MetaballSettings): boolean {
+  return (
+    a.strength === b.strength &&
+    a.perColor === b.perColor &&
+    a.quality === b.quality &&
+    a.squareEdges === b.squareEdges &&
+    a.iso === b.iso &&
+    a.falloff === b.falloff
+  )
+}
+
 /** Deep equality of two frozen element styles (render grouping merges equal elements). */
 export function sameElementStyle(a: ElementStyle, b: ElementStyle): boolean {
   return (
     a.renderMode === b.renderMode &&
     a.connectivity === b.connectivity &&
     samePixelStyle(a.style, b.style) &&
-    a.metaball.strength === b.metaball.strength &&
-    a.metaball.perColor === b.metaball.perColor &&
-    a.metaball.quality === b.metaball.quality &&
-    a.metaball.squareEdges === b.metaball.squareEdges &&
+    sameMetaball(a.metaball, b.metaball) &&
     a.texture.effect === b.texture.effect &&
     a.texture.amount === b.texture.amount &&
     a.texture.scale === b.texture.scale &&
@@ -62,6 +71,9 @@ function samePixelStyle(a: PixelStyle, b: PixelStyle): boolean {
     sameShapeParams(a.shapeParams, b.shapeParams) &&
     a.toneSize === b.toneSize &&
     a.toneSizeMin === b.toneSizeMin &&
+    a.sizeJitter === b.sizeJitter &&
+    a.angleJitter === b.angleJitter &&
+    a.jitterSeed === b.jitterSeed &&
     a.corners.tl === b.corners.tl &&
     a.corners.tr === b.corners.tr &&
     a.corners.br === b.corners.br &&

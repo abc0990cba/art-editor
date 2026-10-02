@@ -1,6 +1,6 @@
 import { isCellShapeId, normalizeShapeParams } from './cell-shapes.ts'
 import type { Doc, ElementStyle, Link, PixelStyle, SubDetail } from './doc'
-import { defaultDoc, MAX_SIZE, MIN_SIZE } from './doc'
+import { defaultDoc, MAX_SIZE, METABALL_FALLOFFS, MIN_SIZE } from './doc'
 import { GRID_TYPES, makeGrid } from './grids'
 import { validateGraph } from './nodes'
 import type { SceneGroup, SceneItem, SceneLayer, SceneObj } from './scene'
@@ -119,6 +119,9 @@ function normalizeStyle(raw: unknown, base: PixelStyle): PixelStyle {
     shapeParams: normalizeShapeParams(st.shapeParams),
     toneSize: st.toneSize === true,
     toneSizeMin: clamp(Number(st.toneSizeMin ?? base.toneSizeMin), 0.05, 1),
+    sizeJitter: clamp(Number(st.sizeJitter ?? base.sizeJitter), 0, 1),
+    angleJitter: clamp(Number(st.angleJitter ?? base.angleJitter), 0, 180),
+    jitterSeed: clamp(Math.round(Number(st.jitterSeed) || base.jitterSeed), 1, 9999),
   }
 }
 
@@ -129,6 +132,10 @@ function normalizeMetaball(raw: unknown, base: Doc['metaball']): Doc['metaball']
     perColor: Boolean(mb.perColor ?? base.perColor),
     quality: clamp(Number(mb.quality ?? base.quality), 2, 8),
     squareEdges: mb.squareEdges === true,
+    iso: clamp(Number(mb.iso ?? base.iso), 0.2, 0.8),
+    falloff: METABALL_FALLOFFS.includes(mb.falloff as Doc['metaball']['falloff'])
+      ? (mb.falloff as Doc['metaball']['falloff'])
+      : base.falloff,
   }
 }
 

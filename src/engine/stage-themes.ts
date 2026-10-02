@@ -5,6 +5,8 @@ export interface StageTheme {
   pixelLine: string
   /** Emphasized major lines ("graph paper"), stronger than pixelLine */
   gridMajor: string
+  /** Dashed metaball threshold-contour line (diffusion guides overlay) */
+  fieldContour: string
   guide: string
   hover: string
   /** Dark outline drawn under the hover stroke so it reads on any cell color */
@@ -17,6 +19,7 @@ export const STAGE_THEMES: Record<
   StageTheme
 > = {
   dark: {
+    fieldContour: 'rgba(251,146,60,0.60)',
     checkerA: '#26262b',
     checkerB: '#1e1e23',
     gridLine: 'rgba(255,255,255,0.07)',
@@ -28,6 +31,7 @@ export const STAGE_THEMES: Record<
     frame: 'rgba(255,255,255,0.15)',
   },
   oled: {
+    fieldContour: 'rgba(251,146,60,0.55)',
     checkerA: '#0c0c0e',
     checkerB: '#050506',
     gridLine: 'rgba(255,255,255,0.05)',
@@ -39,6 +43,7 @@ export const STAGE_THEMES: Record<
     frame: 'rgba(255,255,255,0.12)',
   },
   nord: {
+    fieldContour: 'rgba(235,203,139,0.60)',
     checkerA: '#3b4252',
     checkerB: '#333a47',
     gridLine: 'rgba(236,239,244,0.08)',
@@ -50,6 +55,7 @@ export const STAGE_THEMES: Record<
     frame: 'rgba(236,239,244,0.15)',
   },
   paper: {
+    fieldContour: 'rgba(196,88,42,0.60)',
     // Paper Notebook Light (Flexoki-paper): warm paper, ink lines — soft on the eyes
     checkerA: '#f1ecdd',
     checkerB: '#e7e2d1',
@@ -62,6 +68,7 @@ export const STAGE_THEMES: Record<
     frame: 'rgba(60, 55, 40, 0.2)',
   },
   'tokyo-night': {
+    fieldContour: 'rgba(222,105,51,0.55)',
     // Tokyo Night Light: cool misty blue-gray with the Tokyo Night blue as the guide
     checkerA: '#d9dbe3',
     checkerB: '#cfd2db',
@@ -74,6 +81,7 @@ export const STAGE_THEMES: Record<
     frame: 'rgba(55, 60, 85, 0.2)',
   },
   vscode: {
+    fieldContour: 'rgba(206,145,120,0.70)',
     // VS Code Dark Modern
     checkerA: '#242424',
     checkerB: '#1c1c1c',
@@ -86,6 +94,7 @@ export const STAGE_THEMES: Record<
     frame: 'rgba(255,255,255,0.14)',
   },
   catppuccin: {
+    fieldContour: 'rgba(250,179,135,0.65)',
     // Catppuccin Mocha
     checkerA: '#26263b',
     checkerB: '#202033',

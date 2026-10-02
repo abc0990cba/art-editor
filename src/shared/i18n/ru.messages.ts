@@ -560,6 +560,16 @@ export const ru: Dict = {
   'style.perCorner': 'По углам',
   'style.sizeX': 'Ширина X',
   'style.sizeY': 'Высота Y',
+  'style.sizeJitter': 'Разброс размера',
+  'style.sizeJitter.desc':
+    'Уменьшать каждую ячейку на гладкий множитель с сидом — соседи зависят друг от друга, поле выглядит органично',
+  'style.angleJitter': 'Разброс угла',
+  'style.angleJitter.desc':
+    'Поворачивать каждую фигуру на детерминированный угол в пределах половины разброса',
+  'style.jitterSeed': 'Сид вариации',
+  'style.jitterSeed.desc': 'Тот же сид воспроизводит ту же картину размеров и углов',
+  'style.jitterSeed.randomize': 'Случайно',
+  'style.jitterSeed.randomize.desc': 'Взять новый случайный сид',
 
   'panel.texture': 'Текстура',
   'texture.effect': 'Эффект',
@@ -617,12 +627,21 @@ export const ru: Dict = {
   'texture.spray': 'Брызги',
 
   'metaball.strength': 'Сила сглаживания',
+  'metaball.iso': 'Порог слияния',
+  'metaball.iso.desc':
+    'Значение поля, считающееся чернилами: ниже — капли толще, выше — капли сжимаются к клеткам',
+  'metaball.falloff': 'Затухание',
+  'metaball.falloff.desc': 'Насколько далеко от клетки ядро ещё поднимает поле слияния',
+  'metaball.falloff.tight': 'Плотное',
+  'metaball.falloff.smooth': 'Гладкое',
+  'metaball.falloff.gooey': 'Тягучее',
   'metaball.perColor': 'Изолировать цвета',
   'metaball.quality': 'Качество поля',
   'metaball.squareEdges': 'Прямые края у границы',
   'metaball.quality.low': 'Низкое',
   'metaball.quality.med': 'Среднее',
   'metaball.quality.high': 'Высокое',
+  'metaball.quality.ultra': 'Ультра',
 
   'sym.none': 'Выкл.',
   'sym.mirrorX': 'Вертикальная',
@@ -690,6 +709,9 @@ export const ru: Dict = {
   'canvas.bg': 'Фон',
   'canvas.transparent': 'Прозрачный',
   'canvas.showGrid': 'Сетка пикселей',
+  'canvas.diffusion': 'Направляющие диффузии',
+  'canvas.diffusion.desc':
+    'Помощники метаболов: пунктирный порог слияния, полуклеточная сетка и кольцо радиуса ядра у курсора',
   'canvas.connectorWidth': 'Толщина соединителей',
 
   'export.open': 'Экспорт',

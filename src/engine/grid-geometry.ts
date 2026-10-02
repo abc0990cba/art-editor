@@ -4,7 +4,15 @@ import type { Doc, Link } from './doc'
 import { cellColor } from './doc'
 import type { StyledPath } from './geometry'
 import { makeGrid, type Grid } from './grids'
-import { marchingSquares, type Pt } from './marching-squares.ts'
+import { hasJitter, jitterAt } from './jitter.ts'
+import type { Pt } from './marching-squares.ts'
+import {
+  buildMetaballField,
+  loopsToSmoothPath,
+  metaballIso,
+  traceMetaballLoops,
+} from './metaball-field.ts'
+import type { MetaballCapsule, MetaballField, MetaballSource } from './metaball-field.ts'
 import { emitFilletPath } from './outline'
 import { roundedPolygonPath } from './poly-path.ts'
 
@@ -74,6 +82,7 @@ function gridPixels(
 ): void {
   const shape = doc.style.shape
   const toneSize = doc.style.toneSize
+  const jitterOn = hasJitter(doc.style)
   const toneOf = new Map<number, number>()
   const toneScaleOf = (val: number): number => {
     let k = toneOf.get(val)
@@ -86,10 +95,16 @@ function gridPixels(
   let d = ''
   for (const i of list) {
     const poly = grid.polygon(i)
+    // deterministic per-cell size/angle variation, composed after tone scaling
+    const j = jitterOn ? jitterAt(doc.style, i, doc.cols) : null
     if (shape === 'square') {
-      const scaled = scaledPolygon(poly, doc.style.sizeX, doc.style.sizeY)
+      const scaled = scaledPolygon(
+        poly,
+        doc.style.sizeX * (j?.size ?? 1),
+        doc.style.sizeY * (j?.size ?? 1),
+      )
       d += roundedPolygonPath(
-        scaled,
+        j?.angle ? rotatePolygon(scaled, j.angle) : scaled,
         doc.style.radius * (minEdge(scaled) / 2),
         doc.style.cornerStyle === 'chamfer',
       )
@@ -111,13 +126,21 @@ function gridPixels(
         w *= k
         h *= k
       }
+      if (j) {
+        w *= j.size
+        h *= j.size
+      }
+      let params = doc.style.shapeParams
+      if (j?.angle) {
+        params = { ...params, rotation: (params.rotation + j.angle + 360) % 360 }
+      }
       d += cellShapeFragment({
         id: shape,
         x: (minX + maxX) / 2 - w / 2,
         y: (minY + maxY) / 2 - h / 2,
         w,
         h,
-        params: doc.style.shapeParams,
+        params,
         radius: doc.style.radius,
         chamfer: doc.style.cornerStyle === 'chamfer',
       })
@@ -155,6 +178,21 @@ function scaledPolygon(poly: Pt[], sx: number, sy: number): Pt[] {
   const cx = poly.reduce((s, p) => s + p.x, 0) / poly.length
   const cy = poly.reduce((s, p) => s + p.y, 0) / poly.length
   return poly.map((p) => ({ x: cx + (p.x - cx) * sx, y: cy + (p.y - cy) * sy }))
+}
+
+/** Rotate a polygon about its centroid by whole degrees (per-cell angle jitter). */
+function rotatePolygon(poly: Pt[], deg: number): Pt[] {
+  if (deg === 0) return poly
+  const a = (deg * Math.PI) / 180
+  const cos = Math.cos(a)
+  const sin = Math.sin(a)
+  const cx = poly.reduce((s, p) => s + p.x, 0) / poly.length
+  const cy = poly.reduce((s, p) => s + p.y, 0) / poly.length
+  return poly.map((p) => {
+    const dx = p.x - cx
+    const dy = p.y - cy
+    return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos }
+  })
 }
 
 function minEdge(poly: Pt[]): number {
@@ -248,6 +286,43 @@ function traceSilhouette(grid: Grid, cells: Uint16Array, list: number[]): Pt[][]
 
 /* ---------------------------------- metaball ---------------------------------- */
 
+/**
+ * Merged metaball field over the whole non-square grid: kernel splats at every painted cell center
+ * plus link capsules, filtered by `take`. Also serves the diffusion-guides contour.
+ */
+export function gridMetaballField(
+  doc: Doc,
+  grid: Grid,
+  cells: Uint16Array,
+  take: (v: number) => boolean,
+): MetaballField {
+  const step = Math.max(0.05, Math.max(grid.w, grid.h) / 600)
+  const capsules: MetaballCapsule[] = doc.links.map((l) => {
+    const a = grid.center(l.ax)
+    const b = grid.center(l.bx)
+    return { ax: a.x, ay: a.y, bx: b.x, by: b.y, v: l.v }
+  })
+  const sources: MetaballSource[] = []
+  for (let i = 0; i < cells.length; i++) {
+    const v = cells[i]
+    if (v === 0) continue
+    const c = grid.center(i)
+    sources.push({ x: c.x, y: c.y, v })
+  }
+  return buildMetaballField({
+    w: grid.w,
+    h: grid.h,
+    step,
+    sources,
+    capsules,
+    take,
+    strength: doc.metaball.strength,
+    sub: doc.sub,
+    falloff: doc.metaball.falloff,
+    squareEdges: false,
+  })
+}
+
 function gridMetaball(
   doc: Doc,
   grid: Grid,
@@ -255,121 +330,21 @@ function gridMetaball(
   groups: Map<number, number[]>,
   paths: StyledPath[],
 ): void {
-  const step = Math.max(0.05, Math.max(grid.w, grid.h) / 600)
-  const fw = Math.ceil(grid.w / step) + 1
-  const fh = Math.ceil(grid.h / step) + 1
-  // kernel radius in cells, converted to field units (1 field unit = step doc units)
-  const R = (0.815 + (doc.metaball.strength / 100) * 0.44) / doc.sub / step
-  const R2 = R * R
-  const scale = step
-
-  const buildField = (list: number[]): Float32Array => {
-    const f = new Float32Array(fw * fh)
-    const splat = (cxf: number, cyf: number) => {
-      const x0 = Math.max(0, Math.ceil(cxf - R))
-      const x1 = Math.min(fw - 1, Math.floor(cxf + R))
-      const y0 = Math.max(0, Math.ceil(cyf - R))
-      const y1 = Math.min(fh - 1, Math.floor(cyf + R))
-      for (let iy = y0; iy <= y1; iy++) {
-        const dy = iy - cyf
-        for (let ix = x0; ix <= x1; ix++) {
-          const dx = ix - cxf
-          const d2 = dx * dx + dy * dy
-          if (d2 < R2) {
-            const t = 1 - d2 / R2
-            f[iy * fw + ix] += t * t * t
-          }
-        }
-      }
-    }
-    for (const i of list) {
-      const c = grid.center(i)
-      splat(c.x / scale, c.y / scale)
-    }
-    for (const l of doc.links) {
-      const a = grid.center(l.ax)
-      const b = grid.center(l.bx)
-      const ax = a.x / scale
-      const ay = a.y / scale
-      const bx = b.x / scale
-      const by = b.y / scale
-      const minX = Math.min(ax, bx)
-      const maxX = Math.max(ax, bx)
-      const minY = Math.min(ay, by)
-      const maxY = Math.max(ay, by)
-      const abx = bx - ax
-      const aby = by - ay
-      const len2 = abx * abx + aby * aby
-      for (
-        let iy = Math.max(0, Math.ceil(minY - R));
-        iy <= Math.min(fh - 1, Math.floor(maxY + R));
-        iy++
-      ) {
-        for (
-          let ix = Math.max(0, Math.ceil(minX - R));
-          ix <= Math.min(fw - 1, Math.floor(maxX + R));
-          ix++
-        ) {
-          let t = len2 > 0 ? ((ix - ax) * abx + (iy - ay) * aby) / len2 : 0
-          t = Math.max(0, Math.min(1, t))
-          const dx = ix - (ax + t * abx)
-          const dy = iy - (ay + t * aby)
-          const d2 = dx * dx + dy * dy
-          if (d2 < R2) {
-            const k = 1 - d2 / R2
-            f[iy * fw + ix] += k * k * k
-          }
-        }
-      }
-    }
-    for (let x = 0; x < fw; x++) {
-      f[x] = 0
-      f[(fh - 1) * fw + x] = 0
-    }
-    for (let y = 0; y < fh; y++) {
-      f[y * fw] = 0
-      f[y * fw + fw - 1] = 0
-    }
-    return f
-  }
-
-  const emit = (list: number[], fill: string) => {
-    const f = buildField(list)
-    const loops = marchingSquares(f, fw, fh, 0.5)
-    const d = loopsToDocPath(loops, scale)
+  const emit = (take: (v: number) => boolean, fill: string) => {
+    const field = gridMetaballField(doc, grid, cells, take)
+    const loops = traceMetaballLoops(field, metaballIso(doc), false)
+    const d = loopsToSmoothPath(loops, field.scale)
     if (d) paths.push({ d, fill })
   }
 
   if (doc.metaball.perColor) {
-    for (const [v, list] of groups) emit(list, cellColor(doc, v) ?? '#888')
+    for (const [v, list] of groups) {
+      if (list.length === 0) continue
+      emit((x) => x === v, cellColor(doc, v) ?? '#888')
+    }
   } else {
     const all = [...groups.values()].flat()
     const first = all.length > 0 ? cells[all[0]] : 0
-    emit(all, cellColor(doc, first) ?? '#888')
+    emit(() => true, cellColor(doc, first) ?? '#888')
   }
-}
-
-function loopsToDocPath(loops: Pt[][], scale: number): string {
-  let d = ''
-  for (const raw of loops) {
-    const pts: Pt[] = []
-    for (const p of raw) {
-      const last = pts.at(-1)
-      if (!last || Math.abs(last.x - p.x) > 1e-9 || Math.abs(last.y - p.y) > 1e-9) pts.push(p)
-    }
-    if (pts.length > 2) {
-      const first = pts[0]
-      const lastP = pts[pts.length - 1]
-      if (Math.abs(first.x - lastP.x) < 1e-9 && Math.abs(first.y - lastP.y) < 1e-9) pts.pop()
-    }
-    const n = pts.length
-    if (n < 3) continue
-    const at = (i: number) => `${fmt(pts[i].x * scale)} ${fmt(pts[i].y * scale)}`
-    const mid = (a: Pt, b: Pt) =>
-      `${fmt(((a.x + b.x) / 2) * scale)} ${fmt(((a.y + b.y) / 2) * scale)}`
-    d += `M${mid(pts[n - 1], pts[0])}`
-    for (let i = 0; i < n; i++) d += `Q${at(i)} ${mid(pts[i], pts[(i + 1) % n])}`
-    d += 'Z'
-  }
-  return d
 }

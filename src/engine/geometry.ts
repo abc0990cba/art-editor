@@ -3,10 +3,11 @@ import { toneScale } from './color.ts'
 import type { Doc, ElementStyle, Link, PixelStyle } from './doc'
 import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from './doc'
 import { elementStyleKey, elementGeometry } from './geometry-elements.ts'
-import { metaballGeometry } from './geometry-metaball.ts'
+import { metaballGeometry, metaballPreviewField } from './geometry-metaball.ts'
 import { borderRadii, mergedCells, roundedRectPath, shapeGeometry } from './geometry-shape.ts'
-import { gridBuildGeometry } from './grid-geometry.ts'
-import { isPlainSquare } from './grids.ts'
+import { gridBuildGeometry, gridMetaballField } from './grid-geometry.ts'
+import { isPlainSquare, makeGrid } from './grids.ts'
+import { loopsToSmoothPath, metaballIso, traceMetaballLoops } from './metaball-field.ts'
 import { evalGraphMemo } from './nodes/eval-memo.ts'
 import { outlineGeometry } from './outline'
 import { visibleObjs } from './scene'
@@ -130,6 +131,81 @@ export function buildGeometry(doc: Doc, staging?: Staging): Geometry {
   if (doc.renderMode === 'metaball') return metaballGeometry(doc, cells, links, preview)
   if (doc.renderMode === 'outline') return { paths: outlineGeometry(doc, cells, links) }
   return shapeGeometry(doc, cells, links)
+}
+
+/* --------------------------- diffusion-guides overlay --------------------------- */
+
+/**
+ * Threshold contour of the metaball field for the diffusion-guides canvas overlay: the merged
+ * iso-line of every visible layer, as smooth SVG path strings in doc coordinates. Overlay-only —
+ * never used for artwork or export. Global style scope only (element-scoped ink freezes its own
+ * render mode, so a merged doc-level contour would be meaningless there); committed content only.
+ */
+export function metaballOverlayContours(doc: Doc): string[] {
+  if (doc.styleScope !== 'global' || doc.renderMode !== 'metaball') return []
+  const trace = (scoped: Doc, cells: Uint16Array, links: readonly Link[]): string => {
+    const square = isPlainSquare(scoped)
+    const field = square
+      ? metaballPreviewField(scoped, cells, links).field
+      : gridMetaballField(
+          scoped,
+          makeGrid(
+            scoped.gridType,
+            scoped.cols,
+            scoped.rows,
+            scoped.radialEven,
+            scoped.gridRotation ?? 0,
+          ),
+          cells,
+          () => true,
+        )
+    return loopsToSmoothPath(
+      traceMetaballLoops(field, metaballIso(scoped), scoped.metaball.squareEdges && square),
+      field.scale,
+    )
+  }
+  if (!doc.layers) {
+    return doc.cells.some((v) => v !== 0) || doc.links.length > 0
+      ? [trace(doc, doc.cells, doc.links)]
+      : []
+  }
+  const out: string[] = []
+  const length = doc.cells.length
+  // mirrors sceneGeometry's per-layer merge (no staging: the overlay shows committed ink)
+  let scratch: Uint16Array | null = null
+  for (const layer of doc.layers) {
+    if (!layer.visible) continue
+    if (!scratch || scratch.length !== length) scratch = new Uint16Array(length)
+    const cells = scratch
+    cells.fill(0)
+    const links: Link[] = []
+    const hexValue = (hex: string) => {
+      const i = doc.palette.findIndex((c) => c.toLowerCase() === hex.toLowerCase())
+      return (i === -1 ? 0 : i) + 1
+    }
+    for (const o of visibleObjs(layer)) {
+      const { cells: ink } = o.graph
+        ? evalGraphMemo(
+            o.graph,
+            {
+              bw: doc.cols * doc.sub,
+              bh: doc.rows * doc.sub,
+              paletteLen: length,
+              hexValue,
+              baseStyle: o.style,
+            },
+            o.cells,
+            doc.palette,
+          )
+        : { cells: o.cells }
+      for (const [i, v] of ink) cells[i] = v
+      for (const l of o.links) if (l.v > 0) links.push(l)
+    }
+    if (cells.every((v) => v === 0) && links.length === 0) continue
+    const d = trace({ ...doc, cells, cellObj: null, links }, cells, links)
+    if (d) out.push(d)
+  }
+  return out
 }
 
 /* ------------------------------- staging preview ------------------------------- */

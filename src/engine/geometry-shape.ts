@@ -2,6 +2,7 @@ import { cellShapeFragment } from './cell-shapes.ts'
 import { toneScale } from './color.ts'
 import { bufferHeight, bufferWidth, cellColor, type Doc, type Link } from './doc.ts'
 import type { Geometry, Staging, StyledPath } from './geometry-types.ts'
+import { hasJitter, jitterAt } from './jitter.ts'
 import { figureSpace, type FigureSpace } from './texture-figure.ts'
 import { regionTextureFragments, type TextureCell } from './texture.ts'
 
@@ -79,6 +80,49 @@ export const borderRadii = (
   bottom || left ? 0 : radii[3],
 ]
 
+/** Shared context for texture-hole anchors (fixed for the whole shapeGeometry scan). */
+interface TexCellCtx {
+  texCells: Map<number, TextureCell[]>
+  cells: Uint16Array
+  bw: number
+  bh: number
+  cw: number
+  ch: number
+  chamfer: boolean
+  sub: number
+}
+
+/** One texture-hole anchor: the cell's figure box, corner style and same-value connectivity. */
+function pushTextureCell(
+  ctx: TexCellCtx,
+  v: number,
+  bx: number,
+  by: number,
+  radii: number[],
+): void {
+  const { cells, bw, bh, cw, ch, chamfer, sub } = ctx
+  const same = (xx: number, yy: number) =>
+    xx >= 0 && yy >= 0 && xx < bw && yy < bh && cells[yy * bw + xx] === v
+  let list = ctx.texCells.get(v)
+  if (!list) ctx.texCells.set(v, (list = []))
+  list.push({
+    x: bx / sub + (1 / sub - cw) / 2,
+    y: by / sub + (1 / sub - ch) / 2,
+    w: cw,
+    h: ch,
+    radii,
+    chamfer,
+    cx0: bx / sub,
+    cy0: by / sub,
+    cx1: (bx + 1) / sub,
+    cy1: (by + 1) / sub,
+    connectedL: same(bx - 1, by),
+    connectedT: same(bx, by - 1),
+    connectedR: same(bx + 1, by),
+    connectedB: same(bx, by + 1),
+  })
+}
+
 export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link[]): Geometry {
   const bw = bufferWidth(doc)
   const bh = bufferHeight(doc)
@@ -109,14 +153,20 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
     return k
   }
   // unrotated square keeps every classic fast path: run merging and rect-shaped texture holes
-  const plainSquare = shape === 'square' && sp.rotation === 0
+  // (angle jitter rotates per cell, so it leaves the plain-rect path like a base rotation)
+  const plainSquare = shape === 'square' && sp.rotation === 0 && doc.style.angleJitter === 0
+  const jitterOn = hasJitter(doc.style)
   const tex = doc.texture
   // texture holes are punched as evenodd subpaths of the cell rect — on rotated or non-square
   // forms they would paint specks outside the ink, so baked texture stays a plain-square feature
-  const textured = tex.effect !== 'none' && plainSquare && !toneSize
+  // (shrunk-by-jitter figures excluded for the same reason)
+  const textured = tex.effect !== 'none' && plainSquare && !toneSize && doc.style.sizeJitter === 0
   // texture is one continuous pattern per color: sides shared with the same
   // value stay connected (no seams), open sides carry the gap margin
   const texCells = textured ? new Map<number, TextureCell[]>() : undefined
+  const texCtx: TexCellCtx | null = texCells
+    ? { texCells, cells, bw, bh, cw, ch, chamfer, sub: doc.sub }
+    : null
 
   const groups = new Map<number, string[]>()
   // Horizontal runs of same-value cells collapse into one rect fragment when every per-cell
@@ -130,7 +180,8 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
     doc.style.sizeX === 1 &&
     doc.style.sizeY === 1 &&
     plainSquare &&
-    !toneSize
+    !toneSize &&
+    !jitterOn
   // one cell fragment: tone-scaled box, then the rect or form path, then texture bookkeeping
   const pushCell = (v: number, bx: number, by: number, end: number) => {
     let x = bx / doc.sub + (1 / doc.sub - cw) / 2
@@ -145,48 +196,45 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
       x = bx / doc.sub + (1 / doc.sub - w) / 2
       y = by / doc.sub + (1 / doc.sub - h) / 2
     }
+    let spHere = sp
+    let shrink = 1
+    if (jitterOn) {
+      // deterministic per-cell size/angle variation (never on merged runs: runMerge is off)
+      const j = jitterAt(doc.style, by * bw + bx, bw)
+      shrink = j.size
+      const w2 = w * shrink
+      const h2 = h * shrink
+      x = bx / doc.sub + (1 / doc.sub - w2) / 2
+      y = by / doc.sub + (1 / doc.sub - h2) / 2
+      w = w2
+      h = h2
+      if (j.angle !== 0) spHere = { ...sp, rotation: (sp.rotation + j.angle + 360) % 360 }
+    }
     const onBorder = squareEdges && (bx === 0 || by === 0 || bx === bw - 1 || by === bh - 1)
     const radiiHere =
       runMerge || !onBorder
         ? radii
         : borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
+    const scaledRadii =
+      shrink === 1 ? radiiHere : radiiHere.map((r) => Math.min(0.5 * Math.min(w, h), r * shrink))
     let frags = groups.get(v)
     if (!frags) groups.set(v, (frags = []))
     frags.push(
       plainSquare
-        ? roundedRectPath(x, y, w, h, radiiHere, chamfer)
+        ? roundedRectPath(x, y, w, h, scaledRadii, chamfer)
         : cellShapeFragment({
             id: shape,
             x,
             y,
             w,
             h,
-            params: sp,
+            params: spHere,
             radius: doc.style.radius,
             chamfer,
           }),
     )
-    if (texCells) {
-      const same = (xx: number, yy: number) =>
-        xx >= 0 && yy >= 0 && xx < bw && yy < bh && cells[yy * bw + xx] === v
-      let list = texCells.get(v)
-      if (!list) texCells.set(v, (list = []))
-      list.push({
-        x,
-        y,
-        w: cw,
-        h: ch,
-        radii: radiiHere,
-        chamfer,
-        cx0: bx / doc.sub,
-        cy0: by / doc.sub,
-        cx1: (bx + 1) / doc.sub,
-        cy1: (by + 1) / doc.sub,
-        connectedL: same(bx - 1, by),
-        connectedT: same(bx, by - 1),
-        connectedR: same(bx + 1, by),
-        connectedB: same(bx, by + 1),
-      })
+    if (texCells && texCtx) {
+      pushTextureCell(texCtx, v, bx, by, radiiHere)
     }
   }
   for (let by = 0; by < bh; by++) {

@@ -558,6 +558,15 @@ export const en = {
   'style.perCorner': 'Per-corner',
   'style.sizeX': 'Size X',
   'style.sizeY': 'Size Y',
+  'style.sizeJitter': 'Size spread',
+  'style.sizeJitter.desc':
+    'Shrink each cell by a smooth seeded noise factor — neighbors correlate, so the field clumps organically',
+  'style.angleJitter': 'Angle spread',
+  'style.angleJitter.desc': 'Rotate each form by a deterministic offset within half of the spread',
+  'style.jitterSeed': 'Variation seed',
+  'style.jitterSeed.desc': 'Same seed reproduces the same size and angle field',
+  'style.jitterSeed.randomize': 'Randomize',
+  'style.jitterSeed.randomize.desc': 'Pick a new random seed',
 
   'panel.texture': 'Texture',
   'texture.effect': 'Effect',
@@ -615,12 +624,21 @@ export const en = {
   'texture.spray': 'Spray',
 
   'metaball.strength': 'Strength',
+  'metaball.iso': 'Merge threshold',
+  'metaball.iso.desc':
+    'Field value that counts as ink: lower — blobs grow fatter, higher — blobs shrink toward their cells',
+  'metaball.falloff': 'Falloff',
+  'metaball.falloff.desc': 'How far outside a cell its kernel still pushes the merge field up',
+  'metaball.falloff.tight': 'Tight',
+  'metaball.falloff.smooth': 'Smooth',
+  'metaball.falloff.gooey': 'Gooey',
   'metaball.perColor': 'Isolate colors',
   'metaball.quality': 'Field quality',
   'metaball.squareEdges': 'Straight edges at border',
   'metaball.quality.low': 'Low',
   'metaball.quality.med': 'Medium',
   'metaball.quality.high': 'High',
+  'metaball.quality.ultra': 'Ultra',
 
   'sym.none': 'Off',
   'sym.mirrorX': 'Vertical',
@@ -688,6 +706,9 @@ export const en = {
   'canvas.bg': 'Background',
   'canvas.transparent': 'Transparent',
   'canvas.showGrid': 'Pixel grid',
+  'canvas.diffusion': 'Diffusion guides',
+  'canvas.diffusion.desc':
+    'Metaball aids: dashed merge-threshold contour, half-cell grid lines and a kernel-radius ring at the cursor',
   'canvas.connectorWidth': 'Connector width',
 
   'export.open': 'Export',

@@ -213,6 +213,39 @@ export function StyleSection({
             display={pct}
             onChange={(v) => applyStyle({ sizeY: v })}
           />
+          <Slider
+            label={t('style.sizeJitter')}
+            title={t('style.sizeJitter.desc')}
+            value={styleView.sizeJitter}
+            min={0}
+            max={1}
+            step={0.01}
+            display={pct}
+            onChange={(v) => applyStyle({ sizeJitter: v })}
+          />
+          <Slider
+            label={t('style.angleJitter')}
+            title={t('style.angleJitter.desc')}
+            value={styleView.angleJitter}
+            min={0}
+            max={180}
+            step={1}
+            int
+            display={(v) => `${Math.round(v)}°`}
+            onChange={(v) => applyStyle({ angleJitter: v })}
+          />
+          <div className="text-body flex items-center justify-between text-xs">
+            <span title={t('style.jitterSeed.desc')}>{t('style.jitterSeed')}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted tabular-nums">{styleView.jitterSeed}</span>
+              <Chip
+                title={t('style.jitterSeed.randomize.desc')}
+                onClick={() => applyStyle({ jitterSeed: 1 + Math.floor(Math.random() * 9999) })}
+              >
+                {t('style.jitterSeed.randomize')}
+              </Chip>
+            </div>
+          </div>
           {!curved && (
             <RoundingControls
               style={styleView}
@@ -235,6 +268,31 @@ export function StyleSection({
             max={100}
             onChange={(v) => applyMetaball({ strength: v })}
           />
+          <Slider
+            label={t('metaball.iso')}
+            title={t('metaball.iso.desc')}
+            value={mbView.iso}
+            min={0.2}
+            max={0.8}
+            step={0.01}
+            display={pct}
+            onChange={(v) => applyMetaball({ iso: v })}
+          />
+          <div className="text-body flex items-center justify-between text-xs">
+            <span>{t('metaball.falloff')}</span>
+            <div className="flex gap-1">
+              {(['tight', 'smooth', 'gooey'] as const).map((f) => (
+                <Chip
+                  key={f}
+                  active={mbView.falloff === f}
+                  title={t('metaball.falloff.desc')}
+                  onClick={() => applyMetaball({ falloff: f })}
+                >
+                  {t(`metaball.falloff.${f}` as 'metaball.falloff.tight')}
+                </Chip>
+              ))}
+            </div>
+          </div>
           <CheckRow
             label={t('metaball.perColor')}
             title={t('metaball.perColor.desc')}
@@ -244,7 +302,7 @@ export function StyleSection({
           <div className="text-body flex items-center justify-between text-xs">
             <span>{t('metaball.quality')}</span>
             <div className="flex gap-1">
-              {([2, 4, 6] as const).map((q, i) => (
+              {([2, 4, 6, 8] as const).map((q, i) => (
                 <Chip
                   key={q}
                   active={mbView.quality === q}
@@ -256,6 +314,7 @@ export function StyleSection({
                       t('metaball.quality.low'),
                       t('metaball.quality.med'),
                       t('metaball.quality.high'),
+                      t('metaball.quality.ultra'),
                     ][i]
                   }
                 </Chip>
