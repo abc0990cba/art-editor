@@ -1,9 +1,17 @@
 import { cellShapeFragment } from '../cell-shapes/index.ts'
 import { toneScale } from '../color/color.ts'
-import { bufferHeight, bufferWidth, cellColor, type Doc, type Link } from '../core/doc.ts'
+import {
+  bufferHeight,
+  bufferWidth,
+  cellColor,
+  type Doc,
+  type Link,
+  type TextureSettings,
+} from '../core/doc.ts'
 import { hasJitter, jitterAt } from '../effects/jitter.ts'
 import { figureSpace, type FigureSpace } from '../texture/figure.ts'
 import { regionTextureFragments, type TextureCell } from '../texture/index.ts'
+import { FNV_OFFSET, fnvFloat, fnvWord } from '../texture/region-index.ts'
 import type { Geometry, Staging, StyledPath } from './types.ts'
 
 export const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
@@ -60,9 +68,9 @@ export function mergedCells(doc: Doc, staging?: Staging): Uint16Array {
 /* ---------------------------------- shape mode ---------------------------------- */
 
 /** End index (exclusive) of the same-value run starting at `row + bx`. */
-function runEnd(cells: Uint16Array, row: number, bx: number, bw: number, v: number): number {
+function runEnd(cells: Uint16Array, row: number, bx: number, bound: number, v: number): number {
   let end = bx + 1
-  while (end < bw && cells[row + end] === v) end++
+  while (end < bound && cells[row + end] === v) end++
   return end
 }
 
@@ -83,6 +91,9 @@ export const borderRadii = (
 /** Shared context for texture-hole anchors (fixed for the whole shapeGeometry scan). */
 interface TexCellCtx {
   texCells: Map<number, TextureCell[]>
+  /** Per-value region digest for the texture fragment cache (seeded with the style signature). */
+  digests: Map<number, number>
+  seed: number
   cells: Uint16Array
   bw: number
   bh: number
@@ -105,6 +116,10 @@ function pushTextureCell(
     xx >= 0 && yy >= 0 && xx < bw && yy < bh && cells[yy * bw + xx] === v
   let list = ctx.texCells.get(v)
   if (!list) ctx.texCells.set(v, (list = []))
+  const connectedL = same(bx - 1, by)
+  const connectedT = same(bx, by - 1)
+  const connectedR = same(bx + 1, by)
+  const connectedB = same(bx, by + 1)
   list.push({
     x: bx / sub + (1 / sub - cw) / 2,
     y: by / sub + (1 / sub - ch) / 2,
@@ -116,16 +131,91 @@ function pushTextureCell(
     cy0: by / sub,
     cx1: (bx + 1) / sub,
     cy1: (by + 1) / sub,
-    connectedL: same(bx - 1, by),
-    connectedT: same(bx, by - 1),
-    connectedR: same(bx + 1, by),
-    connectedB: same(bx, by + 1),
+    connectedL,
+    connectedT,
+    connectedR,
+    connectedB,
   })
+  // integer digest of the region layout: position, connectivity, corner-radii pattern
+  const flags =
+    (connectedL ? 1 : 0) | (connectedT ? 2 : 0) | (connectedR ? 4 : 0) | (connectedB ? 8 : 0)
+  const radiiBits =
+    Number(radii[0] !== 0) |
+    (Number(radii[1] !== 0) << 1) |
+    (Number(radii[2] !== 0) << 2) |
+    (Number(radii[3] !== 0) << 3)
+  let acc = ctx.digests.get(v) ?? ctx.seed
+  acc = fnvWord(fnvWord(fnvWord(acc, bx), by), flags | (radiiBits << 4))
+  ctx.digests.set(v, acc)
 }
 
-export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link[]): Geometry {
+/**
+ * Per-color texture hole fragments into the path groups. Figure-level gaps hug the silhouette of
+ * every color, so their cache digest mixes all regions (otherwise each color digest stands alone).
+ */
+function emitTextureHoles(
+  texCells: Map<number, TextureCell[]>,
+  digests: Map<number, number>,
+  texSeed: number,
+  tex: TextureSettings,
+  sub: number,
+  groups: Map<number, string[]>,
+): void {
+  let fig: FigureSpace | undefined
+  if (tex.gapMode === 'figure') {
+    const all: TextureCell[] = []
+    for (const list of texCells.values()) {
+      for (const c of list) all.push(c)
+    }
+    fig = figureSpace(all, sub)
+  }
+  let figSeed: number | undefined
+  if (fig) {
+    figSeed = texSeed
+    for (const [v] of texCells) figSeed = fnvWord(fnvWord(figSeed, v), digests.get(v) ?? texSeed)
+  }
+  for (const [v, list] of texCells) {
+    const holes = regionTextureFragments(
+      list,
+      tex,
+      v,
+      fig,
+      fig ? figSeed : (digests.get(v) ?? texSeed),
+    )
+    if (holes) {
+      const frags = groups.get(v)
+      if (frags) frags.push(holes)
+    }
+  }
+}
+
+/** Buffer-cell bounds of a tile-scoped scan (exclusive end); whole buffer when omitted. */
+export interface TileRange {
+  bx0: number
+  by0: number
+  bx1: number
+  by1: number
+}
+
+/**
+ * Pixels-mode geometry of one document buffer: horizontal runs of same-value cells collapse into
+ * one rect fragment when every per-cell fragment would be a plain square (the run-merge fast path),
+ * otherwise each cell emits its own fragment. `tile` restricts the scan to a buffer-cell rectangle
+ * — the dirty-tile geometry cache rebuilds only changed tiles this way (runs crossing the tile edge
+ * split into per-tile fragments; the union across tiles renders identically).
+ */
+export function shapeGeometry(
+  doc: Doc,
+  cells: Uint16Array,
+  links: readonly Link[],
+  tile?: TileRange,
+): Geometry {
   const bw = bufferWidth(doc)
   const bh = bufferHeight(doc)
+  const bx0 = tile ? tile.bx0 : 0
+  const bx1 = tile ? tile.bx1 : bw
+  const by0 = tile ? tile.by0 : 0
+  const by1 = tile ? tile.by1 : bh
   const cw = doc.style.sizeX / doc.sub
   const ch = doc.style.sizeY / doc.sub
   const rBase = doc.style.radius * Math.min(cw, ch)
@@ -162,11 +252,22 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
   // (shrunk-by-jitter figures excluded for the same reason)
   const textured = tex.effect !== 'none' && plainSquare && !toneSize && doc.style.sizeJitter === 0
   // texture is one continuous pattern per color: sides shared with the same
-  // value stay connected (no seams), open sides carry the gap margin
-  const texCells = textured ? new Map<number, TextureCell[]>() : undefined
-  const texCtx: TexCellCtx | null = texCells
-    ? { texCells, cells, bw, bh, cw, ch, chamfer, sub: doc.sub }
-    : null
+  // value stay connected (no seams), open sides carry the gap margin.
+  // Tile-scoped scans exclude texture at the caller (the tile cache only runs on untextured
+  // docs) — a tile-local region would place specks differently than the whole-doc pattern.
+  const texCells = textured && !tile ? new Map<number, TextureCell[]>() : undefined
+  // digest seed: every style input of the texture holes beyond the per-cell layout
+  let texSeed = FNV_OFFSET
+  for (const r of radii) texSeed = fnvFloat(texSeed, r)
+  texSeed = fnvFloat(texSeed, cw)
+  texSeed = fnvFloat(texSeed, ch)
+  if (chamfer) texSeed = fnvWord(texSeed, 1)
+  texSeed = fnvWord(texSeed, doc.sub)
+  const digests = textured ? new Map<number, number>() : undefined
+  const texCtx: TexCellCtx | null =
+    texCells && digests
+      ? { texCells, digests, seed: texSeed, cells, bw, bh, cw, ch, chamfer, sub: doc.sub }
+      : null
 
   const groups = new Map<number, string[]>()
   // Horizontal runs of same-value cells collapse into one rect fragment when every per-cell
@@ -237,54 +338,47 @@ export function shapeGeometry(doc: Doc, cells: Uint16Array, links: readonly Link
       pushTextureCell(texCtx, v, bx, by, radiiHere)
     }
   }
-  for (let by = 0; by < bh; by++) {
+  for (let by = by0; by < by1; by++) {
     const row = by * bw
-    for (let bx = 0; bx < bw;) {
+    for (let bx = bx0; bx < bx1;) {
       const v = cells[row + bx]
       if (v === 0) {
         bx++
         continue
       }
-      const end = runMerge ? runEnd(cells, row, bx, bw, v) : bx + 1
+      const end = runMerge ? runEnd(cells, row, bx, bx1, v) : bx + 1
       pushCell(v, bx, by, end)
       bx = end
     }
   }
-  if (texCells) {
-    // figure-level gap: one silhouette space over every color, so the margin hugs the
-    // merged outline and internal color borders stay seamless
-    let fig: FigureSpace | undefined
-    if (tex.gapMode === 'figure') {
-      const all: TextureCell[] = []
-      for (const list of texCells.values()) {
-        for (const c of list) all.push(c)
-      }
-      fig = figureSpace(all, doc.sub)
-    }
-    for (const [v, list] of texCells) {
-      const holes = regionTextureFragments(list, tex, v, fig)
-      if (holes) groups.get(v)!.push(holes)
-    }
+  if (texCells && digests && texCtx) {
+    emitTextureHoles(texCells, digests, texSeed, tex, doc.sub, groups)
   }
 
   const paths: StyledPath[] = []
   for (const [v, frags] of groups) {
     paths.push({ d: frags.join(''), fill: cellColor(doc, v) ?? '#888' })
   }
-  if (links.length > 0) {
-    const byColor = new Map<number, string[]>()
-    for (const l of links) {
-      let frags = byColor.get(l.v)
-      if (!frags) byColor.set(l.v, (frags = []))
-      frags.push(`M${fmt(l.ax + 0.5)} ${fmt(l.ay + 0.5)}L${fmt(l.bx + 0.5)} ${fmt(l.by + 0.5)}`)
-    }
-    for (const [v, frags] of byColor) {
-      paths.push({
-        d: frags.join(''),
-        stroke: cellColor(doc, v) ?? '#888',
-        strokeWidth: doc.connectorWidth,
-      })
-    }
-  }
+  paths.push(...linkStrokePaths(doc, links))
   return { paths }
+}
+
+/** Capsule strokes for connectors, grouped per color (shared by the whole-doc and tile paths). */
+export function linkStrokePaths(doc: Doc, links: readonly Link[]): StyledPath[] {
+  if (links.length === 0) return []
+  const byColor = new Map<number, string[]>()
+  for (const l of links) {
+    let frags = byColor.get(l.v)
+    if (!frags) byColor.set(l.v, (frags = []))
+    frags.push(`M${fmt(l.ax + 0.5)} ${fmt(l.ay + 0.5)}L${fmt(l.bx + 0.5)} ${fmt(l.by + 0.5)}`)
+  }
+  const paths: StyledPath[] = []
+  for (const [v, frags] of byColor) {
+    paths.push({
+      d: frags.join(''),
+      stroke: cellColor(doc, v) ?? '#888',
+      strokeWidth: doc.connectorWidth,
+    })
+  }
+  return paths
 }

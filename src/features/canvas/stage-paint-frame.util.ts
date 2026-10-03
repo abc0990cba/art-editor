@@ -19,6 +19,7 @@ import {
   type StagePaintParams,
   type StagePaintState,
 } from './stage-paint.util.ts'
+import { materializeShapeStaging } from './stage-shape-raster.util.ts'
 
 /**
  * The base-canvas frame: committed artwork blit + in-stroke composite + baked background/grid.
@@ -27,6 +28,22 @@ import {
  * its size ratchet: this module owns dispatch + the incremental stroke layer + the legacy fragment
  * path; the pixel-bitmap preview lives in stage-paint-pixel.util.
  */
+/**
+ * Staged cells of the in-flight drag. Typed shape-drag buffers count as staging: the pixel preview
+ * reads them directly, any other path materializes the Maps once here (no worse than the old
+ * per-move Map writes).
+ */
+function stagingCellsOf(p: StagePaintParams): {
+  cells: ReadonlyMap<number, number | null> | undefined
+  buffered: boolean
+} {
+  const st = p.staging.current
+  const buffered = !!st?.cellsBuf && (!st.cells || st.cells.size === 0)
+  if (buffered && st && !pixelPreviewEligible(p)) materializeShapeStaging(st)
+  const cells = st?.cells
+  return { cells: cells && cells.size > 0 ? cells : undefined, buffered }
+}
+
 export function paintStage(p: StagePaintParams): void {
   const state = p.state
   if (!p.canvas || !p.wrap) return
@@ -38,11 +55,10 @@ export function paintStage(p: StagePaintParams): void {
   ensureGrid(p, size)
   const art = ensureArt(p, size)
 
-  const st = p.staging.current
-  const stCells = st?.cells
+  const { cells: stCells, buffered: bufActive } = stagingCellsOf(p)
   const view = p.view
   ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0)
-  if (!stCells || stCells.size === 0) {
+  if (!stCells && !bufActive) {
     state.session = null
     state.dead = null
     if (state.px) state.px.last.length = 0
@@ -56,6 +72,13 @@ export function paintStage(p: StagePaintParams): void {
     blit(ctx, state.grid, size)
     return
   }
+  if (bufActive && p.staging.current) {
+    if (pixelPreviewEligible(p) && pixelFrame(p, ctx, size, art)) return
+    legacyFrame(p, ctx, size)
+    return
+  }
+  const st = p.staging.current
+  if (!st) return
   const viewKey = `${view.x}|${view.y}|${view.zoom}|${size.w}|${size.h}|${size.dpr}`
   const incremental =
     p.isDrawStroke && strokePreviewCapable(p.doc, st) && drawStrokeFrame(p, ctx, size, art, viewKey)

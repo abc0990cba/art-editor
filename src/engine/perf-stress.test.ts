@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { flatBenchDoc, flatRunsBenchDoc } from './bench-doc.util.ts'
 import { defaultDoc, type Doc } from './core/doc.ts'
 import { buildGeometry, stagingPreview, PENDING_OBJ, type Staging } from './geometry/index.ts'
+import { ensureTileGeometry } from './geometry/tiles.ts'
 
 /** A 500×500 pixels-mode doc with ~half the canvas painted in a two-color checker. */
 function bigDoc(opts?: { sub?: Doc['sub']; radius?: number; chamfer?: boolean }): Doc {
@@ -53,18 +54,39 @@ describe('stagingPreview correctness', () => {
     expect(preview!.erase).toEqual([1])
   })
 
-  it('falls back to the full rebuild for global outline/metaball, textures, links and non-square grids', () => {
-    const outline = bigDoc()
-    outline.renderMode = 'outline'
-    expect(stagingPreview(outline, strokeStaging(0))).toBeNull()
+  it('previews textured/outline/metaball docs as plain cells (plain-until-release contract)', () => {
+    // the stroke-fallback cliff (PERFLOG 2026-09-30: 0.7–1.9 s per frame at 2048²) is gone:
+    // staged cells always preview as plain fragments; the global effect lands on commit
+    const patches: ((d: Doc) => void)[] = [
+      (d) => {
+        d.renderMode = 'outline'
+      },
+      (d) => {
+        d.renderMode = 'metaball'
+      },
+      (d) => {
+        d.texture.effect = 'grain'
+      },
+    ]
+    for (const patch of patches) {
+      const doc = bigDoc()
+      patch(doc)
+      const preview = stagingPreview(doc, strokeStaging(0))
+      expect(preview).not.toBeNull()
+      // one plain path per staged color (the stroke stamps 3 palette values)
+      expect(preview!.paths.length).toBe(3)
+      expect(preview!.paths.every((p) => p.fill)).toBe(true)
+    }
+  })
 
-    const metaball = bigDoc()
-    metaball.renderMode = 'metaball'
-    expect(stagingPreview(metaball, strokeStaging(0))).toBeNull()
+  it('still falls back to the full rebuild for connector edits and non-square grids', () => {
+    const hex = bigDoc()
+    hex.gridType = 'hex'
+    expect(stagingPreview(hex, strokeStaging(0))).toBeNull()
 
-    const textured = bigDoc()
-    textured.texture.effect = 'grain'
-    expect(stagingPreview(textured, strokeStaging(0))).toBeNull()
+    const rotated = bigDoc()
+    rotated.gridRotation = 45
+    expect(stagingPreview(rotated, strokeStaging(0))).toBeNull()
 
     const linked = bigDoc()
     linked.links = [{ ax: 1, ay: 1, bx: 2, by: 1, v: 1 }]
@@ -74,14 +96,6 @@ describe('stagingPreview correctness', () => {
     expect(
       stagingPreview(linked, { cells: strokeStaging(0).cells, links: linked.links }),
     ).not.toBeNull()
-
-    const hex = bigDoc()
-    hex.gridType = 'hex'
-    expect(stagingPreview(hex, strokeStaging(0))).toBeNull()
-
-    const rotated = bigDoc()
-    rotated.gridRotation = 45
-    expect(stagingPreview(rotated, strokeStaging(0))).toBeNull()
   })
 
   it('renders staged cells with per-element styles in element scope', () => {
@@ -140,6 +154,33 @@ describe('2048² perf budgets (bench/PERFLOG.md ratchet)', () => {
     const bigMs = performance.now() - t1
     // 16× the cells; run-merging keeps the absolute work tiny, allow 40× for scheduler noise
     expect(bigMs).toBeLessThan(Math.max(20, smallMs * 40))
+  })
+
+  it('a local edit through the tile cache costs a fraction of a whole rebuild', () => {
+    // the dirty-tile lever (PERFLOG 2026-10-03): one small edit rebuilds 1 tile of 64, so the
+    // tiled rebuild must stay well under the whole-document scan even with the diff pass
+    // (rendered-output identity is proven by the raster tests in geometry/tiles.test.ts)
+    const doc = { ...flatRunsBenchDoc(2048, 2048, 0.25), styleScope: 'global' as const }
+    ensureTileGeometry(null, doc)
+    const cells = doc.cells.slice()
+    cells.fill(9, 300 * 2048 + 300, 300 * 2048 + 360)
+    const edited: Doc = { ...doc, cells }
+    // best-of-3: single-shot timings flake under load (GC, parallel workers)
+    let wholeMs = Infinity
+    let tiledMs = Infinity
+    for (let i = 0; i < 3; i++) {
+      const t0 = performance.now()
+      buildGeometry(edited)
+      wholeMs = Math.min(wholeMs, performance.now() - t0)
+      const t1 = performance.now()
+      ensureTileGeometry(doc, edited)
+      tiledMs = Math.min(tiledMs, performance.now() - t1)
+    }
+    // eslint-disable-next-line no-console
+    console.log(
+      `local edit 2048²: whole ${wholeMs.toFixed(1)}ms, tiled ${tiledMs.toFixed(1)}ms (${(wholeMs / Math.max(tiledMs, 0.01)).toFixed(0)}x)`,
+    )
+    expect(tiledMs * 2).toBeLessThan(Math.max(wholeMs, 4))
   })
 })
 

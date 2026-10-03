@@ -1,17 +1,27 @@
 import type { TextureSettings } from '../core/doc'
-import { clamp, hash2, mulberry32, MAX_REGION_FLECKS } from './core'
+import { clamp, hash2, MAX_REGION_FLECKS, randSeed, type RandState } from './core'
 import type { FigureSpace } from './figure'
+import { cachedFragments, storeFragments } from './fragment-cache.ts'
 import { emitHalftoneDots, filterSpray, type HtDot } from './halftone'
 import { hatchRegionFragments } from './hatch'
 import { latticeHalftoneDots } from './lattices.ts'
 import { angleRad, type DistContext } from './patterns'
 import { regionHalftoneCell, regionScatterCell } from './region-cells'
+import { hashCells, regionIndex } from './region-index.ts'
 
 /**
  * Texture hole fragments for a whole same-color region of pixel cells. Specks are placed on a
  * lattice anchored to the document origin, so adjacent connected cells share one continuous pattern
  * with no seams; only sides facing empty space (or another color) carry the gap margin.
  */
+
+/**
+ * Lattice-node budget of one region scan: beyond it the candidate grid coarsens (see
+ * `regionGridRange`), bounding the walk to ~25 ms on any region size. Placement stays
+ * byte-identical below the cap — regions up to ~450 cells across at scale 1 — and keeps its
+ * statistical character above it (expected fleck yield is normalized to the thinned node count).
+ */
+export const SCAN_CAP = 1_000_000
 
 /** One paintable cell of a same-color region, in doc units. */
 export interface TextureCell {
@@ -35,18 +45,9 @@ export interface TextureCell {
   connectedB: boolean
 }
 
-/** Per-side placement bounds for one cell, in doc units. */
-export interface RegionBounds {
-  left: number
-  top: number
-  right: number
-  bottom: number
-}
-
 /** Read-only setup shared by one region scan. */
 interface RegionMetrics {
   cells: TextureCell[]
-  bounds: RegionBounds[]
   t: TextureSettings
   sub: number
   /** Lattice pitch in cells */
@@ -86,15 +87,6 @@ export interface RegionState extends RegionMetrics {
   count: number
 }
 
-/** Per-cell RNG draws: r1..r5 are taken up front for both scan branches. */
-export interface CellRand {
-  r1: number
-  r2: number
-  r3: number
-  r4: number
-  r5: number
-}
-
 /** Lattice range and screen-ramp projection of one region scan. */
 interface RegionGrid {
   I0: number
@@ -109,95 +101,134 @@ interface RegionGrid {
   prMax: number
 }
 
-/** One rounded-corner probe: corner id, its arc center/radius and the point to test. */
-interface CornerProbe {
-  px: number
-  py: number
-  ccx: number
-  ccy: number
-  r: number
-  corner: 'tl' | 'tr' | 'br' | 'bl'
-  c: TextureCell
-}
-
-/** Point inside a fillet corner? arc — distance; chamfer — diagonal offset. */
-function cornerPointOk({ px, py, ccx, ccy, r, corner, c }: CornerProbe): boolean {
-  if (c.chamfer) {
-    const u = corner === 'tl' || corner === 'bl' ? px - c.x : c.x + c.w - px
-    const v = corner === 'tl' || corner === 'tr' ? py - c.y : c.y + c.h - py
-    return u + v >= r
-  }
-  const dx = px - ccx
-  const dy = py - ccy
-  return dx * dx + dy * dy <= r * r
-}
-
-/** Point inside the cell's painted fill rect, corner fillets included. */
+/**
+ * Point inside a fillet corner? arc — distance; chamfer — diagonal offset. Allocation-free: the
+ * scan probes this millions of times on large regions, so no probe objects here.
+ */
 export function fillPointOk(c: TextureCell, px: number, py: number): boolean {
-  if (px < c.x || px > c.x + c.w || py < c.y || py > c.y + c.h) return false
+  const right = c.x + c.w
+  const bottom = c.y + c.h
+  if (px < c.x || px > right || py < c.y || py > bottom) return false
+  if (c.chamfer) return chamferPointOk(c, px, py, right, bottom)
+  return arcPointOk(c, px, py, right, bottom)
+}
+
+/** Chamfer cut: the 45° diagonal keeps everything with u + v ≥ r inside. */
+function chamferPointOk(
+  c: TextureCell,
+  px: number,
+  py: number,
+  right: number,
+  bottom: number,
+): boolean {
   const [tl, tr, br, bl] = c.radii
-  if (px < c.x + tl && py < c.y + tl)
-    return cornerPointOk({ px, py, ccx: c.x + tl, ccy: c.y + tl, r: tl, corner: 'tl', c })
-  if (px > c.x + c.w - tr && py < c.y + tr)
-    return cornerPointOk({ px, py, ccx: c.x + c.w - tr, ccy: c.y + tr, r: tr, corner: 'tr', c })
-  if (px > c.x + c.w - br && py > c.y + c.h - br) {
-    return cornerPointOk({
-      px,
-      py,
-      ccx: c.x + c.w - br,
-      ccy: c.y + c.h - br,
-      r: br,
-      corner: 'br',
-      c,
-    })
-  }
-  if (px < c.x + bl && py > c.y + c.h - bl)
-    return cornerPointOk({ px, py, ccx: c.x + bl, ccy: c.y + c.h - bl, r: bl, corner: 'bl', c })
+  if (px < c.x + tl && py < c.y + tl) return px - c.x + (py - c.y) >= tl
+  if (px > right - tr && py < c.y + tr) return right - px + (py - c.y) >= tr
+  if (px > right - br && py > bottom - br) return right - px + (bottom - py) >= br
+  if (px < c.x + bl && py > bottom - bl) return px - c.x + (bottom - py) >= bl
   return true
 }
 
-/** Connected sides run to the tile edge, open sides are inset by the gap margin. */
-function regionBounds(cells: TextureCell[], gapU: number): RegionBounds[] {
-  return cells.map((c) => ({
-    left: c.connectedL ? c.cx0 : c.x + gapU,
-    top: c.connectedT ? c.cy0 : c.y + gapU,
-    right: c.connectedR ? c.cx1 : c.x + c.w - gapU,
-    bottom: c.connectedB ? c.cy1 : c.y + c.h - gapU,
-  }))
+/** Arc-rounded corners: the probe stays inside while its distance to the arc center ≤ radius. */
+function arcPointOk(
+  c: TextureCell,
+  px: number,
+  py: number,
+  right: number,
+  bottom: number,
+): boolean {
+  const [tl, tr, br, bl] = c.radii
+  if (px < c.x + tl && py < c.y + tl) {
+    const dx = px - (c.x + tl)
+    const dy = py - (c.y + tl)
+    return dx * dx + dy * dy <= tl * tl
+  }
+  if (px > right - tr && py < c.y + tr) {
+    const dx = px - (right - tr)
+    const dy = py - (c.y + tr)
+    return dx * dx + dy * dy <= tr * tr
+  }
+  if (px > right - br && py > bottom - br) {
+    const dx = px - (right - br)
+    const dy = py - (bottom - br)
+    return dx * dx + dy * dy <= br * br
+  }
+  if (px < c.x + bl && py > bottom - bl) {
+    const dx = px - (c.x + bl)
+    const dy = py - (bottom - bl)
+    return dx * dx + dy * dy <= bl * bl
+  }
+  return true
 }
 
-/** Spatial lookup plus painted-fill sampling: the candidate acceptance test of the scan. */
+/** Placement bounds of the cell a candidate box is tested against (single scan, no reentrancy). */
+const probeBox = { l: 0, r: 0, t: 0, b: 0 }
+
+/** One probe point of a candidate box against the bounds in `probeBox` + the cell's painted fill. */
+function cellPointOk(c: TextureCell, px: number, py: number): boolean {
+  return (
+    px >= probeBox.l &&
+    px <= probeBox.r &&
+    py >= probeBox.t &&
+    py <= probeBox.b &&
+    fillPointOk(c, px, py)
+  )
+}
+
+/** All nine probe points of a candidate box against one cell (bounds assumed set in `probeBox`). */
+function boxOk(c: TextureCell, fx: number, fy: number, a: number): boolean {
+  const mx = fx + a / 2
+  const my = fy + a / 2
+  return (
+    cellPointOk(c, fx, fy) &&
+    cellPointOk(c, fx + a, fy) &&
+    cellPointOk(c, fx, fy + a) &&
+    cellPointOk(c, fx + a, fy + a) &&
+    cellPointOk(c, mx, fy) &&
+    cellPointOk(c, mx, fy + a) &&
+    cellPointOk(c, fx, my) &&
+    cellPointOk(c, fx + a, my) &&
+    cellPointOk(c, mx, my)
+  )
+}
+
+/** Placement bounds of one cell, derived on the fly (connected sides run to the tile edge). */
+function setProbeBox(c: TextureCell, boundsGap: number): void {
+  probeBox.l = c.connectedL ? c.cx0 : c.x + boundsGap
+  probeBox.r = c.connectedR ? c.cx1 : c.x + c.w - boundsGap
+  probeBox.t = c.connectedT ? c.cy0 : c.y + boundsGap
+  probeBox.b = c.connectedB ? c.cy1 : c.y + c.h - boundsGap
+}
+
+/**
+ * Spatial lookup plus painted-fill sampling: the candidate acceptance test of the scan. `boundsGap`
+ * is the per-side inset (0 in figure mode — there the silhouette distance test does the gap), while
+ * `gapU` drives the figure test itself and the grunge edge reference.
+ */
 function regionSampler(
   cells: TextureCell[],
-  bounds: RegionBounds[],
   sub: number,
   fig: FigureSpace | undefined,
   gapU: number,
+  boundsGap: number,
 ): Pick<RegionState, 'locate' | 'fits'> {
-  // spatial lookup: buffer tile under a doc point
-  const index = new Map<number, number>()
-  cells.forEach((c, k) => {
-    const bx = Math.floor(((c.cx0 + c.cx1) / 2) * sub)
-    const by = Math.floor(((c.cy0 + c.cy1) / 2) * sub)
-    index.set(bx * 65_536 + by, k)
-  })
-  const locate = (px: number, py: number): number | undefined =>
-    index.get(Math.floor(px * sub) * 65_536 + Math.floor(py * sub))
+  // spatial lookup: buffer tile under a doc point (dense bitmap — probed millions of times)
+  const { locate, locateTile } = regionIndex(cells, sub)
 
   // a sample point must sit inside the painted fill rect (corner fillets
   // included) AND inside the tile's placement bounds. The fill-rect test is what
   // keeps specks out of the gutters between non-touching fills; when fills tile
-  // fully (size 100%) specks cross shared edges freely, so regions stay seamless
+  // fully (size 100%) specks cross shared edges freely, so regions stay seamless.
   const sampleOk = (px: number, py: number): boolean => {
     const k = locate(px, py)
     if (k === undefined) return false
-    const b = bounds[k]
-    if (px < b.left || px > b.right || py < b.top || py > b.bottom) return false
-    if (!fillPointOk(cells[k], px, py)) return false
+    const c = cells[k]
+    setProbeBox(c, boundsGap)
+    if (!cellPointOk(c, px, py)) return false
     // figure mode: the margin is measured from the whole silhouette, not per side
     return !(fig && gapU > 0 && fig.edgeDist(px, py) < gapU)
   }
-  const fits = (fx: number, fy: number, a: number): boolean => {
+  const fitsFull = (fx: number, fy: number, a: number): boolean => {
     const mx = fx + a / 2
     const my = fy + a / 2
     return (
@@ -211,6 +242,24 @@ function regionSampler(
       sampleOk(fx + a, my) &&
       sampleOk(mx, my)
     )
+  }
+  const fits = (fx: number, fy: number, a: number): boolean => {
+    if (fig === undefined) {
+      // fast path: all nine probe points inside ONE tile — that single cell decides the box, so
+      // the answer is final (one locate + plain rect tests instead of nine full samples)
+      const tx0 = Math.floor(fx * sub)
+      const tx1 = Math.floor((fx + a) * sub)
+      const ty0 = Math.floor(fy * sub)
+      const ty1 = Math.floor((fy + a) * sub)
+      if (tx0 === tx1 && ty0 === ty1) {
+        const k = locateTile(tx0, ty0)
+        if (k === undefined) return false
+        const c = cells[k]
+        setProbeBox(c, boundsGap)
+        return boxOk(c, fx, fy, a)
+      }
+    }
+    return fitsFull(fx, fy, a)
   }
   return { locate, fits }
 }
@@ -274,8 +323,14 @@ function regionGridRange(m: RegionMetrics): RegionGrid {
   if (m.halftone) {
     const factor = Math.ceil(Math.sqrt(estTotal / MAX_REGION_FLECKS))
     if (factor > 1) stride = factor
+  } else if (estTotal > SCAN_CAP) {
+    // tiny-scale scatter on huge regions: coarsen the candidate lattice like halftone does, so the
+    // scan stays bounded; keep normalizes against the thinned node count, so the expected fleck
+    // yield is unchanged. Only the regime that already took seconds changes its exact placement.
+    stride = Math.ceil(Math.sqrt(estTotal / SCAN_CAP))
   }
-  const keep = m.halftone ? 1 : Math.min(1, MAX_REGION_FLECKS / Math.max(1, estTotal * m.p))
+  const visited = Math.ceil((I1 - I0 + 1) / stride) * Math.ceil((J1 - J0 + 1) / stride)
+  const keep = m.halftone ? 1 : Math.min(1, MAX_REGION_FLECKS / Math.max(1, visited * m.p))
   return { I0, I1, J0, J1, stride, keep, ca, sa, prMin, prMax }
 }
 
@@ -283,15 +338,38 @@ function regionGridRange(m: RegionMetrics): RegionGrid {
  * Texture hole fragments for a whole same-color region. Candidates are sampled against the actual
  * painted fills (including corner fillets), so holes never land outside the artwork. `fig` carries
  * the combined-color silhouette for figure-level gaps; each color keeps its own seamless pattern.
+ * `contentHash` is the caller's region digest for the fragment cache (figures must pass a digest
+ * covering the whole silhouette, since the gap hugs its outline); without it a digest is computed
+ * from the cell list, and figure mode skips the cache.
  */
 export function regionTextureFragments(
   cells: TextureCell[],
   t: TextureSettings,
   key: number,
   fig?: FigureSpace,
+  contentHash?: number,
 ): string {
   if (cells.length === 0 || t.effect === 'none' || t.amount <= 0) return ''
   const sub = Math.max(1, Math.round(1 / (cells[0].cx1 - cells[0].cx0)))
+  const cacheKey =
+    contentHash !== undefined || fig === undefined
+      ? cacheKeyOf(t, key, sub, contentHash ?? hashCells(cells, sub))
+      : ''
+  if (cacheKey) {
+    const hit = cachedFragments(cacheKey)
+    if (hit !== undefined) return hit
+  }
+  return finish(cacheKey, scanRegionFragments(cells, t, key, fig, sub))
+}
+
+/** The uncached scan: lattice walk + candidate emitters + dot/line assembly. */
+function scanRegionFragments(
+  cells: TextureCell[],
+  t: TextureSettings,
+  key: number,
+  fig: FigureSpace | undefined,
+  sub: number,
+): string {
   const L = 0.14 * clamp(t.scale, 0.1, 8) // lattice pitch, in cells
   const Ld = L / sub // lattice pitch, doc units
   const gapU = clamp(t.gap, 0, 0.45) / sub
@@ -321,7 +399,6 @@ export function regionTextureFragments(
   // figure mode: no per-side insets — the silhouette distance test does the gap
   const metrics: RegionMetrics = {
     cells,
-    bounds: regionBounds(cells, fig ? 0 : gapU),
     t,
     sub,
     L,
@@ -344,7 +421,7 @@ export function regionTextureFragments(
     prMin: grid.prMin,
     prMax: grid.prMax,
     keep: grid.keep,
-    ...regionSampler(cells, metrics.bounds, sub, fig, gapU),
+    ...regionSampler(cells, sub, fig, gapU, fig ? 0 : gapU),
     taken: new Map<number, number[]>(),
     dots: [],
     dotKeys: [],
@@ -358,12 +435,14 @@ export function regionTextureFragments(
     return emitHalftoneDots({ dots: s.dots, keys: s.dotKeys, dotAt: s.dotAt }, 1, t, Ld)
   }
   if (t.effect === 'hatch') return hatchRegionFragments(s, Ld)
+  // one reusable PRNG state for the whole scan: a mulberry32 closure per lattice node costs
+  // megabytes of garbage on large regions (millions of nodes)
+  const rs: RandState = { a: 0 }
   for (let J = grid.J0; J <= grid.J1 && s.count < MAX_REGION_FLECKS; J += grid.stride) {
     for (let I = grid.I0; I <= grid.I1 && s.count < MAX_REGION_FLECKS; I += grid.stride) {
-      const rand = mulberry32(hash2(I, J, t.seed + key * 1013))
-      const r: CellRand = { r1: rand(), r2: rand(), r3: rand(), r4: rand(), r5: rand() }
-      if (halftone) regionHalftoneCell(s, I, J, r, rand)
-      else regionScatterCell(s, I, J, r)
+      randSeed(rs, hash2(I, J, t.seed + key * 1013))
+      if (halftone) regionHalftoneCell(s, I, J, rs)
+      else regionScatterCell(s, I, J, rs)
     }
   }
   if (halftone) {
@@ -373,4 +452,15 @@ export function regionTextureFragments(
     )
   }
   return s.out
+}
+
+/** Cache key of one region scan: full settings, palette-value key, sub-detail and region digest. */
+function cacheKeyOf(t: TextureSettings, key: number, sub: number, digest: number): string {
+  return `${JSON.stringify(t)}|${key}|${sub}|${digest}`
+}
+
+/** Store an emitted fragment under a non-empty cache key (pass '' to skip). */
+function finish(cacheKey: string, frag: string): string {
+  if (cacheKey) storeFragments(cacheKey, frag)
+  return frag
 }

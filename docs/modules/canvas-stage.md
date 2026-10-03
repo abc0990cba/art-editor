@@ -48,7 +48,10 @@ base-canvas frame itself is dispatched in
 `stage-paint-*.util` siblings): per frame, `stagingPreview` (O(staged)) when eligible — blit
 art → punch erases with `destination-out` → repaint background with `destination-over`
 ("skipping it flashes the flat app background in place of the checkerboard") → draw preview
-paths; otherwise the fallback full `buildGeometry(doc, st)` — the fallback cliff.
+paths; otherwise the fallback full `buildGeometry(doc, st)` — the fallback cliff, which since
+2026-10-03 only remains for connector edits and non-square grids (textured/outline/metaball docs
+preview as plain fragments under the plain-until-release contract; shape drags stage into a
+pooled typed buffer read by the pixel preview directly).
 `commitStaging` produces one undoable step via `paintCells`/`paintCellsValues`; in element
 scope the fresh shape selects itself (Illustrator-style). Window-level
 pointerup/pointercancel/blur finish drags "so a lost pointerup can never turn later hover
@@ -121,7 +124,8 @@ Staging/commit behavior is covered by engine integration tests lifted through th
 
 ## Known limitations
 
-- No React.memo (see above) — hover/marquee still cause full-stage re-renders.
-- Fallback cliff for textured/outline strokes (engine-side limitation, see
-  [geometry](geometry.md)).
+- No React.memo (see above) — hover/marquee still cause full-stage re-renders (roadmap P4).
+- Commit path renders the full art bitmap; the dirty-tile geometry cache (2026-10-03,
+  `engine/geometry/tiles.ts`) already re-emits only changed tiles — per-tile art canvases are
+  the remaining lever (roadmap P1 remainder).
 - Vector/gradient workspaces have their own preview surfaces; this doc covers the pixel stage.

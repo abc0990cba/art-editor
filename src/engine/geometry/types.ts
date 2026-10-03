@@ -14,6 +14,21 @@ export interface Geometry {
 export interface Staging {
   /** Buffer index -> value (null = erase) applied on top of doc.cells */
   cells?: ReadonlyMap<number, number | null>
+  /**
+   * Typed fast path of `cells` for shape drags: a full-buffer overlay of palette values (0 =
+   * unstaged; shape drags stage ink only, never erases). When present with an empty `cells`, the
+   * ink lives here — frame paths read the dirty rows directly and the Maps are materialized once at
+   * commit (or when a legacy preview path needs them).
+   */
+  cellsBuf?: {
+    cells: Uint16Array
+    bw: number
+    bh: number
+    minX: number
+    minY: number
+    maxX: number
+    maxY: number
+  }
   /** Replaces doc.links entirely when provided (preview) */
   links?: readonly Link[]
   /** Element ids (null = clear) merged over doc.cellObj for the staged cells */

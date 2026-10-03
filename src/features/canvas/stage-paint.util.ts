@@ -1,19 +1,20 @@
-import { elementFromDoc } from '../../engine/core/doc-style.ts'
 import type { Doc, PixelStyle, StageTheme } from '../../engine/core/doc.ts'
 import type { Geometry, Staging } from '../../engine/geometry/index.ts'
 import { isPlainSquare } from '../../engine/grids/index.ts'
 import type { ResolvedTheme } from '../../state/editor.store.ts'
 
 /**
- * The staged-cell style a preview can composite incrementally: plain square grid, pixel render
- * mode, no baked texture, no connector edits — the same conditions under which `stagingPreview`
- * builds O(staged) fragment paths (so the fast path and the legacy path agree on every cell).
+ * The staged-cell style a preview can composite incrementally: plain square grid and no connector
+ * add/remove. Staged cells always render as plain square fragments — per the plain-until-release
+ * preview contract, textured/outline/metaball documents show flat strokes while dragging and gain
+ * their global effect on commit (a per-frame full-document rebuild can never hold a frame budget on
+ * large grids). This is the same rule that lets `stagingPreview` build O(staged) fragment paths, so
+ * the fast path and the legacy path agree on every cell.
  */
 export function strokePreviewCapable(doc: Doc, st: Staging): boolean {
   if (!isPlainSquare(doc)) return false
   if (st.links && st.links.length !== doc.links.length) return false
-  const el = elementFromDoc(doc)
-  return el.renderMode === 'pixels' && el.texture.effect === 'none'
+  return true
 }
 
 /**

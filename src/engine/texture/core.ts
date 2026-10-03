@@ -44,6 +44,24 @@ export function mulberry32(a: number): () => number {
   }
 }
 
+/** Mutable mulberry32 state: same sequence as `mulberry32(seed)`, no closure per draw. */
+export interface RandState {
+  a: number
+}
+
+/** Seed a reusable rand state with the same sequence `mulberry32(seed)` would produce. */
+export function randSeed(rs: RandState, seed: number): void {
+  rs.a = seed | 0
+}
+
+/** Next draw of a reusable mulberry32 state. */
+export function randNext(rs: RandState): number {
+  rs.a = (rs.a + 0x6d_2b_79_f5) | 0
+  let t = Math.imul(rs.a ^ (rs.a >>> 15), 1 | rs.a)
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+  return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296
+}
+
 /** Compact axis-aligned square fleck: `M x y h s v s h -s z`. */
 function squareFleck(fx: number, fy: number, side: number): string {
   return `M${fmt(fx)} ${fmt(fy)}h${fmt(side)}v${fmt(side)}h${fmt(-side)}z`

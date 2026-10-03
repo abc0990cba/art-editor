@@ -6,6 +6,7 @@ import {
   PX_BUFFER_LIMIT,
   strokePreviewCapable,
 } from './stage-paint.util.ts'
+import type { ShapeDragBuffer } from './stage-shape-raster.util.ts'
 
 /**
  * Full-canvas shape/move/transform previews of plain-square docs: staged cells composite as a
@@ -18,7 +19,8 @@ import {
 export function pixelPreviewEligible(p: StagePaintParams): boolean {
   const st = p.staging.current!
   if (!strokePreviewCapable(p.doc, st)) return false
-  if (p.doc.styleScope !== 'global') return false
+  // both style scopes qualify: staged cells always composite through the staging palette (shape
+  // tools pre-resolve their colors into it), so element-scope docs preview identically
   if (p.bw * p.bh > PX_BUFFER_LIMIT) return false
   return plainSquarePreviewStyle(p.doc.style)
 }
@@ -30,17 +32,54 @@ export function pixelFrame(
   art: NonNullable<StagePaintState['art']>,
 ): boolean {
   const state = p.state
-  const cells = p.staging.current!.cells!
+  const st0 = p.staging.current!
+  // typed shape-drag buffer: O(bbox) reads instead of a Map pass (and no staged erases to punch —
+  // shape drags stage ink only)
+  const buf = st0.cellsBuf
+  if (buf && (!st0.cells || st0.cells.size === 0)) return pixelFrameBuf(p, ctx, size, art, buf)
+  const cells = st0.cells!
   const px = ensurePixelBuffer(state, p.bw, p.bh)
   if (!px) return false
   const len = ensurePixelLut(state, px, p.staging.current!.palette ?? p.doc.palette)
   const bbox = fillPixelBuffer(px, cells, len)
   if (bbox) px.ctx.putImageData(px.img, 0, 0, bbox.minX, bbox.minY, bbox.w, bbox.h)
+  drawFrame(p, ctx, size, art, px)
+  punchStagedErases(p, ctx, size, cells)
+  blit(ctx, state.grid, size)
+  return true
+}
+
+function pixelFrameBuf(
+  p: StagePaintParams,
+  ctx: CanvasRenderingContext2D,
+  size: { dpr: number; w: number; h: number },
+  art: NonNullable<StagePaintState['art']>,
+  buf: ShapeDragBuffer,
+): boolean {
+  const state = p.state
+  const px = ensurePixelBuffer(state, p.bw, p.bh)
+  if (!px) return false
+  const len = ensurePixelLut(state, px, p.staging.current!.palette ?? p.doc.palette)
+  const bbox = fillPixelBufferBuf(px, buf, len)
+  if (bbox) px.ctx.putImageData(px.img, 0, 0, bbox.minX, bbox.minY, bbox.w, bbox.h)
+  drawFrame(p, ctx, size, art, px)
+  blit(ctx, state.grid, size)
+  return true
+}
+
+/** Composited frame body shared by the Map and buffer paths: bg + art + preview blits. */
+function drawFrame(
+  p: StagePaintParams,
+  ctx: CanvasRenderingContext2D,
+  size: { dpr: number; w: number; h: number },
+  art: NonNullable<StagePaintState['art']>,
+  px: NonNullable<StagePaintState['px']>,
+): void {
+  const state = p.state
   ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0)
   ctx.clearRect(0, 0, size.w, size.h)
   blit(ctx, state.bg, size)
   blit(ctx, art.canvas, size)
-  punchStagedErases(p, ctx, size, cells)
   ctx.save()
   ctx.translate(p.view.x, p.view.y)
   ctx.scale(p.view.zoom, p.view.zoom)
@@ -50,8 +89,50 @@ export function pixelFrame(
   ctx.drawImage(px.canvas, 0, 0, p.bw, p.bh, 0, 0, p.extent.w, p.extent.h)
   ctx.imageSmoothingEnabled = true
   ctx.restore()
-  blit(ctx, state.grid, size)
-  return true
+}
+
+function fillPixelBufferBuf(
+  px: NonNullable<StagePaintState['px']>,
+  buf: ShapeDragBuffer,
+  len: number,
+): { minX: number; minY: number; w: number; h: number } | null {
+  const bw = px.canvas.width
+  const u32 = px.u32
+  let minX = bw
+  let minY = bw
+  let maxX = -1
+  let maxY = -1
+  const mark = (i: number) => {
+    const gx = i % bw
+    const gy = (i - gx) / bw
+    if (gx < minX) minX = gx
+    if (gy < minY) minY = gy
+    if (gx > maxX) maxX = gx
+    if (gy > maxY) maxY = gy
+  }
+  // zero the previous frame's cells — the shape ghost is cleared and rebuilt per event
+  for (const i of px.last) {
+    if (u32[i] !== 0) {
+      u32[i] = 0
+      mark(i)
+    }
+  }
+  px.last.length = 0
+  for (let y = buf.minY; y <= buf.maxY; y++) {
+    const row = y * buf.bw
+    for (let x = buf.minX; x <= buf.maxX; x++) {
+      const i = row + x
+      const v = buf.cells[i]
+      px.last.push(i)
+      const c = v > 0 ? px.lut[v > len ? (((v - 1) % len) | 0) + 1 : v] : 0
+      if (u32[i] !== c) {
+        u32[i] = c
+        mark(i)
+      }
+    }
+  }
+  if (maxX < 0) return null
+  return { minX, minY, w: maxX - minX + 1, h: maxY - minY + 1 }
 }
 
 function ensurePixelBuffer(state: StagePaintState, bw: number, bh: number): StagePaintState['px'] {

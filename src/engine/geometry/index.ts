@@ -231,10 +231,12 @@ export interface StagingPreview {
 /**
  * Incremental in-stroke preview built from ONLY the staged cells — a frame costs O(staged cells)
  * instead of a full-document rebuild, which keeps drawing responsive on 500×500+ grids with any
- * corner-rounding option (fragments go through the same path builders as shapeGeometry). Returns
- * null when the preview needs global context and the caller must fall back to buildGeometry:
- * outline/metaball contours, baked textures, connector edits and non-square grids all reshape
- * content outside the staged cell set.
+ * corner-rounding option (fragments go through the same path builders as shapeGeometry). Staged
+ * cells always preview as their plain per-cell fragments: textured/outline/metaball documents show
+ * flat strokes while dragging and gain their global effect on commit (the plain-until- release
+ * preview contract — a per-frame whole-document rebuild can never hold a frame budget on large
+ * grids). Returns null only when staged cells cannot be rendered as square-cell fragments at all:
+ * non-square grids and connector add/remove.
  */
 export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | null {
   const s = staging.cells
@@ -246,9 +248,6 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
 
   const elementScope = doc.styleScope === 'element' && (doc.cellObj || staging.objs)
   const fallback = elementFromDoc(doc)
-  const usable = (el: ElementStyle) => el.renderMode === 'pixels' && el.texture.effect === 'none'
-  // global scope renders outline/metaball/textured docs canvas-wide, erase included
-  if (!elementScope && !usable(fallback)) return null
 
   const bw = bufferWidth(doc)
   const bh = bufferHeight(doc)
@@ -264,19 +263,12 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
 
   for (const [i, v] of s) {
     if (v === null || v === 0) {
-      // erasing reshapes the contour of whatever element owned the cell
-      const owner = elementScope ? (doc.cellObj?.[i] ?? 0) : 0
-      if (owner > 0) {
-        const el = doc.elements[owner - 1]
-        if (el && !usable(el)) return null
-      }
       erase.push(i)
       continue
     }
     const id = elementScope ? (staging.objs?.get(i) ?? doc.cellObj?.[i] ?? 0) : 0
     const el =
       id >= 1 && id !== PENDING_OBJ && doc.elements[id - 1] ? doc.elements[id - 1] : fallback
-    if (!usable(el)) return null
     const key = elementStyleKey(el)
     let g = groups.get(key)
     if (!g) groups.set(key, (g = { frags: new Map() }))

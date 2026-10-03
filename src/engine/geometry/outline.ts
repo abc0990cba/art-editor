@@ -3,6 +3,7 @@ import type { Doc, Link, TextureSettings } from '../core/doc'
 import { bufferHeight, bufferWidth, cellColor } from '../core/doc'
 import { regionTextureFragments, type TextureCell } from '../texture'
 import { figureSpace, type FigureSpace } from '../texture/figure'
+import { FNV_OFFSET, fnvFloat, fnvWord } from '../texture/region-index.ts'
 import { marchingSquares, type Pt } from './marching-squares.ts'
 
 /**
@@ -31,10 +32,14 @@ export function outlineGeometry(
 
   // figure-level gap: one silhouette space over every color, so the margin hugs the merged
   // outline of the whole picture and internal color borders stay seamless
-  const fig: FigureSpace | undefined =
-    doc.texture.effect !== 'none' && doc.texture.gapMode === 'figure'
-      ? figureSpace(allOutlineCells(doc, cells), doc.sub)
-      : undefined
+  const texSeed = outlineTexSeed(doc)
+  let fig: FigureSpace | undefined
+  let figSeed: number | undefined
+  if (doc.texture.effect !== 'none' && doc.texture.gapMode === 'figure') {
+    const space = allOutlineCells(doc, cells)
+    fig = figureSpace(space.cells, doc.sub)
+    figSeed = space.digest
+  }
 
   const paths: StyledPath[] = []
   for (const v of order) {
@@ -70,7 +75,7 @@ export function outlineGeometry(
       keepCorner,
     )
     if (d && doc.texture.effect !== 'none')
-      d += cellTextureFragments(doc, cells, v, doc.texture, fig)
+      d += cellTextureFragments(doc, cells, v, doc.texture, fig, texSeed, figSeed)
     if (d) paths.push({ d, fill: cellColor(doc, v) ?? '#888' })
     // bridges go on a separate same-color path: inside the silhouette path their area would
     // cancel against the loops under the evenodd rule
@@ -142,16 +147,21 @@ function outlineCell(
 }
 
 /** Texture cells of every painted cell across all colors (figure-silhouette input). */
-function allOutlineCells(doc: Doc, cells: Uint16Array): TextureCell[] {
+function allOutlineCells(doc: Doc, cells: Uint16Array): { cells: TextureCell[]; digest: number } {
   const bw = bufferWidth(doc)
   const bh = bufferHeight(doc)
   const list: TextureCell[] = []
+  let digest = outlineTexSeed(doc)
   for (let y = 0; y < bh; y++) {
     for (let x = 0; x < bw; x++) {
-      if (cells[y * bw + x] !== 0) list.push(outlineCell(doc, cells, bw, bh, x, y))
+      if (cells[y * bw + x] !== 0) {
+        const c = outlineCell(doc, cells, bw, bh, x, y)
+        list.push(c)
+        digest = mixOutlineCell(digest, x, y, c)
+      }
     }
   }
-  return list
+  return { cells: list, digest }
 }
 
 /**
@@ -160,7 +170,8 @@ function allOutlineCells(doc: Doc, cells: Uint16Array): TextureCell[] {
  * empty space, so same-color regions stay continuous. A cell corner whose two orthogonal neighbors
  * are outside the group is a convex region corner — filleted with the convex radius, so specks get
  * the corner test. Concave fillets arc on the far side of the corner point and never enter this
- * cell's tile, so they need no guard.
+ * cell's tile, so they need no guard. `figSeed` (the whole-silhouette digest) unlocks the fragment
+ * cache in figure mode, where the gap hugs every color's outline.
  */
 function cellTextureFragments(
   doc: Doc,
@@ -168,17 +179,45 @@ function cellTextureFragments(
   v: number,
   tex: TextureSettings,
   fig: FigureSpace | undefined,
+  seed: number,
+  figSeed?: number,
 ): string {
   const bw = bufferWidth(doc)
   const bh = bufferHeight(doc)
   const list: TextureCell[] = []
+  let digest = seed
   for (let y = 0; y < bh; y++) {
     for (let x = 0; x < bw; x++) {
       if (cells[y * bw + x] !== v) continue
-      list.push(outlineCell(doc, cells, bw, bh, x, y))
+      const c = outlineCell(doc, cells, bw, bh, x, y)
+      list.push(c)
+      digest = mixOutlineCell(digest, x, y, c)
     }
   }
-  return regionTextureFragments(list, tex, v, fig)
+  return regionTextureFragments(list, tex, v, fig, fig ? figSeed : digest)
+}
+
+/** Digest seed of the style inputs beyond the per-cell layout (convex fillets, sub-detail). */
+function outlineTexSeed(doc: Doc): number {
+  let seed = fnvFloat(FNV_OFFSET, doc.style.convexRadius / doc.sub)
+  seed = fnvFloat(seed, 1 / doc.sub)
+  if (doc.style.cornerStyle === 'chamfer') seed = fnvWord(seed, 1)
+  return fnvWord(seed, doc.sub)
+}
+
+/** Mix one outline cell's layout into a digest: position, connectivity, fillet pattern. */
+function mixOutlineCell(acc: number, x: number, y: number, c: TextureCell): number {
+  const flags =
+    (c.connectedL ? 1 : 0) |
+    (c.connectedT ? 2 : 0) |
+    (c.connectedR ? 4 : 0) |
+    (c.connectedB ? 8 : 0)
+  const radiiBits =
+    Number(c.radii[0] !== 0) |
+    (Number(c.radii[1] !== 0) << 1) |
+    (Number(c.radii[2] !== 0) << 2) |
+    (Number(c.radii[3] !== 0) << 3)
+  return fnvWord(fnvWord(fnvWord(acc, x), y), flags | (radiiBits << 4))
 }
 
 /**

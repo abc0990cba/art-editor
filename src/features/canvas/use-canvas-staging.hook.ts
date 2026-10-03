@@ -12,27 +12,22 @@ import {
   polarAngleMaps,
   symmetryPairPoints,
   symmetryPoints,
-  symmetryTransforms,
 } from '../../engine/effects/symmetry.ts'
 import { PENDING_OBJ, type Staging } from '../../engine/geometry/index.ts'
 import { makeGrid, isPlainSquare } from '../../engine/grids/index.ts'
 import { brushAnchor, brushOffsets } from '../../engine/paint/brush.ts'
-import { regionCells, pointInPolys, fillCellsEvenOdd } from '../../engine/shapes/fill.ts'
-import {
-  ellipsePoints,
-  isShapeTool,
-  linePoints,
-  rectPoints,
-  shapePathPoints,
-  shapePathSegments,
-  shapeHasHoles,
-  shapePathLoops,
-} from '../../engine/shapes/index.ts'
-import { applyFillStyle, patternCoord } from '../../engine/texture/fill.ts'
+import { pointInPolys } from '../../engine/shapes/fill.ts'
+import { isShapeTool, shapePathSegments, shapeHasHoles } from '../../engine/shapes/index.ts'
 import { useStore, type State } from '../../state/editor.store.ts'
 import { MAX_STAMPS, blobCells, type DocPoint, type DragState } from './canvas-stage.util.ts'
 import { fillSeedsFor } from './fill-seeds.util.ts'
 import { shapeParametric, type ParametricSpec } from './shape-commit.util.ts'
+import {
+  beginShapeDrag,
+  materializeShapeStaging,
+  rasterSquareShape,
+  type ShapeDragBuffer,
+} from './stage-shape-raster.util.ts'
 import { strokeLineCells } from './stroke-line.util.ts'
 
 /** Inputs the in-stroke staging subsystem reads from the stage. */
@@ -156,6 +151,7 @@ export function useCanvasStaging({
     }
     const st = stagingRef.current as {
       cells: Map<number, number | null>
+      cellsBuf?: ShapeDragBuffer
       links?: Link[]
       objs: Map<number, number | null>
       palette?: readonly string[]
@@ -450,68 +446,10 @@ export function useCanvasStaging({
         st.palette = resolved.palette
         shapeResolvedRef.current = resolved
       }
-      const stampCell = (i: number, val: number) => {
-        st.cells.set(i, val)
-        st.objs!.set(i, PENDING_OBJ)
-      }
-      /** Even-odd fill of a hole-bearing copy (skull); null for regular shapes */
-      const holeFillFor = (a: [number, number], b: [number, number]) =>
-        isShapeTool(tool) && shapeHasHoles(tool)
-          ? fillCellsEvenOdd(
-              shapePathLoops(tool, a[0], a[1], b[0], b[1], {
-                ...toolOpts,
-                circles: concentricRadii,
-              }),
-              bw,
-              bh,
-            )
-          : null
-      /** Fill + aligned stroke of one rasterized copy (square grid) */
-      const emitSquareCopy = (outlinePts: [number, number][], holeFill?: Set<number> | null) => {
-        const outlineSet = new Set(outlinePts.map(([x, y]) => y * bw + x))
-        let inside: Set<number> | null = null
-        let outside: Set<number> | null = null
-        if (holeFill) {
-          inside = holeFill
-        } else if (shapePaint.fill !== 'none' || shapePaint.align !== 'center') {
-          const region = regionCells(outlineSet, bw, bh)
-          inside = region.inside
-          outside = region.outside
-        }
-        if (shapePaint.fill !== 'none') {
-          // the boundary belongs to the fill too: with the stroke off the silhouette
-          // stays closed, with it on the stroke paints over the boundary
-          if (shapePaint.fill === 'pattern') {
-            const regionIdx = [...outlineSet, ...inside!]
-            const seed = outlinePts[0][1] * bw + outlinePts[0][0]
-            const picks = applyFillStyle(fillStyle, regionIdx, seed, patternCoord(resolved))
-            for (const [i, pick] of picks) stampCell(i, pick === 1 ? vFillSecond : vFillMain)
-          } else {
-            for (const i of inside!) stampCell(i, vFillMain)
-            for (const i of outlineSet) stampCell(i, vFillMain)
-          }
-        }
-        if (shapePaint.stroke) {
-          for (const [px, py] of outlinePts) {
-            for (const [dx, dy] of tipOffsets) {
-              const x = px + dx
-              const y = py + dy
-              if (x < 0 || y < 0 || x >= bw || y >= bh) continue
-              const i = y * bw + x
-              // alignment filters the tip blob against the shape's own regions
-              const keep =
-                shapePaint.align === 'center'
-                  ? true
-                  : shapePaint.align === 'inner'
-                    ? !outside!.has(i)
-                    : !inside!.has(i)
-              if (keep) stampCell(i, vStroke)
-            }
-          }
-        }
-      }
       if (isSquare) {
-        // shape endpoints snap to the pixel-size grid like brush anchors
+        // shape endpoints snap to the pixel-size grid like brush anchors; the raster
+        // lands in the pooled typed drag buffer (Map/Set churn on million-cell shapes
+        // cost hundreds of ms per move — see stage-shape-raster.util.ts)
         const pt = (p: DocPoint): [number, number] => {
           const bx = Math.floor(p.x * doc.sub)
           const by = Math.floor(p.y * doc.sub)
@@ -520,104 +458,31 @@ export function useCanvasStaging({
         }
         const s0 = pt(start)
         const s1 = pt(end)
-        const rasterize = (a: [number, number], b: [number, number]) =>
-          tool === 'line'
-            ? linePoints(a[0], a[1], b[0], b[1])
-            : tool === 'rect'
-              ? rectPoints(a[0], a[1], b[0], b[1], toolOpts)
-              : isShapeTool(tool)
-                ? shapePathPoints(tool, a[0], a[1], b[0], b[1], {
-                    ...toolOpts,
-                    circles: concentricRadii,
-                  })
-                : ellipsePoints(a[0], a[1], b[0], b[1], toolOpts)
-        const transforms = symmetryTransforms(bw, bh, symmetry.mode, symmetry.n, radialOpts)
-        if (transforms) {
-          // finite modes: map the defining points through every copy and re-rasterize,
-          // so each copy is a correctly drawn shape instead of a mirrored raster
-          const copies: [number, number, number, number][] = [[s0[0], s0[1], s1[0], s1[1]]]
-          for (const t of transforms) {
-            const a = t(s0[0], s0[1])
-            const b = t(s1[0], s1[1])
-            copies.push([a[0], a[1], b[0], b[1]])
-          }
-          for (const [ax, ay, bx, by] of copies) {
-            if (shapeLike) {
-              emitSquareCopy(rasterize([ax, ay], [bx, by]), holeFillFor([ax, ay], [bx, by]))
-            } else {
-              for (const [px, py] of rasterize([ax, ay], [bx, by]))
-                stampTipInto(st, vStroke, px, py)
-            }
-          }
-        } else {
-          // repeat/wallpaper modes: classify the primary copy, then expand every kept
-          // cell through its symmetry orbit
-          const outlinePts = rasterize(s0, s1)
-          if (shapeLike) {
-            const cap = Math.max(64, Math.floor(MAX_STAMPS / Math.max(1, tipOffsets.length)))
-            const outlineSet = new Set(outlinePts.map(([x, y]) => y * bw + x))
-            const region = regionCells(outlineSet, bw, bh)
-            const hf = holeFillFor(s0, s1)
-            if (hf) region.inside = hf
-            const orbitOf = (x: number, y: number) =>
-              symmetryPoints(x, y, bw, bh, symmetry.mode, symmetry.n, symmetry.cell, radialOpts)
-            if (shapePaint.fill !== 'none') {
-              if (shapePaint.fill === 'pattern') {
-                const regionArr = [...outlineSet, ...region.inside]
-                const seed = outlinePts[0][1] * bw + outlinePts[0][0]
-                const picks = applyFillStyle(fillStyle, regionArr, seed, patternCoord(resolved))
-                for (const [i, pick] of picks) {
-                  const x = i % bw
-                  const y = (i - x) / bw
-                  for (const [ox, oy] of orbitOf(x, y).slice(0, cap))
-                    stampCell(oy * bw + ox, pick === 1 ? vFillSecond : vFillMain)
-                }
-              } else {
-                for (const i of [...region.inside, ...outlineSet]) {
-                  const x = i % bw
-                  const y = (i - x) / bw
-                  for (const [ox, oy] of orbitOf(x, y).slice(0, cap))
-                    stampCell(oy * bw + ox, vFillMain)
-                }
-              }
-            }
-            if (shapePaint.stroke) {
-              for (const [px, py] of outlinePts) {
-                for (const [dx, dy] of tipOffsets) {
-                  const x = px + dx
-                  const y = py + dy
-                  if (x < 0 || y < 0 || x >= bw || y >= bh) continue
-                  const i = y * bw + x
-                  const keep =
-                    shapePaint.align === 'center'
-                      ? true
-                      : shapePaint.align === 'inner'
-                        ? !region.outside.has(i)
-                        : !region.inside.has(i)
-                  if (!keep) continue
-                  for (const [ox, oy] of orbitOf(x, y).slice(0, cap))
-                    stampCell(oy * bw + ox, vStroke)
-                }
-              }
-            }
-          } else {
-            const cap = Math.max(64, Math.floor(MAX_STAMPS / tipOffsets.length))
-            for (const [px, py] of outlinePts) {
-              const orbit = symmetryPoints(
-                px,
-                py,
-                bw,
-                bh,
-                symmetry.mode,
-                symmetry.n,
-                symmetry.cell,
-                radialOpts,
-              )
-              for (const [ox, oy] of orbit.slice(0, cap)) stampTipInto(st, vStroke, ox, oy)
-            }
-          }
-        }
+        const buf = beginShapeDrag(doc.cells.length, bw, bh)
+        st.cells = new Map()
+        st.objs = new Map()
+        st.cellsBuf = buf
+        rasterSquareShape(buf, s0, s1, {
+          tool,
+          toolOpts,
+          concentricRadii,
+          shapePaint,
+          fillStyle,
+          resolved,
+          vStroke,
+          vFillMain,
+          vFillSecond,
+          tipOffsets,
+          symmetry,
+          radialOpts,
+          shapeLike,
+          hasHoles: isShapeTool(tool) && shapeHasHoles(tool),
+        })
       } else {
+        const stampCell = (i: number, val: number) => {
+          st.cells.set(i, val)
+          st.objs!.set(i, PENDING_OBJ)
+        }
         // sample the outline in doc space, stamp the brush blob through grid symmetry
         const idxs = new Set<number>()
         // float polylines of the shape (doc space): interior test for the fill
@@ -780,6 +645,8 @@ export function useCanvasStaging({
     const st = stagingRef.current
     stagingRef.current = null
     const erase = tool === 'eraser'
+    // typed shape-drag buffers materialize into their Maps exactly once, here
+    if (st) materializeShapeStaging(st)
     if (st && st.cells && st.cells.size > 0) {
       const resolved = shapeResolvedRef.current
       shapeResolvedRef.current = null

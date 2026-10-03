@@ -13,6 +13,92 @@ export interface ShapeRegion {
 }
 
 /**
+ * Bbox-local exterior mask of an outline: the typed variant of `regionCells` for the shape-drag hot
+ * path, where per-move Set churn over million-cell shapes dominates the frame budget. A cell of the
+ * window is interior when its mask byte is 0 and it is not an outline cell.
+ */
+export interface RegionMask {
+  /** 1 = exterior (flood-reached), 0 = unknown — interior iff also not an outline cell */
+  outside: Uint8Array
+  minX: number
+  minY: number
+  w: number
+  h: number
+}
+
+let maskPool: { outside: Uint8Array; stack: Int32Array } | null = null
+
+/** Pooled scratch for `regionMask` (grows to the largest window seen; one drag at a time). */
+export function regionMaskScratch(minLen: number): { outside: Uint8Array; stack: Int32Array } {
+  if (!maskPool || maskPool.outside.length < minLen) {
+    maskPool = { outside: new Uint8Array(minLen), stack: new Int32Array(minLen) }
+  }
+  return maskPool
+}
+
+export function regionMask(
+  outline: ReadonlySet<number>,
+  bw: number,
+  bh: number,
+  scratch?: { outside: Uint8Array; stack: Int32Array },
+): RegionMask {
+  let minX = bw
+  let minY = bh
+  let maxX = -1
+  let maxY = -1
+  for (const i of outline) {
+    const x = i % bw
+    const y = (i - x) / bw
+    if (x < minX) minX = x
+    if (x > maxX) maxX = x
+    if (y < minY) minY = y
+    if (y > maxY) maxY = y
+  }
+  minX = Math.max(0, minX - 1)
+  minY = Math.max(0, minY - 1)
+  maxX = Math.min(bw - 1, maxX + 1)
+  maxY = Math.min(bh - 1, maxY + 1)
+  const w = maxX - minX + 1
+  const h = maxY - minY + 1
+  const len = Math.max(1, w * h)
+  const s = scratch ?? regionMaskScratch(len)
+  const outside = s.outside
+  const stack = s.stack
+  outside.fill(0, 0, len)
+  if (outline.size === 0 || bw <= 0 || bh <= 0 || w <= 0 || h <= 0) {
+    return { outside, minX, minY, w, h }
+  }
+  let sp = 0
+  const visit = (x: number, y: number): void => {
+    if (x < minX || x > maxX || y < minY || y > maxY) return
+    const li = (y - minY) * w + (x - minX)
+    if (outside[li] || outline.has(y * bw + x)) return
+    outside[li] = 1
+    stack[sp++] = li
+  }
+  for (let x = minX; x <= maxX; x++) {
+    visit(x, minY)
+    visit(x, maxY)
+  }
+  for (let y = minY; y <= maxY; y++) {
+    visit(minX, y)
+    visit(maxX, y)
+  }
+  while (sp > 0) {
+    const li = stack[--sp]
+    const lx = li % w
+    const ly = (li - lx) / w
+    const x = minX + lx
+    const y = minY + ly
+    visit(x - 1, y)
+    visit(x + 1, y)
+    visit(x, y - 1)
+    visit(x, y + 1)
+  }
+  return { outside, minX, minY, w, h }
+}
+
+/**
  * Split the square buffer around an outline into interior and exterior. The flood runs inside the
  * outline's bounding box inflated by one cell, so shapes touching the canvas border still classify
  * correctly and the cost stays proportional to the shape, not the canvas.

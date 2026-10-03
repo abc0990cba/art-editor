@@ -255,11 +255,20 @@ production (vtracer WASM is a dev-only parity oracle).
 
 ## 10. Prioritized roadmap (proposal)
 
+Status after the 2026-10-03 optimization session (see PERFLOG rows of that date and the size
+matrix in §12): **P1 partially shipped** (dirty-tile geometry cache with pixel-identity tests —
+commit 4096² 120 → 51–89 ms e2e, undo 92 → 2–3 ms; the remaining gap to the 16 ms gate is the
+full-art raster + stage render), **P2 shipped** (plain-until-release previews: textured/outline/
+metaball docs no longer rebuild per stroke frame), the **texture engine rewritten** (bbox-lattice
+scan → capped + cached: grain rebuild 512² 1.78 s → 8 ms), the **fill flood tuned in production**
+(9.0 → 5.7 ms @2048²). **P1 remainder** (per-tile art canvases + stage memoization), P0, P3, P4,
+P5 remain open.
+
 | P | Item | Target / gate | Based on |
 |---|---|---|---|
 | **P0** | Split `pos` out of `Graph` (layout map + serialization versioning); rAF-coalesce graph edits | drag tick ≈ 0 ms; scrub = 1 dispatch/frame | §3.2 |
-| **P1** | Tile data model: dirty-tile geometry + composite patching + patch-undo | commit 4096² ≤ 16 ms (local edit); undo ≤ 5 ms; pixel-identity golden tests | §4 |
-| **P2** | Stroke-fallback strategy for texture/outline (per-tile preview post-P1; fallback throttling pre-P1); texture cost decomposition | stroke frame ≤ 16 ms in all modes | §5 |
+| **P1✓/…** | Tile data model: dirty-tile geometry ✓ (engine cache, 2026-10-03); remaining: composite patching (per-tile art canvases) + patch-undo | commit 4096² ≤ 16 ms (local edit) — now 51–89 ms; undo ≤ 5 ms ✓ (2–3 ms) | §4, §12 |
+| **P2✓** | Stroke-fallback strategy — shipped as the plain-until-release preview contract; texture cost decomposed and capped (`SCAN_CAP`) + fragment-cached | stroke frame ≤ 16 ms in all modes ✓ | §5, §12 |
 | **P3** | Node eval efficiency: typed-array `Cells` + per-node result memo; memoize editor stages | graph eval 4096² 651 → ≤ 130 ms | §3.1, §3.3 |
 | **P4** | Canvas quick wins: hover out of the render path + `React.memo` stage children; ants minimal redraw (after a live-frames measurement); grid bitmap cache | no React render per cell crossing; idle-with-selection ≈ 0 when occluded | §7 |
 | **P5** | Workers: autosave stringify/thumbnail, import dither, export OffscreenCanvas | no main-thread block > 16 ms from auxiliary features | §8, §9 |
@@ -288,3 +297,40 @@ bottleneck), gesture rework (zoom already in budget), worker-offloading of compo
   rustc)" cargo build --release --target wasm32-unknown-unknown` (explicit RUSTC needed where
   Homebrew's rustc shadows the rustup toolchain); the bench skips cleanly when the module is
   absent.
+
+## 12. Size-capability matrix (2026-10-03, post-optimization session)
+
+Measured capability of pixel mode by canvas size after the texture-engine, dirty-tile-geometry,
+preview and fill optimizations (engine benches on the bench machine + two browser harness runs;
+browser numbers carry a framesLive:false occlusion caveat where noted). "Comfortable" ≈ every
+interactive step stays within a frame budget or a single-click wait; "usable with care" ≈ visible
+but bounded hitches on commits and texture application; "caution" ≈ multi-second one-shot waits
+and a history depth of ~2 steps.
+
+| Operation (pixel mode) | 512² | 1024² | 2048² | 4096² |
+|---|---|---|---|---|
+| Freehand stroke (per frame) | ~0.5 ms | ~0.5 ms | ~0.5–0.7 ms | ~0.5–0.7 ms |
+| Shape drag (typed staging) | < 1 ms/move | ~1–2 ms/move | ~2–5 ms/move | ~5–15 ms/move |
+| Commit after a stroke (e2e) | ~10–16 ms | ~20 ms | ~42–45 ms | ~51–89 ms |
+| Undo (e2e) | ~4–5 ms | ~5 ms | ~4–10 ms | **~2–3 ms** |
+| Zoom step | ~4 ms | ~4 ms | ~3–15 ms | ~3–5 ms |
+| Texture apply, grain cold (region = full canvas) | ~66 ms | ~70 ms | ~160 ms | ~240 ms |
+| Texture apply, cached rebuild | ~0 ms | ~0 ms | ~0 ms | ~0 ms |
+| Hatch/halftone apply | ≤ 1 ms | ≤ 2 ms | ≤ 5 ms | ≤ 10 ms |
+| Flood fill (7% region) | 0.2 ms | ~1.5 ms | ~5.7 ms | ~25 ms |
+| buildGeometry cold (15% runs) | ~1 ms | ~3 ms | ~10 ms | ~40 ms |
+
+Reading guide:
+
+- **512²–1024²: comfortable.** Every drawing interaction is frame-budgeted; texture and fill
+  applies are imperceptible. Recommended working sizes for animation-like editing loops.
+- **2048²: usable with care.** Drawing stays smooth (strokes, shape drags and previews are all
+  O(stroke/shape)); commits cost ~2 frames and a full-canvas cold texture ~160 ms once per
+  settings change (rebuilds and undo are cached/near-free).
+- **4096²: caution.** Strokes and previews remain smooth, but commits (~50–90 ms), cold texture
+  (~240 ms) and the 96 MB live buffer (undo history shrinks to ~2 steps per the 256 MB budget)
+  are noticeable. Use for final assembly rather than sketching.
+
+Residual levers (roadmap): per-tile art canvases + React memoization to bring the 4096² commit
+under the 16 ms gate (P1 remainder); hover out of the render path (P4); node-graph typed Cells
+(P3). WASM stays gated out (ADR-0003 re-evaluated 2026-10-03 — no candidate ≥ 2× on tuned TS).

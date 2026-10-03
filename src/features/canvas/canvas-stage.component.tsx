@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
-import { STAGE_THEMES, docExtent } from '../../engine/core/doc.ts'
+import { STAGE_THEMES, docExtent, type Doc } from '../../engine/core/doc.ts'
 import { nodeProtected, objLayer, type SceneLayer } from '../../engine/core/scene.ts'
 import { scrollbarMetrics } from '../../engine/core/scrollbars.ts'
 import { selectionBox, type CellBox } from '../../engine/effects/selection-xform.ts'
-import { buildGeometry } from '../../engine/geometry/index.ts'
+import { ensureTileGeometry } from '../../engine/geometry/tiles.ts'
 import { cellCoordLabel } from '../../engine/grids/index.ts'
 import { isShapeTool } from '../../engine/shapes/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
@@ -202,8 +202,15 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
   // committed geometry only: during strokes the base layer composites the staged delta
   // on top of a cached artwork bitmap (see the base render effect), so the full-document
-  // rebuild runs on doc changes — not on every rAF tick of a stroke
-  const geometry = useMemo(() => buildGeometry(doc), [doc])
+  // rebuild runs on doc changes — not on every rAF tick of a stroke.
+  // The rebuild is tile-incremental: `ensureTileGeometry` diffs the buffers against the previous
+  // document and re-emits only the tiles that changed (plain pixel docs; everything else falls
+  // back to the whole-document builder). The assignment below is the previous-doc handshake —
+  // the memo for this render must see the PREVIOUS document; the engine-side WeakMap cache
+  // keeps a StrictMode double render idempotent.
+  const prevDocRef = useRef<Doc | null>(null)
+  const geometry = useMemo(() => ensureTileGeometry(prevDocRef.current, doc), [doc])
+  prevDocRef.current = doc
 
   const [hover, setHover] = useState<Hover | null>(null)
   const drag = useRef<DragState | null>(null)

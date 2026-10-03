@@ -73,6 +73,21 @@ function htNoise(x: number, y: number): number {
  * patterns repeat every 4·scale cells.
  */
 
+/**
+ * Cached screen rotation for the current angle: a fill region evaluates this per cell, so the trig
+ * runs once per angle change instead of once per cell.
+ */
+let screenAngleCache: { deg: number; ca: number; sa: number } | null = null
+
+function screenAngle(o: PatternOpts): { ca: number; sa: number } {
+  const deg = ((((o.htAngle ?? 45) % 180) + 180) % 180) * (Math.PI / 180)
+  const hit = screenAngleCache
+  if (hit && hit.deg === deg) return hit
+  const next = { deg, ca: Math.cos(deg), sa: Math.sin(deg) }
+  screenAngleCache = next
+  return next
+}
+
 /** One cell of the halftone screen pattern (grid / hex / rings), tone in dot area. */
 function screenPatternAt(o: PatternOpts, x: number, y: number, c: number, s: number): boolean {
   // true halftone screen: a rotated dot grid in screen space, tone in dot
@@ -80,9 +95,7 @@ function screenPatternAt(o: PatternOpts, x: number, y: number, c: number, s: num
   // elliptical chains or plain bands; jitter scatters the grid, dropout
   // wears patches of dots away.
   const pitch = 6 * s
-  const deg = ((((o.htAngle ?? 45) % 180) + 180) % 180) * (Math.PI / 180)
-  const ca = Math.cos(deg)
-  const sa = Math.sin(deg)
+  const { ca, sa } = screenAngle(o)
   let iu = 0
   let iv = 0
   let du = 0
