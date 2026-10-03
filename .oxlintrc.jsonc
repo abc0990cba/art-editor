@@ -706,8 +706,8 @@
         "error",
         {
           // 1308→1288: shared zoom plates; 1288→1282: grid-native cursor coords (2026-09);
-          // 1282→1223: wheel/pinch/space navigation extracted to use-canvas-view (2026-10)
-          "max": 1223,
+          // 1282→1223: wheel/pinch/space navigation extracted to use-canvas-view (2026-10); 1223→1095: base render extracted to stage-paint*.util (2026-10)
+          "max": 1095,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -1281,7 +1281,7 @@
       "eslint/max-lines": [
         "error",
         {
-          "max": 794,
+          "max": 778,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -1289,7 +1289,7 @@
       "eslint/max-lines-per-function": [
         "error",
         {
-          "max": 746,
+          "max": 728,
           "skipComments": true,
           "skipBlankLines": true
         }

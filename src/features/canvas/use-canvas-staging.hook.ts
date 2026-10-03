@@ -31,7 +31,9 @@ import {
 } from '../../engine/symmetry.ts'
 import { useStore, type State } from '../../state/editor.store.ts'
 import { MAX_STAMPS, blobCells, type DocPoint, type DragState } from './canvas-stage.util.ts'
+import { fillSeedsFor } from './fill-seeds.util.ts'
 import { shapeParametric, type ParametricSpec } from './shape-commit.util.ts'
+import { strokeLineCells } from './stroke-line.util.ts'
 
 /** Inputs the in-stroke staging subsystem reads from the stage. */
 export interface CanvasStagingParams {
@@ -116,6 +118,9 @@ export function useCanvasStaging({
 
   // ---- staging (in-stroke preview, not part of history) ----
   const stagingRef = useRef<Staging | null>(null)
+  // buffer indices stamped since the last composited frame: the canvas stroke layer drains
+  // this per rAF and renders only the delta, so frames stay O(new cells) on long strokes
+  const frameDeltaRef = useRef<number[] | null>(null)
   // set by stampShape for shape strokes: the pre-resolved doc (palette may gain the fill
   // and stroke colors) that commitStaging must pass to paintCellsValues, then cleared
   const shapeResolvedRef = useRef<Doc | null>(null)
@@ -141,12 +146,14 @@ export function useCanvasStaging({
   const ensureStaging = () => {
     // links stays undefined: paint strokes preview over the committed connectors, and only
     // link edits (eraser over links, connector tool, move) assign staging.links explicitly
-    if (!stagingRef.current)
+    if (!stagingRef.current) {
       stagingRef.current = {
         cells: new Map<number, number | null>(),
         objs: new Map<number, number | null>(),
         layerId: activeLayerState().id ?? undefined,
       }
+      frameDeltaRef.current = []
+    }
     const st = stagingRef.current as {
       cells: Map<number, number | null>
       links?: Link[]
@@ -278,13 +285,15 @@ export function useCanvasStaging({
   )
 
   const stampCells = useCallback(
-    (idxs: number[], erase: boolean, dragState: DragState, pDoc: DocPoint | null) => {
+    (idxs: number[], erase: boolean, dragState: DragState, pDoc: DocPoint | null): number => {
       const st = ensureStaging()
       const v = colorValueFor(color)
       for (const idx of idxs) {
         st.cells.set(idx, erase ? null : v)
         if (!erase) st.objs!.set(idx, PENDING_OBJ)
       }
+      const delta = frameDeltaRef.current
+      if (delta) for (const idx of idxs) delta.push(idx)
       if (erase && pDoc && doc.links.length > 0) {
         const hit = (0.5 + doc.connectorWidth / 2) ** 2
         doc.links.forEach((l, i) => {
@@ -295,6 +304,7 @@ export function useCanvasStaging({
         st.links = doc.links.filter((_, i) => !dragState.removedLinks!.has(i))
       }
       scheduleStaging()
+      return idxs.length
     },
     [isSquare, grid, colorValueFor, color, doc.links, doc.connectorWidth, scheduleStaging],
   )
@@ -307,7 +317,7 @@ export function useCanvasStaging({
    */
   const stampBrush = useCallback(
     (idx: number, erase: boolean, dragState: DragState, pDoc: DocPoint | null, free: boolean) => {
-      if (idx < 0 || idx >= grid.count) return
+      if (idx < 0 || idx >= grid.count) return 0
       const idxs: number[] = []
       const seen = new Set<number>()
       const push = (i: number) => {
@@ -347,7 +357,7 @@ export function useCanvasStaging({
           for (const si of expand(bi)) push(si)
         }
       }
-      stampCells(idxs, erase, dragState, pDoc)
+      return stampCells(idxs, erase, dragState, pDoc)
     },
     [
       grid,
@@ -363,6 +373,29 @@ export function useCanvasStaging({
       stampCells,
       radialOpts,
     ],
+  )
+
+  /**
+   * Stamp the brush along the pointer's path since the previous move event (Bresenham anchors on
+   * square grids, grid lookup sampling on lattices), capped to the per-event stamp budget so a fast
+   * flick across a huge canvas cannot explode one event into millions of cell writes.
+   */
+  const stampStrokeLine = useCallback(
+    (
+      fromIdx: number,
+      toIdx: number,
+      opts: { erase: boolean; free: boolean },
+      dragState: DragState,
+      pDoc: DocPoint | null,
+    ) => {
+      let budget = MAX_STAMPS
+      for (const idx of strokeLineCells(fromIdx, toIdx, isSquare, bw, grid)) {
+        if (idx < 0 || idx >= grid.count) continue
+        budget -= stampBrush(idx, opts.erase, dragState, pDoc, opts.free)
+        if (budget <= 0) break
+      }
+    },
+    [grid, isSquare, bw, stampBrush],
   )
 
   /** Stamp the tip pattern at one buffer anchor, bounds-checked */
@@ -739,54 +772,8 @@ export function useCanvasStaging({
    * plain cell scope applies.
    */
   const fillSeeds = useCallback(
-    (idx: number): number[] | null => {
-      if (fillScope === 'cell') return null
-      if (fillScope === 'row' || fillScope === 'column') {
-        if (!isSquare) return null
-        const seeds: number[] = []
-        if (fillScope === 'row') {
-          const row = Math.floor(idx / bw / doc.sub)
-          for (let y = row * doc.sub; y < (row + 1) * doc.sub; y++) {
-            for (let x = 0; x < bw; x++) seeds.push(y * bw + x)
-          }
-        } else {
-          const col = Math.floor((idx % bw) / doc.sub)
-          for (let x = col * doc.sub; x < (col + 1) * doc.sub; x++) {
-            for (let y = 0; y < bh; y++) seeds.push(y * bw + x)
-          }
-        }
-        return seeds
-      }
-      if (doc.gridType !== 'radial') return null
-      const seeds: number[] = []
-      if (fillScope === 'ring') {
-        const r0 = grid.radiusOf(idx)
-        for (let j = 0; j < grid.count; j++) {
-          if (Math.abs(grid.radiusOf(j) - r0) < 0.5) seeds.push(j)
-        }
-        return seeds
-      }
-      // sector wedge: the clicked cell's angular span, evaluated in every ring
-      const norm = (a: number) => {
-        a = (a + Math.PI) % (2 * Math.PI)
-        if (a < 0) a += 2 * Math.PI
-        return a - Math.PI
-      }
-      const am = grid.angleOf(idx)
-      let dMin = Infinity
-      let dMax = -Infinity
-      for (const p of grid.polygon(idx)) {
-        const d = norm(Math.atan2(p.y - grid.h / 2, p.x - grid.w / 2) - am)
-        dMin = Math.min(dMin, d)
-        dMax = Math.max(dMax, d)
-      }
-      for (let j = 0; j < grid.count; j++) {
-        const d = norm(grid.angleOf(j) - am)
-        if (d >= dMin - 1e-6 && d <= dMax + 1e-6) seeds.push(j)
-      }
-      return seeds
-    },
-    [bh, bw, doc.gridType, doc.sub, fillScope, grid, isSquare],
+    (idx: number): number[] | null => fillSeedsFor(idx, { fillScope, doc, grid, bw, bh, isSquare }),
+    [bh, bw, doc, fillScope, grid, isSquare],
   )
 
   const commitStaging = useCallback(() => {
@@ -860,6 +847,7 @@ export function useCanvasStaging({
 
   return {
     stagingRef,
+    frameDeltaRef,
     bumpStaging,
     scheduleStaging,
     ensureStaging,
@@ -868,6 +856,7 @@ export function useCanvasStaging({
     connectorCopies,
     stampCells,
     stampBrush,
+    stampStrokeLine,
     stampTipInto,
     stampShape,
     fillSeeds,

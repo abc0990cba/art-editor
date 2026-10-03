@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import { STAGE_THEMES, docExtent } from '../../engine/doc.ts'
-import { buildGeometry, stagingPreview, type Geometry } from '../../engine/geometry.ts'
+import { buildGeometry } from '../../engine/geometry.ts'
 import { cellCoordLabel } from '../../engine/grids.ts'
-import { drawGeometry } from '../../engine/png.ts'
 import { nodeProtected, objLayer, type SceneLayer } from '../../engine/scene.ts'
 import { scrollbarMetrics } from '../../engine/scrollbars.ts'
 import { selectionBox, type CellBox } from '../../engine/selection-xform.ts'
@@ -15,7 +14,6 @@ import { useStore } from '../../state/editor.store.ts'
 import {
   ANTS_SPEED,
   SCROLLBAR,
-  checkerTileFor,
   constrainShapeEnd,
   drawGuides,
   drawMarquee,
@@ -27,17 +25,14 @@ import {
   type Hover,
 } from './canvas-stage.util.ts'
 import { viewOffscreen } from './canvas-view-math.util.ts'
-import {
-  diffusionContourPath,
-  hoverCellCenter,
-  strokeDiffusionContour,
-  strokeKernelRing,
-} from './diffusion-guides.util.ts'
+import { diffusionContourPath, hoverCellCenter, strokeKernelRing } from './diffusion-guides.util.ts'
 import { drawToolHover } from './draw-tool-hover.util.ts'
 import { cellPolygonOverlayPath, squareGridLines } from './grid-overlay.util.ts'
 import { clickSelectionIds } from './select-hit.util.ts'
 import { SelectionActions } from './selection-actions.component.tsx'
 import { cursorForHandle, drawTransformBox } from './selection-transform.util.ts'
+import { paintStage } from './stage-paint-frame.util.ts'
+import { createStagePaintState, type StagePaintState } from './stage-paint.util.ts'
 import { useCanvasStaging } from './use-canvas-staging.hook.ts'
 import { useCanvasView } from './use-canvas-view.hook.ts'
 import { useOutlineCache } from './use-outline-cache.hook.ts'
@@ -75,18 +70,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
-  // offscreen bitmap of the committed artwork: rebuilt only when the committed geometry
-  // or the view changes, so stroke frames just blit it and composite the staged delta
-  const artLayerRef = useRef<{
-    canvas: HTMLCanvasElement
-    w: number
-    h: number
-    dpr: number
-    zoom: number
-    x: number
-    y: number
-    geometry: Geometry | null
-  } | null>(null)
+  // cached artwork + baked background/grid/stroke layers (see stage-paint.util)
+  const paintRef = useRef<StagePaintState | null>(null)
+  if (!paintRef.current) paintRef.current = createStagePaintState()
   // scratch canvas for outside-only selection/hover strokes (marching ants)
   const scratchRef = useRef<HTMLCanvasElement | null>(null)
   // ants dash phase (screen px); driven by a rAF loop without re-rendering React
@@ -132,7 +118,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     return { id: layer.id, locked: !layer.visible || nodeProtected(doc.layers, layer.id) }
   }, [])
 
-  const extent = docExtent(doc)
+  // memoized identity: a fresh object per render would re-run the draw effects on every
+  // hover tick (each hover cell change re-renders the stage)
+  const extent = useMemo(() => docExtent(doc), [doc])
 
   const [view, setView] = useState({ zoom: 8, x: 0, y: 0 })
   // live mirror: the touch-gesture effect mounts once and reads the view at pinch start
@@ -167,6 +155,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
   const {
     stagingRef,
+    frameDeltaRef,
     bumpStaging,
     scheduleStaging,
     ensureStaging,
@@ -176,6 +165,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
     stampBrush,
 
+    stampStrokeLine,
     stampShape,
     fillSeeds,
     commitStaging,
@@ -201,10 +191,12 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     shapePaint,
     fillStyle,
     activeLayerState,
-    // stroke frames draw imperatively: staging rAF → direct base + overlay redraw, no React
+    // stroke frames draw imperatively: staging rAF → direct base redraw (the overlay only
+    // follows drags whose on-screen guides move: selection move and transform ghosts)
     onStagingFrame: () => {
       drawBaseRef.current()
-      drawOverlayRef.current()
+      const k = drag.current?.kind
+      if (k === 'move' || k === 'xform') drawOverlayRef.current()
     },
   })
 
@@ -584,11 +576,14 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     }
     const p = toDoc(e)
     const idx = toIndex(e)
-    // skip redundant updates: a fresh object here re-renders the whole stage on every move
-    setHover((prev) => {
-      if (idx >= 0) return prev?.idx === idx ? prev : { idx }
-      return prev === null ? prev : null
-    })
+    // hover state re-renders the whole stage — wasted during a stroke, where the overlay
+    // shows the drag instead of the hover preview; the next plain move refreshes it
+    if (!drag.current) {
+      setHover((prev) => {
+        if (idx >= 0) return prev?.idx === idx ? prev : { idx }
+        return prev === null ? prev : null
+      })
+    }
     const d = drag.current
     if (!d) {
       // transform-handle hover cursors, set imperatively-cheap: the state only flips
@@ -672,8 +667,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     if (!p) return
     if (d.kind === 'draw') {
       if (d.last !== idx) {
+        // stamp every cell the pointer crossed, so fast drags stay continuous
+        stampStrokeLine(d.last ?? -1, idx, { erase: tool === 'eraser', free: e.altKey }, d, p)
         d.last = idx
-        stampBrush(idx, tool === 'eraser', d, p, e.altKey)
       }
       return
     }
@@ -736,162 +732,34 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
 
   const hoverObj = hover && tool === 'select' ? (doc.cellObj?.[hover.idx] ?? 0) : 0
 
-  // ---- base layer render: cached artwork blit + staged delta composite + grid lines ----
+  // ---- base layer render: cached artwork blit + staged delta composite + baked grid ----
+  // The whole frame lives in stage-paint.util: pencil/eraser frames render only the newly
+  // staged cells into a persistent stroke layer (O(new cells) per frame), shape/move ghosts of
+  // plain-square docs blit a 1-px-per-cell bitmap, and everything else takes the legacy path —
+  // all on top of baked background/grid layers that rebuild only when their inputs change.
   const drawBase = useCallback(() => {
-    const canvas = canvasRef.current
-    const wrap = wrapRef.current
-    if (!canvas || !wrap) return
-    const size = sizeCanvas(canvas, wrap)
-    if (!size) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const W = extent.w
-    const H = extent.h
-    const docSpaceOn = (c: CanvasRenderingContext2D) => {
-      c.translate(view.x, view.y)
-      c.scale(view.zoom, view.zoom)
-    }
-    const fillBg = () => {
-      if (doc.bg) {
-        ctx.fillStyle = doc.bg
-        ctx.fillRect(0, 0, W, H)
-      } else {
-        // checkerboard via a repeating 1-unit pattern: O(1) regardless of canvas size
-        const pattern = ctx.createPattern(checkerTileFor(resolvedTheme, stage), 'repeat')
-        if (pattern) {
-          ctx.imageSmoothingEnabled = false
-          ctx.fillStyle = pattern
-          ctx.fillRect(0, 0, W, H)
-          ctx.imageSmoothingEnabled = true
-        }
-      }
-    }
-    const strokeGrid = () => {
-      if (!showGrid || view.zoom < 4) return
-      if (isSquare) {
-        if (!gridLinePaths) return
-        ctx.strokeStyle = stage.gridLine
-        ctx.lineWidth = 1 / view.zoom
-        ctx.stroke(gridLinePaths.cell)
-        if (gridLinePaths.pixel) {
-          ctx.strokeStyle = stage.pixelLine
-          ctx.stroke(gridLinePaths.pixel)
-        }
-        if (gridLinePaths.major) {
-          ctx.strokeStyle = stage.gridMajor
-          ctx.lineWidth = 1.6 / view.zoom
-          ctx.stroke(gridLinePaths.major)
-        }
-        if (gridLinePaths.half) {
-          ctx.strokeStyle = stage.pixelLine
-          ctx.lineWidth = 1 / view.zoom
-          ctx.stroke(gridLinePaths.half)
-        }
-      } else if (gridOverlayPath) {
-        ctx.strokeStyle = stage.gridLine
-        ctx.lineWidth = 1 / view.zoom
-        ctx.stroke(gridOverlayPath)
-      }
-    }
-    // dashed threshold contour of the diffusion field, independent of the cell grid toggle
-    const strokeDiffusion = () => {
-      if (contourPath && view.zoom >= 2) strokeDiffusionContour(ctx, contourPath, view.zoom, stage)
-    }
-
-    // committed artwork bitmap: rebuilt only when the committed geometry or the view
-    // changes — stroke frames (stagingVersion ticks) skip this entirely
-    let art = artLayerRef.current
-    if (!art) {
-      art = artLayerRef.current = {
-        canvas: document.createElement('canvas'),
-        w: 0,
-        h: 0,
-        dpr: 1,
-        zoom: 1,
-        x: 0,
-        y: 0,
-        geometry: null,
-      }
-    }
-    if (
-      art.geometry !== geometry ||
-      art.zoom !== view.zoom ||
-      art.x !== view.x ||
-      art.y !== view.y ||
-      art.w !== size.w ||
-      art.h !== size.h ||
-      art.dpr !== size.dpr
-    ) {
-      art.geometry = geometry
-      art.zoom = view.zoom
-      art.x = view.x
-      art.y = view.y
-      art.w = size.w
-      art.h = size.h
-      art.dpr = size.dpr
-      art.canvas.width = Math.round(size.w * size.dpr)
-      art.canvas.height = Math.round(size.h * size.dpr)
-      const actx = art.canvas.getContext('2d')
-      if (actx) {
-        actx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0)
-        actx.clearRect(0, 0, size.w, size.h)
-        actx.save()
-        docSpaceOn(actx)
-        drawGeometry(actx, geometry.paths)
-        actx.restore()
-      }
-    }
-
-    ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0)
-    ctx.clearRect(0, 0, size.w, size.h)
-
-    const st = stagingRef.current
-    const stCells = st?.cells
-    const preview = stCells && stCells.size > 0 ? stagingPreview(doc, st) : null
-
-    if (preview) {
-      // incremental stroke frame: blit the committed art, punch the staged erases out,
-      // then restore the background UNDER everything (holes and empty areas alike) —
-      // the whole frame costs O(staged cells) instead of a full-document rebuild
-      ctx.drawImage(art.canvas, 0, 0, size.w, size.h)
-      ctx.save()
-      docSpaceOn(ctx)
-      if (preview.erase.length > 0) {
-        const punch = new Path2D()
-        for (const i of preview.erase) {
-          const gx = i % bw
-          const gy = (i - gx) / bw
-          punch.rect(gx / doc.sub, gy / doc.sub, 1 / doc.sub, 1 / doc.sub)
-        }
-        ctx.globalCompositeOperation = 'destination-out'
-        ctx.fill(punch)
-      }
-      // the background must be repainted on EVERY stroke frame: the art bitmap is
-      // transparent outside the artwork, so skipping it flashes the flat app
-      // background in place of the checkerboard for the whole stroke
-      ctx.globalCompositeOperation = 'destination-over'
-      fillBg()
-      ctx.globalCompositeOperation = 'source-over'
-      drawGeometry(ctx, preview.paths)
-      strokeGrid()
-      strokeDiffusion()
-      ctx.restore()
-    } else {
-      let paths = geometry.paths
-      if (stCells && stCells.size > 0 && st) {
-        // fallback preview (outline/metaball/texture/connector edits, non-square grids):
-        // the staged delta needs global context, so rebuild the merged document
-        paths = buildGeometry(st.palette ? { ...doc, palette: [...st.palette] } : doc, st).paths
-      }
-      ctx.save()
-      docSpaceOn(ctx)
-      fillBg()
-      drawGeometry(ctx, paths)
-      strokeGrid()
-      strokeDiffusion()
-      ctx.restore()
-    }
+    paintStage({
+      canvas: canvasRef.current,
+      wrap: wrapRef.current,
+      state: paintRef.current!,
+      doc,
+      geometry,
+      view,
+      extent,
+      stage,
+      resolvedTheme,
+      showGrid,
+      gridLinePaths,
+      gridOverlayPath,
+      contourPath,
+      showDiffusion,
+      tool,
+      isDrawStroke: drag.current?.kind === 'draw',
+      staging: stagingRef,
+      delta: frameDeltaRef,
+      bw,
+      bh,
+    })
   }, [
     geometry,
     view,
@@ -902,10 +770,12 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     bh,
     stage,
     resolvedTheme,
+    tool,
     isSquare,
     gridOverlayPath,
     gridLinePaths,
     contourPath,
+    showDiffusion,
     extent,
   ])
 

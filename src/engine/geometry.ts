@@ -1,6 +1,6 @@
 import { cellShapeFragment } from './cell-shapes.ts'
 import { paletteLuma, toneScale } from './color.ts'
-import type { Doc, ElementStyle, Link, PixelStyle } from './doc'
+import type { Doc, ElementStyle, Link } from './doc'
 import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from './doc'
 import { elementStyleKey, elementGeometry } from './geometry-elements.ts'
 import { metaballGeometry, metaballPreviewField } from './geometry-metaball.ts'
@@ -253,7 +253,6 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
   const bw = bufferWidth(doc)
   const bh = bufferHeight(doc)
   interface Group {
-    style: PixelStyle
     frags: Map<number, string[]>
   }
   const groups = new Map<string, Group>()
@@ -280,54 +279,10 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
     if (!usable(el)) return null
     const key = elementStyleKey(el)
     let g = groups.get(key)
-    if (!g) groups.set(key, (g = { style: el.style, frags: new Map() }))
+    if (!g) groups.set(key, (g = { frags: new Map() }))
     let frags = g.frags.get(v)
     if (!frags) g.frags.set(v, (frags = []))
-    const cw = el.style.sizeX / doc.sub
-    const ch = el.style.sizeY / doc.sub
-    const bx = i % bw
-    const by = (i - bx) / bw
-    const x = bx / doc.sub + (1 / doc.sub - cw) / 2
-    const y = by / doc.sub + (1 / doc.sub - ch) / 2
-    const rBase = el.style.radius * Math.min(cw, ch)
-    const corner = (o: number | null) => (o === null ? rBase : o * Math.min(cw, ch))
-    const radii = [
-      corner(el.style.corners.tl),
-      corner(el.style.corners.tr),
-      corner(el.style.corners.br),
-      corner(el.style.corners.bl),
-    ]
-    const radiiHere =
-      el.style.squareEdges && (bx === 0 || by === 0 || bx === bw - 1 || by === bh - 1)
-        ? borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
-        : radii
-    const chamfer = el.style.cornerStyle === 'chamfer'
-    let fx = x
-    let fy = y
-    let fw = cw
-    let fh = ch
-    if (el.style.toneSize) {
-      // mirrors shapeGeometry: the figure shrinks with its color's lightness
-      const k = toneScale(colorOf(v), el.style.toneSizeMin)
-      fw = cw * k
-      fh = ch * k
-      fx = bx / doc.sub + (1 / doc.sub - fw) / 2
-      fy = by / doc.sub + (1 / doc.sub - fh) / 2
-    }
-    frags.push(
-      el.style.shape === 'square' && el.style.shapeParams.rotation === 0
-        ? roundedRectPath(fx, fy, fw, fh, radiiHere, chamfer)
-        : cellShapeFragment({
-            id: el.style.shape,
-            x: fx,
-            y: fy,
-            w: fw,
-            h: fh,
-            params: el.style.shapeParams,
-            radius: el.style.radius,
-            chamfer,
-          }),
-    )
+    frags.push(stagedCellPath(el, colorOf(v), i, bw, bh, doc.sub))
   }
 
   const paths: StyledPath[] = []
@@ -337,6 +292,64 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
     }
   }
   return { paths, erase }
+}
+
+/**
+ * Path of ONE staged buffer cell rendered with an element style — the exact fragment
+ * `stagingPreview` paints per staged cell, exposed for callers that composite staged ink
+ * incrementally frame by frame (the canvas stroke layer). `color` feeds toneSize scaling only;
+ * radii clamp to the cell box exactly like shapeGeometry's per-cell path.
+ */
+export function stagedCellPath(
+  el: ElementStyle,
+  color: string,
+  i: number,
+  bw: number,
+  bh: number,
+  sub: number,
+): string {
+  const st = el.style
+  const cw = st.sizeX / sub
+  const ch = st.sizeY / sub
+  const bx = i % bw
+  const by = (i - bx) / bw
+  let x = bx / sub + (1 / sub - cw) / 2
+  let y = by / sub + (1 / sub - ch) / 2
+  const rBase = st.radius * Math.min(cw, ch)
+  const corner = (o: number | null) => (o === null ? rBase : o * Math.min(cw, ch))
+  const radii = [
+    corner(st.corners.tl),
+    corner(st.corners.tr),
+    corner(st.corners.br),
+    corner(st.corners.bl),
+  ]
+  const radiiHere =
+    st.squareEdges && (bx === 0 || by === 0 || bx === bw - 1 || by === bh - 1)
+      ? borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
+      : radii
+  const chamfer = st.cornerStyle === 'chamfer'
+  let fw = cw
+  let fh = ch
+  if (st.toneSize) {
+    // mirrors shapeGeometry: the figure shrinks with its color's lightness
+    const k = toneScale(color, st.toneSizeMin)
+    fw = cw * k
+    fh = ch * k
+    x = bx / sub + (1 / sub - fw) / 2
+    y = by / sub + (1 / sub - fh) / 2
+  }
+  return st.shape === 'square' && st.shapeParams.rotation === 0
+    ? roundedRectPath(x, y, fw, fh, radiiHere, chamfer)
+    : cellShapeFragment({
+        id: st.shape,
+        x,
+        y,
+        w: fw,
+        h: fh,
+        params: st.shapeParams,
+        radius: st.radius,
+        chamfer,
+      })
 }
 
 /** Squared distance from a pixel-cell coordinate to a link (for eraser hit testing). */

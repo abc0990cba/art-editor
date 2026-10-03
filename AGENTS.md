@@ -168,7 +168,9 @@ remains in the store), `shapes` → facade + `shape-*.ts`, `import-image` → fa
 `grids-lattices.ts` (diamond/iso/brick/octasquare lattices) + `grid-geometry.ts` +
 `grid-rotate.ts` + `grid-polar.ts`, `cell-shapes` → `cell-shape-defs.ts` + `cell-shape-geom.ts`
 + `cell-shape-ext.ts` + `cell-shape-frag.ts`, `tool-rail` → `tool-rail-list`, `settings-panel`
-→ section components, `canvas-stage` → staging hook + selection/panel components.
+→ section components, `canvas-stage` → staging hook + selection/panel components +
+`stage-paint*.util` (base-canvas frame: baked bg/grid layers, incremental stroke layer,
+pixel-bitmap preview, legacy fragment path; dispatch in `stage-paint-frame.util.ts`).
 
 Still waiting for splits (measure first — the authoritative caps live in the
 `.oxlintrc.jsonc` overrides; numbers drift): `canvas-stage` (~1460 lines),
