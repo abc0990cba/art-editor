@@ -1,7 +1,8 @@
 import type { ProjectJSON } from '../engine/core/project'
+import { normalizeScene, type SvgScene } from '../engine/svgart/index.ts'
 import { newId, openDb, reqToPromise } from './db'
 
-export type ProjectKind = 'pixel' | 'vector' | 'gradient'
+export type ProjectKind = 'pixel' | 'vector' | 'gradient' | 'svgart'
 
 /** Shared metadata of every library entry. */
 export interface ProjectBase {
@@ -42,7 +43,17 @@ export interface GradientProjectEntry extends ProjectBase {
   stats: unknown
 }
 
-export type ProjectEntry = PixelProjectEntry | VectorProjectEntry | GradientProjectEntry
+/** An SVG-studio project: the authored vector scene (normalized on read). */
+export interface SvgArtProjectEntry extends ProjectBase {
+  kind: 'svgart'
+  scene: SvgScene
+}
+
+export type ProjectEntry =
+  | PixelProjectEntry
+  | VectorProjectEntry
+  | GradientProjectEntry
+  | SvgArtProjectEntry
 
 const STORE = 'projects'
 
@@ -104,6 +115,9 @@ export function normalizeProject(raw: unknown): ProjectEntry | null {
       stats: r['stats'] ?? null,
     }
   }
+  if (r['kind'] === 'svgart') {
+    return { ...base, kind: 'svgart', scene: normalizeScene(r['scene']) }
+  }
   if (typeof r['doc'] !== 'object' || r['doc'] === null) return null
   return { ...base, kind: 'pixel', doc: r['doc'] as ProjectJSON }
 }
@@ -141,6 +155,19 @@ export function newGradientEntry(init: {
   return {
     id: newProjectId(),
     kind: 'gradient',
+    createdAt: now,
+    updatedAt: now,
+    thumbnail: '',
+    ...init,
+  }
+}
+
+/** Fresh SVG-studio project from a template scene (the creation dialog). */
+export function newSvgArtEntry(init: { name: string; scene: SvgScene }): SvgArtProjectEntry {
+  const now = Date.now()
+  return {
+    id: newProjectId(),
+    kind: 'svgart',
     createdAt: now,
     updatedAt: now,
     thumbnail: '',

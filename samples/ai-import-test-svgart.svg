@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 600" width="480" height="600">
+  <!--
+    AI-import test sheet for the SVG studio (add-svgart-workspace, stage-0 spike).
+    Open this file in a browser (the reference) and in Adobe Illustrator, then fill
+    the studio section of docs/research/ai-import.md. The studio emits ONLY these
+    constructs (AI-safe policy): no filters, no blend modes, no masks, no
+    gradientTransform, no fr, no reflect/repeat.
+  -->
+  <defs>
+    <linearGradient id="gBase" gradientUnits="userSpaceOnUse" x1="20" y1="20" x2="20" y2="120">
+      <stop offset="0" stop-color="#ee8a27"/>
+      <stop offset="0.15" stop-color="#d66822"/>
+      <stop offset="0.6" stop-color="#c85b23"/>
+      <stop offset="1" stop-color="#f09028"/>
+    </linearGradient>
+    <linearGradient id="gSheen" gradientUnits="userSpaceOnUse" x1="20" y1="20" x2="220" y2="120">
+      <stop offset="0" stop-color="#ffe3a6" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ffe3a6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffe3a6" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="gFocus" gradientUnits="userSpaceOnUse" cx="360" cy="70" r="85" fx="332" fy="46">
+      <stop offset="0" stop-color="#fff6dd"/>
+      <stop offset="0.45" stop-color="#f0a73c"/>
+      <stop offset="1" stop-color="#7c2f12"/>
+    </radialGradient>
+    <linearGradient id="gStar" gradientUnits="userSpaceOnUse" x1="120" y1="120" x2="120" y2="265">
+      <stop offset="0" stop-color="#ffd27a"/>
+      <stop offset="0.5" stop-color="#e2882a"/>
+      <stop offset="1" stop-color="#a85c1f"/>
+    </linearGradient>
+    <clipPath id="clipFaces">
+      <polygon points="120,120 142.3,169.3 196.1,175.3 156.1,211.7 167,264.7 120,238 73,264.7 83.9,211.7 43.9,175.3 97.7,169.3"/>
+      <polygon points="120,120 196.1,175.3 196.1,197.3 120,142"/>
+      <polygon points="196.1,175.3 167,264.7 147,264.7 176.1,182.7"/>
+    </clipPath>
+    <radialGradient id="gLocal" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#124a8c"/>
+    </radialGradient>
+    <linearGradient id="gShared" gradientUnits="userSpaceOnUse" x1="20" y1="320" x2="460" y2="320">
+      <stop offset="0" stop-color="#2e9e6b"/>
+      <stop offset="0.5" stop-color="#f2a33c"/>
+      <stop offset="1" stop-color="#7b2ff7"/>
+    </linearGradient>
+    <linearGradient id="gRamp8" gradientUnits="userSpaceOnUse" x1="20" y1="530" x2="460" y2="530">
+      <stop offset="0" stop-color="#0b1e3f"/>
+      <stop offset="0.14" stop-color="#173a63"/>
+      <stop offset="0.28" stop-color="#2b5a84"/>
+      <stop offset="0.42" stop-color="#4b7ba0"/>
+      <stop offset="0.56" stop-color="#749db3"/>
+      <stop offset="0.7" stop-color="#a3bfc0"/>
+      <stop offset="0.85" stop-color="#d4decb"/>
+      <stop offset="1" stop-color="#fff7e8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="480" height="600" fill="#20242b"/>
+
+  <text x="20" y="14" fill="#aab" font-family="monospace" font-size="11">1 stacked fills: base + sheen alpha band</text>
+  <path d="M20 20H220V120H20Z" fill="url(#gBase)"/>
+  <path d="M20 20H220V120H20Z" fill="url(#gSheen)"/>
+
+  <text x="260" y="14" fill="#aab" font-family="monospace" font-size="11">4 radial fx/fy focus offset</text>
+  <rect x="260" y="20" width="200" height="100" fill="url(#gFocus)"/>
+
+  <text x="20" y="134" fill="#aab" font-family="monospace" font-size="11">2 clipPath with a group of polygons</text>
+  <g clip-path="url(#clipFaces)">
+    <rect x="20" y="120" width="200" height="145" fill="url(#gStar)"/>
+  </g>
+
+  <text x="260" y="134" fill="#aab" font-family="monospace" font-size="11">5 elliptical falloff via g transform</text>
+  <rect x="260" y="140" width="200" height="120" fill="#0e1524"/>
+  <g transform="translate(360 200) rotate(24) scale(95 52)">
+    <rect x="-105" y="-62" width="210" height="124" fill="url(#gLocal)"/>
+  </g>
+
+  <text x="20" y="274" fill="#aab" font-family="monospace" font-size="11">3 shared gradient across shapes (one ramp)</text>
+  <rect x="20" y="280" width="200" height="80" fill="url(#gShared)"/>
+  <rect x="260" y="280" width="200" height="80" fill="url(#gShared)"/>
+
+  <text x="20" y="374" fill="#aab" font-family="monospace" font-size="11">6a group opacity 0.5</text>
+  <rect x="20" y="380" width="200" height="80" fill="#0e1524"/>
+  <g opacity="0.5">
+    <circle cx="90" cy="420" r="30" fill="#e05252"/>
+    <circle cx="140" cy="420" r="30" fill="#3a79c9"/>
+  </g>
+
+  <text x="260" y="374" fill="#aab" font-family="monospace" font-size="11">6b per-layer opacity 0.35 each</text>
+  <rect x="260" y="380" width="200" height="80" fill="#0e1524"/>
+  <g opacity="0.35">
+    <circle cx="330" cy="420" r="30" fill="#e05252"/>
+  </g>
+  <g opacity="0.35">
+    <circle cx="390" cy="420" r="30" fill="#3a79c9"/>
+  </g>
+
+  <text x="20" y="474" fill="#aab" font-family="monospace" font-size="11">7 eight-stop ramp (banding check)</text>
+  <rect x="20" y="480" width="440" height="100" fill="url(#gRamp8)"/>
+</svg>

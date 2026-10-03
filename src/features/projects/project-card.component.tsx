@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react'
 
+import { sceneToSvg } from '../../engine/svgart/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import type { ProjectEntry } from '../../storage/projects.ts'
@@ -23,9 +24,11 @@ function useSvgUrl(svg: string | null): string | null {
   return url
 }
 
-/** Thumbnail area: stored PNG for pixel projects, live SVG for trace ones. */
+/** Thumbnail area: stored PNG for pixel projects, live SVG for trace and studio ones. */
 function Thumb({ entry }: { entry: ProjectEntry }): ReactElement {
-  const svgUrl = useSvgUrl(entry.kind === 'pixel' ? null : entry.svg)
+  const svg =
+    entry.kind === 'pixel' ? null : entry.kind === 'svgart' ? sceneToSvg(entry.scene) : entry.svg
+  const svgUrl = useSvgUrl(svg)
   const src = entry.kind === 'pixel' ? entry.thumbnail : svgUrl
   if (src) {
     return <img src={src} alt="" className="aspect-[4/3] w-full object-contain" />
@@ -117,7 +120,9 @@ export function ProjectCard({
       ? t('project.kind.pixel')
       : entry.kind === 'gradient'
         ? t('project.kind.gradient')
-        : t('project.kind.vector')
+        : entry.kind === 'svgart'
+          ? t('project.kind.svgart')
+          : t('project.kind.vector')
 
   return (
     <div className="bg-panel border-line hover:border-chip-line flex flex-col overflow-hidden rounded-lg border transition">

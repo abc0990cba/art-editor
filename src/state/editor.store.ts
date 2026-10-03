@@ -22,6 +22,7 @@ import type { ImportResult } from '../engine/import/index.ts'
 import type { ImportBitmap } from '../engine/import/index.ts'
 import type { Brush } from '../engine/paint/brush.ts'
 import type { EditorPreset, PresetConfig } from '../engine/presets/index.ts'
+import type { SvgScene, TemplateId } from '../engine/svgart/index.ts'
 import type { FillStyle } from '../engine/texture/fill.ts'
 import type { TraceParams } from '../engine/trace/params.ts'
 import type { BrushPresetEntry } from '../storage/brushes.ts'
@@ -29,6 +30,7 @@ import type { GlyphTileSetEntry } from '../storage/glyph-tiles.ts'
 import type { PresetEntry } from '../storage/presets.ts'
 import type { ProjectEntry, VectorProjectEntry } from '../storage/projects.ts'
 import type { GradientProjectEntry } from '../storage/projects.ts'
+import type { SvgArtProjectEntry } from '../storage/projects.ts'
 import type { VectorPresetEntry } from '../storage/vector-presets.ts'
 import { createBrushesSlice } from './brushes.slice.ts'
 import { createDocSlice } from './doc.slice.ts'
@@ -42,6 +44,7 @@ import { createProjectSlice } from './project.slice.ts'
 import { createSelectionSlice, type ElementStylePatch } from './selection.slice.ts'
 import { setupStoreEffects } from './store.effects.ts'
 import { createStyleSlice } from './style.slice.ts'
+import { createSvgArtSlice, type SvgArtSelection } from './svgart.slice.ts'
 import {
   createToolsSlice,
   type FillScope,
@@ -357,6 +360,13 @@ export interface State {
   setGradientResult: (result: GradientResult | null) => void
   setGradientStatus: (status: GradientStatus, error?: string | null) => void
   loadGradientEntry: (entry: GradientProjectEntry) => void
+  // svgart studio workspace (authored vector scenes; outside undo history)
+  svgartScene: SvgScene
+  svgartSelection: SvgArtSelection
+  updateSvgArtScene: (update: (scene: SvgScene) => SvgScene) => void
+  selectSvgArtLayer: (layerId: string | null, fillIndex?: number) => void
+  applySvgArtTemplate: (id: TemplateId) => void
+  loadSvgArtEntry: (entry: SvgArtProjectEntry) => void
 }
 
 /** Trailing throttle so slider drags collapse into one history entry. */
@@ -409,6 +419,7 @@ export const useStore = create<State>()(
       ...createVectorSlice({ set, get }),
       ...createVectorPresetsSlice({ set, get }),
       ...createGradientSlice({ set, get }),
+      ...createSvgArtSlice({ set, get }),
     }),
     temporalOptions,
   ),

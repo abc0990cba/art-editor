@@ -2,6 +2,7 @@ import { useState, type ReactElement } from 'react'
 
 import { serialize, type ProjectJSON } from '../../engine/core/project.ts'
 import { renderThumbnailDataURL } from '../../engine/output/png.ts'
+import { templateScene, type TemplateId } from '../../engine/svgart/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
@@ -9,6 +10,7 @@ import { useStore } from '../../state/editor.store.ts'
 import {
   newGradientEntry,
   newProjectId,
+  newSvgArtEntry,
   newVectorEntry,
   normalizeName,
   saveProject,
@@ -16,7 +18,7 @@ import {
 } from '../../storage/projects.ts'
 import { ProjectDialog } from './project-dialog.component.tsx'
 
-type Kind = 'pixel' | 'vector' | 'gradient'
+type Kind = 'pixel' | 'vector' | 'gradient' | 'svgart'
 
 /** Snapshot the (already applied) store document into a fresh pixel library entry. */
 async function createPixelEntry(onCreated: (id: string) => void | Promise<void>): Promise<void> {
@@ -58,6 +60,7 @@ export function NewProjectDialog({
   const { t } = useI18n()
   const [stage, setStage] = useState<'choose' | Kind>('choose')
   const [name, setName] = useState('')
+  const [template, setTemplate] = useState<TemplateId>('star')
 
   if (stage === 'pixel') {
     return (
@@ -71,6 +74,13 @@ export function NewProjectDialog({
 
   const fieldClass =
     'w-full rounded-md border border-line bg-chip px-2 py-1.5 text-xs text-body outline-none focus:border-accent-line max-lg:min-h-11 max-lg:px-3 max-lg:text-base'
+
+  const hint =
+    stage === 'gradient'
+      ? t('home.gradient.hint')
+      : stage === 'svgart'
+        ? t('home.svgart.hint')
+        : t('home.vector.hint')
 
   return (
     <Dialog
@@ -117,14 +127,35 @@ export function NewProjectDialog({
                 placeholder={t('project.untitled')}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') void createTraceEntry(stage, name, onCreated)
+                  if (e.key === 'Enter') void createNamedEntry(stage, name, template, onCreated)
                 }}
                 className={fieldClass}
               />
             </label>
-            <p className="text-muted text-overline">
-              {stage === 'gradient' ? t('home.gradient.hint') : t('home.vector.hint')}
-            </p>
+            {stage === 'svgart' && (
+              <div>
+                <span className="text-muted mb-1 block text-xs max-lg:text-sm">
+                  {t('svgart.template')}
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['blank', 'star', 'sphere', 'aurora'] as const).map((id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setTemplate(id)}
+                      className={`flex min-h-11 items-center justify-center rounded-md border px-2 py-1.5 text-xs transition ${
+                        template === id
+                          ? 'border-accent-line bg-accent-soft text-accent-text'
+                          : 'border-line bg-chip text-body hover:border-chip-line'
+                      }`}
+                    >
+                      {t(`svgart.template.${id}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <p className="text-muted text-overline">{hint}</p>
             <div className="flex items-center justify-end gap-2 pt-1 max-lg:gap-3">
               <Button
                 type="button"
@@ -136,7 +167,7 @@ export function NewProjectDialog({
               </Button>
               <Button
                 type="button"
-                onClick={() => void createTraceEntry(stage, name, onCreated)}
+                onClick={() => void createNamedEntry(stage, name, template, onCreated)}
                 className="h-auto px-3 py-1.5 text-xs max-lg:min-h-11 max-lg:flex-1"
               >
                 {t('project.create')}
@@ -183,15 +214,27 @@ async function createGradientEntry(
   await onCreated(entry.id)
 }
 
-/** Name-stage submit for both media kinds (pixel goes through the full project dialog). */
-function createTraceEntry(
-  kind: 'vector' | 'gradient',
+/** A studio project starts straight from its template scene — no import step. */
+async function createSvgArtEntry(
   rawName: string,
+  template: TemplateId,
   onCreated: (id: string) => void | Promise<void>,
 ): Promise<void> {
-  return kind === 'gradient'
-    ? createGradientEntry(rawName, onCreated)
-    : createVectorEntry(rawName, onCreated)
+  const entry = newSvgArtEntry({ name: normalizeName(rawName), scene: templateScene(template) })
+  await saveProject(entry)
+  await onCreated(entry.id)
+}
+
+/** Name-stage submit for all media kinds (pixel goes through the full project dialog). */
+function createNamedEntry(
+  kind: 'vector' | 'gradient' | 'svgart',
+  rawName: string,
+  template: TemplateId,
+  onCreated: (id: string) => void | Promise<void>,
+): Promise<void> {
+  if (kind === 'gradient') return createGradientEntry(rawName, onCreated)
+  if (kind === 'svgart') return createSvgArtEntry(rawName, template, onCreated)
+  return createVectorEntry(rawName, onCreated)
 }
 
 /** The pixel kind icon: a 3×3 cell mosaic. */
@@ -211,11 +254,14 @@ function PixelIcon(): ReactElement {
   )
 }
 
-/** The two media kinds: both continue with a name and open on an import surface. */
+/**
+ * The media kinds: trace ones continue with a name and open on an import surface; the studio adds a
+ * template picker.
+ */
 function MediaKindOptions({
   onPick,
 }: {
-  onPick: (kind: 'vector' | 'gradient') => void
+  onPick: (kind: 'vector' | 'gradient' | 'svgart') => void
 }): ReactElement {
   const { t } = useI18n()
   return (
@@ -264,6 +310,30 @@ function MediaKindOptions({
           </svg>
         }
         onPick={() => onPick('gradient')}
+      />
+      <KindOption
+        title={t('project.kind.svgart')}
+        desc={t('home.svgart.desc')}
+        icon={
+          <svg
+            viewBox="0 0 24 24"
+            className="h-8 w-8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden
+          >
+            <defs>
+              <radialGradient id="kind-radial" cx="0.4" cy="0.35" r="0.75">
+                <stop offset="0" stopColor="currentColor" />
+                <stop offset="1" stopColor="currentColor" stopOpacity=".3" />
+              </radialGradient>
+            </defs>
+            <path d="M12 2.5l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L12 16.8l-5.9 3.7 1.7-6.7-5.3-4.4 6.9-.5z" />
+            <circle cx="17.5" cy="17.5" r="4" fill="url(#kind-radial)" stroke="none" />
+          </svg>
+        }
+        onPick={() => onPick('svgart')}
       />
     </>
   )

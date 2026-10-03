@@ -40,3 +40,31 @@ tracer.
 See also the compose-side contract in [gradient-workspace](../modules/gradient-workspace.md)
 ("AI-safe SVG serialization") — `gradient/compose.ts` implements exactly the subset this
 table is meant to confirm.
+
+## Studio sheet (add-svgart-workspace)
+
+The SVG studio (fourth project kind) authors scenes by hand under a stricter policy than the
+tracer: **only constructs expected to survive Illustrator as live vectors** — no filters
+(`feGaussianBlur` rasterizes or turns into a broken "SVG Filter" effect), no `mix-blend-mode`
+(CSS property, reset on import), no `mask`, no `fr`, no `reflect`/`repeat`, and
+`gradientTransform` is never emitted (baked coordinates or group transforms instead).
+Softness is always a `stop-opacity` falloff — the technique star_v3.svg uses.
+
+Open [samples/ai-import-test-svgart.svg](../../samples/ai-import-test-svgart.svg) the same two
+ways (browser = reference, then Illustrator) and record observations:
+
+| # | Construct | Expected in browser | Illustrator observation | Verdict (AI-safe?) |
+|---|---|---|---|---|
+| 1 | Stacked fills on one path (base gradient + sheen alpha band) | orange base with a diagonal light band | | |
+| 2 | `clipPath` holding a group of polygons | star silhouette showing a vertical ramp + two lighter edge bands | | |
+| 3 | One `userSpaceOnUse` gradient shared by two shapes | continuous green→amber→purple ramp across the gap | | |
+| 4 | `radialGradient` with `fx`/`fy` focus offset | highlight shifted up-left inside the disc | | |
+| 5 | Elliptical falloff via `<g transform>` + circular local gradient | rotated squashed white→blue falloff | | |
+| 6 | Group opacity vs per-layer opacity | uniform translucency in both cells | | |
+| 7 | Eight-stop ramp | smooth perceptual ramp, no visible banding | | |
+
+Rows 1–3 and 6–7 reuse the constructs the gradient tracer already relies on (sections 1, 3, 4,
+9 of the first sheet). Rows 4–5 are the studio-specific checks: if 4 fails, the studio keeps
+`fx`/`fy` but marks it "verify" in the UI badges; if 5 fails, elliptical falloffs degrade to
+circular ones (center stays, axes equalize) — both degradations are local and never rasterize.
+

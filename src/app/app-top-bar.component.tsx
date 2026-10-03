@@ -42,7 +42,8 @@ export function TopBar({
   onOpenProject: (id: string) => void
 }) {
   const { t } = useI18n()
-  const isVector = kind === 'vector'
+  // vector and studio workspaces own their toolbars: the top bar shows identity only
+  const isWorkspaceOwned = kind === 'vector' || kind === 'svgart'
   const importFileRef = useRef<HTMLInputElement>(null)
   const doc = useStore((s) => s.doc)
   const clear = useStore((s) => s.clear)
@@ -121,7 +122,7 @@ export function TopBar({
 
       {/* the pixel size is ambient info — the first thing sacrificed when the bar gets tight
           (a small MacBook at browser zoom lands right in this 1024–1280px band) */}
-      {!isVector && (
+      {!isWorkspaceOwned && (
         <div className="hidden shrink-0 items-center gap-1 xl:flex">
           <span
             className="border-line bg-chip text-muted flex h-7 items-center rounded-md border px-2 text-xs"
@@ -132,11 +133,11 @@ export function TopBar({
         </div>
       )}
 
-      {!isVector && <TopBarDocumentButtons onClear={() => setClearConfirm(true)} />}
+      {!isWorkspaceOwned && <TopBarDocumentButtons onClear={() => setClearConfirm(true)} />}
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <BrowserZoomChip />
-        {!isVector && (
+        {!isWorkspaceOwned && (
           <>
             <Tooltip label={`${t('top.panel')} — ${t('top.panel.desc')}`}>
               <IconButton

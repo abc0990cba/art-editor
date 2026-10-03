@@ -33,6 +33,7 @@ in the folder carry short, prefix-free names because the folder already provides
 | [`demos/`](../../src/engine/demos/) | 20+ demo projects as pure `ProjectJSON` factories (landing art, home screen) | [`index.ts`](../../src/engine/demos/index.ts) |
 | [`nodes/`](../../src/engine/nodes/) | Procedural node graph: 11 node families, registry, evaluation with memoization | [`index.ts`](../../src/engine/nodes/index.ts) |
 | [`gradient/`](../../src/engine/gradient/) | Gradient fitting for vector workspaces: stop-color fitting, linear/radial solvers, layered composites | [`pipeline.ts`](../../src/engine/gradient/pipeline.ts) |
+| [`svgart/`](../../src/engine/svgart/) | SVG studio: authored vector scenes with stacked gradient paints, AI-safe serialization, light-baked templates | [`index.ts`](../../src/engine/svgart/index.ts) |
 | [`trace/`](../../src/engine/trace/) | Raster → SVG vectorizer (vtracer port): quantize → contours → curve fitting → mosaic | [`trace.ts`](../../src/engine/trace/trace.ts) |
 
 ## Dependency flow
@@ -62,6 +63,7 @@ graph TD
     nodes[nodes]
     gradient[gradient]
     trace[trace]
+    svgart[svgart]
     demos[demos]
 
     core --> color
@@ -91,6 +93,7 @@ graph TD
     demos --> nodes
     gradient --> trace
     demos --> gradient
+    svgart --> color
 ```
 
 Known quirks (documented, not yet fixed):
@@ -123,5 +126,6 @@ Known quirks (documented, not yet fixed):
 | PNG/SVG/ASCII output | [render-outputs](../modules/render-outputs.md) | [`output/png.ts`](../../src/engine/output/png.ts) |
 | Node graph | [node-graph](../modules/node-graph.md) | [`nodes/index.ts`](../../src/engine/nodes/index.ts) |
 | Gradient workspace engine | [gradient-workspace](../modules/gradient-workspace.md) | [`gradient/pipeline.ts`](../../src/engine/gradient/pipeline.ts) |
+| SVG studio engine | [svgart](../modules/svgart.md) | [`svgart/index.ts`](../../src/engine/svgart/index.ts) — `sceneToSvg` |
 | Vectorizer | [vectorizer](../modules/vectorizer.md) | [`trace/trace.ts`](../../src/engine/trace/trace.ts) |
 | Demo projects | [projects-and-demos](../modules/projects-and-demos.md) | [`demos/index.ts`](../../src/engine/demos/index.ts) |

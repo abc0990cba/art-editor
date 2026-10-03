@@ -100,7 +100,7 @@ describe('materializeDemo', () => {
       await materializeDemo(def, kind)
       const entry = await loadProject(def.id)
       expect(entry?.kind, kind).toBe(kind.replace('demo.', ''))
-      if (entry && entry.kind !== 'pixel') {
+      if (entry && (entry.kind === 'vector' || entry.kind === 'gradient')) {
         expect(entry.source?.data.byteLength).toBe(128 * 128 * 4)
         expect(entry.svg).toBeNull()
         expect(entry.params).toBeTypeOf('object')
