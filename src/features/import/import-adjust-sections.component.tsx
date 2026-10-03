@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { ImportOptions } from '../../engine/import-image.ts'
+import type { ImportOptions } from '../../engine/import/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Slider } from '../../shared/ui/index.tsx'
 import { signed } from './import-controls.util.ts'

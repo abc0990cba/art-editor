@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 
-import { BUILT_IN_GLYPH_SETS } from '../../engine/glyph-builtins.ts'
-import type { GlyphTileSet } from '../../engine/glyph-tiles.ts'
-import type { ImportBitmap } from '../../engine/import-image.ts'
+import { BUILT_IN_GLYPH_SETS } from '../../engine/glyph/builtins.ts'
+import type { GlyphTileSet } from '../../engine/glyph/tiles.ts'
+import type { ImportBitmap } from '../../engine/import/index.ts'
 import { useStore } from '../../state/editor.store.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { GlyphGallery } from './glyph-gallery.component.tsx'

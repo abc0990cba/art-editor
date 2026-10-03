@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Doc } from '../../engine/doc.ts'
-import type { SceneGroup, SceneLayer, SceneObj } from '../../engine/scene.ts'
-import { groupAncestorOf, objIdsWithin } from '../../engine/scene.ts'
+import type { Doc } from '../../engine/core/doc.ts'
+import type { SceneGroup, SceneLayer, SceneObj } from '../../engine/core/scene.ts'
+import { groupAncestorOf, objIdsWithin } from '../../engine/core/scene.ts'
 import { clickSelectionIds } from './select-hit.util.ts'
 
 function obj(id: number): SceneObj {

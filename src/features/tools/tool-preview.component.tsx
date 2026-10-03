@@ -1,16 +1,16 @@
 import { useEffect, useRef } from 'react'
 
-import { brushOffsets } from '../../engine/brush.ts'
-import { STAGE_THEMES } from '../../engine/doc.ts'
-import { applyFillStyle } from '../../engine/fillpatterns.ts'
-import { regionCells } from '../../engine/shapefill.ts'
+import { STAGE_THEMES } from '../../engine/core/doc.ts'
+import { brushOffsets } from '../../engine/paint/brush.ts'
+import { regionCells } from '../../engine/shapes/fill.ts'
 import {
   ellipsePoints,
   isShapeTool,
   linePoints,
   rectPoints,
   shapePathPoints,
-} from '../../engine/shapes.ts'
+} from '../../engine/shapes/index.ts'
+import { applyFillStyle } from '../../engine/texture/fill.ts'
 import { useStore, type Tool } from '../../state/editor.store.ts'
 
 /** Per-cell style fields consumed by cellPath (mirrors doc.style). */

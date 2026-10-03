@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ImportBitmap } from '../import-image.ts'
+import type { ImportBitmap } from '../import/index.ts'
 import { fitRegionLayers } from './layers.ts'
 import { fitRegion } from './model-select.ts'
 import type { GradientParams } from './params.ts'

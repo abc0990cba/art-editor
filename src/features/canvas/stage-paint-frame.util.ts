@@ -1,13 +1,13 @@
-import { elementFromDoc } from '../../engine/doc-style.ts'
-import type { Doc, ElementStyle } from '../../engine/doc.ts'
-import { cellColor } from '../../engine/doc.ts'
+import { elementFromDoc } from '../../engine/core/doc-style.ts'
+import type { Doc, ElementStyle } from '../../engine/core/doc.ts'
+import { cellColor } from '../../engine/core/doc.ts'
 import {
   buildGeometry,
   stagedCellPath,
   stagingPreview,
   type Staging,
-} from '../../engine/geometry.ts'
-import { drawGeometry } from '../../engine/png.ts'
+} from '../../engine/geometry/index.ts'
+import { drawGeometry } from '../../engine/output/png.ts'
 import { sizeCanvas } from './canvas-stage.util.ts'
 import { ensureBackground, ensureGrid } from './stage-paint-layers.util.ts'
 import { pixelFrame, pixelPreviewEligible } from './stage-paint-pixel.util.ts'

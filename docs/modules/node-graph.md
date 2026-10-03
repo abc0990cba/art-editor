@@ -11,17 +11,19 @@ semantic `Graph`) is documented here and in the perf research.
 
 | File | Role |
 |---|---|
-| `src/engine/nodes/types.ts` | `defineNode` contract, `Graph`/`GraphNode`/`GraphEdge`, `Cells` |
-| `src/engine/nodes/eval.ts` | `evalGraph`, `evalGraphStages`, `rerollGraphSeeds`, Kahn topo sort |
-| `src/engine/nodes/eval-memo.ts` | `evalGraphMemo` — identity WeakMap memo |
-| `src/engine/nodes/registry.ts` | node registry, `resolveParams`, `validateGraph`, `graphColors`, `registryJSON` |
-| `src/engine/nodes/context.ts` | deterministic RNG (FNV-1a → mulberry32), `combineCells` merge rule |
-| `src/engine/nodes/params.ts` | canvas-aware param bounds (`ParamSpan`), `boundsWithValue` |
-| `src/engine/nodes/presets.ts` | 21 graph recipes, `fitGraphToCanvas` |
-| `src/engine/nodes/*.node.ts` | 8 family files, 19 ops |
-| `src/features/nodes-editor/node-editor-canvas.component.tsx` | DOM/SVG card-and-wire editor (1233 lines) |
-| `src/features/nodes-editor/node-preview.component.tsx` | per-node raster/style previews |
-| `src/features/nodes-editor/object-graph-panel.component.tsx` | list-order panel, presets, reroll |
+| [`src/engine/nodes/index.ts`](../../src/engine/nodes/index.ts) | barrel: registers the 11 node families, re-exports the core |
+| [`src/engine/nodes/types.ts`](../../src/engine/nodes/types.ts) | `defineNode` contract, `Graph`/`GraphNode`/`GraphEdge`, `Cells` |
+| [`src/engine/nodes/eval.ts`](../../src/engine/nodes/eval.ts) | `evalGraph`, `evalGraphStages`, `rerollGraphSeeds`, Kahn topo sort |
+| [`src/engine/nodes/eval-memo.ts`](../../src/engine/nodes/eval-memo.ts) | `evalGraphMemo` — identity WeakMap memo |
+| [`src/engine/nodes/registry.ts`](../../src/engine/nodes/registry.ts) | node registry, `resolveParams`, `validateGraph`, `graphColors`, `registryJSON` |
+| [`src/engine/nodes/context.ts`](../../src/engine/nodes/context.ts) | deterministic RNG (FNV-1a → mulberry32), `combineCells` merge rule |
+| [`src/engine/nodes/params.ts`](../../src/engine/nodes/params.ts) | canvas-aware param bounds (`paramBounds`, `boundsWithValue`) |
+| [`src/engine/nodes/presets.ts`](../../src/engine/nodes/presets.ts) | 22 core graph recipes, `fitGraphToCanvas`, `GRAPH_PRESETS` merge |
+| [`src/engine/nodes/presets-dither.ts`](../../src/engine/nodes/presets-dither.ts) | 6 dither-era recipes (halftone screen engine + text source showcase) |
+| `src/engine/nodes/*.node.ts` | 11 family files, 22 ops (see catalog below) |
+| [`src/features/nodes-editor/node-editor-canvas.component.tsx`](../../src/features/nodes-editor/node-editor-canvas.component.tsx) | DOM/SVG card-and-wire editor (~1240 lines) |
+| [`src/features/nodes-editor/node-preview.component.tsx`](../../src/features/nodes-editor/node-preview.component.tsx) | per-node raster/style previews (`CellsPreview`, `StyleSamplePreview`) |
+| [`src/features/nodes-editor/object-graph-panel.component.tsx`](../../src/features/nodes-editor/object-graph-panel.component.tsx) | list-order panel, presets, reroll |
 
 ## How it works
 
@@ -31,23 +33,25 @@ style clone. `Cells = Map<number, number>` — buffer index (`y·bw + x`, `bw = 
 1-based palette value. `GraphNode { id, op, params, unknown?, pos? }`: `unknown: true` nodes
 are version-skew imports — kept (graphs round-trip across app versions) but skipped by the
 evaluator; `pos` is the editor card position — **serialized inside `Graph`**
-(`types.ts:137`), which is the P0 finding below. `Graph { graphVersion: 1, nodes, edges? }` —
-without edges the list order is the flow (each node feeds the next, like a chain).
+([`src/engine/nodes/types.ts`](../../src/engine/nodes/types.ts)), which is the P0 finding
+below. `Graph { graphVersion: 1, nodes, edges? }` — without edges the list order is the flow
+(each node feeds the next, like a chain).
 
-**Evaluation** (`eval.ts`): edges present → Kahn topological pass; several wires into one
-input merge by union (first-writer-wins per cell); no edges → list-order chain. Style nodes
-apply first, in list order, to a cloned base style. `evalGraphStages` returns cumulative
-per-node stages for the editor's previews. Determinism invariant: "the same graph, palette and
-base style always produce identical cells. The base style is never mutated." A graph
-containing any source node is fully procedural — the object's stored ink is ignored;
-style-only graphs keep it.
+**Evaluation** ([`src/engine/nodes/eval.ts`](../../src/engine/nodes/eval.ts)): edges present →
+Kahn topological pass; several wires into one input merge by union (first-writer-wins per
+cell); no edges → list-order chain. Style nodes apply first, in list order, to a cloned base
+style. `evalGraphStages` returns cumulative per-node stages for the editor's previews.
+Determinism invariant: "the same graph, palette and base style always produce identical cells.
+The base style is never mutated." A graph containing any source node is fully procedural —
+the object's stored ink is ignored; style-only graphs keep it.
 
-**Memo** (`eval-memo.ts`): `WeakMap<Graph>` hit requires identity of graph, input cells,
-palette array, base style, bw/bh — "graph/cells/style references are stable between edits
-(tree mutations clone the object), so identity comparison is enough". This memo serves the
-composite bake + per-layer geometry; the *editor's* per-node previews (`stageMap`,
-node-editor-canvas.component.tsx:188–208) bypass it and re-run `evalGraphStages` on every
-`[graph, doc, obj]` change.
+**Memo** ([`src/engine/nodes/eval-memo.ts`](../../src/engine/nodes/eval-memo.ts)):
+`WeakMap<Graph>` hit requires identity of graph, input cells, palette array, base style,
+bw/bh — "graph/cells/style references are stable between edits (tree mutations clone the
+object), so identity comparison is enough". This memo serves the composite bake + per-layer
+geometry; the *editor's* per-node previews (`stageMap` in
+[node-editor-canvas.component.tsx](../../src/features/nodes-editor/node-editor-canvas.component.tsx))
+bypass it and re-run `evalGraphStages` on every `[graph, doc, obj]` change.
 
 **Deterministic randomness**: `ctx.rng(key)` = mulberry32 seeded `hashStr(op::nodeId) ^
 hashStr(key)` — "(node id, key) fully determines the value, so randomness survives
@@ -55,16 +59,43 @@ re-evaluation and stays stable across undo/redo". 🎲 (`rerollGraphSeeds`) bump
 matching `/seed/i` to `1+floor(rnd·9999)`. `crown` node additionally seeds its own PRNG from
 its numeric `seed` param.
 
-## Catalog (19 ops)
+**Reaching into the other engine domains.** The `nodes/` core is thin on purpose; the family
+files import the domain folders they reuse (the engine's intra-layer dependency edges, all
+visible in the `*.node.ts` imports):
+
+- `source.rect/line/ellipse/shape` and `source.crown` rasterize through the shape tools'
+  geometry — [`src/engine/shapes/index.ts`](../../src/engine/shapes/index.ts) and
+  [`src/engine/shapes/fill.ts`](../../src/engine/shapes/fill.ts) (`fillCellsEvenOdd`,
+  `regionCells`).
+- `mod.warp` wraps the selection warp effect — [`src/engine/effects/warp.ts`](../../src/engine/effects/warp.ts)
+  (`inkBox`, `warpInk`, `WARP_KINDS`); `mod.symmetry` maps points through
+  [`src/engine/effects/symmetry.ts`](../../src/engine/effects/symmetry.ts) (`symmetryPoints`).
+- `mod.halftone` screens through the dither domain's
+  [`src/engine/dither/screen-engine.ts`](../../src/engine/dither/screen-engine.ts) (lattice ×
+  mark × size/density/twist × pitch) with `hash2` from
+  [`src/engine/texture/core.ts`](../../src/engine/texture/core.ts); `mod.hatch` reuses the
+  engraved-line systems from [`src/engine/dither/screen-lines.ts`](../../src/engine/dither/screen-lines.ts)
+  (`hatchDistance`, `HatchSystem`).
+- `source.text` rasterizes text via [`src/engine/glyph/text-raster.ts`](../../src/engine/glyph/text-raster.ts)
+  (`textTiles`, backed by the 5×7 font in [`src/engine/glyph/font.ts`](../../src/engine/glyph/font.ts)).
+- `style.*` validates/applies cell shapes through
+  [`src/engine/cell-shapes/index.ts`](../../src/engine/cell-shapes/index.ts)
+  (`CELL_SHAPE_IDS`, `isCellShapeId`, `normalizeShapeParams`).
+- `types.ts`/`eval.ts` import only `ElementStyle` from
+  [`src/engine/core/doc.ts`](../../src/engine/core/doc.ts) — the style the graph dresses.
+
+## Catalog (22 ops)
 
 Sources: `source.rect/line/ellipse` (reuse the shape tools' rasterizers), `source.shape`
 (all 22 shape-tool silhouettes + ~60 params), `source.grid` (whole-buffer patterns),
-`source.crown` (procedural crown: band + spikes + jewel holes). Mods: `recolor`, `offset`,
-`symmetry`, `warp` (placement-independent, centered on ink bbox), `arrayGrid`, `arrayCircle`,
-`path` (line/arc/sine stamping), `scale`. Ramps: `ramp.gradient` (angle projection → palette
-lerp). Styles: `pixel`, `render`, `metaball`, `texture`. Registry + presets + JSON
-import/export go through `validateGraph` (clamps, id dedup with `~` suffix, cycle breaking,
-`pos` clamp ±100000).
+`source.crown` (procedural crown: band + spikes + jewel holes), `source.text` (the embedded
+5×7 bitmap font as ink cells). Mods: `recolor`, `offset`, `symmetry`, `warp`
+(placement-independent, centered on ink bbox), `arrayGrid`, `arrayCircle`, `path` (line/arc/
+sine stamping), `scale`, `halftone` (screen re-render of the input raster), `hatch` (engraved
+line systems carved into fills). Ramps: `ramp.gradient` (angle projection → palette lerp).
+Styles: `pixel`, `render`, `metaball`, `texture`. Registry + presets + JSON import/export go
+through `validateGraph` (clamps, id dedup with `~` suffix, cycle breaking, `pos` clamp
+±100000).
 
 ## The editor UI
 
@@ -120,7 +151,8 @@ the pixel grid. Flow: **sources** paint → **modifiers** transform → **ramps*
 - **P0 — card drag defeats the memo**: `pos` lives inside `Graph`, so dragging clones the
   graph → memo miss → full re-evaluation + composite + geometry *per pointermove*: 687 ms/tick
   engine-side, ~1.7 s/tick in the browser at 4096²; decoupled, the memo hits and the cost is
-  ≈0 (`graph.bench.ts`, `docs/research/performance.md` §3.2 — roadmap P0).
+  ≈0 ([`src/engine/nodes/graph.bench.ts`](../../src/engine/nodes/graph.bench.ts),
+  `docs/research/performance.md` §3.2 — roadmap P0).
 - Full graph eval at 4096² ≈ 651 ms — `Cells = Map` churn dominates; typed-array cells are
   the P3 lever. Dirty-suffix re-eval alone buys only 1.27×.
 - Editor previews re-evaluate unmemoized per scrub (above) — small, safe win after the pos
@@ -128,8 +160,11 @@ the pixel grid. Flow: **sources** paint → **modifiers** transform → **ramps*
 
 ## Testing
 
-`nodes/nodes.test.ts` (707 lines, incl. "every registered node evaluates deterministically on
-defaults"), `nodes/params.test.ts`, `nodes/crown.test.ts`; bench `graph.bench.ts`.
+[`src/engine/nodes/nodes.test.ts`](../../src/engine/nodes/nodes.test.ts) (709 lines, incl.
+"every registered node evaluates deterministically on defaults"),
+[`src/engine/nodes/params.test.ts`](../../src/engine/nodes/params.test.ts),
+[`src/engine/nodes/crown.test.ts`](../../src/engine/nodes/crown.test.ts); bench
+[`src/engine/nodes/graph.bench.ts`](../../src/engine/nodes/graph.bench.ts).
 
 ## Related decisions
 
@@ -152,14 +187,20 @@ defaults"), `nodes/params.test.ts`, `nodes/crown.test.ts`; bench `graph.bench.ts
 ## Halftone, text and the luma service (2026-10)
 
 - `mod.halftone` re-renders the input raster as a screen of marks through
-  `screen-engine.ts` (lattice × mark × size/density/twist × pitch). Tone per cell comes
-  from `EvalContext.luma(value)` — the palette-luminance service added alongside
-  `hexValue` (built in `scene.ts` from the derived palette; the sanctioned context-service
-  extension point). `keepColor` reuses each mark's source palette value instead of a fixed
-  ink.
-- `source.text` rasterizes the embedded 5×7 bitmap font (`bitmap-font.ts`) into ink cells
+  [`src/engine/dither/screen-engine.ts`](../../src/engine/dither/screen-engine.ts) (lattice ×
+  mark × size/density/twist × pitch). Tone per cell comes from `EvalContext.luma(value)` —
+  the palette-luminance service built in
+  [`src/engine/core/scene.ts`](../../src/engine/core/scene.ts) from the derived palette (the
+  sanctioned context-service extension point). `keepColor` reuses each mark's source palette
+  value instead of a fixed ink.
+- `source.text` rasterizes the embedded 5×7 bitmap font
+  ([`src/engine/glyph/font.ts`](../../src/engine/glyph/font.ts)) into ink cells via
+  `textTiles` ([`src/engine/glyph/text-raster.ts`](../../src/engine/glyph/text-raster.ts))
   (offset/scale/tracking/ink). It needs no DOM, so it evaluates anywhere the graph does.
   Enabled by the `string` param kind threaded through the schema, resolver and both node
   editors.
-- Registered presets showcase both: halftone-print, stipple-garden, engrave-rings,
-  type-stamp, type-halftone, duotone-sun.
+- Registered presets showcase both:
+  [`src/engine/nodes/presets-dither.ts`](../../src/engine/nodes/presets-dither.ts) adds six
+  dither-era recipes — halftone-print, stipple-garden, engrave-rings, type-stamp,
+  type-halftone, duotone-sun — merged ahead of the 22 core recipes in `GRAPH_PRESETS`
+  ([`src/engine/nodes/presets.ts`](../../src/engine/nodes/presets.ts)).

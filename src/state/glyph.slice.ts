@@ -1,6 +1,6 @@
-import { DEFAULT_SHAPE_PARAMS } from '../engine/cell-shapes.ts'
-import { BUILT_IN_GLYPH_SETS, builtInGlyphEntry } from '../engine/glyph-builtins.ts'
-import { emptyGlyphSet, normalizeGlyphTileSet, type GlyphTileSet } from '../engine/glyph-tiles.ts'
+import { DEFAULT_SHAPE_PARAMS } from '../engine/cell-shapes/index.ts'
+import { BUILT_IN_GLYPH_SETS, builtInGlyphEntry } from '../engine/glyph/builtins.ts'
+import { emptyGlyphSet, normalizeGlyphTileSet, type GlyphTileSet } from '../engine/glyph/tiles.ts'
 import {
   deleteGlyphSet as deleteGlyphSetRow,
   listGlyphSets,

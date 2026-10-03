@@ -1,11 +1,11 @@
-import { withStyleScope } from '../engine/doc.ts'
+import { withStyleScope } from '../engine/core/doc.ts'
+import { convertedGridDoc, resizedDoc, subbedDoc } from '../engine/core/scene.ts'
 import {
   normalizePresetConfig,
   presetFromDoc,
   type EditorPreset,
   type PresetConfig,
-} from '../engine/presets.ts'
-import { convertedGridDoc, resizedDoc, subbedDoc } from '../engine/scene.ts'
+} from '../engine/presets/index.ts'
 import {
   deletePreset as deletePresetRow,
   listPresets,

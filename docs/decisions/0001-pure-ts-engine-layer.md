@@ -46,7 +46,7 @@ integration scenarios.
 
 - `.dependency-cruiser.cjs` — the four forbidden-dependency rules (comments in Russian,
   referencing AGENTS.md).
-- `src/engine/import-image.ts` header — "Pure pipeline … with no DOM APIs"; the dialog owns
+- [`src/engine/import/index.ts`](../../src/engine/import/index.ts) header — "Pure pipeline … with no DOM APIs"; the dialog owns
   decoding.
-- `src/engine/glyph-preview.ts` — custom `Raster` type instead of `ImageData` to stay
+- [`src/engine/glyph/preview.ts`](../../src/engine/glyph/preview.ts) — custom `Raster` type instead of `ImageData` to stay
   DOM-free.

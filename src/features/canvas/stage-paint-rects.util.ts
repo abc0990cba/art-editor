@@ -1,4 +1,4 @@
-import type { Doc } from '../../engine/doc.ts'
+import type { Doc } from '../../engine/core/doc.ts'
 import type { StagePaintParams, StagePaintState } from './stage-paint.util.ts'
 
 /**

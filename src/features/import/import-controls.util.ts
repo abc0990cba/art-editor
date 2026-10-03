@@ -1,13 +1,13 @@
 import type { CSSProperties } from 'react'
 
-import { hexToRgb } from '../../engine/color.ts'
+import { hexToRgb } from '../../engine/color/color.ts'
 import {
   DITHER_FAMILIES,
   dithersOfFamily,
   type DitherFamily,
   type ImportDither,
-} from '../../engine/dither-catalog.ts'
-import type { ImportFit, ImportResult } from '../../engine/import-image.ts'
+} from '../../engine/dither/catalog.ts'
+import type { ImportFit, ImportResult } from '../../engine/import/index.ts'
 
 /** Canvas placement options of the import, in display order. */
 export const FITS: ImportFit[] = ['cover', 'contain', 'stretch', 'resize']

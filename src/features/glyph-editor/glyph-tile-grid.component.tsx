@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-import type { GlyphTileSet } from '../../engine/glyph-tiles.ts'
+import type { GlyphTileSet } from '../../engine/glyph/tiles.ts'
 
 /**
  * Pixel grid editor of one tone level: press and drag to paint (the first cell you touch decides

@@ -5,7 +5,7 @@
  * downsampled ΔE heatmap so the workspace can show where the vector diverges from the raster.
  */
 
-import type { ImportBitmap } from '../import-image.ts'
+import type { ImportBitmap } from '../import/index.ts'
 import { composeSvg, type SvgPath } from '../trace/compose.ts'
 import { DEFAULT_TRACE_PARAMS } from '../trace/params.ts'
 import { clusterImage } from '../trace/quantize.ts'

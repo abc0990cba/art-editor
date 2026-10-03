@@ -1,5 +1,4 @@
-import { bufferWidth, resolveColor, type Doc } from '../engine/doc.ts'
-import { isPlainSquare } from '../engine/grids.ts'
+import { bufferWidth, resolveColor, type Doc } from '../engine/core/doc.ts'
 import {
   allObjs,
   objLayer,
@@ -7,15 +6,21 @@ import {
   stealCells,
   syncDoc,
   updateNode,
-} from '../engine/scene.ts'
-import { selectionBox, type CellBox, type InkCell } from '../engine/selection-xform.ts'
+} from '../engine/core/scene.ts'
+import { selectionBox, type CellBox, type InkCell } from '../engine/effects/selection-xform.ts'
 import {
   DEFAULT_STYLIZE_PARAMS,
   stylizeInk,
   type StylizeOp,
   type StylizeParams,
-} from '../engine/stylize.ts'
-import { DEFAULT_WARP_PARAMS, warpInk, type WarpKind, type WarpParams } from '../engine/warp.ts'
+} from '../engine/effects/stylize.ts'
+import {
+  DEFAULT_WARP_PARAMS,
+  warpInk,
+  type WarpKind,
+  type WarpParams,
+} from '../engine/effects/warp.ts'
+import { isPlainSquare } from '../engine/grids/index.ts'
 import type { State } from './editor.store.ts'
 
 /**

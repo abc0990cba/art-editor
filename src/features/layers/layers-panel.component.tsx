@@ -1,7 +1,12 @@
 import { useState } from 'react'
 
-import { cellColor, type Doc } from '../../engine/doc.ts'
-import { findNode, nodeProtected, type SceneItem, type SceneLayer } from '../../engine/scene.ts'
+import { cellColor, type Doc } from '../../engine/core/doc.ts'
+import {
+  findNode,
+  nodeProtected,
+  type SceneItem,
+  type SceneLayer,
+} from '../../engine/core/scene.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Section } from '../../shared/ui/index.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-import { isShapeTool } from '../../engine/shapes.ts'
+import { isShapeTool } from '../../engine/shapes/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { FloatingPanel } from '../../shared/ui/floating-panel.component.tsx'
 import { useMediaQuery } from '../../shared/ui/index.tsx'

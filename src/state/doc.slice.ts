@@ -1,11 +1,7 @@
-import type { Doc, GridType, SubDetail } from '../engine/doc.ts'
-import { defaultDoc, elementFromDoc } from '../engine/doc.ts'
-import { colorRegions, type ImportResult } from '../engine/import-image.ts'
-import type { Graph } from '../engine/nodes/index.ts'
-import { fitGraphToCanvas } from '../engine/nodes/index.ts'
-import { GRAPH_PRESETS } from '../engine/nodes/presets.ts'
-import { deserialize } from '../engine/project.ts'
-import type { SceneLayer, SceneObj } from '../engine/scene.ts'
+import type { Doc, GridType, SubDetail } from '../engine/core/doc.ts'
+import { defaultDoc, elementFromDoc } from '../engine/core/doc.ts'
+import { deserialize } from '../engine/core/project.ts'
+import type { SceneLayer, SceneObj } from '../engine/core/scene.ts'
 import {
   appendToLayer,
   convertedGridDoc,
@@ -21,8 +17,12 @@ import {
   syncDoc,
   ungroupAround,
   updateNode,
-} from '../engine/scene.ts'
-import { isRepeat } from '../engine/symmetry.ts'
+} from '../engine/core/scene.ts'
+import { isRepeat } from '../engine/effects/symmetry.ts'
+import { colorRegions, type ImportResult } from '../engine/import/index.ts'
+import type { Graph } from '../engine/nodes/index.ts'
+import { fitGraphToCanvas } from '../engine/nodes/index.ts'
+import { GRAPH_PRESETS } from '../engine/nodes/presets.ts'
 import type { State } from './editor.store.ts'
 import { activeLayerOf } from './store-internals.util.ts'
 import type { ImportLayering } from './tools.slice.ts'

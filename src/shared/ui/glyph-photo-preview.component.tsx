@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { ditherImageWithGlyph, type DitherStyle } from '../../engine/glyph-preview.ts'
-import type { GlyphTileSet } from '../../engine/glyph-tiles.ts'
-import type { ImportBitmap } from '../../engine/import-image.ts'
+import { ditherImageWithGlyph, type DitherStyle } from '../../engine/glyph/preview.ts'
+import type { GlyphTileSet } from '../../engine/glyph/tiles.ts'
+import type { ImportBitmap } from '../../engine/import/index.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { Chip } from './index.tsx'
 

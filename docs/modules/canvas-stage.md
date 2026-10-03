@@ -3,8 +3,8 @@
 ## Scope
 
 `src/features/canvas/`: the render surface and all pointer interaction — the two-canvas
-stage (`canvas-stage.component.tsx`, ~1380 lines), the stroke staging hook
-(`use-canvas-staging.hook.ts`, ~885), the view/navigation hook (`use-canvas-view.hook.ts`),
+stage (`canvas-stage.component.tsx`, ~1260 lines), the stroke staging hook
+(`use-canvas-staging.hook.ts`, ~875), the view/navigation hook (`use-canvas-view.hook.ts`),
 selection UI (actions bar, FX menu, warp popover, transform hook),
 hit-testing/marquee/coordinate utils, and the scrollbars. Engine-side
 rendering it consumes: [geometry](geometry.md), [render-pipeline](../architecture/render-pipeline.md).
@@ -13,37 +13,46 @@ rendering it consumes: [geometry](geometry.md), [render-pipeline](../architectur
 
 | File | Role |
 |---|---|
-| `src/features/canvas/canvas-stage.component.tsx` | base + overlay canvases, pointer tools, grid overlay, effects wiring |
-| `src/features/canvas/use-canvas-view.hook.ts` | view navigation: wheel/pinch zoom, pan inputs, view keys (`use-canvas-view`) |
-| `src/features/canvas/canvas-view-math.util.ts` | pure view math: deltaMode normalization, anchored zoom + clamps, offscreen test |
-| `src/features/canvas/use-canvas-staging.hook.ts` | staging state, rAF loop, symmetry/shape stamping, commit |
-| `src/features/canvas/canvas-stage.util.ts` | `MAX_STAMPS`, `sizeCanvas` (dpr), `blobCells` cache, marquee/label utils |
-| `src/features/canvas/use-selection-transform.hook.ts` | scale/rotate/flip handle interaction |
-| `src/features/canvas/select-hit.util.ts` | click → selection ids (outermost group = click unit) |
+| [`src/features/canvas/canvas-stage.component.tsx`](../../src/features/canvas/canvas-stage.component.tsx) | base + overlay canvases, pointer tools, grid overlay, effects wiring |
+| [`src/features/canvas/use-canvas-view.hook.ts`](../../src/features/canvas/use-canvas-view.hook.ts) | view navigation: wheel/pinch zoom, pan inputs, view keys (`use-canvas-view`) |
+| [`src/features/canvas/canvas-view-math.util.ts`](../../src/features/canvas/canvas-view-math.util.ts) | pure view math: deltaMode normalization, anchored zoom + clamps, offscreen test |
+| [`src/features/canvas/use-canvas-staging.hook.ts`](../../src/features/canvas/use-canvas-staging.hook.ts) | staging state, rAF loop, symmetry/shape stamping, commit |
+| [`src/features/canvas/canvas-stage.util.ts`](../../src/features/canvas/canvas-stage.util.ts) | `MAX_STAMPS`, `sizeCanvas` (dpr), `blobCells` cache, marquee/label utils |
+| [`src/features/canvas/use-selection-transform.hook.ts`](../../src/features/canvas/use-selection-transform.hook.ts) | scale/rotate/flip handle interaction |
+| [`src/features/canvas/select-hit.util.ts`](../../src/features/canvas/select-hit.util.ts) | click → selection ids (outermost group = click unit) |
 | `src/features/canvas/selection-actions / -fx-menu / -warp-popover` | floating selection UI |
 
 ## How it works
+
+**Where the pixels come from.** Everything painted here is engine output: `buildGeometry`
+turns the doc into `StyledPath[]` and `drawGeometry` (from
+[`src/engine/output/png.ts`](../../src/engine/output/png.ts)) paints it — the full dispatch → draw story lives in
+[render-pipeline](../architecture/render-pipeline.md), the geometry side in
+[geometry](geometry.md). This page covers the feature side: canvases, staging, view state.
 
 **Two canvases.** The base canvas (background, artwork, grid) receives pointer events; the
 overlay canvas (`pointer-events-none`) draws symmetry guides, marching ants, transform box,
 marquee, hover ghost. Both are dpr-sized by `sizeCanvas`.
 
 **Committed rendering.** `const geometry = useMemo(() => buildGeometry(doc), [doc])`
-(line 214 — "committed geometry only: during strokes the base layer composites the staged
-delta on top of a cached artwork bitmap… so the full-document rebuild runs on doc changes —
-not on every rAF tick of a stroke"). An offscreen artwork bitmap (`artLayerRef`) is keyed on
+("committed geometry only: during strokes the base layer composites the staged delta on top
+of a cached artwork bitmap… so the full-document rebuild runs on doc changes — not on every
+rAF tick of a stroke"). An offscreen artwork bitmap (`artLayerRef`) is keyed on
 geometry+zoom+pan+size+dpr and rebuilt only when one changes.
 
 **Staging.** Strokes mutate a staging delta (cells/links/objs maps) — never the doc; a
 coalescing rAF loop calls `drawBaseRef`/`drawOverlayRef` directly ("staging mutations coalesce
-into at most one direct draw per frame — React renders only when the stroke commits"). Per
-frame: `stagingPreview` (O(staged)) when eligible — blit art → punch erases with
-`destination-out` → repaint background with `destination-over` ("skipping it flashes the flat
-app background in place of the checkerboard") → draw preview paths; otherwise the fallback
-full `buildGeometry(doc, st)` (line 967) — the fallback cliff. `commitStaging` produces one
-undoable step via `paintCells`/`paintCellsValues`; in element scope the fresh shape selects
-itself (Illustrator-style). Window-level pointerup/pointercancel/blur finish drags "so a lost
-pointerup can never turn later hover moves into stray stamps".
+into at most one direct draw per frame — React renders only when the stroke commits"). The
+base-canvas frame itself is dispatched in
+[`stage-paint-frame.util.ts`](../../src/features/canvas/stage-paint-frame.util.ts) (with the
+`stage-paint-*.util` siblings): per frame, `stagingPreview` (O(staged)) when eligible — blit
+art → punch erases with `destination-out` → repaint background with `destination-over`
+("skipping it flashes the flat app background in place of the checkerboard") → draw preview
+paths; otherwise the fallback full `buildGeometry(doc, st)` — the fallback cliff.
+`commitStaging` produces one undoable step via `paintCells`/`paintCellsValues`; in element
+scope the fresh shape selects itself (Illustrator-style). Window-level
+pointerup/pointercancel/blur finish drags "so a lost pointerup can never turn later hover
+moves into stray stamps".
 
 **Zoom/pan.** Navigation lives in `use-canvas-view.hook.ts` over the pure math in
 `canvas-view-math.util.ts` (`anchoredZoom` clamps 0.5..80 and keeps the doc point under the
@@ -69,7 +78,8 @@ runs only while a selection exists and `prefers-reduced-motion` is off (dash pha
 live-preview popovers, stylize ops) and the transform box clamp into the viewport. Marquee
 coalesces through its own rAF.
 
-**Scrollbars.** Pure metrics from `engine/scrollbars.ts` (`{ visible, scale, thumbLen,
+**Scrollbars.** Pure metrics from
+[`src/engine/core/scrollbars.ts`](../../src/engine/core/scrollbars.ts) (`{ visible, scale, thumbLen,
 thumbPos }`, min thumb 28 px) rendered as 10 px DOM overlays; thumb-drag pans, track click
 jumps; each axis shrinks by the other bar when both are visible.
 
@@ -95,7 +105,8 @@ jumps; each axis shrinks by the other bar when both are visible.
 ## Testing
 
 Staging/commit behavior is covered by engine integration tests lifted through the store
-(`perf-stress.test.ts` ratchets, geometry tests); the browser harness
+([`src/engine/perf-stress.test.ts`](../../src/engine/perf-stress.test.ts) ratchets,
+[geometry tests](../../src/engine/geometry/geometry.test.ts)); the browser harness
 (`?bench=1`) drives the real CanvasStage — note the harness is a separate entry
 (`app/main.tsx` → `app/bench/bench-main.tsx`), **not** hooks inside this component.
 

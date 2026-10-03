@@ -1,4 +1,4 @@
-import { CELL_SHAPES, shapePreviewPath, type CellShapeId } from '../../engine/cell-shapes.ts'
+import { CELL_SHAPES, shapePreviewPath, type CellShapeId } from '../../engine/cell-shapes/index.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { Chip } from './index.tsx'
 

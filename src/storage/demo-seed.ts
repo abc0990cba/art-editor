@@ -4,9 +4,9 @@
  * stable (`demo.`-prefixed), so re-materializing an existing demo just opens what's already there.
  */
 
-import { POSTER_DEMO, DEMO_PROJECT_NAME, type DemoDef } from '../engine/demo-project.ts'
-import { renderThumbnailDataURL } from '../engine/png.ts'
-import { deserialize, type ProjectJSON } from '../engine/project.ts'
+import { deserialize, type ProjectJSON } from '../engine/core/project.ts'
+import { POSTER_DEMO, DEMO_PROJECT_NAME, type DemoDef } from '../engine/demos/index.ts'
+import { renderThumbnailDataURL } from '../engine/output/png.ts'
 import {
   listProjects,
   loadProject,

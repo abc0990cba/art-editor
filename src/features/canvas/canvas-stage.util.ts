@@ -1,7 +1,7 @@
-import type { StageTheme, SymmetryState, Doc } from '../../engine/doc.ts'
-import type { Grid } from '../../engine/grids.ts'
-import type { Pt } from '../../engine/marching-squares.ts'
-import { isRepeat, repeatDef, type RepeatDef } from '../../engine/symmetry.ts'
+import type { StageTheme, SymmetryState, Doc } from '../../engine/core/doc.ts'
+import { isRepeat, repeatDef, type RepeatDef } from '../../engine/effects/symmetry.ts'
+import type { Pt } from '../../engine/geometry/marching-squares.ts'
+import type { Grid } from '../../engine/grids/index.ts'
 import type { ResolvedTheme } from '../../state/editor.store.ts'
 
 /** Safety cap: one stamp event writes at most this many buffer cells */

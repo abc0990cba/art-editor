@@ -13,10 +13,10 @@
 
 import { mkdir, writeFile } from 'node:fs/promises'
 
-import { DEMO_PROJECTS, POSTER_DEMO, type DemoDef } from '../src/engine/demo-project.ts'
-import { docExtent } from '../src/engine/doc.ts'
-import { deserialize } from '../src/engine/project.ts'
-import { buildSvg } from '../src/engine/svg.ts'
+import { docExtent } from '../src/engine/core/doc.ts'
+import { deserialize } from '../src/engine/core/project.ts'
+import { DEMO_PROJECTS, POSTER_DEMO, type DemoDef } from '../src/engine/demos/index.ts'
+import { buildSvg } from '../src/engine/output/svg.ts'
 
 const ART_TARGET_W = 720
 const OG_W = 1200

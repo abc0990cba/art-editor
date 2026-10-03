@@ -7,7 +7,7 @@
  * label buffer (bottom layer = 0, painted first) plus the layer colors.
  */
 
-import type { ImportBitmap } from '../import-image.ts'
+import type { ImportBitmap } from '../import/index.ts'
 import type { TraceParams } from './params.ts'
 
 /** A traced color layer: mask pixels are cut on demand from the label buffer. */

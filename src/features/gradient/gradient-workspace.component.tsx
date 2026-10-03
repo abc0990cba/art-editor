@@ -1,7 +1,7 @@
 import { useRef, useState, type DragEvent, type ReactElement } from 'react'
 
 import type { GradientStats } from '../../engine/gradient/pipeline.ts'
-import type { ImportBitmap } from '../../engine/import-image.ts'
+import type { ImportBitmap } from '../../engine/import/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { decodeImageFile } from '../../shared/lib/decode-image.util.ts'
 import { download, stamp } from '../../shared/lib/file-download.util.ts'

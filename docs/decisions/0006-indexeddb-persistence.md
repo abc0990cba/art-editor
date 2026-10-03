@@ -54,9 +54,9 @@ buffer lengths; broken records are dropped, not propagated). One-time migration
 
 ## Evidence
 
-- `src/storage/db.ts` — `DB_VERSION = 7`, store creation, `migrateKindedProjects`, memory
+- [`src/storage/db.ts`](../../src/storage/db.ts) — `DB_VERSION = 7`, store creation, `migrateKindedProjects`, memory
   fallback (`memoryOnly`).
-- `src/storage/projects.ts` — entry shapes, `normalizeProject` guards, `duplicateName`.
-- `src/state/store.effects.ts` + `src/state/project.slice.ts` — debounce/throttle constants,
+- [`src/storage/projects.ts`](../../src/storage/projects.ts) — entry shapes, `normalizeProject` guards, `duplicateName`.
+- [`src/state/store.effects.ts`](../../src/state/store.effects.ts) + [`src/state/project.slice.ts`](../../src/state/project.slice.ts) — debounce/throttle constants,
   `THUMBNAIL_MIN_INTERVAL_MS = 30_000`, localStorage mirror cap.
-- `src/storage/migrate.ts` — one-time legacy adoption, marker keys.
+- [`src/storage/migrate.ts`](../../src/storage/migrate.ts) — one-time legacy adoption, marker keys.

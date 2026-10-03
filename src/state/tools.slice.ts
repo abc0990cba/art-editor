@@ -1,14 +1,14 @@
-import type { Brush } from '../engine/brush.ts'
+import type { SymmetryState } from '../engine/core/doc.ts'
+import type { Brush } from '../engine/paint/brush.ts'
 import {
   BRUSH_SHAPES,
   detectBrushShape,
   normalizeBrush,
   resizeBrush,
   squareBrush,
-} from '../engine/brush.ts'
-import type { SymmetryState } from '../engine/doc.ts'
-import { DEFAULT_FILL_STYLE, type FillStyle } from '../engine/fillpatterns.ts'
-import { DEFAULT_CONCENTRIC_RADII } from '../engine/shapes.ts'
+} from '../engine/paint/brush.ts'
+import { DEFAULT_CONCENTRIC_RADII } from '../engine/shapes/index.ts'
+import { DEFAULT_FILL_STYLE, type FillStyle } from '../engine/texture/fill.ts'
 import type { State } from './editor.store.ts'
 
 export type Tool =

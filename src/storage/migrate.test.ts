@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { ProjectJSON } from '../engine/project.ts'
+import type { ProjectJSON } from '../engine/core/project.ts'
 import { migrateLegacySession } from './migrate.ts'
 import {
   clearProjectsForTests,

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
-import { BAYER2, BAYER4, BAYER8 } from '../../engine/dither-matrices.ts'
-import { BUILT_IN_GLYPH_SETS } from '../../engine/glyph-builtins.ts'
+import { BAYER2, BAYER4, BAYER8 } from '../../engine/dither/matrices.ts'
+import { BUILT_IN_GLYPH_SETS } from '../../engine/glyph/builtins.ts'
 import {
   glyphSetChecker,
   glyphSetDots,
@@ -10,14 +10,14 @@ import {
   glyphSetRings,
   glyphSetShapeMorph,
   glyphSetStars,
-} from '../../engine/glyph-generators.ts'
+} from '../../engine/glyph/generators.ts'
 import {
   emptyGlyphSet,
   glyphSetFromMatrix,
   invertGlyphSet,
   resizeGlyphSet,
   type GlyphTileSet,
-} from '../../engine/glyph-tiles.ts'
+} from '../../engine/glyph/tiles.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { GlyphGallery } from '../../shared/ui/glyph-gallery.component.tsx'
 import { GlyphRampStrip } from '../../shared/ui/glyph-ramp-strip.component.tsx'

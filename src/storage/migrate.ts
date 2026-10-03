@@ -1,4 +1,4 @@
-import type { ProjectJSON } from '../engine/project'
+import type { ProjectJSON } from '../engine/core/project'
 import { openDb, reqToPromise } from './db'
 import { loadProject, newProjectId, rememberOpenedProject, saveProject } from './projects'
 

@@ -1,4 +1,4 @@
-import { isPlainSquare } from '../../engine/grids.ts'
+import { isPlainSquare } from '../../engine/grids/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, ColorInput, Section, Slider } from '../../shared/ui/index.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'

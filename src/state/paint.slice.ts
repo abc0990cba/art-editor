@@ -1,6 +1,6 @@
-import type { Doc, Link } from '../engine/doc.ts'
-import { elementFromDoc, resolveColor } from '../engine/doc.ts'
-import { nodeProtected, syncDoc, type SceneItem } from '../engine/scene.ts'
+import type { Doc, Link } from '../engine/core/doc.ts'
+import { elementFromDoc, resolveColor } from '../engine/core/doc.ts'
+import { nodeProtected, syncDoc, type SceneItem } from '../engine/core/scene.ts'
 import type { State } from './editor.store.ts'
 import {
   activeLayerOf,

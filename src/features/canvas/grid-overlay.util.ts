@@ -1,4 +1,4 @@
-import type { Grid } from '../../engine/grids.ts'
+import type { Grid } from '../../engine/grids/index.ts'
 
 /**
  * Canvas grid overlays, kept out of CanvasStage to keep the component under its size ratchet: the

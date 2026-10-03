@@ -1,5 +1,5 @@
-import type { GlyphTileSet } from '../engine/glyph-tiles.ts'
-import { normalizeGlyphTileSet } from '../engine/glyph-tiles.ts'
+import type { GlyphTileSet } from '../engine/glyph/tiles.ts'
+import { normalizeGlyphTileSet } from '../engine/glyph/tiles.ts'
 import { newId, openDb, reqToPromise } from './db.ts'
 
 /** A saved glyph tile set: metadata + validated ramp of tiles. */

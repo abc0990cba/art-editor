@@ -9,14 +9,14 @@
 
 Metaball mode splats kernels into a scalar field and traces it with marching squares. Two
 independent implementations existed: `geometry-metaball.ts` (square buffers) and a duplicated
-splat/capsule loop inside `grid-geometry.ts` (`gridMetaball`). The merge threshold (ISO) was
+splat/capsule loop inside [`src/engine/grids/geometry.ts`](../../src/engine/grids/geometry.ts) (named `grid-geometry.ts` at decision time; `gridMetaball`). The merge threshold (ISO) was
 hardcoded 0.5, the kernel falloff hardcoded cubic, and the non-square path splatted every
 link into every color's field. Users could not see where the field would cross the threshold,
 which made diffusion placement guesswork.
 
 ## Decision
 
-1. **One field builder** — `engine/metaball-field.ts`. Sources and capsules arrive in doc
+1. **One field builder** — `engine/geometry/metaball-field.ts`. Sources and capsules arrive in doc
    units; grid-specific coordinate math stays in two thin adapters (square: buffer scan +
    junction kernels; non-square: `grid.center` sources with links filtered by the group's
    value). Quality/preview resolution folds into the node pitch `step`; `squareEdges` border

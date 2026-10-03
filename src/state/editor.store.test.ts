@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { defaultDoc } from '../engine/doc.ts'
-import { BUILT_IN_GLYPH_SETS } from '../engine/glyph-builtins.ts'
-import { ensureScene } from '../engine/scene.ts'
+import { defaultDoc } from '../engine/core/doc.ts'
+import { ensureScene } from '../engine/core/scene.ts'
+import { BUILT_IN_GLYPH_SETS } from '../engine/glyph/builtins.ts'
 import { useStore } from './editor.store'
 
 const state = () => useStore.getState()

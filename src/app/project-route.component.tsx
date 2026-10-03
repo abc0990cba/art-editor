@@ -8,8 +8,8 @@ import {
   type ReactNode,
 } from 'react'
 
-import type { ImportBitmap } from '../engine/import-image.ts'
-import { deserialize } from '../engine/project.ts'
+import { deserialize } from '../engine/core/project.ts'
+import type { ImportBitmap } from '../engine/import/index.ts'
 import { GradientWorkspace } from '../features/gradient/gradient-workspace.component.tsx'
 import { ImportDialog } from '../features/import/import-dialog.component.tsx'
 import { VectorWorkspace } from '../features/vectorizer/vector-workspace.component.tsx'

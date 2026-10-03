@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Doc, Link } from '../../engine/doc.ts'
+import type { Doc, Link } from '../../engine/core/doc.ts'
 import {
   constrainShapeEnd,
   marqueeRect,

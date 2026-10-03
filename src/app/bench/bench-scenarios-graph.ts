@@ -1,8 +1,8 @@
 import { sceneBenchDoc } from '../../engine/bench-doc.util.ts'
-import { elementFromDoc } from '../../engine/doc-style.ts'
-import { defaultDoc, makeCells, type Doc } from '../../engine/doc.ts'
+import { elementFromDoc } from '../../engine/core/doc-style.ts'
+import { defaultDoc, makeCells, type Doc } from '../../engine/core/doc.ts'
+import { newLayer, newObj, syncDoc } from '../../engine/core/scene.ts'
 import type { Graph } from '../../engine/nodes/index.ts'
-import { newLayer, newObj, syncDoc } from '../../engine/scene.ts'
 import { useStore } from '../../state/editor.store.ts'
 import type { BenchPoint } from './bench-scenarios.ts'
 

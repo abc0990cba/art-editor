@@ -1,4 +1,4 @@
-import type { ImportBitmap } from '../engine/import-image.ts'
+import type { ImportBitmap } from '../engine/import/index.ts'
 import { normalizeTraceParams, type TraceParams } from '../engine/trace/params.ts'
 import type { TraceStats } from '../engine/trace/trace.ts'
 import { saveProject, type VectorProjectEntry } from '../storage/projects.ts'

@@ -1,6 +1,6 @@
 import type { JSX } from 'react'
 
-import { SHAPE_TOOLS } from '../../engine/shapes.ts'
+import { SHAPE_TOOLS } from '../../engine/shapes/index.ts'
 import type { Tool } from '../../state/editor.store.ts'
 
 const icons: Record<Tool, JSX.Element> = {

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { bufferWidth } from '../../engine/doc.ts'
-import { selectionBox, type CellBox, type InkCell } from '../../engine/selection-xform.ts'
+import { bufferWidth } from '../../engine/core/doc.ts'
+import { selectionBox, type CellBox, type InkCell } from '../../engine/effects/selection-xform.ts'
 import {
   DEFAULT_WARP_PARAMS,
   isReversibleWarp,
   warpInk,
   type WarpKind,
   type WarpParams,
-} from '../../engine/warp.ts'
+} from '../../engine/effects/warp.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Chip, Slider } from '../../shared/ui/index.tsx'
 import { useStore } from '../../state/editor.store.ts'

@@ -7,7 +7,7 @@ import {
   MAX_BRUSH,
   type Brush,
   type BrushShapeId,
-} from '../../engine/brush.ts'
+} from '../../engine/paint/brush.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { QUICK_COLORS } from '../../shared/lib/quick-colors.util.ts'
 import { ColorPicker } from '../../shared/ui/color-picker.component.tsx'

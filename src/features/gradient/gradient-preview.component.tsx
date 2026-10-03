@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 
 import type { ErrorMap } from '../../engine/gradient/pipeline.ts'
-import type { ImportBitmap } from '../../engine/import-image.ts'
+import type { ImportBitmap } from '../../engine/import/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CompareSplit } from '../../shared/ui/compare-split.component.tsx'
 import { PanZoomPreview } from '../../shared/ui/pan-zoom-preview.component.tsx'

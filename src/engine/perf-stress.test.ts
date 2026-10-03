@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { flatBenchDoc, flatRunsBenchDoc } from './bench-doc.util.ts'
-import { defaultDoc, type Doc } from './doc.ts'
-import { buildGeometry, stagingPreview, PENDING_OBJ, type Staging } from './geometry.ts'
+import { defaultDoc, type Doc } from './core/doc.ts'
+import { buildGeometry, stagingPreview, PENDING_OBJ, type Staging } from './geometry/index.ts'
 
 /** A 500×500 pixels-mode doc with ~half the canvas painted in a two-color checker. */
 function bigDoc(opts?: { sub?: Doc['sub']; radius?: number; chamfer?: boolean }): Doc {

@@ -5,9 +5,9 @@ import {
   GLYPH_FAMILY_ORDER,
   builtInGlyphSetById,
   type GlyphFamily,
-} from '../../engine/glyph-builtins.ts'
-import type { GlyphTileSet } from '../../engine/glyph-tiles.ts'
-import type { ImportBitmap } from '../../engine/import-image.ts'
+} from '../../engine/glyph/builtins.ts'
+import type { GlyphTileSet } from '../../engine/glyph/tiles.ts'
+import type { ImportBitmap } from '../../engine/import/index.ts'
 import { useStore } from '../../state/editor.store.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { GlyphPhotoPreview } from './glyph-photo-preview.component.tsx'

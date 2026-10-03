@@ -6,8 +6,11 @@
 > 2. Replace every `<placeholder>`; delete sections that genuinely do not apply.
 > 3. Keep every claim anchored to the code: file paths, exported names, and line refs
 >    where a fact is load-bearing. If you cannot point at the code, either verify it or cut it.
-> 4. Target 80–250 lines. Add a Mermaid diagram only where it earns its place (~10 diagrams
->    across the whole docs tree is a healthy budget).
+>    Reference source files as clickable relative links with the backticked path as link text —
+>    from `docs/modules/` that is `` [`src/engine/x/y.ts`](../../src/engine/x/y.ts) `` — plus the
+>    exported symbol name. Never use `#L` line anchors: they drift on every edit.
+> 4. Target 80–250 lines (engine deep-dive pages may run longer when the walkthrough earns it).
+>    Add a Mermaid diagram only where it earns its place (1–2 per engine page is the norm).
 > 5. Cite performance numbers only from existing bench files / `bench/PERFLOG.md` /
 >    `docs/research/performance.md` — never invent or round numbers upward.
 > 6. Link the doc from the Module docs table in `docs/README.md`.

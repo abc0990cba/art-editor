@@ -1,8 +1,8 @@
 import { useState, type ReactElement, type ReactNode } from 'react'
 
-import { MAX_SIZE } from '../../engine/doc.ts'
-import { GRID_TYPES, type GridType } from '../../engine/grids.ts'
-import { SIZE_GROUPS } from '../../engine/sizes.ts'
+import { MAX_SIZE } from '../../engine/core/doc.ts'
+import { SIZE_GROUPS } from '../../engine/core/sizes.ts'
+import { GRID_TYPES, type GridType } from '../../engine/grids/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Chip, Slider } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'

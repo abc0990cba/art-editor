@@ -1,6 +1,5 @@
-import type { Doc, ElementStyle, Link } from '../engine/doc.ts'
-import { elementFromDoc, sameElementStyle } from '../engine/doc.ts'
-import type { GraphNode } from '../engine/nodes/index.ts'
+import type { Doc, ElementStyle, Link } from '../engine/core/doc.ts'
+import { elementFromDoc, sameElementStyle } from '../engine/core/doc.ts'
 import {
   appendToLayer,
   newObj,
@@ -9,7 +8,8 @@ import {
   stealCells,
   syncDoc,
   type SceneLayer,
-} from '../engine/scene.ts'
+} from '../engine/core/scene.ts'
+import type { GraphNode } from '../engine/nodes/index.ts'
 
 /** Fresh id for a graph node (unique within its graph). */
 export const genNodeId = () => `n${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`

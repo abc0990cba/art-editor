@@ -1,6 +1,6 @@
-import { defaultDoc, elementFromDoc, makeCells, type Doc } from './doc.ts'
-import { PENDING_OBJ, type Staging } from './geometry.ts'
-import { newLayer, newObj, syncDoc } from './scene.ts'
+import { defaultDoc, elementFromDoc, makeCells, type Doc } from './core/doc.ts'
+import { newLayer, newObj, syncDoc } from './core/scene.ts'
+import { PENDING_OBJ, type Staging } from './geometry/index.ts'
 
 /**
  * Deterministic fixtures for performance benchmarks (engine benches + the ?bench=1 browser

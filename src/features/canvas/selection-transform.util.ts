@@ -5,8 +5,8 @@
  * engine/selection-xform.ts.
  */
 
-import type { StageTheme } from '../../engine/doc.ts'
-import type { CellBox, SelectionXform } from '../../engine/selection-xform.ts'
+import type { StageTheme } from '../../engine/core/doc.ts'
+import type { CellBox, SelectionXform } from '../../engine/effects/selection-xform.ts'
 import type { DocPoint } from './canvas-stage.util.ts'
 
 /** The eight handles of the box, named by position. */

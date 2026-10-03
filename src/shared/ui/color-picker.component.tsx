@@ -12,7 +12,7 @@ import {
   rgbToHsv,
   type CMYK,
   type RGB,
-} from '../../engine/color.ts'
+} from '../../engine/color/color.ts'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 import { Chip } from './index.tsx'
 import { Tooltip } from './tooltip.component.tsx'

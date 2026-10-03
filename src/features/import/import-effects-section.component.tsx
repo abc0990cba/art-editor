@@ -1,5 +1,5 @@
-import { DITHER_CATALOG, type ImportDither } from '../../engine/dither-catalog.ts'
-import type { ImportOptions } from '../../engine/import-image.ts'
+import { DITHER_CATALOG, type ImportDither } from '../../engine/dither/catalog.ts'
+import type { ImportOptions } from '../../engine/import/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, ColorInput, Section, Slider, TextField } from '../../shared/ui/index.tsx'
 import {

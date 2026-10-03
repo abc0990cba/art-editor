@@ -11,17 +11,17 @@ dependency-cruiser exception.
 
 | File | Role |
 |---|---|
-| `src/features/settings-panel/settings-panel.component.tsx` | section composition + palette I/O + shared style targeting |
-| `src/features/settings-panel/brush-section.component.tsx` | pixel size, tip editor, brush preset library |
-| `src/features/settings-panel/style-section.component.tsx` | cell shape/rounding, render mode, style-scope toggle, `StyleTarget` |
-| `src/features/settings-panel/texture-section.component.tsx` | effect chips + sliders (square grids only) |
+| [`src/features/settings-panel/settings-panel.component.tsx`](../../src/features/settings-panel/settings-panel.component.tsx) | section composition + palette I/O + shared style targeting |
+| [`src/features/settings-panel/brush-section.component.tsx`](../../src/features/settings-panel/brush-section.component.tsx) | pixel size, tip editor, brush preset library |
+| [`src/features/settings-panel/style-section.component.tsx`](../../src/features/settings-panel/style-section.component.tsx) | cell shape/rounding, render mode, style-scope toggle, `StyleTarget` |
+| [`src/features/settings-panel/texture-section.component.tsx`](../../src/features/settings-panel/texture-section.component.tsx) | effect chips + sliders (square grids only) |
 | `src/features/settings-panel/symmetry-section / -preview` | mode pickers + inline live preview canvas |
-| `src/features/settings-panel/shape-picker.component.tsx` | cell-form tiles + per-form param sliders |
-| `src/features/settings-panel/rounding-controls.component.tsx` | presets, arc/chamfer, per-corner overrides |
-| `src/features/settings-panel/canvas-section.component.tsx` | radial even, size, sub-detail, connector width, bg, grid |
-| `src/features/settings-panel/presets-dialog.component.tsx` | built-in + user presets, apply/create/overwrite |
-| `src/features/settings-panel/style-previews.component.tsx` | `PixelStylePreview`, `TexturePreview` (real geometry) |
-| `src/features/layers/layers-panel.component.tsx` | scene-tree rows, reorder, visibility/lock, group/ungroup |
+| [`src/features/settings-panel/shape-picker.component.tsx`](../../src/features/settings-panel/shape-picker.component.tsx) | cell-form tiles + per-form param sliders |
+| [`src/features/settings-panel/rounding-controls.component.tsx`](../../src/features/settings-panel/rounding-controls.component.tsx) | presets, arc/chamfer, per-corner overrides |
+| [`src/features/settings-panel/canvas-section.component.tsx`](../../src/features/settings-panel/canvas-section.component.tsx) | radial even, size, sub-detail, connector width, bg, grid |
+| [`src/features/settings-panel/presets-dialog.component.tsx`](../../src/features/settings-panel/presets-dialog.component.tsx) | built-in + user presets, apply/create/overwrite |
+| [`src/features/settings-panel/style-previews.component.tsx`](../../src/features/settings-panel/style-previews.component.tsx) | `PixelStylePreview`, `TexturePreview` (real geometry) |
+| [`src/features/layers/layers-panel.component.tsx`](../../src/features/layers/layers-panel.component.tsx) | scene-tree rows, reorder, visibility/lock, group/ungroup |
 
 ## How it works
 

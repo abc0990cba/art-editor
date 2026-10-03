@@ -7,9 +7,7 @@ import type {
   PixelStyle,
   RenderMode,
   TextureSettings,
-} from '../engine/doc.ts'
-import { isPlainSquare } from '../engine/grids.ts'
-import { nodeDef, type GraphNode } from '../engine/nodes/index.ts'
+} from '../engine/core/doc.ts'
 import {
   allObjs,
   nodeProtected,
@@ -21,7 +19,9 @@ import {
   translateObjCells,
   updateNode,
   type SceneObj,
-} from '../engine/scene.ts'
+} from '../engine/core/scene.ts'
+import { isPlainSquare } from '../engine/grids/index.ts'
+import { nodeDef, type GraphNode } from '../engine/nodes/index.ts'
 import type { State } from './editor.store.ts'
 import { genNodeId } from './store-internals.util.ts'
 

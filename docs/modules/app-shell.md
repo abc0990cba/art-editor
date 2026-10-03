@@ -10,15 +10,15 @@ workspace composition, the top bar, hotkeys, the vectorize bridge, the bench har
 
 | File | Role |
 |---|---|
-| `src/app/main.tsx` | entry dispatcher (editor/index.html): app boot or `?bench=1` harness (both dynamic imports) |
-| `src/app/app-boot.tsx` | StrictMode + TooltipProvider; legacy migration + demo seed before first route |
-| `src/app/router.tsx` / `project-search.ts` | routes `/` and `/p/$projectId` under `basepath: '/editor'`; typed search params |
-| `src/app/project-route.component.tsx` | binds the library entry to the store; kind-switches the workspace |
-| `src/app/pixel-workspace.component.tsx` | tool rail \| editor pane (stage + node editor, split/overlay) \| settings column; mobile drawers |
+| [`src/app/main.tsx`](../../src/app/main.tsx) | entry dispatcher (editor/index.html): app boot or `?bench=1` harness (both dynamic imports) |
+| [`src/app/app-boot.tsx`](../../src/app/app-boot.tsx) | StrictMode + TooltipProvider; legacy migration + demo seed before first route |
+| [`src/app/router.tsx`](../../src/app/router.tsx) / `project-search.ts` | routes `/` and `/p/$projectId` under `basepath: '/editor'`; typed search params |
+| [`src/app/project-route.component.tsx`](../../src/app/project-route.component.tsx) | binds the library entry to the store; kind-switches the workspace |
+| [`src/app/pixel-workspace.component.tsx`](../../src/app/pixel-workspace.component.tsx) | tool rail \| editor pane (stage + node editor, split/overlay) \| settings column; mobile drawers |
 | `src/app/app-top-bar*.component.tsx` | identity/actions/view controls; mobile composition |
-| `src/app/use-hotkeys.hook.ts` | global hotkey registry |
-| `src/app/use-vectorize-bridge.hook.ts` | pixel → new vector project handoff |
-| `src/app/theme-swatches.component.tsx` | theme swatch colors for the selector |
+| [`src/app/use-hotkeys.hook.ts`](../../src/app/use-hotkeys.hook.ts) | global hotkey registry |
+| [`src/app/use-vectorize-bridge.hook.ts`](../../src/app/use-vectorize-bridge.hook.ts) | pixel → new vector project handoff |
+| [`src/app/theme-swatches.component.tsx`](../../src/app/theme-swatches.component.tsx) | theme swatch colors for the selector |
 | `src/app/bench/*` | performance harness (scenarios, report, `window.__benchReport`) |
 | `src/shared/i18n/*` | typed dictionaries, EN/RU, per-key fallback |
 
@@ -65,7 +65,7 @@ The shadcn/ui variable names (--background, --card, --primary, …) are derived 
 every theme block… while the historic ditherlab utilities (bg-app, text-muted, …) keep
 working." `@theme inline` maps tokens into Tailwind v4; adaptation rule for vendored shadcn:
 `bg-muted` → `bg-chip` (here `--muted` is a secondary *text* color). The stage has its own
-separate 7-theme palette (`engine/stage-themes.ts`).
+separate 7-theme palette (`engine/core/stage-themes.ts`).
 
 **Bench harness** (`?bench=1&autorun=1`): mounts the *real* CanvasStage on the *real* store
 ("each scenario drives the real app pipeline — store actions, React render, canvas effects,

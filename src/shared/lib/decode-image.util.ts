@@ -1,4 +1,4 @@
-import type { ImportBitmap } from '../../engine/import-image.ts'
+import type { ImportBitmap } from '../../engine/import/index.ts'
 
 /** Decode an image file into an ImportBitmap, capped so the import pipeline stays fast. */
 export async function decodeImageFile(file: Blob, maxSide = 2048): Promise<ImportBitmap> {

@@ -1,5 +1,5 @@
-import { isPlainSquare } from '../../engine/grids.ts'
-import { MAX_CELL, MIN_CELL, TILING_MODES, WALLPAPER_MODES } from '../../engine/symmetry.ts'
+import { MAX_CELL, MIN_CELL, TILING_MODES, WALLPAPER_MODES } from '../../engine/effects/symmetry.ts'
+import { isPlainSquare } from '../../engine/grids/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { useStore } from '../../state/editor.store.ts'

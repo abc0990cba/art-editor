@@ -1,5 +1,5 @@
-import { isCurvedShape, paramsOf } from '../../engine/cell-shapes.ts'
-import type { Doc } from '../../engine/doc.ts'
+import { isCurvedShape, paramsOf } from '../../engine/cell-shapes/index.ts'
+import type { Doc } from '../../engine/core/doc.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Slider } from '../../shared/ui/index.tsx'
 import { ShapeTileGrid } from '../../shared/ui/shape-tiles.component.tsx'

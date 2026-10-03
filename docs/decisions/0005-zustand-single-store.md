@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-01 (store in place since `add-editor-core`; slice split per the ratchet program)
-- Related: [state-store](../modules/state-store.md); [data-model](../architecture/data-model.md); `src/state/editor.store.ts`
+- Related: [state-store](../modules/state-store.md); [data-model](../architecture/data-model.md); [`src/state/editor.store.ts`](../../src/state/editor.store.ts)
 
 ## Context
 
@@ -14,7 +14,7 @@ UI state.
 
 ## Decision
 
-One zustand store (`src/state/editor.store.ts`), composed from **16 vertical slices** (`ui`,
+One zustand store ([`src/state/editor.store.ts`](../../src/state/editor.store.ts)), composed from **16 vertical slices** (`ui`,
 `tools`, `doc`, `style`, `paint`, `fill`, `selection`, `transform`, `effect`, `glyph`,
 `gradient`, `vector`, `vector-presets`, `presets`, `brushes`, `project`), each owning its
 initial state and actions behind the same `SliceApi { set, get }`. Undo/redo is zundo
@@ -57,8 +57,8 @@ deltas.
 
 ## Evidence
 
-- `src/state/editor.store.ts` — composition, `temporalOptions`, `window.__store` dev hook.
-- `src/state/store.effects.ts` — the four subscription effects and the 256 MB budget
+- [`src/state/editor.store.ts`](../../src/state/editor.store.ts) — composition, `temporalOptions`, `window.__store` dev hook.
+- [`src/state/store.effects.ts`](../../src/state/store.effects.ts) — the four subscription effects and the 256 MB budget
   formula (the "~32 MB" figure in an older store comment is stale).
-- `src/state/store-internals.util.ts` — `commitStroke` contract (one stroke = one object,
+- [`src/state/store-internals.util.ts`](../../src/state/store-internals.util.ts) — `commitStroke` contract (one stroke = one object,
   auto-attached offset node, `pruneEmptyObjs` + `syncDoc`).

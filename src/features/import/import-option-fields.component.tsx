@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 
-import { DITHER_CATALOG } from '../../engine/dither-catalog.ts'
-import { BUILT_IN_GLYPH_SETS } from '../../engine/glyph-builtins.ts'
+import { PALETTES } from '../../engine/color/index.ts'
+import { DITHER_CATALOG } from '../../engine/dither/catalog.ts'
+import { BUILT_IN_GLYPH_SETS } from '../../engine/glyph/builtins.ts'
 import {
   convertImage,
   DEFAULT_IMPORT_OPTIONS,
@@ -11,9 +12,8 @@ import {
   type ImportOptions,
   type ImportPaletteChoice,
   type ImportResult,
-} from '../../engine/import-image.ts'
-import { IMPORT_PRESETS } from '../../engine/import-presets.ts'
-import { PALETTES } from '../../engine/palettes.ts'
+} from '../../engine/import/index.ts'
+import { IMPORT_PRESETS } from '../../engine/import/presets.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { cn } from '../../shared/lib/utils.ts'
 import { GlyphSetPicker } from '../../shared/ui/glyph-set-picker.component.tsx'

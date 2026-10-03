@@ -3,7 +3,7 @@
  * stack.
  */
 
-import { textTiles } from '../text-raster.ts'
+import { textTiles } from '../glyph/text-raster.ts'
 import { defineNode, type Cells } from './types.ts'
 
 export const TEXT_NODES = [

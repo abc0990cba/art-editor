@@ -1,8 +1,8 @@
 import type { ZundoOptions } from 'zundo'
 
-import type { Doc } from '../engine/doc.ts'
-import { serialize } from '../engine/project.ts'
-import { allObjs } from '../engine/scene.ts'
+import type { Doc } from '../engine/core/doc.ts'
+import { serialize } from '../engine/core/project.ts'
+import { allObjs } from '../engine/core/scene.ts'
 import { DOC_KEY } from './doc.slice.ts'
 import type { State, useStore } from './editor.store.ts'
 import { resolvedTheme } from './ui.slice.ts'

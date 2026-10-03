@@ -7,8 +7,8 @@ import {
   type ScreenLattice,
   type ScreenMark,
   type ScreenStyle,
-} from '../screen-engine.ts'
-import { hash2 } from '../texture-core.ts'
+} from '../dither/screen-engine.ts'
+import { hash2 } from '../texture/core.ts'
 import { defineNode, type Cells } from './types.ts'
 
 const MARKS: readonly ScreenMark[] = [

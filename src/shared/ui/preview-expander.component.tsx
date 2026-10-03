@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
-import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { FloatingPanel } from '../../shared/ui/floating-panel.component.tsx'
+import { useI18n } from '../i18n/i18n.provider.tsx'
+import { FloatingPanel } from './floating-panel.component.tsx'
 
 /**
  * Overlay button that opens a floating panel with a large live copy of the wrapped preview. The

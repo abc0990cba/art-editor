@@ -1,4 +1,4 @@
-import type { Grid } from '../../engine/grids.ts'
+import type { Grid } from '../../engine/grids/index.ts'
 
 /**
  * Inclusive integer Bresenham walk from one buffer cell to another: every cell the pointer crossed

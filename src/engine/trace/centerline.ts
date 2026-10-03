@@ -7,7 +7,7 @@
  * Geometry is flat number arrays of x,y pairs in pixel coordinates.
  */
 
-import type { ImportBitmap } from '../import-image.ts'
+import type { ImportBitmap } from '../import/index.ts'
 import { formatNum, type SvgPath } from './compose.ts'
 import { fitChain } from './fit-curves.ts'
 import type { TraceParams } from './params.ts'

@@ -1,12 +1,12 @@
 import { useState } from 'react'
 
-import { presetPreviewDataURL } from '../../engine/preset-preview.ts'
 import {
   BUILTIN_PRESETS,
   configMatchesState,
   isBuiltinPreset,
   type EditorPreset,
-} from '../../engine/presets.ts'
+} from '../../engine/presets/index.ts'
+import { presetPreviewDataURL } from '../../engine/presets/preview.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'

@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react'
 
-import { renderThumbnailDataURL } from '../../engine/png.ts'
-import { serialize, type ProjectJSON } from '../../engine/project.ts'
+import { serialize, type ProjectJSON } from '../../engine/core/project.ts'
+import { renderThumbnailDataURL } from '../../engine/output/png.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
-import type { ImportBitmap, ImportFit, ImportResult } from '../../engine/import-image.ts'
+import type { ImportBitmap, ImportFit, ImportResult } from '../../engine/import/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { paintResult, type Rgb } from './import-controls.util.ts'
 

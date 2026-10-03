@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { tileCoverage, type GlyphTileSet } from '../../engine/glyph-tiles.ts'
+import { tileCoverage, type GlyphTileSet } from '../../engine/glyph/tiles.ts'
 
 /**
  * Horizontal strip of a glyph set's tone levels rendered as mini canvases: the ramp from empty

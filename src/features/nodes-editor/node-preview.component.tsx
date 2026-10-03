@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 
-import type { Doc, ElementStyle } from '../../engine/doc.ts'
-import { buildGeometry } from '../../engine/geometry.ts'
+import type { Doc, ElementStyle } from '../../engine/core/doc.ts'
+import { buildGeometry } from '../../engine/geometry/index.ts'
 import type { Cells } from '../../engine/nodes/index.ts'
-import { drawGeometry } from '../../engine/png.ts'
+import { drawGeometry } from '../../engine/output/png.ts'
 
 /**
  * Mini renderers for per-node previews in the node editor:

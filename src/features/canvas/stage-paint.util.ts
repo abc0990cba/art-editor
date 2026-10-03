@@ -1,7 +1,7 @@
-import { elementFromDoc } from '../../engine/doc-style.ts'
-import type { Doc, PixelStyle, StageTheme } from '../../engine/doc.ts'
-import type { Geometry, Staging } from '../../engine/geometry.ts'
-import { isPlainSquare } from '../../engine/grids.ts'
+import { elementFromDoc } from '../../engine/core/doc-style.ts'
+import type { Doc, PixelStyle, StageTheme } from '../../engine/core/doc.ts'
+import type { Geometry, Staging } from '../../engine/geometry/index.ts'
+import { isPlainSquare } from '../../engine/grids/index.ts'
 import type { ResolvedTheme } from '../../state/editor.store.ts'
 
 /**

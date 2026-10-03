@@ -4,7 +4,7 @@ The editor has one spine of data: the engine `Doc`, optionally carrying a scene 
 zustand store holding the live `Doc` plus UI/tool state; and IndexedDB persistence holding
 library entries that the store autosaves into. This doc walks that spine bottom-up.
 
-## The `Doc` (`src/engine/doc.ts`)
+## The `Doc` ([`src/engine/core/doc.ts`](../../src/engine/core/doc.ts))
 
 ```mermaid
 erDiagram

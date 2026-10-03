@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 
-import type { ImportBitmap } from '../../engine/import-image.ts'
+import type { ImportBitmap } from '../../engine/import/index.ts'
 import { decodeImageFile } from './decode-image.util.ts'
 
 async function fetchDemo(imageUrl: string): Promise<ImportBitmap> {

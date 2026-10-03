@@ -1,6 +1,6 @@
-import { normalizeBrush } from '../engine/brush.ts'
-import type { Brush } from '../engine/brush.ts'
-import { isCellShapeId } from '../engine/cell-shapes.ts'
+import { isCellShapeId } from '../engine/cell-shapes/index.ts'
+import { normalizeBrush } from '../engine/paint/brush.ts'
+import type { Brush } from '../engine/paint/brush.ts'
 import {
   deleteBrush as deleteBrushRow,
   listBrushes,

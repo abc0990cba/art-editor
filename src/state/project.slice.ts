@@ -1,6 +1,6 @@
-import type { Doc } from '../engine/doc.ts'
-import { renderThumbnailDataURL } from '../engine/png.ts'
-import { serialize, type ProjectJSON } from '../engine/project.ts'
+import type { Doc } from '../engine/core/doc.ts'
+import { serialize, type ProjectJSON } from '../engine/core/project.ts'
+import { renderThumbnailDataURL } from '../engine/output/png.ts'
 import {
   loadProject,
   newProjectId,

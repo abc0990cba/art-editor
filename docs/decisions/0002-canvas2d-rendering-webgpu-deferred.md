@@ -48,7 +48,7 @@ model lands and live-frame profiles show paint as a cost.
 
 ## Evidence
 
-- `src/engine/png.ts` header — path-string cache rationale + `PATH_CACHE_BUDGET`.
+- [`src/engine/output/png.ts`](../../src/engine/output/png.ts) header — path-string cache rationale + `PATH_CACHE_BUDGET`.
 - `bench/PERFLOG.md` M2a (RLE run merging, −39 %…−99 % buildGeometry), M5 (WebGPU deferred).
 - `docs/research/performance.md` §7 — "Zoom/pan is NOT a bottleneck"; §8 W5 — "WebGPU stays
   deferred".

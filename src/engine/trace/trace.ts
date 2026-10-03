@@ -5,7 +5,7 @@
  * rasters, pattern fills) can call them directly instead of going through here.
  */
 
-import type { ImportBitmap } from '../import-image.ts'
+import type { ImportBitmap } from '../import/index.ts'
 import { traceMask, type Contour } from './binary-layer.ts'
 import { thresholdMask, traceCenterline } from './centerline.ts'
 import { composeSvg, loopToPath, type SvgPath } from './compose.ts'

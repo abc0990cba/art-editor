@@ -1,5 +1,5 @@
-import { medianCut } from '../../engine/import-image.ts'
-import { parsePaletteText } from '../../engine/palette-io.ts'
+import { parsePaletteText } from '../../engine/color/palette-io.ts'
+import { medianCut } from '../../engine/import/index.ts'
 
 /**
  * DOM glue for palette files: read .hex / .gpl / loose text or a palette image (any bitmap — colors

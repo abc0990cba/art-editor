@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { temporal, type ZundoOptions } from 'zundo'
 import { create } from 'zustand'
 
-import type { Brush } from '../engine/brush.ts'
+import type { PalettePreset } from '../engine/color/index.ts'
 import type {
   Connectivity,
   Doc,
@@ -15,14 +15,14 @@ import type {
   SubDetail,
   SymmetryState,
   TextureSettings,
-} from '../engine/doc.ts'
-import type { FillStyle } from '../engine/fillpatterns.ts'
-import type { GlyphTileSet } from '../engine/glyph-tiles.ts'
+} from '../engine/core/doc.ts'
+import type { GlyphTileSet } from '../engine/glyph/tiles.ts'
 import type { GradientParams } from '../engine/gradient/params.ts'
-import type { ImportResult } from '../engine/import-image.ts'
-import type { ImportBitmap } from '../engine/import-image.ts'
-import type { PalettePreset } from '../engine/palettes.ts'
-import type { EditorPreset, PresetConfig } from '../engine/presets.ts'
+import type { ImportResult } from '../engine/import/index.ts'
+import type { ImportBitmap } from '../engine/import/index.ts'
+import type { Brush } from '../engine/paint/brush.ts'
+import type { EditorPreset, PresetConfig } from '../engine/presets/index.ts'
+import type { FillStyle } from '../engine/texture/fill.ts'
 import type { TraceParams } from '../engine/trace/params.ts'
 import type { BrushPresetEntry } from '../storage/brushes.ts'
 import type { GlyphTileSetEntry } from '../storage/glyph-tiles.ts'
@@ -191,18 +191,18 @@ export interface State {
   /** Move the selection by dx/dy pixel cells on the square grid (undoable) */
   moveSelection: (dx: number, dy: number) => void
   /** Scale / rotate / flip every selected object's ink (undoable; square grid only) */
-  transformSelection: (x: import('../engine/selection-xform.ts').SelectionXform) => void
+  transformSelection: (x: import('../engine/effects/selection-xform.ts').SelectionXform) => void
   /** Clone the selected objects offset one cell down-right; clones become the selection (undoable) */
   duplicateSelection: () => void
   /** Warp the selected objects' ink through a displacement field (undoable; square grid only) */
   warpSelection: (
-    kind: import('../engine/warp.ts').WarpKind,
-    params?: Partial<import('../engine/warp.ts').WarpParams>,
+    kind: import('../engine/effects/warp.ts').WarpKind,
+    params?: Partial<import('../engine/effects/warp.ts').WarpParams>,
   ) => void
   /** Outline / shadow / glow post-ops on the selection ink (undoable; square grid only) */
   stylizeSelection: (
-    op: import('../engine/stylize.ts').StylizeOp,
-    params?: Partial<import('../engine/stylize.ts').StylizeParams>,
+    op: import('../engine/effects/stylize.ts').StylizeOp,
+    params?: Partial<import('../engine/effects/stylize.ts').StylizeParams>,
     color?: string,
   ) => void
   // layers panel — structure actions mutate the doc's scene tree (undoable)
@@ -270,7 +270,10 @@ export interface State {
   /** Detach from any project (deleting the open one); the work becomes unbound */
   detachProject: () => void
   /** Create a pixel entry from an imported document, bind it, return its id (JSON project import) */
-  adoptPixelDoc: (doc: import('../engine/project.ts').ProjectJSON, name?: string) => Promise<string>
+  adoptPixelDoc: (
+    doc: import('../engine/core/project.ts').ProjectJSON,
+    name?: string,
+  ) => Promise<string>
   /** Write the current pixel doc into its bound entry (Ctrl+S / autosave flush) */
   saveToLibrary: (opts?: { freshThumb?: boolean }) => Promise<void>
   /** Mark the current doc as matching the library entry (after open/save/flush) */

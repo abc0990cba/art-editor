@@ -13,7 +13,7 @@
  * - `vector` — reserved for future contour/SDF nodes, no core changes required.
  */
 
-import type { ElementStyle } from '../doc'
+import type { ElementStyle } from '../core/doc'
 
 export type NodeDomain = 'raster' | 'style' | 'vector'
 

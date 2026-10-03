@@ -5,7 +5,7 @@ Scope: a measured answer to "what is actually slow, and what is worth building n
 core, the node-graph pipeline and the canvas layer — including decision spikes for Web Workers,
 Rust→WASM and the tile data model the PERFLOG M5/M6 rows deferred. **No production code was
 changed**; every experiment lives in bench files (`src/engine/*.bench.ts`,
-`src/app/bench/bench-scenarios-graph.ts`, `bench/wasm-flood/`).
+[`src/app/bench/bench-scenarios-graph.ts`](../../src/app/bench/bench-scenarios-graph.ts), `bench/wasm-flood/`).
 
 Method: deterministic engine benches (node, vitest bench, mulberry32 fixtures) + the real-app
 browser harness (`?bench=1`, metric = dispatch → React render + canvas effects complete). The
@@ -37,13 +37,13 @@ rAF-driven marching-ants scenario is cadence-bound rather than work-bound (flagg
 
 | File | Coverage |
 |---|---|
-| `src/engine/graph.bench.ts` | graph eval (chain of ellipse → quad symmetry → ×3 linear array → gradient ramp), `evalGraphStages` (node-editor previews), node-drag memo miss vs hit, pos-only commit through `syncDoc`, param-scrub full vs dirty-suffix spike |
-| `src/engine/render-modes.bench.ts` | full-rebuild cost of outline (512²/2048²), metaball, baked grain texture, triangle grid — the modes that had no coverage and are the per-frame stroke fallback |
-| `src/engine/tile-spike.bench.ts` | tile-model granularity spike: per-tile geometry vs whole-canvas; local-edit cost; composite patch floor |
-| `src/engine/style-decompose.bench.ts` | per-cell style cost decomposition: status quo circles vs string-emission emulation (3-decimal, integer, stadium-per-run) |
-| `src/engine/flood-wasm.bench.ts` | flood fill: current TS vs tuned TS vs Rust cdylib (`bench/wasm-flood/`) |
+| [`src/engine/nodes/graph.bench.ts`](../../src/engine/nodes/graph.bench.ts) | graph eval (chain of ellipse → quad symmetry → ×3 linear array → gradient ramp), `evalGraphStages` (node-editor previews), node-drag memo miss vs hit, pos-only commit through `syncDoc`, param-scrub full vs dirty-suffix spike |
+| [`src/engine/geometry/render-modes.bench.ts`](../../src/engine/geometry/render-modes.bench.ts) | full-rebuild cost of outline (512²/2048²), metaball, baked grain texture, triangle grid — the modes that had no coverage and are the per-frame stroke fallback |
+| [`src/engine/geometry/tile-spike.bench.ts`](../../src/engine/geometry/tile-spike.bench.ts) | tile-model granularity spike: per-tile geometry vs whole-canvas; local-edit cost; composite patch floor |
+| [`src/engine/geometry/style-decompose.bench.ts`](../../src/engine/geometry/style-decompose.bench.ts) | per-cell style cost decomposition: status quo circles vs string-emission emulation (3-decimal, integer, stadium-per-run) |
+| [`src/engine/paint/flood-wasm.bench.ts`](../../src/engine/paint/flood-wasm.bench.ts) | flood fill: current TS vs tuned TS vs Rust cdylib (`bench/wasm-flood/`) |
 
-**New browser scenario groups** (`src/app/bench/bench-scenarios-graph.ts`, registered in
+**New browser scenario groups** ([`src/app/bench/bench-scenarios-graph.ts`](../../src/app/bench/bench-scenarios-graph.ts), registered in
 `bench-scenarios.ts`): node drag ×N, param scrub ×N (both flush effects per tick — the real drag
 cadence), wheel burst ×10 (one flush), idle-with-selection overlay ×30 frames.
 

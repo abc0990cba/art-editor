@@ -1,5 +1,5 @@
-import type { Doc } from '../../engine/doc.ts'
-import { groupAncestorOf, objIdsWithin } from '../../engine/scene.ts'
+import type { Doc } from '../../engine/core/doc.ts'
+import { groupAncestorOf, objIdsWithin } from '../../engine/core/scene.ts'
 
 /**
  * Ids a select-tool click on `objId` resolves to: the whole outermost group when the shape lives

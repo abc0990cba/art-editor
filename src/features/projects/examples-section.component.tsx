@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactElement } from 'react'
 
-import { DEMO_PROJECTS, type DemoContent, type DemoDef } from '../../engine/demo-project.ts'
-import { renderThumbnailDataURL } from '../../engine/png.ts'
-import { deserialize } from '../../engine/project.ts'
+import { deserialize } from '../../engine/core/project.ts'
+import { DEMO_PROJECTS, type DemoContent, type DemoDef } from '../../engine/demos/index.ts'
+import { renderThumbnailDataURL } from '../../engine/output/png.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { materializeDemo } from '../../storage/demo-seed.ts'
 import { ExamplesScroller } from './examples-scroller.component.tsx'

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { paletteLuma } from '../../engine/color.ts'
-import { elementFromDoc } from '../../engine/doc.ts'
+import { paletteLuma } from '../../engine/color/color.ts'
+import { elementFromDoc } from '../../engine/core/doc.ts'
+import type { SceneObj } from '../../engine/core/scene.ts'
 import {
   GRAPH_PRESETS,
   fitGraphToCanvas,
@@ -22,7 +23,6 @@ import {
   boundsWithValue,
   paramBounds,
 } from '../../engine/nodes/index.ts'
-import type { SceneObj } from '../../engine/scene.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { download } from '../../shared/lib/file-download.util.ts'
 import { DragNumber } from '../../shared/ui/drag-number.component.tsx'
@@ -92,7 +92,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
   const objects = useMemo(() => {
     if (!doc.layers) return []
     const out: { id: number; name: string; hasGraph: boolean; obj: SceneObj }[] = []
-    const walk = (items: import('../../engine/scene.ts').SceneItem[]): void => {
+    const walk = (items: import('../../engine/core/scene.ts').SceneItem[]): void => {
       for (const item of items) {
         if (item.kind === 'obj') {
           out.push({

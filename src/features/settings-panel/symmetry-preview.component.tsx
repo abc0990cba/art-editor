@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
-import { STAGE_THEMES } from '../../engine/doc.ts'
-import { symmetryPoints, type RadialOpts } from '../../engine/symmetry.ts'
+import { STAGE_THEMES } from '../../engine/core/doc.ts'
+import { symmetryPoints, type RadialOpts } from '../../engine/effects/symmetry.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { useStore } from '../../state/editor.store.ts'
 

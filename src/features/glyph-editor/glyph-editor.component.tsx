@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { resizeGlyphSet } from '../../engine/glyph-tiles.ts'
+import { resizeGlyphSet } from '../../engine/glyph/tiles.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { GlyphGallery } from '../../shared/ui/glyph-gallery.component.tsx'
 import { GlyphRampStrip } from '../../shared/ui/glyph-ramp-strip.component.tsx'

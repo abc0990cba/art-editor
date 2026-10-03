@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { PALETTES } from '../../engine/color/index.ts'
 import {
   convertImage,
   DEFAULT_IMPORT_OPTIONS,
@@ -9,10 +10,9 @@ import {
   type ImportOptions,
   type ImportPaletteChoice,
   type ImportResult,
-} from '../../engine/import-image.ts'
-import { curateImportPalette, type PaletteEdit } from '../../engine/import-palette.ts'
-import { IMPORT_PRESETS } from '../../engine/import-presets.ts'
-import { PALETTES } from '../../engine/palettes.ts'
+} from '../../engine/import/index.ts'
+import { curateImportPalette, type PaletteEdit } from '../../engine/import/palette.ts'
+import { IMPORT_PRESETS } from '../../engine/import/presets.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Chip, CheckRow, Slider } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'

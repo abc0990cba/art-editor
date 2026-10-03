@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { defaultDoc } from '../engine/doc.ts'
-import { allObjs, ensureScene } from '../engine/scene.ts'
+import { defaultDoc } from '../engine/core/doc.ts'
+import { allObjs, ensureScene } from '../engine/core/scene.ts'
 import { useStore } from './editor.store'
 
 const state = () => useStore.getState()

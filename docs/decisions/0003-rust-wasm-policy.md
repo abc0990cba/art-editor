@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-01 (spike + verdict recorded 2026-09-30, PERFLOG M6 and research W4)
-- Related: [ADR-0004](0004-vtracer-ts-port.md); [research/performance.md](../research/performance.md) §8; `bench/wasm-flood/`; `src/engine/flood-wasm.bench.ts`
+- Related: [ADR-0004](0004-vtracer-ts-port.md); [research/performance.md](../research/performance.md) §8; `bench/wasm-flood/`; [`src/engine/paint/flood-wasm.bench.ts`](../../src/engine/paint/flood-wasm.bench.ts)
 
 ## Context
 
@@ -21,7 +21,7 @@ instantiation. Concretely, Rust appears in exactly three bounded roles:
    [vtracer](https://github.com/visioncortex/vtracer) V1 (MIT); the Rust code is reference,
    not a dependency (see [ADR-0004](0004-vtracer-ts-port.md)).
 2. **Dev-only parity oracle** — `@visioncortex/vtracer` is a *devDependency* whose WASM build
-   is instantiated only inside `src/engine/trace/parity.test.ts` to check the TS port
+   is instantiated only inside [`src/engine/trace/parity.test.ts`](../../src/engine/trace/parity.test.ts) to check the TS port
    structurally. It never ships.
 3. **Bench-only spike crate** — `bench/wasm-flood/` is a raw `wasm32-unknown-unknown` cdylib
    (no bindings) measuring a flood-fill core against the TS implementation. Committed to the
@@ -59,7 +59,7 @@ end-to-end** interaction time. Neither condition is negotiable alone.
 
 ## Evidence
 
-- `src/engine/flood-wasm.bench.ts` — the three-way comparison and the correctness gate.
+- [`src/engine/paint/flood-wasm.bench.ts`](../../src/engine/paint/flood-wasm.bench.ts) — the three-way comparison and the correctness gate.
 - `bench/wasm-flood/src/lib.rs` — the 97-line cdylib (`init/pristine_offset/restore/flood/
   flood_fresh`), header documents the bounded-spike intent.
 - `bench/PERFLOG.md` rows 2026-09-26 (M6 deferral) and 2026-09-30 (research W4: "Stay TS",

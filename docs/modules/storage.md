@@ -11,14 +11,14 @@ autosave flow: [state-store](state-store.md).
 
 | File | Role |
 |---|---|
-| `src/storage/db.ts` | connection, `DB_VERSION = 7`, store creation, v6→v7 migration, memory fallback |
-| `src/storage/projects.ts` | `ProjectEntry` (pixel/vector/gradient), CRUD, normalize guards, Continue-card keys |
-| `src/storage/presets.ts` | `PresetEntry`, normalize-on-access |
-| `src/storage/brushes.ts` | `BrushPresetEntry` (tip + captured color) |
-| `src/storage/glyph-tiles.ts` | `GlyphTileSetEntry` |
-| `src/storage/vector-presets.ts` | trace-param presets |
-| `src/storage/migrate.ts` | one-time adoption of pre-home sessions |
-| `src/storage/demo-seed.ts` | first-launch poster + idempotent demo materialization |
+| [`src/storage/db.ts`](../../src/storage/db.ts) | connection, `DB_VERSION = 7`, store creation, v6→v7 migration, memory fallback |
+| [`src/storage/projects.ts`](../../src/storage/projects.ts) | `ProjectEntry` (pixel/vector/gradient), CRUD, normalize guards, Continue-card keys |
+| [`src/storage/presets.ts`](../../src/storage/presets.ts) | `PresetEntry`, normalize-on-access |
+| [`src/storage/brushes.ts`](../../src/storage/brushes.ts) | `BrushPresetEntry` (tip + captured color) |
+| [`src/storage/glyph-tiles.ts`](../../src/storage/glyph-tiles.ts) | `GlyphTileSetEntry` |
+| [`src/storage/vector-presets.ts`](../../src/storage/vector-presets.ts) | trace-param presets |
+| [`src/storage/migrate.ts`](../../src/storage/migrate.ts) | one-time adoption of pre-home sessions |
+| [`src/storage/demo-seed.ts`](../../src/storage/demo-seed.ts) | first-launch poster + idempotent demo materialization |
 
 ## How it works
 

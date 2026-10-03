@@ -1,3 +1,4 @@
+import type { PalettePreset } from '../engine/color/index.ts'
 import type {
   Connectivity,
   MetaballSettings,
@@ -5,9 +6,8 @@ import type {
   RenderMode,
   StyleScope,
   TextureSettings,
-} from '../engine/doc.ts'
-import { withStyleScope } from '../engine/doc.ts'
-import type { PalettePreset } from '../engine/palettes.ts'
+} from '../engine/core/doc.ts'
+import { withStyleScope } from '../engine/core/doc.ts'
 import type { State } from './editor.store.ts'
 
 /** The style slice: canvas-wide drawing style, background and palette (undoable doc edits). */

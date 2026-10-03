@@ -1,7 +1,7 @@
 import type { GradientParams } from '../engine/gradient/params.ts'
 import { normalizeGradientParams } from '../engine/gradient/params.ts'
 import type { ErrorMap, GradientStats } from '../engine/gradient/pipeline.ts'
-import type { ImportBitmap } from '../engine/import-image.ts'
+import type { ImportBitmap } from '../engine/import/index.ts'
 import { saveProject, type GradientProjectEntry } from '../storage/projects.ts'
 import type { State } from './editor.store.ts'
 

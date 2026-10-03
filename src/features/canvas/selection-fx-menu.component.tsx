@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { WARP_KINDS, type WarpKind } from '../../engine/warp.ts'
+import { WARP_KINDS, type WarpKind } from '../../engine/effects/warp.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Chip } from '../../shared/ui/index.tsx'
 import { useStore } from '../../state/editor.store.ts'

@@ -1,5 +1,5 @@
-import type { Brush } from '../engine/brush'
-import { normalizeBrush } from '../engine/brush'
+import type { Brush } from '../engine/paint/brush'
+import { normalizeBrush } from '../engine/paint/brush'
 import { newId, openDb, reqToPromise } from './db'
 
 /** A saved brush: metadata + validated tip (size + pattern) + the color and cell form it had. */

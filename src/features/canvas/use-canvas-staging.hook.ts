@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
-import { brushAnchor, brushOffsets } from '../../engine/brush.ts'
 import {
   bufferWidth,
   resolveColor,
   type Doc,
   type Link,
   type SymmetryState,
-} from '../../engine/doc.ts'
-import { applyFillStyle, patternCoord } from '../../engine/fillpatterns.ts'
-import { PENDING_OBJ, type Staging } from '../../engine/geometry.ts'
-import { makeGrid, isPlainSquare } from '../../engine/grids.ts'
-import { regionCells, pointInPolys, fillCellsEvenOdd } from '../../engine/shapefill.ts'
+} from '../../engine/core/doc.ts'
+import {
+  angleInFilledWedge,
+  polarAngleMaps,
+  symmetryPairPoints,
+  symmetryPoints,
+  symmetryTransforms,
+} from '../../engine/effects/symmetry.ts'
+import { PENDING_OBJ, type Staging } from '../../engine/geometry/index.ts'
+import { makeGrid, isPlainSquare } from '../../engine/grids/index.ts'
+import { brushAnchor, brushOffsets } from '../../engine/paint/brush.ts'
+import { regionCells, pointInPolys, fillCellsEvenOdd } from '../../engine/shapes/fill.ts'
 import {
   ellipsePoints,
   isShapeTool,
@@ -21,14 +27,8 @@ import {
   shapePathSegments,
   shapeHasHoles,
   shapePathLoops,
-} from '../../engine/shapes.ts'
-import {
-  angleInFilledWedge,
-  polarAngleMaps,
-  symmetryPairPoints,
-  symmetryPoints,
-  symmetryTransforms,
-} from '../../engine/symmetry.ts'
+} from '../../engine/shapes/index.ts'
+import { applyFillStyle, patternCoord } from '../../engine/texture/fill.ts'
 import { useStore, type State } from '../../state/editor.store.ts'
 import { MAX_STAMPS, blobCells, type DocPoint, type DragState } from './canvas-stage.util.ts'
 import { fillSeedsFor } from './fill-seeds.util.ts'

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { MAX_SIZE, defaultDoc } from '../engine/doc.ts'
-import { BUILTIN_PRESETS, presetFromDoc } from '../engine/presets.ts'
+import { MAX_SIZE, defaultDoc } from '../engine/core/doc.ts'
+import { BUILTIN_PRESETS, presetFromDoc } from '../engine/presets/index.ts'
 import {
   clearPresetsForTests,
   deletePreset,

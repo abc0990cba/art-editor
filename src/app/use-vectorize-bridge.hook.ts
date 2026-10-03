@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback } from 'react'
 
-import { autoPngSize, renderPng } from '../engine/png.ts'
+import { autoPngSize, renderPng } from '../engine/output/png.ts'
 import { decodeImageFile } from '../shared/lib/decode-image.util.ts'
 import { useStore } from '../state/editor.store.ts'
 import { newVectorEntry, saveProject } from '../storage/projects.ts'

@@ -1,5 +1,5 @@
-import type { Doc } from '../../engine/doc.ts'
-import type { Grid } from '../../engine/grids.ts'
+import type { Doc } from '../../engine/core/doc.ts'
+import type { Grid } from '../../engine/grids/index.ts'
 import type { State } from '../../state/editor.store.ts'
 
 export interface FillSeedsCtx {

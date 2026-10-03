@@ -1,5 +1,5 @@
-import { brushAnchor } from '../../engine/brush.ts'
-import { hasDefaultConcentricRadii, isShapeTool } from '../../engine/shapes.ts'
+import { brushAnchor } from '../../engine/paint/brush.ts'
+import { hasDefaultConcentricRadii, isShapeTool } from '../../engine/shapes/index.ts'
 import type { ToolOpts } from '../../state/tools.slice.ts'
 
 /** The parametric source-graph spec a single-color shape stroke commits as. */

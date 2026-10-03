@@ -1,7 +1,5 @@
-import type { Doc, Link } from '../engine/doc.ts'
-import { elementFromDoc, resolveColor } from '../engine/doc.ts'
-import { applyFillStyle, fillSelectionCells, patternCoord } from '../engine/fillpatterns.ts'
-import { floodFillDoc, floodRegion } from '../engine/floodfill.ts'
+import type { Doc, Link } from '../engine/core/doc.ts'
+import { elementFromDoc, resolveColor } from '../engine/core/doc.ts'
 import {
   allObjs,
   appendToLayer,
@@ -11,7 +9,9 @@ import {
   syncDoc,
   updateNode,
   visibleObjs,
-} from '../engine/scene.ts'
+} from '../engine/core/scene.ts'
+import { floodFillDoc, floodRegion } from '../engine/paint/floodfill.ts'
+import { applyFillStyle, fillSelectionCells, patternCoord } from '../engine/texture/fill.ts'
 import type { State } from './editor.store.ts'
 import { activeLayerOf, commitStroke, linkKey, resolveElement } from './store-internals.util.ts'
 

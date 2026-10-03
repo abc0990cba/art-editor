@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { DEMO_PROJECTS } from '../engine/demo-project.ts'
-import type { ProjectJSON } from '../engine/project.ts'
+import type { ProjectJSON } from '../engine/core/project.ts'
+import { DEMO_PROJECTS } from '../engine/demos/index.ts'
 import { materializeDemo, seedDemoProject } from './demo-seed.ts'
 import {
   clearProjectsForTests,

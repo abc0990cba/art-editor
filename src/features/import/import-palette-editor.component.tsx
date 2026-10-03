@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
-import type { ImportResult } from '../../engine/import-image.ts'
-import type { PaletteEdit } from '../../engine/import-palette.ts'
+import type { ImportResult } from '../../engine/import/index.ts'
+import type { PaletteEdit } from '../../engine/import/palette.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { ColorPicker } from '../../shared/ui/color-picker.component.tsx'
 import { Chip, ColorSwatch } from '../../shared/ui/index.tsx'

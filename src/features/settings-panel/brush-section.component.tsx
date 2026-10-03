@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { isPlainSquare } from '../../engine/grids/index.ts'
 import {
   BRUSH_SHAPES,
   BUILT_IN_BRUSHES,
   detectBrushShape,
   TIP_MIN_SIZE,
   type Brush,
-} from '../../engine/brush.ts'
-import { isPlainSquare } from '../../engine/grids.ts'
+} from '../../engine/paint/brush.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { Button } from '../../shared/ui/shadcn/button.tsx'

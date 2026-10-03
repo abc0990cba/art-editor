@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-10-01 (port completed 2026-09; research in `docs/research/vectorization.md`)
-- Related: [vectorizer](../modules/vectorizer.md); [ADR-0003](0003-rust-wasm-policy.md); `src/engine/trace/`; `src/engine/trace/parity.test.ts`
+- Related: [vectorizer](../modules/vectorizer.md); [ADR-0003](0003-rust-wasm-policy.md); `src/engine/trace/`; [`src/engine/trace/parity.test.ts`](../../src/engine/trace/parity.test.ts)
 
 ## Context
 
@@ -55,9 +55,9 @@ executed in the vectorizer Web Worker.
 
 ## Evidence
 
-- `src/engine/trace/trace.ts` header — stage map and the "public stages for hybrid pipelines"
+- [`src/engine/trace/trace.ts`](../../src/engine/trace/trace.ts) header — stage map and the "public stages for hybrid pipelines"
   contract.
-- `src/engine/trace/parity.test.ts` header — oracle role, structural comparison thresholds.
+- [`src/engine/trace/parity.test.ts`](../../src/engine/trace/parity.test.ts) header — oracle role, structural comparison thresholds.
 - `docs/research/vectorization.md` — ecosystem survey and the port decision record.
-- `src/features/vectorizer/trace.worker.ts` — worker protocol moving the pipeline off the
+- [`src/features/vectorizer/trace.worker.ts`](../../src/features/vectorizer/trace.worker.ts) — worker protocol moving the pipeline off the
   main thread.

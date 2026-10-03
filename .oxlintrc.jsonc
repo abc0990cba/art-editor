@@ -169,8 +169,8 @@
     // Legacy public signatures kept verbatim during the ≤400-line split: the 7-param
     // shapes path API and the preset config matcher are function-level debt to rework later.
     "files": [
-      "src/engine/shapes.ts",
-      "src/engine/presets.ts"
+      "src/engine/shapes/index.ts",
+      "src/engine/presets/index.ts"
     ],
     "rules": {
       "eslint/max-params": [
@@ -212,64 +212,6 @@
   },
   {
     "files": [
-      "src/features/projects/projects-dialog.component.tsx"
-    ],
-    "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 640
-        }
-      ],
-      "eslint/max-lines-per-function": [
-        "error",
-        {
-          // 364→368: oxfmt reflow (previous commit); 368→375: shadcn Dialog migration (2026-09)
-          "max": 375,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
-      "eslint/complexity": [
-        "error",
-        {
-          "max": 25
-        }
-      ]
-    }
-  },
-  {
-    "files": [
-      "src/app/app.component.tsx"
-    ],
-    "rules": {
-      // 464→516 / 267→321: right-panel collapse strip (2026-09); →352: drawer header (2026-09)
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 352,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
-      "eslint/max-lines-per-function": [
-        "error",
-        {
-          "max": 321,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
-      "eslint/complexity": [
-        "error",
-        {
-          "max": 44
-        }
-      ]
-    }
-  },
-  {
-    "files": [
       "src/engine/nodes/crown.node.ts"
     ],
     "rules": {
@@ -283,28 +225,7 @@
   },
   {
     "files": [
-      "src/engine/doc.ts"
-    ],
-    "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 472,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
-      "eslint/complexity": [
-        "error",
-        {
-          "max": 27
-        }
-      ]
-    }
-  },
-  {
-    "files": [
-      "src/engine/fillpatterns.test.ts"
+      "src/engine/texture/fill.test.ts"
     ],
     "rules": {
       "eslint/max-lines": [
@@ -325,44 +246,23 @@
   },
   {
     "files": [
-      "src/engine/fillpatterns.ts"
+      "src/engine/texture/fill-patterns.ts"
     ],
     "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 490,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
       "eslint/complexity": [
         "error",
         {
-          "max": 55
-        }
-      ],
-      "eslint/max-statements": [
-        "error",
-        {
-          "max": 92
+          "max": 40
         }
       ]
     }
   },
   {
     "files": [
-      "src/engine/geometry.ts"
+      "src/engine/geometry/index.ts"
     ],
     "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 829,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
+      
       "eslint/complexity": [
         "error",
         {
@@ -385,22 +285,7 @@
   },
   {
     "files": [
-      "src/engine/grids.ts"
-    ],
-    "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 551,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ]
-    }
-  },
-  {
-    "files": [
-      "src/engine/image-ops.ts"
+      "src/engine/import/ops.ts"
     ],
     "rules": {
       "eslint/max-depth": [
@@ -413,7 +298,7 @@
   },
   {
     "files": [
-      "src/engine/import-image.test.ts"
+      "src/engine/import/import-image.test.ts"
     ],
     "rules": {
       "eslint/max-params": [
@@ -426,7 +311,7 @@
   },
   {
     "files": [
-      "src/engine/marching-squares.ts"
+      "src/engine/geometry/marching-squares.ts"
     ],
     "rules": {
       "eslint/max-lines-per-function": [
@@ -515,7 +400,7 @@
   },
   {
     "files": [
-      "src/engine/outline.ts"
+      "src/engine/geometry/outline.ts"
     ],
     "rules": {
       "eslint/complexity": [
@@ -534,43 +419,7 @@
   },
   {
     "files": [
-      "src/engine/palettes.ts"
-    ],
-    "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 457,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ]
-    }
-  },
-  {
-    "files": [
-      "src/engine/project.ts"
-    ],
-    "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 487,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
-      "eslint/complexity": [
-        "error",
-        {
-          "max": 28
-        }
-      ]
-    }
-  },
-  {
-    "files": [
-      "src/engine/scene.test.ts"
+      "src/engine/core/scene.test.ts"
     ],
     "rules": {
       "eslint/max-lines": [
@@ -585,17 +434,10 @@
   },
   {
     "files": [
-      "src/engine/scene.ts"
+      "src/engine/core/scene.ts"
     ],
     "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 804,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
+      
       "eslint/max-depth": [
         "error",
         {
@@ -606,7 +448,7 @@
   },
   {
     "files": [
-      "src/engine/shapes.test.ts"
+      "src/engine/shapes/shapes.test.ts"
     ],
     "rules": {
       "eslint/max-lines-per-function": [
@@ -621,32 +463,10 @@
   },
   {
     "files": [
-      "src/engine/symmetry.test.ts"
+      "src/engine/effects/symmetry.ts"
     ],
     "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 420,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ]
-    }
-  },
-  {
-    "files": [
-      "src/engine/symmetry.ts"
-    ],
-    "rules": {
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 621,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
-      ],
+      
       "eslint/max-params": [
         "error",
         {
@@ -669,7 +489,7 @@
   },
   {
     "files": [
-      "src/engine/texture.test.ts"
+      "src/engine/texture/texture.test.ts"
     ],
     "rules": {
       "eslint/max-lines": [
@@ -1111,8 +931,8 @@
   },
   {
     "files": [
-      "src/engine/symmetry-radial.ts",
-      "src/engine/symmetry-repeat.ts"
+      "src/engine/effects/symmetry-radial.ts",
+      "src/engine/effects/symmetry-repeat.ts"
     ],
     "rules": {
       "eslint/max-params": [
@@ -1150,7 +970,7 @@
   },
   {
     "files": [
-      "src/engine/project-parse.ts"
+      "src/engine/core/project-parse.ts"
     ],
     "rules": {
       // 28→29: palette import grew the deserialize switch past the shared cap (2026-10)
@@ -1159,41 +979,25 @@
         {
           "max": 29
         }
-      ],
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 444,
-          "skipComments": true,
-          "skipBlankLines": true
-        }
       ]
     }
   },
   {
     "files": [
-      "src/engine/doc-style.ts"
+      "src/engine/core/doc-style.ts"
     ],
     "rules": {
       "eslint/complexity": [
         "error",
         {
-          "max": 28
-        }
-      ],
-      "eslint/max-lines": [
-        "error",
-        {
-          "max": 444,
-          "skipComments": true,
-          "skipBlankLines": true
+          "max": 26
         }
       ]
     }
   },
   {
     "files": [
-      "src/engine/palettes-data.ts"
+      "src/engine/color/palettes-data.ts"
     ],
     "rules": {
       "eslint/max-lines": [
@@ -1208,9 +1012,9 @@
   },
   {
     "files": [
-      "src/engine/geometry-shape.ts",
-      "src/engine/geometry-metaball.ts",
-      "src/engine/geometry-elements.ts"
+      "src/engine/geometry/shape.ts",
+      "src/engine/geometry/metaball.ts",
+      "src/engine/geometry/elements.ts"
     ],
     "rules": {
       "eslint/complexity": [

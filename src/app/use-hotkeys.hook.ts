@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-import { shiftTarget } from '../engine/scene.ts'
+import { shiftTarget } from '../engine/core/scene.ts'
 import { useStore, undo, redo, type Tool } from '../state/editor.store.ts'
 
 const toolKeys: Record<string, Tool> = {

@@ -9,7 +9,7 @@
  *   skew without data loss.
  */
 
-import type { ElementStyle } from '../doc'
+import type { ElementStyle } from '../core/doc'
 import { withNodeRng } from './context'
 import { nodeDef, resolveParams } from './registry'
 import type { Cells, Graph, GraphNode, ParamValue, RasterNodeDef } from './types'

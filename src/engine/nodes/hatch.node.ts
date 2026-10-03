@@ -1,6 +1,6 @@
 /** Hatch node: re-renders the input's tones as parallel screen lines — one system or crossed. */
 
-import { hatchDistance, type HatchSystem } from '../screen-lines.ts'
+import { hatchDistance, type HatchSystem } from '../dither/screen-lines.ts'
 import { defineNode, type Cells } from './types.ts'
 
 export const HATCH_NODES = [

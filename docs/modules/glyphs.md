@@ -2,42 +2,56 @@
 
 ## Scope
 
-Glyph-tile dithering: user-editable tile ramps used as tone-mapped dither fields — by the
-fill tool's `glyph` pattern, by the image-import glyph dithers, and by the glyph editor UI.
-Files: `src/engine/glyph-tiles.ts`, `glyph-builtins.ts`, `glyph-generators.ts`,
-`glyph-generators-art.ts`, `glyph-generators-forms.ts`, `glyph-preview.ts`; UI in
-`src/features/glyph-editor/`; persistence in `src/storage/glyph-tiles.ts`; state in
-`state/glyph.slice.ts`.
+Glyph-tile dithering: user-editable tile ramps used as tone-mapped dither fields — by the fill
+tool's `glyph` pattern, by the image-import glyph dithers, and by the glyph editor UI. The
+model and its producers live in [`src/engine/glyph/`](../../src/engine/glyph/tiles.ts); UI in
+`src/features/glyph-editor/`; persistence in [`src/storage/glyph-tiles.ts`](../../src/storage/glyph-tiles.ts);
+state in `src/state/glyph.slice.ts`.
 
 ## Module map
 
 | File | Role |
 |---|---|
-| `src/engine/glyph-tiles.ts` | `GlyphTileSet { name, w, h, levels }`, `glyphCellAt`, `glyphSetFromMatrix`, transforms |
-| `src/engine/glyph-generators.ts` | 18 monotone generators (dots, lines, checker, rings, grain…) |
-| `src/engine/glyph-generators-art.ts` | 12 character-first generators (halftone, bubbles, silk, argyle…) |
-| `src/engine/glyph-generators-forms.ts` | cell-form ramps: `glyphSetForm`, Duo (interleaved lattices), Morph (radial-profile morph) |
-| `src/engine/glyph-builtins.ts` | 74 built-in sets across 7 families |
-| `src/engine/glyph-preview.ts` | DOM-free photo dither preview (`ditherImageWithGlyph`) |
-| `src/features/glyph-editor/*` | right-panel section, level editor dialog, tile paint grid, gallery |
-| `src/storage/glyph-tiles.ts` | `GlyphTileSetEntry` in the `glyphTiles` IDB store |
+| [`src/engine/glyph/tiles.ts`](../../src/engine/glyph/tiles.ts) | `GlyphTileSet { name, w, h, levels }`, `glyphCellAt`, `tileIndexForTone`, `normalizeGlyphTileSet`, `glyphSetFromMatrix`, `resizeGlyphSet`, `invertGlyphSet`, `glyphSetToField`, `glyphRampField` |
+| [`src/engine/glyph/font.ts`](../../src/engine/glyph/font.ts) | embedded 5×7 bitmap font (`FONT_W`/`FONT_H`, `glyphRows`, `fontCharset`) — pure data |
+| [`src/engine/glyph/text-raster.ts`](../../src/engine/glyph/text-raster.ts) | `ASCII_RAMPS`, `charForTone`, `charDensity`, `textTiles`, `asciiGlyphSet`, `brailleGlyphSet`, `builtinDitherSets` |
+| [`src/engine/glyph/generators.ts`](../../src/engine/glyph/generators.ts) | 18 monotone generators (dots, lines, checker, rings, grain…) + `finish`/`monotonize` |
+| [`src/engine/glyph/generators-art.ts`](../../src/engine/glyph/generators-art.ts) | 12 character-first generators (halftone, bubbles, silk, argyle…) |
+| [`src/engine/glyph/generators-forms.ts`](../../src/engine/glyph/generators-forms.ts) | cell-form ramps: `glyphSetForm`, `glyphSetFormDuo` (interleaved lattices), `glyphSetFormMorph` (radial-profile morph) |
+| [`src/engine/glyph/builtins.ts`](../../src/engine/glyph/builtins.ts) | `BUILT_IN_GLYPH_SETS` — 75 built-in sets across 7 families (`forms`, `matrix`, `dots`, `lines`, `shapes`, `patterns`, `ornament`), `builtInGlyphEntry`, `builtInGlyphSetById` |
+| [`src/engine/glyph/preview.ts`](../../src/engine/glyph/preview.ts) | DOM-free photo dither preview (`ditherImageWithGlyph`) |
+| [`src/features/glyph-editor/glyph-editor.component.tsx`](../../src/features/glyph-editor/glyph-editor.component.tsx) | right-panel section (ramp strip, size chips) |
+| [`src/features/glyph-editor/glyph-editor-dialog.component.tsx`](../../src/features/glyph-editor/glyph-editor-dialog.component.tsx) | level editor dialog, generator chips, gallery |
+| [`src/features/glyph-editor/glyph-tile-grid.component.tsx`](../../src/features/glyph-editor/glyph-tile-grid.component.tsx) | press-drag paint grid for one level |
+| [`src/storage/glyph-tiles.ts`](../../src/storage/glyph-tiles.ts) | `GlyphTileSetEntry` in the `glyphTiles` IDB store, normalized on every read/write |
+| `src/state/glyph.slice.ts` | library list, draft, `applyGlyphSet` |
 
 ## How it works
 
-Model (header): "A tile set is a ramp of boolean tiles: `levels[0]` is the empty (white) tile
-and `levels[N-1]` is the full (black) tile; every level in between is a free-form,
-user-editable pattern of w×h cells (row-major, like brush tips). Dithering picks a tile by
-tone and reads the cell under the repeating tile grid."
+Model ([`src/engine/glyph/tiles.ts`](../../src/engine/glyph/tiles.ts) header): "A tile set is a
+ramp of boolean tiles: `levels[0]` is the empty (white) tile and `levels[N-1]` is the full
+(black) tile; every level in between is a free-form, user-editable pattern of w×h cells
+(row-major, like brush tips). Dithering picks a tile by tone and reads the cell under the
+repeating tile grid."
 
 - Clamps: tile size 1..16, levels 3..65 (default 9). `tileIndexForTone(t, n) = round(t·(n−1))`;
-  `glyphCellAt` wraps tile coordinates.
+  `glyphCellAt` wraps tile coordinates with modulo.
 - `glyphSetFromMatrix(m, name)` turns an n×n threshold matrix into n²+1 levels by rank
   threshold — Bayer 8×8 → 65 levels, exactly the max.
+- `glyphSetToField` projects a set into a `(x, y) → tone` field (highest inked level per tile
+  position) — the bridge that lets a tile set act as an ordered-dither threshold field (the
+  `custom-matrix` import dither).
 - Generators are pure `(tile size, levels) → GlyphTileSet`; the art generators "favour
   character over strictly linear coverage — every ramp still starts empty, ends solid and
-  never loses ink as the tone rises" (generators `monotonize` by OR-ing each level into the
-  next; hand-edited ramps are *not* forced monotone). Form generators draw via `cellShapeHit`
-  — the same geometry as the canvas.
+  never loses ink as the tone rises" (`finish` ORs each level into the next via `monotonize`;
+  hand-edited ramps are *not* forced monotone). Form generators draw through `cellShapeHit` —
+  the same geometry the canvas renders, so a glyph always matches the drawn pixel form.
+- **Text machinery** ([`src/engine/glyph/text-raster.ts`](../../src/engine/glyph/text-raster.ts)):
+  ASCII density ramps (`ASCII_RAMPS`: classic/blocks/minimal), braille dot ramps (all 256
+  eight-dot patterns as a 2×4 ramp), and `textTiles` — a string laid out into a boolean bitmap
+  with 1-cell tracking. `asciiGlyphSet` turns a ramp string into a `GlyphTileSet` whose levels
+  are the font's characters ordered by `charDensity`; `builtinDitherSets` memoizes the built-in
+  tile sets the import dithers `ascii`/`braille` use.
 - **Editor UI**: compact right-panel section (ramp strip, resize chips 4/8/16) opening a
   dialog with a level navigator (add = duplicate current, min 2 levels), a press-drag paint
   grid ("the first cell you touch decides whether the stroke draws or erases"), generator
@@ -49,11 +63,23 @@ tone and reads the cell under the repeating tile grid."
 - **Persistence**: `GlyphTileSetEntry` in the `glyphTiles` IDB store, normalized on every
   read/write, memory fallback.
 
-**Consumers**: fill pattern `glyph` (`glyphCellAt` per cell — [dither-and-patterns](dither-and-patterns.md));
-import dithers `glyph`/`palette-glyph` (tone glyphs replace the threshold matrix; palette
-glyphs rank palette colors by luminance into levels — [image-import](image-import.md));
-`ditherImageWithGlyph` renders the gallery's photo preview (Rec.709 per-cell luminance,
-DOM-free `Raster`).
+**Consumers**:
+
+- fill pattern `glyph` (`glyphCellAt` per cell — [`src/engine/texture/fill-patterns.ts`](../../src/engine/texture/fill-patterns.ts),
+  tested in [`src/engine/texture/glyph-fill.test.ts`](../../src/engine/texture/glyph-fill.test.ts);
+  see [dither-and-patterns](dither-and-patterns.md));
+- import dithers `glyph`/`palette-glyph` (tone glyphs replace the threshold matrix; palette
+  glyphs rank palette colors by luminance into levels — [image-import](image-import.md)) and
+  `ascii`/`braille`/`custom-matrix` through [`src/engine/glyph/text-raster.ts`](../../src/engine/glyph/text-raster.ts)
+  and `glyphSetToField`;
+- `source.text` in the node graph rasterizes `textTiles` ([`src/engine/nodes/text.node.ts`](../../src/engine/nodes/text.node.ts)
+  — [node-graph](node-graph.md));
+- ASCII text export picks one character per cell by palette luminance through
+  [`src/engine/output/ascii-export.ts`](../../src/engine/output/ascii-export.ts)
+  (`ASCII_RAMPS` + `charForTone`);
+- `ditherImageWithGlyph` ([`src/engine/glyph/preview.ts`](../../src/engine/glyph/preview.ts),
+  Rec.709 per-cell luminance, DOM-free `Raster`) renders the gallery's photo preview via
+  [`src/shared/ui/glyph-photo-preview.component.tsx`](../../src/shared/ui/glyph-photo-preview.component.tsx).
 
 ## Invariants & constraints
 
@@ -62,6 +88,7 @@ DOM-free `Raster`).
 - Built-in sets are matched by object identity when picked without an id.
 - The engine holds Russian user-facing strings for built-in set names (localization wraps
   around them).
+- Unknown characters rasterize as blank in the 5×7 font — only a curated charset ships.
 
 ## Performance characteristics
 
@@ -70,8 +97,16 @@ dithers at preview resolution only. No dedicated benches — the cost is dominat
 
 ## Testing
 
-`glyph-tiles.test.ts`, `glyph-generators(-art/-forms).test.ts`, `glyph-preview.test.ts`,
-`glyph-import.test.ts`, `glyph-fill.test.ts`.
+Colocated with the domain in `src/engine/glyph/`:
+[`tiles.test.ts`](../../src/engine/glyph/tiles.test.ts),
+[`generators.test.ts`](../../src/engine/glyph/generators.test.ts),
+[`generators-art.test.ts`](../../src/engine/glyph/generators-art.test.ts),
+[`generators-forms.test.ts`](../../src/engine/glyph/generators-forms.test.ts),
+[`text-raster.test.ts`](../../src/engine/glyph/text-raster.test.ts),
+[`preview.test.ts`](../../src/engine/glyph/preview.test.ts),
+[`import.test.ts`](../../src/engine/glyph/import.test.ts) (glyph dithers through
+`convertImage`). The fill-pattern consumer is pinned in
+[`src/engine/texture/glyph-fill.test.ts`](../../src/engine/texture/glyph-fill.test.ts).
 
 ## Related decisions
 

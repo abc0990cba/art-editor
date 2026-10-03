@@ -4,11 +4,11 @@
  * overlay's doc-space transform; drawn screen-constant so it reads on any background.
  */
 
-import { brushAnchor } from '../../engine/brush.ts'
-import type { StageTheme, SymmetryState } from '../../engine/doc.ts'
-import type { Grid } from '../../engine/grids.ts'
-import { isShapeTool } from '../../engine/shapes.ts'
-import { symmetryPoints } from '../../engine/symmetry.ts'
+import type { StageTheme, SymmetryState } from '../../engine/core/doc.ts'
+import { symmetryPoints } from '../../engine/effects/symmetry.ts'
+import type { Grid } from '../../engine/grids/index.ts'
+import { brushAnchor } from '../../engine/paint/brush.ts'
+import { isShapeTool } from '../../engine/shapes/index.ts'
 import type { Tool } from '../../state/editor.store.ts'
 import { blobCells, polyPath } from './canvas-stage.util.ts'
 

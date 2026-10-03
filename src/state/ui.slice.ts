@@ -1,4 +1,4 @@
-import { clampPngSide } from '../engine/png.ts'
+import { clampPngSide } from '../engine/output/png.ts'
 import type { State } from './editor.store.ts'
 
 export type ThemePref =

@@ -1,4 +1,4 @@
-import type { ProjectJSON } from '../engine/project'
+import type { ProjectJSON } from '../engine/core/project'
 import { newId, openDb, reqToPromise } from './db'
 
 export type ProjectKind = 'pixel' | 'vector' | 'gradient'

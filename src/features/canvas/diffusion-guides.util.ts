@@ -1,8 +1,8 @@
-import type { Doc } from '../../engine/doc.ts'
-import { metaballOverlayContours } from '../../engine/geometry.ts'
-import type { Grid } from '../../engine/grids.ts'
-import { kernelRadius } from '../../engine/metaball-field.ts'
-import type { StageTheme } from '../../engine/stage-themes.ts'
+import type { Doc } from '../../engine/core/doc.ts'
+import type { StageTheme } from '../../engine/core/stage-themes.ts'
+import { metaballOverlayContours } from '../../engine/geometry/index.ts'
+import { kernelRadius } from '../../engine/geometry/metaball-field.ts'
+import type { Grid } from '../../engine/grids/index.ts'
 
 /**
  * Metaball diffusion aids, kept out of CanvasStage to respect its size ratchet. All are canvas-only

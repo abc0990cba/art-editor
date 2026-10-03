@@ -8,11 +8,11 @@ import {
   type MetaballSettings,
   type PixelStyle,
   type RenderMode,
-} from '../../engine/doc.ts'
-import { buildGeometry } from '../../engine/geometry.ts'
-import { drawGeometry } from '../../engine/png.ts'
-import { figureSpace } from '../../engine/texture-figure.ts'
-import { regionTextureFragments, type TextureCell } from '../../engine/texture.ts'
+} from '../../engine/core/doc.ts'
+import { buildGeometry } from '../../engine/geometry/index.ts'
+import { drawGeometry } from '../../engine/output/png.ts'
+import { figureSpace } from '../../engine/texture/figure.ts'
+import { regionTextureFragments, type TextureCell } from '../../engine/texture/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { ExpandablePreview } from '../../shared/ui/preview-expander.component.tsx'
 import { useStore } from '../../state/editor.store.ts'

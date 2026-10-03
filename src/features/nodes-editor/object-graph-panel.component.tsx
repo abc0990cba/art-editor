@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 
+import { findNode, type SceneObj } from '../../engine/core/scene.ts'
 import {
   allNodes,
   emptyGraph,
@@ -15,7 +16,6 @@ import {
   paramBounds,
   rerollGraphSeeds,
 } from '../../engine/nodes/index.ts'
-import { findNode, type SceneObj } from '../../engine/scene.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { download } from '../../shared/lib/file-download.util.ts'
 import { CheckRow, Chip, ColorInput, Section, Slider } from '../../shared/ui/index.tsx'

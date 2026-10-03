@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ImportBitmap } from '../import-image.ts'
+import type { ImportBitmap } from '../import/index.ts'
 import { DEFAULT_TRACE_PARAMS } from './params.ts'
 import { clusterImage } from './quantize.ts'
 

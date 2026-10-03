@@ -24,7 +24,7 @@ sequenceDiagram
     Note over Canvas: offscreen artwork bitmap rebuilt, then blitted
 ```
 
-`buildGeometry(doc)` (`src/engine/geometry.ts`) dispatches in order:
+`buildGeometry(doc)` ([`src/engine/geometry/index.ts`](../../src/engine/geometry/index.ts)) dispatches in order:
 
 1. Scene docs → `sceneGeometry`: per visible layer, bottom → top, filling one pair of reused
    scratch buffers (each layer's paths are built before the next layer starts), merging staged
@@ -41,11 +41,11 @@ rotation, no texture, no tone sizing) merges horizontal runs of same-value cells
 rect fragments — orders of magnitude fewer path fragments for classic pixel art
 (PERFLOG M2a: `buildGeometry` −39 %…−99 % depending on content). Anything else goes per-cell.
 
-**Consumption.** `drawGeometry` (`engine/png.ts`) fills with `fill(path, 'evenodd')` — the
+**Consumption.** `drawGeometry` (`engine/output/png.ts`) fills with `fill(path, 'evenodd')` — the
 fill rule is load-bearing (texture holes, outline bridge overlays and metaball loops rely on
 it). `Path2D`s are cached by the path *string* with a 32 M-char FIFO budget: geometry rebuilds
 produce identical strings, so equal strings are the same path by construction. The SVG
-exporter (`engine/svg.ts`) serializes the same `StyledPath[]` to flat `<path>` elements with
+exporter (`engine/output/svg.ts`) serializes the same `StyledPath[]` to flat `<path>` elements with
 `fill-rule="evenodd"`; PNG rasterization (`renderPng`) scales the same geometry onto a canvas
 (capped at 5000 px/side).
 

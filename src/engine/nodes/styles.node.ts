@@ -1,6 +1,6 @@
 /** Style nodes: write the object's appearance parameters (no raster input). */
 
-import { CELL_SHAPE_IDS, isCellShapeId, normalizeShapeParams } from '../cell-shapes.ts'
+import { CELL_SHAPE_IDS, isCellShapeId, normalizeShapeParams } from '../cell-shapes/index.ts'
 import { defineNode } from './types.ts'
 
 export const STYLE_NODES = [

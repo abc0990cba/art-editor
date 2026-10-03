@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react'
 
-import { type Doc } from '../../engine/doc.ts'
-import { marchingSquares, type Pt } from '../../engine/marching-squares.ts'
+import { type Doc } from '../../engine/core/doc.ts'
+import { marchingSquares, type Pt } from '../../engine/geometry/marching-squares.ts'
 
 export interface ElementOutline {
   path: Path2D

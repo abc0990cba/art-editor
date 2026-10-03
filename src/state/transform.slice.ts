@@ -1,7 +1,5 @@
-import type { Doc, Link } from '../engine/doc.ts'
-import { bufferWidth } from '../engine/doc.ts'
-import { isPlainSquare } from '../engine/grids.ts'
-import type { GraphNode } from '../engine/nodes/index.ts'
+import type { Doc, Link } from '../engine/core/doc.ts'
+import { bufferWidth } from '../engine/core/doc.ts'
 import {
   allObjs,
   objLayer,
@@ -11,14 +9,16 @@ import {
   updateNode,
   type SceneItem,
   type SceneLayer,
-} from '../engine/scene.ts'
+} from '../engine/core/scene.ts'
 import {
   mapInk,
   selectionBox,
   xformMatrices,
   type InkCell,
   type SelectionXform,
-} from '../engine/selection-xform.ts'
+} from '../engine/effects/selection-xform.ts'
+import { isPlainSquare } from '../engine/grids/index.ts'
+import type { GraphNode } from '../engine/nodes/index.ts'
 import type { State } from './editor.store.ts'
 import { compactElements } from './selection.slice.ts'
 import { genNodeId } from './store-internals.util.ts'

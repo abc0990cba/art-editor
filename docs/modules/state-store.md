@@ -10,11 +10,11 @@ data-model context: [data-model](../architecture/data-model.md).
 
 | File | Role |
 |---|---|
-| `src/state/editor.store.ts` | composition, `State` type, `temporalOptions`, undo/redo helpers, `window.__store` (dev) |
-| `src/state/store.effects.ts` | subscription effects: history budget, theme mirror, autosave, dirty flag, `repairDocRefs` |
-| `src/state/store-internals.util.ts` | `commitStroke`, `resolveElement`, `genNodeId`, `offsetGraphNodes`, `linkKey`, `activeLayerOf` |
-| `src/state/doc.slice.ts` | doc state + scene-tree structure actions; boot restore from the localStorage mirror |
-| `src/state/paint.slice.ts` | `paintCells`/`paintCellsValues` — one stroke = one object on the active layer |
+| [`src/state/editor.store.ts`](../../src/state/editor.store.ts) | composition, `State` type, `temporalOptions`, undo/redo helpers, `window.__store` (dev) |
+| [`src/state/store.effects.ts`](../../src/state/store.effects.ts) | subscription effects: history budget, theme mirror, autosave, dirty flag, `repairDocRefs` |
+| [`src/state/store-internals.util.ts`](../../src/state/store-internals.util.ts) | `commitStroke`, `resolveElement`, `genNodeId`, `offsetGraphNodes`, `linkKey`, `activeLayerOf` |
+| [`src/state/doc.slice.ts`](../../src/state/doc.slice.ts) | doc state + scene-tree structure actions; boot restore from the localStorage mirror |
+| [`src/state/paint.slice.ts`](../../src/state/paint.slice.ts) | `paintCells`/`paintCellsValues` — one stroke = one object on the active layer |
 | `src/state/{ui,tools,style,fill,selection,transform,effect,glyph,gradient,vector,vector-presets,presets,brushes,project}.slice.ts` | the other 14 slices |
 
 ## How it works

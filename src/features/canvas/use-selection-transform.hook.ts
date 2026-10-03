@@ -1,13 +1,13 @@
 import { useCallback, useRef } from 'react'
 
-import { bufferWidth, type Doc, type Link } from '../../engine/doc.ts'
+import { bufferWidth, type Doc, type Link } from '../../engine/core/doc.ts'
 import {
   mapInk,
   xformMatrices,
   type CellBox,
   type InkCell,
   type SelectionXform,
-} from '../../engine/selection-xform.ts'
+} from '../../engine/effects/selection-xform.ts'
 import { useStore } from '../../state/editor.store.ts'
 import type { DocPoint } from './canvas-stage.util.ts'
 import {

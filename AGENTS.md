@@ -70,7 +70,11 @@ src/
   app/       # shell: app.component.tsx, app-top-bar.component.tsx, main.tsx
   features/  # vertical UI modules: canvas, tools, nodes-editor, layers,
              # settings-panel, glyph-editor, projects, export, import
-  engine/    # pure domain (no React!): doc, scene, shapes, brush, grids, nodes…
+  engine/    # pure domain (no React!), grouped into domain folders — one folder per meaning:
+             # core/ (doc, scene, project IO), color/, cell-shapes/, grids/, shapes/, paint/,
+             # effects/, geometry/ (render pipeline), texture/ (+ fill patterns), dither/,
+             # glyph/, import/, output/, presets/, demos/, nodes/, gradient/, trace/
+             # each family's facade is <domain>/index.ts; docs/architecture/engine-map.md is the index
   state/     # editor.store.ts (zustand) — the single app store
   storage/   # IndexedDB persistence (projects, presets, brushes, db)
   shared/    # cross-slice: ui/ (primitives + vendored shadcn), lib/ (utils), i18n/
@@ -138,7 +142,7 @@ The UI foundation is **shadcn/ui** (Tailwind v4, radix-ui, `cn()` from
 | `.test.ts` | tests, colocated with the code | `shapes.test.ts` |
 | `index.ts(x)` | barrel (the only name without a suffix) | `shared/ui/index.tsx` |
 
-Engine modules (except nodes) are plain kebab-case without a suffix: `shapes.ts`, `doc.ts`.
+Engine modules are plain kebab-case without a suffix. Inside a domain folder the folder name is the context, so files carry short names (`texture/hatch.ts`, `shapes/box.ts`, `core/doc.ts`) and the family facade is the folder's `index.ts`.
 Suffix exception: `shared/ui/shadcn/*` — vendored shadcn/ui files keep upstream names
 (`button.tsx`, `dialog.tsx`); do not rename them (CLI regeneration).
 
@@ -162,19 +166,21 @@ lines hit the cap and lint fails); if you shrink a file — shrink its cap in th
 (localization data files) — free limit; tests — capped at actual size.
 
 Already split (do not grow!): `editor.store` → slices `state/*.slice.ts` (only composition
-remains in the store), `shapes` → facade + `shape-*.ts`, `import-image` → facade +
-`import-*.ts`, `texture` → barrel + `texture-*.ts`, `presets` → `preset-*.ts`, `app-top-bar`
-→ `top-bar-*.component.tsx`, `grids` → facade `grids.ts` + `grids-builders.ts` +
-`grids-lattices.ts` (diamond/iso/brick/octasquare lattices) + `grid-geometry.ts` +
-`grid-rotate.ts` + `grid-polar.ts`, `cell-shapes` → `cell-shape-defs.ts` + `cell-shape-geom.ts`
-+ `cell-shape-ext.ts` + `cell-shape-frag.ts`, `tool-rail` → `tool-rail-list`, `settings-panel`
-→ section components, `canvas-stage` → staging hook + selection/panel components +
-`stage-paint*.util` (base-canvas frame: baked bg/grid layers, incremental stroke layer,
-pixel-bitmap preview, legacy fragment path; dispatch in `stage-paint-frame.util.ts`).
+remains in the store), `shapes` → `shapes/` folder (facade `index.ts` + `box/radial/flow/lines/
+decorate/bento/skull/tools/util/fill`), `import-image` → `import/` folder (facade `index.ts` +
+stage modules), `texture` → `texture/` folder (barrel `index.ts` + `core/region/field/halftone/
+hatch/…`), `presets` → `presets/` folder, `app-top-bar` → `top-bar-*.component.tsx`, `grids` →
+`grids/` folder (`index.ts` facade + `builders/lattices/geometry/rotate/polar`), `cell-shapes` →
+`cell-shapes/` folder (`index.ts` + `defs/geom/ext/frag`), `doc` → `core/doc.ts` (model) +
+`core/doc-resize.ts` (resize/sub-detail), `fillpatterns` → `texture/fill.ts` (apply) +
+`texture/fill-patterns.ts` (math) + `texture/fill-data.ts`, `tool-rail` → `tool-rail-list`,
+`settings-panel` → section components, `canvas-stage` → staging hook + selection/panel
+components + `stage-paint*.util` (base-canvas frame: baked bg/grid layers, incremental stroke
+layer, pixel-bitmap preview, legacy fragment path; dispatch in `stage-paint-frame.util.ts`).
 
 Still waiting for splits (measure first — the authoritative caps live in the
-`.oxlintrc.jsonc` overrides; numbers drift): `canvas-stage` (~1460 lines),
-`node-editor-canvas` (~1233), `doc` (427), `fillpatterns` (418) — split by feature/layer per
+`.oxlintrc.jsonc` overrides; numbers drift): `canvas-stage` (~1260 lines),
+`node-editor-canvas` (~1244), `use-canvas-staging` (~874) — split by feature/layer per
 the structure above.
 
 ## TypeScript — strict profile
@@ -226,6 +232,6 @@ complete (robust to window occlusion); the `framesLive` flag marks runs without 
 
 Canvas limits: `MAX_SIZE = 4096`, buffer ≤ `MAX_CELLS = 16_777_216` cells — `fitSub` lowers
 the sub-detail when `size × sub` would exceed the product. Pixel geometry (radii 0, no
-texture, sizeX/Y = 1) automatically merges runs into RLE rectangles (`geometry-shape.ts`);
+texture, sizeX/Y = 1) automatically merges runs into RLE rectangles (`src/engine/geometry/shape.ts`);
 rounded/textured styles go through the per-cell path. Regression ratchets —
 `perf-stress.test.ts` (cost ratios, not absolute times).

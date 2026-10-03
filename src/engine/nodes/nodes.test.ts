@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { useStore } from '../../state/editor.store'
-import { defaultDoc, elementFromDoc, type Doc } from '../doc.ts'
-import { buildGeometry } from '../geometry.ts'
-import { ensureScene, type SceneObj } from '../scene.ts'
+import { defaultDoc, elementFromDoc, type Doc } from '../core/doc.ts'
+import { ensureScene, type SceneObj } from '../core/scene.ts'
+import { buildGeometry } from '../geometry/index.ts'
 import {
   allNodes,
   evalGraph,

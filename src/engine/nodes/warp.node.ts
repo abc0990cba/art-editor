@@ -1,6 +1,6 @@
 /** Warp node: bends the accumulated pixels through a displacement field (bulge, twirl, waves…). */
 
-import { inkBox, warpInk, WARP_KINDS, type WarpKind } from '../warp.ts'
+import { inkBox, warpInk, WARP_KINDS, type WarpKind } from '../effects/warp.ts'
 import { defineNode } from './types.ts'
 
 export const WARP_NODES = [

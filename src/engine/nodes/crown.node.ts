@@ -1,7 +1,7 @@
 /** Procedural crown: band + spike array + jewel holes, seeded asymmetry. */
 
-import { fillCellsEvenOdd } from '../shapefill.ts'
-import { linePoints } from '../shapes.ts'
+import { fillCellsEvenOdd } from '../shapes/fill.ts'
+import { linePoints } from '../shapes/index.ts'
 import { combineCells } from './context.ts'
 import { defineNode, Resolved, type Cells, type NodeParamSpec } from './types.ts'
 

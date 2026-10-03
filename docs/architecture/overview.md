@@ -49,25 +49,30 @@ import/export math, the procedural node graph, and the two tracing pipelines. Al
 in plain TypeScript in any JS runtime — that is what makes node-side vitest benches
 (`npm run bench`) representative of the shipped code.
 
-| Subsystem | Files | Module doc |
+The engine is grouped into domain folders — one folder per meaning, public facade at
+`<domain>/index.ts`. The full annotated tree with entry points and per-domain doc links lives
+in [engine-map.md](engine-map.md); the summary:
+
+| Domain folder | Covers | Module doc |
 |---|---|---|
-| Document + scene tree | `doc.ts`, `doc-style.ts`, `scene.ts`, `scene-legacy.ts`, `scene-resize.ts`, `project*.ts` | [doc-and-scene](../modules/doc-and-scene.md) |
-| Geometry build | `geometry*.ts`, `geometry-metaball.ts` | [geometry](../modules/geometry.md) |
-| Render outputs | `png.ts`, `svg.ts`, `outline.ts`, `marching-squares.ts`, `poly-path.ts` | [render-outputs](../modules/render-outputs.md) |
-| Shapes | `shapes.ts` + `shape-*.ts`, `shapefill.ts` | [shapes](../modules/shapes.md) |
-| Paint tools | `brush.ts`, `floodfill.ts` | [paint-tools](../modules/paint-tools.md) |
-| Grids | `grids.ts`, `grids-*.ts`, `grid-*.ts`, `cell-shape-*.ts` | [grids](../modules/grids.md) |
-| Symmetry | `symmetry.ts`, `symmetry-radial.ts`, `symmetry-repeat.ts` | [symmetry](../modules/symmetry.md) |
-| Effects | `warp.ts`, `stylize.ts`, `selection-xform.ts` | [effects](../modules/effects.md) |
-| Texture | `texture*.ts` | [texture](../modules/texture.md) |
-| Dither + patterns | `dither-matrices.ts`, `fillpatterns*.ts` | [dither-and-patterns](../modules/dither-and-patterns.md) |
-| Image import | `import-*.ts` (facade + 10 stage modules) | [image-import](../modules/image-import.md) |
-| Node graph | `nodes/` (engine), `features/nodes-editor/` (UI) | [node-graph](../modules/node-graph.md) |
-| Vectorizer | `trace/` (engine), `features/vectorizer/` (UI) | [vectorizer](../modules/vectorizer.md) |
-| Gradient workspace | `gradient/` (engine), `features/gradient/` (UI) | [gradient-workspace](../modules/gradient-workspace.md) |
-| Glyph tiles | `glyph-*.ts`, `features/glyph-editor/` | [glyphs](../modules/glyphs.md) |
-| Palettes + presets | `palettes*.ts`, `palette-io.ts`, `presets*.ts` | [palettes-and-presets](../modules/palettes-and-presets.md) |
-| Misc utilities | `image-ops.ts`, `color.ts`, `scrollbars.ts`, `sizes.ts`, `stage-themes.ts`, `demo-*.ts` | covered by their subsystem docs |
+| `core/` | Document + scene tree, project IO, sizes, stage themes | [doc-and-scene](../modules/doc-and-scene.md) |
+| `geometry/` | `buildGeometry` (pixels/outline/metaball), RLE runs, marching squares | [geometry](../modules/geometry.md) |
+| `output/` | PNG thumbnails, SVG + ASCII export | [render-outputs](../modules/render-outputs.md) |
+| `shapes/` | Vector shape tool, rasterization, even-odd fill | [shapes](../modules/shapes.md) |
+| `paint/` | Brush tips, flood fill | [paint-tools](../modules/paint-tools.md) |
+| `grids/` + `cell-shapes/` | Grid lattices, rotation, per-grid cell geometry, ~28 cell forms | [grids](../modules/grids.md) |
+| `effects/` | Symmetry, warp, jitter, selection transforms, stylize post-ops | [effects](../modules/effects.md) + [symmetry](../modules/symmetry.md) |
+| `texture/` | Baked vector textures + fill patterns / dithered gradients | [texture](../modules/texture.md) + [dither-and-patterns](../modules/dither-and-patterns.md) |
+| `dither/` | Threshold matrices, fields, blue noise, scan orders, screen engine | [dither-and-patterns](../modules/dither-and-patterns.md) |
+| `glyph/` | Glyph tile sets, generators, bitmap font, ASCII raster | [glyphs](../modules/glyphs.md) |
+| `import/` | Photo → cells: fit → quantize → dither → post effects | [image-import](../modules/image-import.md) |
+| `color/` | Conversions, tone scales, palette presets + I/O | [palettes-and-presets](../modules/palettes-and-presets.md) |
+| `presets/` | Editor preset families | [palettes-and-presets](../modules/palettes-and-presets.md) |
+| `demos/` | Demo project factories (landing art, home screen) | [projects-and-demos](../modules/projects-and-demos.md) |
+| `nodes/` (engine), `features/nodes-editor/` (UI) | Procedural node graph | [node-graph](../modules/node-graph.md) |
+| `trace/` (engine), `features/vectorizer/` (UI) | Raster→SVG tracing | [vectorizer](../modules/vectorizer.md) |
+| `gradient/` (engine), `features/gradient/` (UI) | Raster→SVG gradient fitting | [gradient-workspace](../modules/gradient-workspace.md) |
+| root: `bench-doc.util.ts`, `perf-stress.test.ts` | Bench fixtures + PERFLOG ratchet tests | [research/performance](../research/performance.md) |
 
 ## Platform layers in brief
 

@@ -1,6 +1,6 @@
 /** Source nodes: paint colored pixels onto the accumulated map (add/subtract/intersect). */
 
-import { fillCellsEvenOdd, regionCells } from '../shapefill.ts'
+import { fillCellsEvenOdd, regionCells } from '../shapes/fill.ts'
 import {
   ellipsePoints,
   linePoints,
@@ -10,7 +10,7 @@ import {
   shapePathPoints,
   type ShapeOpts,
   type ShapeToolId,
-} from '../shapes.ts'
+} from '../shapes/index.ts'
 import { combineCells } from './context.ts'
 import { type Resolved, defineNode, type Cells, type NodeParamSpec } from './types.ts'
 

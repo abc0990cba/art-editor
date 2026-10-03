@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc, elementFromDoc } from '../doc.ts'
+import { defaultDoc, elementFromDoc } from '../core/doc.ts'
 import './index.ts'
 import { evalGraph, rerollGraphSeeds } from './eval.ts'
 import { nodeDef } from './registry.ts'

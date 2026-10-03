@@ -1,4 +1,4 @@
-import type { Doc } from '../../engine/doc.ts'
+import type { Doc } from '../../engine/core/doc.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Slider } from '../../shared/ui/index.tsx'
 

@@ -9,12 +9,12 @@ import {
   gradientAt,
   patternAt,
   type FillStyle,
-} from '../../engine/fillpatterns.ts'
-import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { Chip, ColorInput, Slider } from '../../shared/ui/index.tsx'
-import { ExpandablePreview } from '../../shared/ui/preview-expander.component.tsx'
+} from '../../engine/texture/fill.ts'
 import { useStore } from '../../state/editor.store.ts'
+import { useI18n } from '../i18n/i18n.provider.tsx'
 import { GlyphSetPicker } from './glyph-set-picker.component.tsx'
+import { Chip, ColorInput, Slider } from './index.tsx'
+import { ExpandablePreview } from './preview-expander.component.tsx'
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')

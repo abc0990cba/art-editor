@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 
-import type { PixelStyle } from '../../engine/doc.ts'
-import { isPlainSquare } from '../../engine/grids.ts'
-import { serializeGpl, serializeHex } from '../../engine/palette-io.ts'
-import { PALETTES, matchedPresetId } from '../../engine/palettes.ts'
-import { presetPreviewDataURL } from '../../engine/preset-preview.ts'
+import { PALETTES, matchedPresetId } from '../../engine/color/index.ts'
+import { serializeGpl, serializeHex } from '../../engine/color/palette-io.ts'
+import type { PixelStyle } from '../../engine/core/doc.ts'
+import { isPlainSquare } from '../../engine/grids/index.ts'
 import {
   BUILTIN_PRESETS,
   configMatchesState,
   isBuiltinPreset,
   type EditorPreset,
-} from '../../engine/presets.ts'
+} from '../../engine/presets/index.ts'
+import { presetPreviewDataURL } from '../../engine/presets/preview.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { download, stamp } from '../../shared/lib/file-download.util.ts'
 import { readPaletteFile, palettePngBlob } from '../../shared/lib/palette-files.util.ts'
