@@ -11,6 +11,7 @@ const toolKeys: Record<string, Tool> = {
   g: 'fill',
   i: 'picker',
   l: 'line',
+  f: 'pen',
   r: 'rect',
   o: 'ellipse',
   c: 'connector',

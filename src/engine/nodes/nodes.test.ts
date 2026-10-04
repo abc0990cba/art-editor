@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useStore } from '../../state/editor.store'
 import { defaultDoc, elementFromDoc, type Doc } from '../core/doc.ts'
 import { ensureScene, type SceneObj } from '../core/scene.ts'
+import { pathFromD, pathInk } from '../curves/index.ts'
 import { buildGeometry } from '../geometry/index.ts'
 import {
   allNodes,
@@ -189,6 +190,38 @@ describe('raster evaluation', () => {
     expect(at(0)).toBe(1)
     expect(at(15)).toBe(3)
     expect(at(8)).toBe(2)
+  })
+
+  it('source.bezier regenerates the pen draft from its d parameter', () => {
+    const d = 'M 2 12 L 8 3 C 11 3 13 8 14 12'
+    const cells = run([
+      {
+        op: 'source.bezier',
+        params: { d, w: 2, stroke: true, fillMode: 'none', strokeColor: '#e63946' },
+      },
+    ])
+    // parity with the pen preview: the stroke is exactly the engine path raster
+    const ink = pathInk(pathFromD(d)!, 16, 16, { width: 2 })
+    expect(cells.size).toBe(ink.stroke.size)
+    // closed path + fill: interior cells carry the fill color, outline the stroke color
+    const closed = run([
+      {
+        op: 'source.bezier',
+        params: {
+          d: 'M 2 2 L 13 2 L 13 13 L 2 13 Z',
+          w: 1,
+          stroke: true,
+          fillMode: 'solid',
+          strokeColor: '#e63946',
+          fillColor: '#2a9d8f',
+        },
+      },
+    ])
+    expect(closed.size).toBeGreaterThan(11 * 11 - 10)
+    expect(closed.get(7 * 16 + 7)).toBe(2)
+    expect(closed.get(2 * 16 + 2)).toBe(1)
+    // malformed d stays empty instead of throwing
+    expect(run([{ op: 'source.bezier', params: { d: 'nonsense' } }]).size).toBe(0)
   })
 })
 

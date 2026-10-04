@@ -363,7 +363,7 @@
       "eslint/max-lines": [
         "error",
         {
-          "max": 638,
+          "max": 666,
           "skipComments": true,
           "skipBlankLines": true
         }
@@ -527,7 +527,8 @@
         {
           // 1308→1288: shared zoom plates; 1288→1282: grid-native cursor coords (2026-09);
           // 1282→1223: wheel/pinch/space navigation extracted to use-canvas-view (2026-10); 1223→1095: base render extracted to stage-paint*.util (2026-10)
-          "max": 1095,
+          // 1095→1067: pen tool wired via use-pen-tool; connector/marquee/select/badge/scrollbar blocks extracted (2026-10)
+          "max": 1067,
           "skipComments": true,
           "skipBlankLines": true
         }

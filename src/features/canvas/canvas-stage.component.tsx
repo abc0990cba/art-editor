@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import { STAGE_THEMES, docExtent, type Doc } from '../../engine/core/doc.ts'
-import { nodeProtected, objLayer, type SceneLayer } from '../../engine/core/scene.ts'
+import { nodeProtected, type SceneLayer } from '../../engine/core/scene.ts'
 import { scrollbarMetrics } from '../../engine/core/scrollbars.ts'
 import { selectionBox, type CellBox } from '../../engine/effects/selection-xform.ts'
 import { ensureTileGeometry } from '../../engine/geometry/tiles.ts'
@@ -17,9 +17,6 @@ import {
   constrainShapeEnd,
   drawGuides,
   drawMarquee,
-  marqueeRect,
-  objectsInMarquee,
-  rectHasInk,
   sizeCanvas,
   type DragState,
   type Hover,
@@ -28,14 +25,28 @@ import { viewOffscreen } from './canvas-view-math.util.ts'
 import { diffusionContourPath, hoverCellCenter, strokeKernelRing } from './diffusion-guides.util.ts'
 import { drawToolHover } from './draw-tool-hover.util.ts'
 import { cellPolygonOverlayPath, squareGridLines } from './grid-overlay.util.ts'
+import { ScopeHint } from './scope-hint.component.tsx'
 import { clickSelectionIds } from './select-hit.util.ts'
 import { SelectionActions } from './selection-actions.component.tsx'
-import { cursorForHandle, drawTransformBox } from './selection-transform.util.ts'
+import {
+  cursorForHandle,
+  drawSelectionBadge,
+  drawTransformBox,
+} from './selection-transform.util.ts'
+import {
+  beginObjMoveDrag,
+  commitPendingLink,
+  linkAnchorAt,
+  previewPendingLink,
+  resolveMarqueeDrag,
+} from './stage-gestures.util.ts'
 import { paintStage } from './stage-paint-frame.util.ts'
 import { createStagePaintState, type StagePaintState } from './stage-paint.util.ts'
+import { drawPenOverlay } from './stage-pen.util.ts'
 import { useCanvasStaging } from './use-canvas-staging.hook.ts'
-import { useCanvasView } from './use-canvas-view.hook.ts'
+import { useCanvasView, useScrollbarDrag } from './use-canvas-view.hook.ts'
 import { useOutlineCache } from './use-outline-cache.hook.ts'
+import { usePenTool } from './use-pen-tool.hook.ts'
 import { useSelectionTransform } from './use-selection-transform.hook.ts'
 
 export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void } = {}) {
@@ -241,13 +252,24 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   })
   const xformCancelRef = useRef<() => void>(xform.cancel)
 
-  // active scrollbar thumb drag: axis, pointer start, view start and px-per-doc scale
-  const scrollDrag = useRef<{
-    axis: 'x' | 'y'
-    startPx: number
-    startView: number
-    scale: number
-  } | null>(null)
+  // the pen tool's brain: anchor/handle editing, commits; the skeleton draws on the overlay
+  const pen = usePenTool({
+    doc,
+    isSquare,
+    grid,
+    bw,
+    bh,
+    symmetry,
+    expand,
+    stagingRef,
+    ensureStaging,
+    scheduleStaging,
+    bumpStaging,
+    scheduleOverlay: scheduleMarquee,
+  })
+  const penRef = useRef(pen)
+  penRef.current = pen
+
   // reactive mirror of drag.current so the overlay layer can react to stroke start/end
   const [dragKind, setDragKind] = useState<DragState['kind'] | null>(null)
   const [pendingLink, setPendingLink] = useState<{ ax: number; ay: number } | null>(null)
@@ -261,6 +283,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     shapeStartRef.current = null
     shapeLastRef.current = null
     setPendingLink(null)
+    penRef.current.cancel()
     if (stagingRef.current) {
       stagingRef.current = null
       bumpStaging()
@@ -364,28 +387,30 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       xform.finish()
       return
     }
+    if (d.kind === 'pen') {
+      // the pen keeps its staged preview across clicks — no commitStaging here
+      penRef.current.pointerUp()
+      return
+    }
     if (d.kind === 'marquee') {
       if (marqueeRafRef.current) {
         cancelAnimationFrame(marqueeRafRef.current)
         marqueeRafRef.current = 0
       }
       if (d.start && d.end) {
-        const rect = marqueeRect({ x: d.start[0], y: d.start[1] }, d.end)
-        const hits = objectsInMarquee(doc, rect, pickableObj)
-        if (d.subtractive) removeFromSelection(hits)
-        else if (d.additive) selectElements([...selection, ...hits])
-        else {
-          selectElements(hits)
-          // the band covered painted artwork yet picked nothing: canvas-wide styles keep
-          // cellObj empty — surface why instead of failing silently (same as a bare click)
-          if (
-            hits.length === 0 &&
-            doc.styleScope === 'global' &&
-            rectHasInk(doc.cells, bw, bh, doc.sub, rect)
-          ) {
-            showScopeHint()
-          }
-        }
+        resolveMarqueeDrag({
+          start: d.start,
+          end: d.end,
+          subtractive: d.subtractive,
+          additive: d.additive,
+          selection,
+          doc,
+          bw,
+          pickable: pickableObj,
+          removeFromSelection,
+          selectElements,
+          showScopeHint,
+        })
       }
       return
     }
@@ -430,34 +455,21 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       return
     }
     if (obj > 0) {
-      const ids = clickSelectionIds(doc, obj)
-      const already = ids.every((id) => selection.includes(id))
-      if (e.altKey) {
-        // Alt+drag clones the selection and moves the clones (Illustrator option-drag);
-        // a plain Alt+click leaves both copies in place — undo reverts it
-        useStore.getState().duplicateSelection()
-      } else if (!already) {
-        selectElements(ids)
-      }
-      // clicking an object makes its layer the active one
-      if (doc.layers) {
-        const layerId = objLayer(doc.layers, obj)?.id
-        if (layerId != null && layerId !== activeLayerId) setActiveLayer(layerId)
-      }
-      const st = useStore.getState()
-      const sel = e.altKey ? st.selection : already ? selection : ids
-      const snapDoc = st.doc
-      // snapshot the selected cells so the drag preview knows what moves
-      let moved: [number, number, number][] = []
-      if (isSquare && snapDoc.cellObj) {
-        moved = []
-        for (let i = 0; i < snapDoc.cellObj.length; i++) {
-          const o = snapDoc.cellObj[i]
-          if (o > 0 && sel.includes(o) && snapDoc.cells[i] > 0) moved.push([i, snapDoc.cells[i], o])
-        }
-      }
-      drag.current = { kind: 'move', sx: p.x, sy: p.y, moved, dx: 0, dy: 0 }
-      setDragKind('move')
+      beginObjMoveDrag({
+        e,
+        p,
+        obj,
+        doc,
+        selection,
+        activeLayerId,
+        isSquare,
+        clickIds: clickSelectionIds(doc, obj),
+        drag,
+        setDragKind,
+        selectElements,
+        removeFromSelection,
+        setActiveLayer,
+      })
       return
     }
     // empty space: a plain click clears, Shift/Alt keep the selection and stretch an
@@ -547,29 +559,36 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       }
       case 'connector': {
         if (drawBlocked) break
-        if (isSquare) {
-          const px = Math.floor(p.x)
-          const py = Math.floor(p.y)
-          if (px < 0 || py < 0 || px >= doc.cols || py >= doc.rows) break
-          if (pendingLink) {
-            addLinks(connectorCopies(pendingLink, { ax: px, ay: py }), color)
-            setPendingLink(null)
-            stagingRef.current = null
-            bumpStaging()
-          } else {
-            setPendingLink({ ax: px, ay: py })
-          }
+        const anchor = linkAnchorAt(p, idx, isSquare, doc.cols, doc.rows)
+        if (!anchor) break
+        if (pendingLink) {
+          commitPendingLink(
+            {
+              pendingLink,
+              p,
+              idx,
+              isSquare,
+              grid,
+              cols: doc.cols,
+              rows: doc.rows,
+              connectorCopies,
+            },
+            addLinks,
+            color,
+          )
+          setPendingLink(null)
+          stagingRef.current = null
+          bumpStaging()
         } else {
-          if (idx < 0) break
-          if (pendingLink) {
-            addLinks(connectorCopies(pendingLink, { ax: idx, ay: 0 }), color)
-            setPendingLink(null)
-            stagingRef.current = null
-            bumpStaging()
-          } else {
-            setPendingLink({ ax: idx, ay: 0 })
-          }
+          setPendingLink(anchor)
         }
+        break
+      }
+      case 'pen': {
+        if (drawBlocked) break
+        drag.current = { kind: 'pen' }
+        setDragKind('pen')
+        penRef.current.pointerDown(e, p, view.zoom)
         break
       }
     }
@@ -600,24 +619,20 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         setHandleCursor((prev) => (prev === c ? prev : c))
       }
       // connector preview follows the pointer between the two clicks, with its symmetry copies
-      if (pendingLink && p && isSquare) {
-        const st = ensureStaging()
-        st.cells.clear()
-        const px = Math.floor(p.x)
-        const py = Math.floor(p.y)
-        if (px >= 0 && py >= 0 && px < doc.cols && py < doc.rows) {
-          st.links = [...doc.links, ...connectorCopies(pendingLink, { ax: px, ay: py })]
-          scheduleStaging()
-        }
-      } else if (pendingLink && p && !isSquare) {
-        const st = ensureStaging()
-        st.cells.clear()
-        const idx2 = grid.cellAt(p.x, p.y)
-        if (idx2 >= 0) {
-          st.links = [...doc.links, ...connectorCopies(pendingLink, { ax: idx2, ay: 0 })]
-          scheduleStaging()
-        }
+      if (pendingLink && p) {
+        previewPendingLink(
+          { pendingLink, p, idx, isSquare, grid, cols: doc.cols, rows: doc.rows, connectorCopies },
+          doc.links,
+          ensureStaging,
+          scheduleStaging,
+        )
       }
+      // the pen's rubber band + handle hover preview track the pointer between clicks
+      if (tool === 'pen' && p) penRef.current.pointerMove(e, p, view.zoom)
+      return
+    }
+    if (d.kind === 'pen') {
+      if (p) penRef.current.pointerMove(e, p, view.zoom)
       return
     }
     if (d.kind === 'pan') {
@@ -693,13 +708,25 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     finishDragRef.current()
   }
 
-  // cancel a pending connector when the tool changes
+  /**
+   * Pen tool: double-click inserts an anchor on a segment, toggles an anchor smooth/corner, or —
+   * with no draft — reopens a committed parametric bezier object for editing.
+   */
+  const onCanvasDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (tool !== 'pen') return
+    const p = toDoc(e)
+    if (!p) return
+    penRef.current.doubleClick(p, toIndex(e), view.zoom)
+  }
+
+  // cancel a pending connector / commit-or-drop the pen draft when the tool changes
   useEffect(() => {
     if (tool !== 'connector' && pendingLink) {
       setPendingLink(null)
       stagingRef.current = null
       bumpStaging()
     }
+    if (tool !== 'pen') penRef.current.onToolChange()
   }, [tool, pendingLink])
 
   // cached overlay path of every cell polygon (non-square grids)
@@ -908,31 +935,14 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         s.restore()
       }, selOut.path)
       // live size badge (cells) anchored to the bottom-right of the bounding box
-      const label = `${Math.round((selOut.maxX - selOut.minX) * doc.sub)} × ${Math.round(
-        (selOut.maxY - selOut.minY) * doc.sub,
-      )}`
-      const sx = view.x + (selOut.maxX + selTx) * view.zoom
-      const sy = view.y + (selOut.maxY + selTy) * view.zoom
-      ctx.save()
-      ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0)
-      ctx.font = '600 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
-      const tw = ctx.measureText(label).width
-      let px = sx - tw - 16
-      let py = sy + 6
-      if (px < 4) px = sx + 6
-      if (py + 18 > size.h) py = sy - 24
-      ctx.fillStyle = 'rgba(0,0,0,0.65)'
-      ctx.beginPath()
-      ctx.roundRect(px, py, tw + 10, 18, 5)
-      ctx.fill()
-      ctx.fillStyle = 'rgba(255,255,255,0.92)'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(label, px + 5, py + 9.5)
-      ctx.restore()
+      drawSelectionBadge(ctx, selOut, view, size, { sub: doc.sub, tx: selTx, ty: selTy })
     }
     // live marquee rubber band: translucent fill + hairline border, screen-constant stroke
     const mq = dragKind === 'marquee' && drag.current?.kind === 'marquee' ? drag.current : null
     if (mq) drawMarquee(ctx, mq, stage, view.zoom)
+    // pen draft skeleton: path outline, anchor squares, handle knobs, rubber band
+    if (tool === 'pen')
+      drawPenOverlay(ctx, penRef.current.overlayState(view.zoom), stage, view.zoom)
     // Illustrator-style transform box: live geometry while a scale/rotate drag runs, the
     // committed box otherwise; hidden during move/marquee drags (the ghost tells the story)
     if (
@@ -969,8 +979,15 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     }
 
     // brush footprint + symmetry ghosts under the cursor; hidden mid-stroke, where the
-    // staging preview already shows the full result
-    if (hover && dragKind === null && tool !== 'picker' && tool !== 'select' && tool !== 'hand') {
+    // staging preview already shows the full result (the pen draws its own skeleton instead)
+    if (
+      hover &&
+      dragKind === null &&
+      tool !== 'picker' &&
+      tool !== 'select' &&
+      tool !== 'hand' &&
+      tool !== 'pen'
+    ) {
       drawToolHover({
         ctx,
         zoom: view.zoom,
@@ -1092,37 +1109,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     return { x, y: Math.min(y, Math.max(4, wrapSize.h - 52)) }
   })()
 
-  const thumbDown = (axis: 'x' | 'y', scale: number) => (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    e.currentTarget.setPointerCapture(e.pointerId)
-    scrollDrag.current = {
-      axis,
-      startPx: axis === 'x' ? e.clientX : e.clientY,
-      startView: axis === 'x' ? view.x : view.y,
-      scale,
-    }
-  }
-  const thumbMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const d = scrollDrag.current
-    if (!d) return
-    const px = d.axis === 'x' ? e.clientX : e.clientY
-    const delta = (px - d.startPx) / d.scale
-    if (d.axis === 'x') setView((v) => ({ ...v, x: d.startView - delta * v.zoom }))
-    else setView((v) => ({ ...v, y: d.startView - delta * v.zoom }))
-  }
-  const thumbUp = () => {
-    scrollDrag.current = null
-  }
-  const trackDown =
-    (axis: 'x' | 'y', scale: number, viewportDoc: number) =>
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect()
-      const px = axis === 'x' ? e.clientX - rect.left : e.clientY - rect.top
-      const newStart = px / scale - viewportDoc / 2
-      if (axis === 'x') setView((v) => ({ ...v, x: -newStart * v.zoom }))
-      else setView((v) => ({ ...v, y: -newStart * v.zoom }))
-    }
+  // overlay scrollbar dragging lives in the view hook (thumb deltas + track jumps)
+  const { thumbDown, thumbMove, thumbUp, trackDown } = useScrollbarDrag({ setView, viewRef })
 
   return (
     <div
@@ -1158,6 +1146,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onDoubleClick={onCanvasDoubleClick}
         onPointerLeave={() => setHover(null)}
       />
       <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 touch-none" />
@@ -1174,36 +1163,13 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
         </div>
       )}
       {scopeHint && (
-        <div className="border-line bg-panel text-body absolute top-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs shadow-lg">
-          <span>{t('select.scopeHint')}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setStyleScope('element')
-              setScopeHint(false)
-            }}
-            className="border-accent-line bg-accent-soft text-accent-text hover:border-accent-text rounded border px-1.5 py-0.5 transition"
-          >
-            {t('select.scopeHint.action')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setScopeHint(false)}
-            aria-label={t('preview.close')}
-            className="text-muted hover:text-body transition"
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className="h-3.5 w-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            >
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
-          </button>
-        </div>
+        <ScopeHint
+          onApply={() => {
+            setStyleScope('element')
+            setScopeHint(false)
+          }}
+          onClose={() => setScopeHint(false)}
+        />
       )}
       <ZoomControls
         hoverText={hover ? cellCoordLabel(grid, hover.idx, isSquare ? bw : 0) : null}

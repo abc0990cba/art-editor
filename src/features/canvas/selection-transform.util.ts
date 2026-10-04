@@ -267,3 +267,37 @@ function cornersToHandles(c: DocPoint[]): Record<XformHandle, DocPoint> {
     w: mid(c[3], c[0]),
   }
 }
+
+/**
+ * Live size badge (cells) of the selection, anchored to the bottom-right of its bounding box and
+ * kept on-screen; drawn in screen space (the caller's doc transform is reset inside).
+ */
+export function drawSelectionBadge(
+  ctx: CanvasRenderingContext2D,
+  box: { minX: number; minY: number; maxX: number; maxY: number },
+  view: { x: number; y: number; zoom: number },
+  size: { dpr: number; w: number; h: number },
+  opts: { sub: number; tx: number; ty: number },
+): void {
+  const label = `${Math.round((box.maxX - box.minX) * opts.sub)} × ${Math.round(
+    (box.maxY - box.minY) * opts.sub,
+  )}`
+  const sx = view.x + (box.maxX + opts.tx) * view.zoom
+  const sy = view.y + (box.maxY + opts.ty) * view.zoom
+  ctx.save()
+  ctx.setTransform(size.dpr, 0, 0, size.dpr, 0, 0)
+  ctx.font = '600 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+  const tw = ctx.measureText(label).width
+  let px = sx - tw - 16
+  let py = sy + 6
+  if (px < 4) px = sx + 6
+  if (py + 18 > size.h) py = sy - 24
+  ctx.fillStyle = 'rgba(0,0,0,0.65)'
+  ctx.beginPath()
+  ctx.roundRect(px, py, tw + 10, 18, 5)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(label, px + 5, py + 9.5)
+  ctx.restore()
+}

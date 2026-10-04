@@ -5,6 +5,7 @@ import { Chip, Slider } from '../../shared/ui/index.tsx'
 import { useStore, type Tool, type ToolOpts } from '../../state/editor.store.ts'
 import type { NumericOptKey } from '../../state/tools.slice.ts'
 import { FillSettings } from './fill-settings.component.tsx'
+import { PenSettings } from './tool-settings-pen.component.tsx'
 import { SkullSettings } from './tool-settings-skull.component.tsx'
 
 /**
@@ -23,6 +24,8 @@ export function ToolSettingsBody({ tool }: { tool: Tool }) {
   const connectorWidth = useStore((s) => s.doc.connectorWidth)
   const setConnectorWidth = useStore((s) => s.setConnectorWidth)
   const doc = useStore((s) => s.doc)
+
+  if (tool === 'pen') return <PenSettings />
 
   const pct = (v: number) => `${Math.round(v * 100)}%`
   const deg = (v: number) => `${Math.round(v)}°`

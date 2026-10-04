@@ -1,4 +1,4 @@
-import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react'
+import { useEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react'
 
 import {
   anchoredZoom,
@@ -168,4 +168,64 @@ export function useCanvasView({
       window.removeEventListener('keyup', up)
     }
   }, [cancelGestureRef, clearSelection, onSpaceChange, spaceRef, setView, wrapRef])
+}
+
+interface ScrollbarDeps {
+  setView: Dispatch<SetStateAction<CanvasView>>
+  /** Live mirror of the view state: thumb drags start from the absolute offset */
+  viewRef: RefObject<CanvasView>
+}
+
+/**
+ * Overlay-scrollbar dragging, extracted from the stage: the thumb maps a pointer delta onto the
+ * view offset (scale = px per doc unit), the track jumps the viewport to the click point.
+ */
+export function useScrollbarDrag({ setView, viewRef }: ScrollbarDeps): {
+  thumbDown: (axis: 'x' | 'y', scale: number) => (e: React.PointerEvent<HTMLDivElement>) => void
+  thumbMove: (e: React.PointerEvent<HTMLDivElement>) => void
+  thumbUp: () => void
+  trackDown: (
+    axis: 'x' | 'y',
+    scale: number,
+    viewportDoc: number,
+  ) => (e: React.PointerEvent<HTMLDivElement>) => void
+} {
+  const scrollDrag = useRef<{
+    axis: 'x' | 'y'
+    startPx: number
+    startView: number
+    scale: number
+  } | null>(null)
+  const thumbDown = (axis: 'x' | 'y', scale: number) => (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    scrollDrag.current = {
+      axis,
+      startPx: axis === 'x' ? e.clientX : e.clientY,
+      startView: axis === 'x' ? viewRef.current.x : viewRef.current.y,
+      scale,
+    }
+  }
+  const thumbMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = scrollDrag.current
+    if (!d) return
+    const px = d.axis === 'x' ? e.clientX : e.clientY
+    const delta = (px - d.startPx) / d.scale
+    if (d.axis === 'x') setView((v) => ({ ...v, x: d.startView - delta * v.zoom }))
+    else setView((v) => ({ ...v, y: d.startView - delta * v.zoom }))
+  }
+  const thumbUp = () => {
+    scrollDrag.current = null
+  }
+  const trackDown =
+    (axis: 'x' | 'y', scale: number, viewportDoc: number) =>
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const px = axis === 'x' ? e.clientX - rect.left : e.clientY - rect.top
+      const newStart = px / scale - viewportDoc / 2
+      if (axis === 'x') setView((v) => ({ ...v, x: -newStart * v.zoom }))
+      else setView((v) => ({ ...v, y: -newStart * v.zoom }))
+    }
+  return { thumbDown, thumbMove, thumbUp, trackDown }
 }

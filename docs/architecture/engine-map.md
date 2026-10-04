@@ -21,6 +21,7 @@ in the folder carry short, prefix-free names because the folder already provides
 | [`cell-shapes/`](../../src/engine/cell-shapes/) | Registry of ~28 cell forms (square/dot/star/gear…), unit polygons, hit-testing, SVG fragments per placed cell | [`index.ts`](../../src/engine/cell-shapes/index.ts) |
 | [`grids/`](../../src/engine/grids/) | Grid catalog (square/hex/triangle/radial/diamond/iso/brick…), lattice builders, rotated/polar projections, per-grid cell geometry | [`index.ts`](../../src/engine/grids/index.ts) |
 | [`shapes/`](../../src/engine/shapes/) | Vector shape tool: 22 parametric generators, rasterization to cells, even-odd fill classification | [`index.ts`](../../src/engine/shapes/index.ts), [`fill.ts`](../../src/engine/shapes/fill.ts) |
+| [`curves/`](../../src/engine/curves/) | Editable Bézier paths for the pen tool: anchor/handle model, adaptive flattening, editing ops, simplification, cell rasterization | [`index.ts`](../../src/engine/curves/index.ts), [`raster.ts`](../../src/engine/curves/raster.ts) |
 | [`paint/`](../../src/engine/paint/) | Brush tips and flood fill/region extraction | [`brush.ts`](../../src/engine/paint/brush.ts), [`floodfill.ts`](../../src/engine/paint/floodfill.ts) |
 | [`effects/`](../../src/engine/effects/) | Ink transforms: symmetry (mirror/radial/wallpaper repeats), warp fields, per-cell jitter, selection transforms, post-ops (outline/shadow/glow) | [`symmetry.ts`](../../src/engine/effects/symmetry.ts), [`stylize.ts`](../../src/engine/effects/stylize.ts) |
 | [`geometry/`](../../src/engine/geometry/) | The render pipeline core: `buildGeometry` per render mode (pixels/outline/metaball), RLE run merging, marching squares, styled paths | [`index.ts`](../../src/engine/geometry/index.ts) |
@@ -53,6 +54,7 @@ graph TD
     end
     core[core: doc, scene, project IO]
     cells[shapes · paint]
+    curves[curves]
     effects[effects]
     tex[texture]
     geom[geometry]
@@ -70,6 +72,7 @@ graph TD
     core --> grids
     core --> cellshapes
     cells --> cellshapes
+    curves --> cells
     effects --> dither
     tex --> dither
     tex --> cellshapes
@@ -87,6 +90,7 @@ graph TD
     presets --> core
     presets --> effects
     nodes --> cells
+    nodes --> curves
     nodes --> tex
     nodes --> glyph
     demos --> core
@@ -115,6 +119,7 @@ Known quirks (documented, not yet fixed):
 | Canvas surface | [canvas-stage](../modules/canvas-stage.md) | `features/canvas/` (UI side of the pipeline) |
 | Grids & cell forms | [grids](../modules/grids.md) | [`grids/index.ts`](../../src/engine/grids/index.ts) |
 | Shape tool | [shapes](../modules/shapes.md) | [`shapes/index.ts`](../../src/engine/shapes/index.ts) |
+| Pen tool (Bézier paths) | [curves](../modules/curves.md) | [`curves/index.ts`](../../src/engine/curves/index.ts) |
 | Brush & flood fill | [paint-tools](../modules/paint-tools.md) | [`paint/brush.ts`](../../src/engine/paint/brush.ts) |
 | Symmetry, warp, stylize | [effects](../modules/effects.md) + [symmetry](../modules/symmetry.md) | [`effects/symmetry.ts`](../../src/engine/effects/symmetry.ts) |
 | Textures (how a texture is drawn) | [texture](../modules/texture.md) | [`texture/region.ts`](../../src/engine/texture/region.ts) |

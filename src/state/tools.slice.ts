@@ -19,6 +19,7 @@ export type Tool =
   | 'fill'
   | 'picker'
   | 'line'
+  | 'pen'
   | 'rect'
   | 'ellipse'
   | 'connector'
@@ -83,6 +84,9 @@ const DEFAULT_IMPORT_LAYERING: ImportLayering = {
   layerOrder: 'area',
 }
 
+/** Segment angle snapping of the pen tool (Shift always snaps to 45° regardless). */
+export type PenSnap = 'free' | 'deg45' | 'ortho'
+
 /** Geometry knobs of the shape tools, edited via the rail's per-tool settings. */
 /** ToolOpts keys that hold numbers — the sliders' writable keys. */
 export type NumericOptKey = {
@@ -141,6 +145,11 @@ export interface ToolOpts {
   ellipsePower: number
   /** Hole radius of the ring tool as a fraction of the outer radius */
   ringThickness: number
+  /* --- pen --- */
+  /** Stroke thickness of the pen tool in cells (the pencil's circle tip of this size) */
+  penWidth: number
+  /** Sticky angle snapping of the pen tool's rubber band and straight segments */
+  penSnap: PenSnap
   /* --- skull --- */
   skullCraniumWidth: number
   skullCraniumHeight: number
@@ -215,6 +224,8 @@ const DEFAULT_TOOL_OPTS: ToolOpts = {
   shapeBulge: 0,
   ellipsePower: 2,
   ringThickness: 0.25,
+  penWidth: 1,
+  penSnap: 'free',
   skullCraniumWidth: 1,
   skullCraniumHeight: 0.6,
   skullCrown: 'round',

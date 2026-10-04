@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { STAGE_THEMES } from '../../engine/core/doc.ts'
+import { pathFromD, pathInk } from '../../engine/curves/index.ts'
 import { brushOffsets } from '../../engine/paint/brush.ts'
 import { regionCells } from '../../engine/shapes/fill.ts'
 import {
@@ -11,7 +12,7 @@ import {
   shapePathPoints,
 } from '../../engine/shapes/index.ts'
 import { applyFillStyle } from '../../engine/texture/fill.ts'
-import { useStore, type Tool } from '../../state/editor.store.ts'
+import { useStore, type Tool, type ToolOpts } from '../../state/editor.store.ts'
 
 /** Per-cell style fields consumed by cellPath (mirrors doc.style). */
 type CellStyle = Parameters<typeof cellPath>[4]
@@ -58,6 +59,49 @@ function paintConnector(
   ctx.fillStyle = o.color
   cellPath(ctx, ax, o.cy, o.cell, o.style)
   cellPath(ctx, bx, o.cy, o.cell, o.style)
+}
+
+/** Outline cells of the line/rect/ellipse/shape tools at the sample-grid box, as the stage stamps. */
+function outlinePointsFor(
+  tool: Tool,
+  opts: ToolOpts,
+  concentricRadii: number[],
+  cols: number,
+  rows: number,
+): [number, number][] {
+  if (tool === 'line') return linePoints(2, rows - 3, cols - 3, 2)
+  if (tool === 'rect') return rectPoints(2, 2, cols - 3, rows - 3, opts)
+  if (tool === 'ellipse') return ellipsePoints(2, 2, cols - 3, rows - 3, opts)
+  if (isShapeTool(tool)) {
+    return shapePathPoints(tool, 2, 2, cols - 3, rows - 3, { ...opts, circles: concentricRadii })
+  }
+  return []
+}
+
+/** Pen preview: a sample S-curve rasterized by the engine path rasterizer at the panel's width. */
+function paintPen(
+  ctx: CanvasRenderingContext2D,
+  o: {
+    cols: number
+    rows: number
+    cell: number
+    style: CellStyle
+    width: number
+    color: string
+    fill: boolean
+    strokeInk: string
+  },
+): void {
+  const d = `M 2 ${o.rows - 4} C ${Math.round(o.cols * 0.35)} ${o.rows - 4}, ${Math.round(
+    o.cols * 0.45,
+  )} 3, ${o.cols - 3} 3`
+  const path = pathFromD(d)
+  if (!path) return
+  const ink = pathInk(path, o.cols, o.rows, { width: o.width, fill: o.fill })
+  ctx.fillStyle = o.color
+  for (const i of ink.fill) cellPath(ctx, i % o.cols, Math.floor(i / o.cols), o.cell, o.style)
+  ctx.fillStyle = o.strokeInk
+  for (const i of ink.stroke) cellPath(ctx, i % o.cols, Math.floor(i / o.cols), o.cell, o.style)
 }
 
 /**
@@ -126,24 +170,26 @@ export function ToolPreview({
     }
     const cy = Math.floor(rows / 2)
     const shapeLike = tool === 'rect' || tool === 'ellipse' || isShapeTool(tool)
-    let outlinePts: [number, number][] = []
+    const outlinePts = outlinePointsFor(tool, opts, concentricRadii, cols, rows)
     if (tool === 'pencil' || tool === 'eraser') {
       // anchor the tip box on the grid center (offsets run 0..size-1 from the stamp point), so a
       // big pixel size stays centered instead of walking out of the preview; oversized tips clip
       // symmetrically
       stamp(Math.floor((cols - brush.size) / 2), Math.floor((rows - brush.size) / 2))
-    } else if (tool === 'line') {
-      outlinePts = linePoints(2, rows - 3, cols - 3, 2)
-    } else if (tool === 'rect') {
-      outlinePts = rectPoints(2, 2, cols - 3, rows - 3, opts)
-    } else if (tool === 'ellipse') {
-      outlinePts = ellipsePoints(2, 2, cols - 3, rows - 3, opts)
-    } else if (isShapeTool(tool)) {
-      outlinePts = shapePathPoints(tool, 2, 2, cols - 3, rows - 3, {
-        ...opts,
-        circles: concentricRadii,
+    }
+    if (tool === 'pen') {
+      paintPen(ctx, {
+        cols,
+        rows,
+        cell,
+        style,
+        width: opts.penWidth,
+        color,
+        fill: shapePaint.fill !== 'none',
+        strokeInk: shapePaint.stroke ? shapePaint.strokeColor || color : color,
       })
     }
+
     if (shapeLike || tool === 'line') {
       // fill + aligned stroke, mirroring stampShape: the boundary belongs to the fill,
       // the tip blob is filtered by the alignment against the shape's own regions

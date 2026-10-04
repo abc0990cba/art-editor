@@ -3,6 +3,7 @@
  * family = a new file under `nodes/` + one `registerNodes` line here.
  */
 
+import { BEZIER_NODES } from './bezier.node.ts'
 import { CROWN_NODES } from './crown.node.ts'
 import { GENERATOR_NODES } from './generators.node.ts'
 import { HALFTONE_NODES } from './halftone.node.ts'
@@ -19,6 +20,7 @@ import { WARP_NODES } from './warp.node.ts'
 registerNodes([
   ...CROWN_NODES,
   ...SOURCE_NODES,
+  ...BEZIER_NODES,
   ...GENERATOR_NODES,
   ...TRANSFORM_NODES,
   ...WARP_NODES,

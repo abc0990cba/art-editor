@@ -40,6 +40,7 @@ import { createFillSlice } from './fill.slice.ts'
 import { createGlyphSlice } from './glyph.slice.ts'
 import { createGradientSlice, type GradientResult, type GradientStatus } from './gradient.slice.ts'
 import { createPaintSlice } from './paint.slice.ts'
+import { createPenSlice, type PenDraft } from './pen.slice.ts'
 import { createPresetsSlice } from './presets.slice.ts'
 import { createProjectSlice } from './project.slice.ts'
 import { createSelectionSlice, type ElementStylePatch } from './selection.slice.ts'
@@ -59,7 +60,8 @@ import { createUiSlice, type ResolvedTheme, type ThemePref } from './ui.slice.ts
 import { createVectorPresetsSlice } from './vector-presets.slice.ts'
 import { createVectorSlice, type VectorResult, type VectorStatus } from './vector.slice.ts'
 
-export type { Tool, ToolOpts } from './tools.slice.ts'
+export type { Tool, ToolOpts, PenSnap } from './tools.slice.ts'
+export type { PenDraft } from './pen.slice.ts'
 export type { ThemePref, ResolvedTheme } from './ui.slice.ts'
 export { THEME_PREF_CYCLE, nextThemePref, resolvedTheme } from './ui.slice.ts'
 
@@ -217,6 +219,15 @@ export interface State {
   pixelOpSelection: (
     op: import('../engine/effects/morpho.ts').PixelOp,
     params?: Partial<import('../engine/effects/morpho.ts').PixelOpParams>,
+  ) => void
+  // pen tool draft (UI state; committing rasterizes it into one undoable object)
+  pen: PenDraft | null
+  beginPen: (init?: Partial<PenDraft>) => void
+  patchPen: (patch: Partial<PenDraft>) => void
+  endPen: () => void
+  commitPenReplace: (
+    paint: ReadonlyMap<number, number>,
+    params: Record<string, number | string | boolean>,
   ) => void
   // layers panel — structure actions mutate the doc's scene tree (undoable)
   setActiveLayer: (id: number | null) => void
@@ -425,6 +436,7 @@ export const useStore = create<State>()(
       ...createPaintSlice({ set, get }),
       ...createFillSlice({ set, get }),
       ...createSelectionSlice({ set, get }),
+      ...createPenSlice({ set, get }),
       ...createTransformSlice({ set, get }),
       ...createEffectSlice({ set, get }),
       ...createProjectSlice({ set, get }),

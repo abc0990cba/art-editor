@@ -34,6 +34,13 @@ const icons: Record<Tool, JSX.Element> = {
     </>
   ),
   line: <path d="M3 13L13 3" />,
+  pen: (
+    <>
+      <path d="M8.5 2l5.5 5.5-4.4 4.4L4 6.3 8.5 2z" />
+      <path d="M4 6.3L2.5 13.5 9.6 11.9" />
+      <circle cx="8.2" cy="7.8" r="0.9" />
+    </>
+  ),
   rect: <rect x="3" y="4.5" width="10" height="7" rx="0.5" />,
   ellipse: <circle cx="8" cy="8" r="5" />,
   connector: (
@@ -129,6 +136,7 @@ export const toolKeys: Record<Tool, string> = {
   fill: 'G',
   picker: 'I',
   line: 'L',
+  pen: 'F',
   rect: 'R',
   ellipse: 'O',
   connector: 'C',
@@ -164,6 +172,7 @@ const order: Tool[] = [
   'fill',
   'picker',
   'line',
+  'pen',
   'rect',
   'ellipse',
   'connector',

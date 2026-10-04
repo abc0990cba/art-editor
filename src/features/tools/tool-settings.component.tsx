@@ -50,6 +50,7 @@ export function ToolSettings({ anchor, onClose }: { anchor: SettingsAnchor; onCl
   const paintControls = (tool === 'rect' ||
     tool === 'ellipse' ||
     tool === 'line' ||
+    tool === 'pen' ||
     isShapeTool(tool)) && <ShapePaintControls fillable={tool !== 'line'} />
 
   if (narrow) {
