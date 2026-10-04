@@ -4,6 +4,7 @@ import { isCellShapeId, normalizeShapeParams, sameShapeParams } from '../cell-sh
 import type {
   Connectivity,
   Doc,
+  ExtrudeSettings,
   GridType,
   MetaballSettings,
   PixelStyle,
@@ -12,7 +13,7 @@ import type {
   SymmetryState,
   TextureSettings,
 } from '../core/doc'
-import { defaultDoc, MAX_SIZE, METABALL_FALLOFFS, MIN_SIZE } from '../core/doc'
+import { defaultDoc, MAX_SIZE, METABALL_FALLOFFS, METABALL_UNITS, MIN_SIZE } from '../core/doc'
 import { clampCell, REPEAT_MODES } from '../effects/symmetry'
 import { GRID_TYPES } from '../grids'
 import type { EditorPreset, PresetConfig, PresetInput, PresetSeed } from './configs'
@@ -122,6 +123,7 @@ export function presetFromDoc(doc: Doc, symmetry: SymmetryState): PresetConfig {
     connectivity: doc.connectivity,
     metaball: { ...doc.metaball },
     texture: { ...doc.texture },
+    extrude: { ...doc.extrude },
     styleScope: doc.styleScope,
     bg: doc.bg,
     connectorWidth: doc.connectorWidth,
@@ -133,6 +135,52 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const hex = (s: unknown): string =>
   typeof s === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(s) ? s.toLowerCase() : ''
 
+/** One frozen corner override, clamped to 0..0.5 (null = follow the radius). */
+const corner = (v: unknown): number | null => (typeof v === 'number' ? clamp(v, 0, 0.5) : null)
+
+/** Defensive validation for one stored metaball block, clamped like the document deserializer. */
+function normalizeMetaballConfig(
+  mb: Partial<MetaballSettings>,
+  base: MetaballSettings,
+): MetaballSettings {
+  return {
+    strength: clamp(Number(mb.strength ?? base.strength), 0, 100),
+    perColor: Boolean(mb.perColor ?? base.perColor),
+    quality: clamp(Math.round(Number(mb.quality) || base.quality), 2, 8),
+    squareEdges: mb.squareEdges === true,
+    iso: clamp(Number(mb.iso ?? base.iso), 0.2, 0.8),
+    falloff: METABALL_FALLOFFS.includes(mb.falloff as MetaballSettings['falloff'])
+      ? (mb.falloff as MetaballSettings['falloff'])
+      : base.falloff,
+    unit: METABALL_UNITS.includes(mb.unit as MetaballSettings['unit'])
+      ? (mb.unit as MetaballSettings['unit'])
+      : base.unit,
+    blockSize: clamp(Math.round(Number(mb.blockSize) || base.blockSize), 2, 8),
+    fuseAll: mb.fuseAll === true,
+    strokeWidth: clamp(Number(mb.strokeWidth ?? base.strokeWidth), 0.05, 1),
+  }
+}
+
+/** Defensive validation for one stored extrude block, clamped like the document deserializer. */
+function normalizeExtrudeConfig(
+  raw: Partial<ExtrudeSettings> | undefined,
+  base: ExtrudeSettings,
+): ExtrudeSettings {
+  const ex = raw ?? {}
+  const axis = (v: unknown, fallback: -1 | 0 | 1): -1 | 0 | 1 =>
+    v === -1 || v === 0 || v === 1 ? v : fallback
+  const dx = axis(ex.dx, base.dx)
+  const dy = axis(ex.dy, base.dy)
+  // degenerate (0,0) extrusion renders nothing — fall back to the default diagonal
+  const dead = dx === 0 && dy === 0
+  return {
+    depth: clamp(Math.round(Number(ex.depth) || base.depth), 1, 8),
+    dx: dead ? base.dx : dx,
+    dy: dead ? base.dy : dy,
+    color: clamp(Math.round(Number(ex.color) || 0), 0, 9999),
+  }
+}
+
 /** Defensive validation for stored/raw configs, clamped like the document deserializer. */
 export function normalizePresetConfig(raw: unknown): PresetConfig {
   const base = presetFromDoc(defaultDoc(), DEFAULT_SYMMETRY)
@@ -143,9 +191,8 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
   const mb = (d['metaball'] ?? {}) as Partial<MetaballSettings>
   const tx = (d['texture'] ?? {}) as Partial<TextureSettings> & { size?: unknown }
   const sym = (d['symmetry'] ?? {}) as Partial<SymmetryState>
-  const corner = (v: unknown) => (typeof v === 'number' ? clamp(v, 0, 0.5) : null)
   const palette = Array.isArray(d['palette']) ? d['palette'].map(hex).filter(Boolean) : base.palette
-  const renderModes = ['pixels', 'outline', 'metaball'] as const
+  const renderModes = ['pixels', 'outline', 'metaball', 'contour', 'extrude'] as const
   const connectivities = ['edge', 'corner', 'corner-bridge'] as const
   return {
     v: 1,
@@ -190,16 +237,8 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
     connectivity: connectivities.includes(d['connectivity'] as Connectivity)
       ? (d['connectivity'] as Connectivity)
       : base.connectivity,
-    metaball: {
-      strength: clamp(Number(mb.strength ?? base.metaball.strength), 0, 100),
-      perColor: Boolean(mb.perColor ?? base.metaball.perColor),
-      quality: clamp(Math.round(Number(mb.quality) || base.metaball.quality), 2, 8),
-      squareEdges: mb.squareEdges === true,
-      iso: clamp(Number(mb.iso ?? base.metaball.iso), 0.2, 0.8),
-      falloff: METABALL_FALLOFFS.includes(mb.falloff as MetaballSettings['falloff'])
-        ? (mb.falloff as MetaballSettings['falloff'])
-        : base.metaball.falloff,
-    },
+    metaball: normalizeMetaballConfig(mb, base.metaball),
+    extrude: normalizeExtrudeConfig(d['extrude'] as Partial<ExtrudeSettings>, base.extrude),
     texture: (() => {
       const sizeMin =
         tx.sizeMin === undefined

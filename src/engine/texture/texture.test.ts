@@ -871,10 +871,8 @@ describe('texture in geometry', () => {
     const doc = docWithTexture('none')
     doc.renderMode = 'metaball'
     doc.metaball = {
-      strength: 60,
-      perColor: true,
+      ...doc.metaball,
       quality: 6,
-      squareEdges: false,
       iso: 0.5,
       falloff: 'smooth',
     }

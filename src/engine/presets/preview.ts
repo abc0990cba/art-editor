@@ -48,6 +48,7 @@ function sampleDoc(config: PresetConfig): Doc {
     renderMode: config.renderMode,
     connectivity: config.connectivity,
     metaball: { ...config.metaball },
+    extrude: { ...config.extrude },
     texture: { ...config.texture },
     styleScope: 'global',
     elements: [],

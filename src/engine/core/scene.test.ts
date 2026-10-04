@@ -309,6 +309,7 @@ describe('scene: transforms and persistence', () => {
           connectivity: base.connectivity,
           metaball: base.metaball,
           texture: base.texture,
+          extrude: base.extrude,
         },
       ],
     }

@@ -55,6 +55,7 @@ export interface ProjectJSON {
   connectivity: Doc['connectivity']
   metaball: Omit<Doc['metaball'], 'enabled'> & { enabled?: boolean }
   texture: Doc['texture']
+  extrude: Doc['extrude']
   styleScope?: Doc['styleScope']
   /** Legacy flat element table; absent on scene docs */
   elements?: ElementStyle[]
@@ -120,6 +121,7 @@ export function serialize(doc: Doc): ProjectJSON {
     connectivity: doc.connectivity,
     metaball: doc.metaball,
     texture: doc.texture,
+    extrude: doc.extrude,
     styleScope: doc.styleScope,
     bg: doc.bg,
     connectorWidth: doc.connectorWidth,

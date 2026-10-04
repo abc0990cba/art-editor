@@ -2,7 +2,7 @@
 
 ## Scope
 
-The lattice system in [`src/engine/grids/`](../../src/engine/grids/index.ts): eight grid types, whole-grid
+The lattice system in [`src/engine/grids/`](../../src/engine/grids/index.ts): ten grid types, whole-grid
 rotation, grid↔grid conversion — plus the cell-form registry in
 [`src/engine/cell-shapes/`](../../src/engine/cell-shapes/index.ts) (28 forms a `pixels`-mode cell can take, on
 square and non-square grids alike). Public entries: [`src/engine/grids/index.ts`](../../src/engine/grids/index.ts)
@@ -15,7 +15,7 @@ square and non-square grids alike). Public entries: [`src/engine/grids/index.ts`
 |---|---|
 | [`src/engine/grids/index.ts`](../../src/engine/grids/index.ts) | `Grid` interface, `makeGrid` (memoized), `isPlainSquare`, `docSize`, `cellCoordLabel`, conversion: `gridConvertMap`/`convertLink`/`convertGridDoc` |
 | [`src/engine/grids/builders.ts`](../../src/engine/grids/builders.ts) | `buildGrid` dispatch, `attachEdgeMap` (shared-edge adjacency), `makeSquare`, `makeHex` (pointy-top axial), `makeTriangle` (▲▼ bands), `makeRadial` (polar rings) |
-| [`src/engine/grids/lattices.ts`](../../src/engine/grids/lattices.ts) | `buildLattice`: `makeSheared` (diamond/iso), `makeBrick` (running bond), `makeOctasquare` (truncated 4.8.8) |
+| [`src/engine/grids/lattices.ts`](../../src/engine/grids/lattices.ts) | `buildLattice`: `makeSheared` (diamond/iso), `makeBrick` (running bond), `makeOctasquare` (truncated 4.8.8), `makeHexFlat` (flat-top odd-q), `makeRhombille` (3 lozenges per pointy-top hex) |
 | [`src/engine/grids/geometry.ts`](../../src/engine/grids/geometry.ts) | `gridBuildGeometry` — pixels/outline/metaball for every non-square grid, `gridMetaballField` |
 | [`src/engine/grids/rotate.ts`](../../src/engine/grids/rotate.ts) | `rotatedGrid(base, deg)` — geometry wrapper around any base lattice |
 | [`src/engine/grids/polar.ts`](../../src/engine/grids/polar.ts) | `byAngle` — nearest cell by angle at equal radius (RING_TOL 0.75) |
@@ -33,8 +33,8 @@ A lattice is not stored geometry — it is per-cell closures over the flat index
 `edgeNeighbors` is derived generically (`attachEdgeMap` in
 [`src/engine/grids/builders.ts`](../../src/engine/grids/builders.ts)): polygon edges are quantized to 1e-6 keys and
 shared keys pair cells (degenerate edges and T-junction sub-edges special-cased) — one
-implementation serves hex, triangle, radial, diamond, iso, brick and octasquare; square
-computes neighbors arithmetically.
+implementation serves hex, hexFlat, triangle, rhombille, radial, diamond, iso, brick and
+octasquare; square computes neighbors arithmetically.
 
 `makeGrid` memoizes by `type:cols:rows:even:rot%360`
 ([`src/engine/grids/index.ts`](../../src/engine/grids/index.ts)). **Whole-grid rotation**
@@ -74,12 +74,14 @@ a `CELL_SHAPES` entry + silhouette + fragment + 2 i18n keys.
 ## Data structures & hit-testing
 
 - Hit-testing is O(1) exact per lattice (two floors for the sheared lattices, cube-rounding
-  for hex, nearest-center + cut test for octasquare) except triangle (per-band
+  for hex / hexFlat / rhombille — rhombille then picks the 120° lozenge sector, nearest-center
+  + cut test for octasquare) except triangle (per-band
   point-in-polygon) and radial (polar floor). `cellCoordLabel` renders human coordinates per
   lattice (hex axial `q:/r:`, octasquare `oct:`/`gap:`, radial `ring:/sector:`).
 - Octasquare cell count = `cols·rows + (cols−1)(rows−1)` — gap squares are appended after
   octagons in index space (buffers can be bigger than `cols×rows`; the deserializer allocates
-  the larger of the two, see [doc-and-scene](doc-and-scene.md)).
+  the larger of the two, see [doc-and-scene](doc-and-scene.md)). Rhombille is compound the
+  same way: `count = 3·cols·rows`, hex cell `h` owning lozenges `3h`, `3h+1`, `3h+2`.
 - Radial `radialEven` grades sector counts per ring into halving bands so cell arc length
   stays close to ring thickness; arc polygons carry shared boundary samples so edge-key
   adjacency survives the ring transition.

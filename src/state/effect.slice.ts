@@ -7,6 +7,12 @@ import {
   syncDoc,
   updateNode,
 } from '../engine/core/scene.ts'
+import {
+  DEFAULT_PIXEL_OP_PARAMS,
+  pixelOpInk,
+  type PixelOp,
+  type PixelOpParams,
+} from '../engine/effects/morpho.ts'
 import { selectionBox, type CellBox, type InkCell } from '../engine/effects/selection-xform.ts'
 import {
   DEFAULT_STYLIZE_PARAMS,
@@ -110,6 +116,8 @@ export interface EffectSlice {
   warpSelection: (kind: WarpKind, params?: Partial<WarpParams>) => void
   /** Outline / shadow / glow the selection ink in a color (undoable; square grid only) */
   stylizeSelection: (op: StylizeOp, params?: Partial<StylizeParams>, color?: string) => void
+  /** Pixel-art morphology op on the selection (undoable; square grid only) */
+  pixelOpSelection: (op: PixelOp, params?: Partial<PixelOpParams>) => void
 }
 
 /** Minimal set/get surface the slice needs from the zustand store. */
@@ -140,6 +148,22 @@ export function createEffectSlice({ set, get }: SliceApi): EffectSlice {
         )
         if (!next) return s
         get().pushRecent(r.doc.palette[r.v - 1] ?? s.color)
+        return { doc: next }
+      }),
+
+    pixelOpSelection: (op, params) =>
+      set((s) => {
+        if (s.selection.length === 0 || !isPlainSquare(s.doc)) return s
+        const p = { ...DEFAULT_PIXEL_OP_PARAMS, ...params }
+        // recoloring ops take the current color (resolving extends the palette on demand);
+        // pure morphology ops leave the palette alone
+        const recolors = op === 'silhouette' || op === 'longShadow' || op === 'scanlines'
+        const r = recolors ? resolveColor(s.doc, s.color) : { doc: s.doc, v: 0 }
+        const next = bakeSelection(r.doc, s.selection, (src, _region, bw, bh) =>
+          pixelOpInk(op, src, r.v, p, { bw, bh }),
+        )
+        if (!next) return s
+        if (recolors) get().pushRecent(r.doc.palette[r.v - 1] ?? s.color)
         return { doc: next }
       }),
   }

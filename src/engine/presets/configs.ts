@@ -2,6 +2,7 @@
 
 import type {
   Connectivity,
+  ExtrudeSettings,
   GridType,
   MetaballSettings,
   PixelStyle,
@@ -28,6 +29,7 @@ export interface PresetConfig {
   connectivity: Connectivity
   metaball: MetaballSettings
   texture: TextureSettings
+  extrude: ExtrudeSettings
   styleScope?: StyleScope
   bg: string
   connectorWidth: number

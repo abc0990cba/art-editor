@@ -2,7 +2,7 @@ import { isCellShapeId, normalizeShapeParams } from '../cell-shapes/index.ts'
 import { GRID_TYPES, makeGrid } from '../grids'
 import { validateGraph } from '../nodes'
 import type { Doc, ElementStyle, Link, PixelStyle, SubDetail } from './doc'
-import { defaultDoc, MAX_SIZE, METABALL_FALLOFFS, MIN_SIZE } from './doc'
+import { defaultDoc, MAX_SIZE, METABALL_FALLOFFS, METABALL_UNITS, MIN_SIZE } from './doc'
 import type { SceneGroup, SceneItem, SceneLayer, SceneObj } from './scene'
 import { decodeObjCells, sceneFromLegacy, syncDoc } from './scene'
 
@@ -94,9 +94,25 @@ function deserializeTexture(raw: unknown, base: Doc['texture']): Doc['texture'] 
   }
 }
 
-const RENDER_MODES = ['pixels', 'outline', 'metaball'] as const
+const RENDER_MODES = ['pixels', 'outline', 'metaball', 'contour', 'extrude'] as const
 const CONNECTIVITIES = ['edge', 'corner', 'corner-bridge'] as const
 const corner = (v: unknown) => (typeof v === 'number' ? clamp(v, 0, 0.5) : null)
+
+function normalizeExtrude(raw: unknown, base: Doc['extrude']): Doc['extrude'] {
+  const ex = (raw ?? {}) as Partial<Doc['extrude']>
+  const axis = (v: unknown, fallback: -1 | 0 | 1): -1 | 0 | 1 =>
+    v === -1 || v === 0 || v === 1 ? v : fallback
+  const dx = axis(ex.dx, base.dx)
+  const dy = axis(ex.dy, base.dy)
+  // degenerate (0,0) extrusion renders nothing — fall back to the default diagonal
+  const dead = dx === 0 && dy === 0
+  return {
+    depth: clamp(Math.round(Number(ex.depth) || base.depth), 1, 8),
+    dx: dead ? base.dx : dx,
+    dy: dead ? base.dy : dy,
+    color: clamp(Math.round(Number(ex.color) || 0), 0, 9999),
+  }
+}
 
 function normalizeStyle(raw: unknown, base: PixelStyle): PixelStyle {
   const st = (raw ?? {}) as Partial<PixelStyle>
@@ -136,6 +152,12 @@ function normalizeMetaball(raw: unknown, base: Doc['metaball']): Doc['metaball']
     falloff: METABALL_FALLOFFS.includes(mb.falloff as Doc['metaball']['falloff'])
       ? (mb.falloff as Doc['metaball']['falloff'])
       : base.falloff,
+    unit: METABALL_UNITS.includes(mb.unit as Doc['metaball']['unit'])
+      ? (mb.unit as Doc['metaball']['unit'])
+      : base.unit,
+    blockSize: clamp(Math.round(Number(mb.blockSize) || base.blockSize), 2, 8),
+    fuseAll: mb.fuseAll === true,
+    strokeWidth: clamp(Number(mb.strokeWidth ?? base.strokeWidth), 0.05, 1),
   }
 }
 
@@ -154,6 +176,7 @@ function normalizeElementStyle(raw: unknown, base: ElementStyle): ElementStyle {
       : base.connectivity,
     metaball: normalizeMetaball(d.metaball, base.metaball),
     texture: deserializeTexture(d.texture, base.texture),
+    extrude: normalizeExtrude(d.extrude, base.extrude),
   }
 }
 
@@ -233,6 +256,7 @@ function parseItem(
       connectivity: base.connectivity,
       metaball: base.metaball,
       texture: base.texture,
+      extrude: base.extrude,
     }),
     cells: decodeObjCells(d['cells'], length),
     links: parseLinks(d['links'], base.cols, base.rows),
@@ -333,6 +357,7 @@ export function deserializeInternal(data: unknown): Doc {
               connectivity,
               metaball: base.metaball,
               texture: base.texture,
+              extrude: base.extrude,
             },
           ),
         )
@@ -354,6 +379,7 @@ export function deserializeInternal(data: unknown): Doc {
     connectivity,
     metaball: normalizeMetaball(mb, base.metaball),
     texture: deserializeTexture(d['texture'], base.texture),
+    extrude: normalizeExtrude(d['extrude'], base.extrude),
     styleScope,
     elements,
     cellObj: decodeCellObj(d['cellObj'], cells.length),

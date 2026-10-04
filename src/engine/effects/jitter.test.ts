@@ -135,6 +135,7 @@ describe('cell form jitter', () => {
       connectivity: a.connectivity,
       metaball: { ...a.metaball },
       texture: { ...a.texture },
+      extrude: { ...a.extrude },
     } as const
     const elB = { ...elA, style: { ...elA.style, jitterSeed: elA.style.jitterSeed + 1 } }
     expect(sameElementStyle(elA, elB)).toBe(false)

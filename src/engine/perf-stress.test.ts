@@ -109,6 +109,7 @@ describe('stagingPreview correctness', () => {
         connectivity: 'edge',
         metaball: { ...doc.metaball },
         texture: { ...doc.texture },
+        extrude: { ...doc.extrude },
       },
     ]
     const cells = new Map<number, number | null>([[5, 1]])

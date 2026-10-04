@@ -6,7 +6,9 @@ import { rotatedGrid } from './rotate.ts'
 export type GridType =
   | 'square'
   | 'hex'
+  | 'hexFlat'
   | 'triangle'
+  | 'rhombille'
   | 'radial'
   | 'diamond'
   | 'iso'
@@ -16,7 +18,9 @@ export type GridType =
 export const GRID_TYPES: GridType[] = [
   'square',
   'hex',
+  'hexFlat',
   'triangle',
+  'rhombille',
   'radial',
   'diamond',
   'iso',
@@ -109,6 +113,19 @@ export function cellCoordLabel(grid: Grid, idx: number, bufferCols = 0): string 
     const col = idx % grid.cols
     // odd-r offset → axial, the exact inverse of cellAt's col = q + floor((row - row%2) / 2)
     return `q:${col - (row - (row % 2)) / 2} r:${row}`
+  }
+  if (grid.type === 'hexFlat') {
+    const col = idx % grid.cols
+    const row = Math.floor(idx / grid.cols)
+    // odd-q offset → axial, the exact inverse of cellAt's row = r + (col - col%2) / 2
+    return `q:${col} r:${row - (col - (col % 2)) / 2}`
+  }
+  if (grid.type === 'rhombille') {
+    const hex = Math.floor(idx / 3)
+    const col = hex % grid.cols
+    const row = Math.floor(hex / grid.cols)
+    const q = col - (row - (row % 2)) / 2
+    return `q:${q} r:${row} ${'ABC'[idx % 3]}`
   }
   if (grid.type === 'triangle') {
     const row = Math.floor(idx / grid.cols)

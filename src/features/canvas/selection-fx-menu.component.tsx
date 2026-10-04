@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import type { PixelOp, PixelOpParams } from '../../engine/effects/morpho.ts'
 import { WARP_KINDS, type WarpKind } from '../../engine/effects/warp.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { Chip } from '../../shared/ui/index.tsx'
@@ -7,10 +8,45 @@ import { useStore } from '../../state/editor.store.ts'
 import { SelectionWarpPopover } from './selection-warp-popover.component.tsx'
 import type { TransformStaging } from './use-selection-transform.hook.ts'
 
+/** Parameterized pixel ops open an inline options row; the rest apply in one click. */
+const PIXEL_OP_OPTIONS: Partial<
+  Record<PixelOp, { label: string; params: Partial<PixelOpParams> }[]>
+> = {
+  blockify: [2, 3, 4, 5, 6].map((n) => ({ label: `${n}×${n}`, params: { size: n } })),
+  despeckle: [2, 3, 4, 5].map((n) => ({ label: `≥${n}`, params: { size: n } })),
+  scanlines: [2, 3, 4, 5, 6].map((n) => ({ label: `${n}`, params: { size: n } })),
+  dilate: [1, 2, 3, 4].map((n) => ({ label: `×${n}`, params: { steps: n } })),
+  erode: [1, 2, 3, 4].map((n) => ({ label: `×${n}`, params: { steps: n } })),
+  longShadow: [
+    ['↘', { dx: 1, dy: 1 }],
+    ['↙', { dx: -1, dy: 1 }],
+    ['↗', { dx: 1, dy: -1 }],
+    ['↖', { dx: -1, dy: -1 }],
+  ].map(([label, params]) => ({
+    label: label as string,
+    params: params as Partial<PixelOpParams>,
+  })),
+}
+
+const DIRECT_PIXEL_OPS = ['pixelPerfect', 'outlineOnly', 'silhouette'] as const
+
+const PIXEL_OP_CHIPS: [PixelOp, string][] = [
+  ['blockify', 'op.blockify'],
+  ['pixelPerfect', 'op.pixelPerfect'],
+  ['despeckle', 'op.despeckle'],
+  ['outlineOnly', 'op.outlineOnly'],
+  ['silhouette', 'op.silhouette'],
+  ['longShadow', 'op.longShadow'],
+  ['scanlines', 'op.scanlines'],
+  ['dilate', 'op.dilate'],
+  ['erode', 'op.erode'],
+]
+
 /**
  * The selection bar's "More" panel, grouped like a vector editor's effect menu: warp presets (each
- * opens a live-preview popover) and one-click stylize ops. Rendered inside the floating action bar;
- * a click-away backdrop or Escape closes it.
+ * opens a live-preview popover), one-click stylize ops, and the pixel-art morphology ops (each with
+ * a parameter row or one click). Rendered inside the floating action bar; a click-away backdrop or
+ * Escape closes it.
  */
 export function SelectionFxMenu({
   staging,
@@ -21,6 +57,7 @@ export function SelectionFxMenu({
 }) {
   const { t } = useI18n()
   const [warpKind, setWarpKind] = useState<WarpKind | null>(null)
+  const [pixelOp, setPixelOp] = useState<PixelOp | null>(null)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -35,6 +72,25 @@ export function SelectionFxMenu({
     onClose()
   }
 
+  const runPixelOp = (op: PixelOp, params?: Partial<PixelOpParams>) => {
+    useStore.getState().pixelOpSelection(op, params)
+    onClose()
+  }
+
+  const opChip = ([op, key]: [PixelOp, string]) => {
+    const direct = (DIRECT_PIXEL_OPS as readonly string[]).includes(op)
+    return (
+      <Chip
+        key={op}
+        className="max-lg:min-h-11"
+        title={t(`op.${op}.desc` as 'op.blockify.desc')}
+        onClick={() => (direct ? runPixelOp(op) : setPixelOp(op))}
+      >
+        {t(key as 'op.blockify')}
+      </Chip>
+    )
+  }
+
   return (
     <>
       {/* click-away catcher; sits inside the bar's stacking context, under the panel */}
@@ -44,7 +100,7 @@ export function SelectionFxMenu({
         className="fixed inset-0 cursor-default"
         onClick={onClose}
       />
-      <div className="border-line bg-panel/95 absolute top-full left-0 z-20 mt-1 w-60 max-w-[calc(100vw-16px)] rounded-xl border p-2 shadow-lg backdrop-blur max-lg:w-72">
+      <div className="border-line bg-panel/95 absolute top-full left-0 z-20 mt-1 max-h-[70vh] w-60 max-w-[calc(100vw-16px)] overflow-y-auto rounded-xl border p-2 shadow-lg backdrop-blur max-lg:w-72">
         {warpKind === null ? (
           <>
             <MenuTitle label={t('fx.warp')} />
@@ -67,6 +123,35 @@ export function SelectionFxMenu({
                 {t('fx.glow')}
               </Chip>
             </div>
+            {pixelOp === null ? (
+              <>
+                <MenuTitle label={t('fx.pixels')} />
+                <div className="grid grid-cols-3 gap-1">{PIXEL_OP_CHIPS.map(opChip)}</div>
+              </>
+            ) : (
+              <>
+                <MenuTitle label={t(`op.${pixelOp}` as 'op.blockify')} />
+                <div className="grid grid-cols-3 gap-1">
+                  <Chip
+                    className="max-lg:min-h-11"
+                    aria-label={t('warp.cancel')}
+                    title={t('warp.cancel')}
+                    onClick={() => setPixelOp(null)}
+                  >
+                    ←
+                  </Chip>
+                  {PIXEL_OP_OPTIONS[pixelOp]?.map(({ label, params }) => (
+                    <Chip
+                      key={label}
+                      className="max-lg:min-h-11"
+                      onClick={() => runPixelOp(pixelOp, params)}
+                    >
+                      {label}
+                    </Chip>
+                  ))}
+                </div>
+              </>
+            )}
           </>
         ) : (
           <SelectionWarpPopover
@@ -83,7 +168,7 @@ export function SelectionFxMenu({
 
 function MenuTitle({ label }: { label: string }) {
   return (
-    <div className="text-muted text-overline px-0.5 pb-1 font-medium tracking-wide uppercase first:pt-0">
+    <div className="text-muted text-overline px-0.5 pt-1.5 pb-1 font-medium tracking-wide uppercase first:pt-0">
       {label}
     </div>
   )

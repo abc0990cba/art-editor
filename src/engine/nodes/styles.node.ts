@@ -43,11 +43,11 @@ export const STYLE_NODES = [
     domain: { in: 'style', out: 'style' },
     label: 'Render mode',
     category: 'style',
-    tags: ['pixels', 'outline', 'metaball', 'mode'],
+    tags: ['pixels', 'outline', 'metaball', 'contour', 'extrude', 'mode'],
     params: {
       renderMode: {
         kind: 'select',
-        options: ['pixels', 'outline', 'metaball'] as const,
+        options: ['pixels', 'outline', 'metaball', 'contour', 'extrude'] as const,
         default: 'metaball',
       },
       connectivity: {

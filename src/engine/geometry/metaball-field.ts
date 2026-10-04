@@ -18,11 +18,17 @@ export function metaballIso(doc: Doc): number {
   return Math.min(0.8, Math.max(0.2, doc.metaball.iso))
 }
 
-/** One kernel splat (cell center or junction point) in doc units, belonging to color `v`. */
+/**
+ * One kernel splat (cell center, junction point or block center) in doc units, belonging to color
+ * `v`. `r` scales the kernel radius — block-unit sources use it to swell to their block size (1 =
+ * the plain cell-pitch kernel).
+ */
 export interface MetaballSource {
   x: number
   y: number
   v: number
+  /** Kernel radius multiplier, default 1 */
+  r?: number
 }
 
 /** A connector rendered as a capsule of kernels between two endpoints in doc units. */
@@ -32,6 +38,8 @@ export interface MetaballCapsule {
   bx: number
   by: number
   v: number
+  /** Capsule kernel radius multiplier, default 1 */
+  r?: number
 }
 
 export interface MetaballField {
@@ -63,10 +71,11 @@ export function buildMetaballField(opts: {
   const fh = Math.ceil(opts.h / opts.step) + 1
   const f = new Float32Array(fw * fh)
   const power = FALLOFF_POWER[opts.falloff] ?? 3
-  const R = kernelRadius(opts.strength, opts.sub) / opts.step
-  const R2 = R * R
+  const baseR = kernelRadius(opts.strength, opts.sub) / opts.step
 
-  const splat = (cxf: number, cyf: number) => {
+  const splat = (cxf: number, cyf: number, rmul: number) => {
+    const R = baseR * rmul
+    const R2 = R * R
     const x0 = Math.max(0, Math.ceil(cxf - R))
     const x1 = Math.min(fw - 1, Math.floor(cxf + R))
     const y0 = Math.max(0, Math.ceil(cyf - R))
@@ -86,11 +95,13 @@ export function buildMetaballField(opts: {
 
   for (const s of opts.sources) {
     if (s.v === 0 || !opts.take(s.v)) continue
-    splat(s.x / opts.step, s.y / opts.step)
+    splat(s.x / opts.step, s.y / opts.step, s.r ?? 1)
   }
   for (const c of opts.capsules) {
     if (c.v === 0 || !opts.take(c.v)) continue
     // capsule of kernels along the link segment (same falloff as point splats)
+    const R = baseR * (c.r ?? 1)
+    const R2 = R * R
     const ax = c.ax / opts.step
     const ay = c.ay / opts.step
     const bx = c.bx / opts.step

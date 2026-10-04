@@ -729,8 +729,9 @@
         "error",
         {
           // 1172→1196: symmetry preview modal; 1196→1226: panel collapse strip (2026-09);
-          // 1226→1224: color section joined the panel scroller (2026-09)
-          "max": 435,
+          // 1226→1224: color section joined the panel scroller (2026-09);
+          // 1224→389: style-target plumbing extracted into use-style-target.hook.ts (2026-10)
+          "max": 389,
           "skipComments": true,
           "skipBlankLines": true
         }

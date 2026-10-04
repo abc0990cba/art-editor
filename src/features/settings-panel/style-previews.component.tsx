@@ -143,6 +143,7 @@ function styleSampleDoc(view: StyleView, color: string): Doc {
     renderMode: view.renderMode,
     connectivity: view.connectivity,
     metaball: view.metaball,
+    extrude: defaultDoc().extrude,
     // texture has its own preview next door; keep the style sample untextured
     texture: { ...defaultDoc().texture, effect: 'none' },
     styleScope: 'global',

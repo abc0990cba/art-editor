@@ -4,7 +4,8 @@
 
 Selection-scoped destructive effects in [`src/engine/effects/`](../../src/engine/effects/warp.ts):
 displacement warps ([`warp.ts`](../../src/engine/effects/warp.ts)), stylize post-ops
-([`stylize.ts`](../../src/engine/effects/stylize.ts)), geometric selection transforms
+([`stylize.ts`](../../src/engine/effects/stylize.ts)), pixel-art morphology ops
+([`morpho.ts`](../../src/engine/effects/morpho.ts)), geometric selection transforms
 ([`selection-xform.ts`](../../src/engine/effects/selection-xform.ts)), and the deterministic
 per-cell form jitter ([`jitter.ts`](../../src/engine/effects/jitter.ts)). All operate on sparse ink
 maps over the **square grid only**, all bake through the same nearest-neighbor remap, and all are one
@@ -20,10 +21,12 @@ non-destructive alternative for procedural objects is the `mod.warp` *node*
 | [`src/engine/effects/selection-xform.ts`](../../src/engine/effects/selection-xform.ts) | scale / rotate / flip as inverse-sampling cell remaps: `selectionBox`, `xformMatrices`, `xformRegion`, `mapInk`, `InkCell` |
 | [`src/engine/effects/warp.ts`](../../src/engine/effects/warp.ts) | bulge, fisheye, twirl, waveH/V, zigzag, polar/unpolar, roughen: `warpField`, `warpRegion`, `warpInk`, `inkBox`, `isReversibleWarp` |
 | [`src/engine/effects/stylize.ts`](../../src/engine/effects/stylize.ts) | outline, drop shadow, dithered glow — `outlineInk`, `dropShadowInk`, `glowInk`, `stylizeInk`; returns only ADDED cells |
+| [`src/engine/effects/morpho.ts`](../../src/engine/effects/morpho.ts) | pixel ops: `blockifyInk` (n×n majority quantize), `dilateInk`/`erodeInk` (8-neighborhood passes), `pixelPerfectInk` (stair cleanup), `despeckleInk`, `outlineOnlyInk`, `silhouetteInk`, `longShadowInk`, `scanlinesInk`, dispatched by `pixelOpInk` (shrinking ops replace, additive ops merge) |
 | [`src/engine/effects/jitter.ts`](../../src/engine/effects/jitter.ts) | per-cell cell-form variation: `jitterAt` (size/angle noise), `hasJitter` gate |
 
 Tests: [`warp.test.ts`](../../src/engine/effects/warp.test.ts),
 [`stylize.test.ts`](../../src/engine/effects/stylize.test.ts),
+[`morpho.test.ts`](../../src/engine/effects/morpho.test.ts),
 [`selection-xform.test.ts`](../../src/engine/effects/selection-xform.test.ts),
 [`jitter.test.ts`](../../src/engine/effects/jitter.test.ts). Symmetry tests:
 [`symmetry.test.ts`](../../src/engine/effects/symmetry.test.ts) (see [symmetry](symmetry.md)).

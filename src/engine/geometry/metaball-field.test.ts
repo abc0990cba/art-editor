@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc } from '../core/doc.ts'
+import { defaultDoc, elementFromDoc } from '../core/doc.ts'
 import { deserialize, serialize } from '../core/project.ts'
+import type { SceneLayer, SceneObj } from '../core/scene.ts'
+import { syncDoc } from '../core/scene.ts'
 import { gridBuildGeometry } from '../grids/geometry.ts'
 import { normalizePresetConfig } from '../presets/index.ts'
+import { buildGeometry } from './index.ts'
 import {
   buildMetaballField,
   kernelRadius,
@@ -189,5 +192,152 @@ describe('diffusion controls end to end', () => {
     const loops = traceMetaballLoops(field, iso, doc.metaball.squareEdges)
     expect(loops.length).toBeGreaterThan(0)
     expect(loopsToSmoothPath(loops, field.scale)).toMatch(/^M/)
+  })
+})
+
+describe('block-unit super pixels', () => {
+  it('a swollen kernel (r multiplier) reaches far beyond a plain cell kernel', () => {
+    const plain = probe({ ...base, sources: [{ x: 3.5, y: 3.5, v: 1 }] }, 4.3, 3.5)
+    const swollen = probe({ ...base, sources: [{ x: 3.5, y: 3.5, v: 1, r: 3 }] }, 4.3, 3.5)
+    expect(swollen).toBeGreaterThan(plain * 2)
+  })
+
+  /** 12×12 metaball doc: full 3×3 blocks at (0..2, 0..2) and (6..8, 0..2), gap of 3 cells. */
+  const blocksDoc = (unit: 'cell' | 'block', extra?: (cells: Uint16Array) => void) => {
+    const doc = defaultDoc()
+    doc.cols = 12
+    doc.rows = 12
+    doc.renderMode = 'metaball'
+    doc.metaball = { ...doc.metaball, unit, blockSize: 3 }
+    doc.cells = new Uint16Array(144)
+    for (let y = 0; y < 3; y++) {
+      for (let x = 0; x < 3; x++) doc.cells[y * 12 + x] = 1
+      for (let x = 6; x < 9; x++) doc.cells[y * 12 + x] = 1
+    }
+    extra?.(doc.cells)
+    return doc
+  }
+  const loopCount = (doc: ReturnType<typeof blocksDoc>) => {
+    const { field, iso } = metaballPreviewField(doc, doc.cells, doc.links)
+    return traceMetaballLoops(field, iso, false).length
+  }
+
+  it('separated blocks stay separate blobs (capsules only bridge adjacent blocks)', () => {
+    expect(loopCount(blocksDoc('block'))).toBe(2)
+  })
+
+  it('edge-adjacent blocks fuse into one blob', () => {
+    const doc = blocksDoc('block')
+    // extend block A with block (1,0): columns 3..5, still rows 0..2
+    for (let y = 0; y < 3; y++) for (let x = 3; x < 6; x++) doc.cells[y * 12 + x] = 1
+    expect(loopCount(doc)).toBe(1)
+  })
+
+  it('incomplete blocks keep per-cell kernels — a stray pixel is its own blob', () => {
+    const doc = blocksDoc('block', (cells) => {
+      cells[2 * 12 + 2] = 0 // punch a hole: block (0,0) is no longer complete
+      cells[10 * 12 + 10] = 1 // stray pixel far away
+    })
+    // punched block (one blob), intact second block, stray pixel
+    expect(loopCount(doc)).toBe(3)
+  })
+})
+
+describe('metaball fuseAll', () => {
+  const fusedDoc = () => {
+    const doc = defaultDoc()
+    doc.cols = 16
+    doc.rows = 16
+    doc.renderMode = 'metaball'
+    doc.styleScope = 'element'
+    doc.cells = new Uint16Array(256)
+    doc.cellObj = new Uint32Array(256)
+    const elBase = elementFromDoc(doc)
+    doc.elements = [elBase, { ...elBase, metaball: { ...elBase.metaball, strength: 90 } }]
+    for (let y = 2; y < 5; y++) {
+      for (let x = 2; x < 5; x++) {
+        doc.cells[y * 16 + x] = 1
+        doc.cellObj[y * 16 + x] = 1
+      }
+    }
+    for (let y = 8; y < 11; y++) {
+      for (let x = 8; x < 11; x++) {
+        doc.cells[y * 16 + x] = 1
+        doc.cellObj[y * 16 + x] = 2
+      }
+    }
+    return doc
+  }
+
+  it('merges differently-styled flat elements into one field set', () => {
+    const doc = fusedDoc()
+    expect(buildGeometry(doc).paths).toHaveLength(2)
+    doc.metaball = { ...doc.metaball, fuseAll: true }
+    expect(buildGeometry(doc).paths).toHaveLength(1)
+  })
+
+  it('merges across layers, bypassing per-layer isolation', () => {
+    const doc = fusedDoc()
+    const el = elementFromDoc(doc)
+    const obj = (id: number, at: number): SceneObj => ({
+      kind: 'obj',
+      id,
+      name: '',
+      visible: true,
+      locked: false,
+      style: el,
+      cells: new Map([[at, 1]]),
+      links: [],
+    })
+    const layers: SceneLayer[] = [
+      {
+        kind: 'layer',
+        id: 1,
+        name: '',
+        visible: true,
+        locked: false,
+        children: [obj(1, 3 * 16 + 3)],
+      },
+      {
+        kind: 'layer',
+        id: 2,
+        name: '',
+        visible: true,
+        locked: false,
+        children: [obj(2, 9 * 16 + 9)],
+      },
+    ]
+    const layered = syncDoc({ ...doc, layers, nextNodeId: 3, cellObj: null, elements: [] })
+    expect(buildGeometry(layered).paths).toHaveLength(2)
+    const fused = syncDoc({ ...layered, metaball: { ...layered.metaball, fuseAll: true } })
+    expect(buildGeometry(fused).paths).toHaveLength(1)
+  })
+
+  it('round-trips unit, blockSize and fuseAll through project JSON', () => {
+    const doc = twoCellSquareDoc()
+    doc.metaball = { ...doc.metaball, unit: 'block', blockSize: 5, fuseAll: true }
+    const back = deserialize(serialize(doc))
+    expect(back.metaball.unit).toBe('block')
+    expect(back.metaball.blockSize).toBe(5)
+    expect(back.metaball.fuseAll).toBe(true)
+  })
+
+  it('clamps out-of-range block settings in presets', () => {
+    const config = normalizePresetConfig({
+      metaball: {
+        strength: 45,
+        perColor: true,
+        quality: 4,
+        squareEdges: false,
+        iso: 0.5,
+        falloff: 'tight',
+        unit: 'cluster' as 'block',
+        blockSize: 99,
+        fuseAll: true,
+      },
+    })
+    expect(config.metaball.unit).toBe('cell')
+    expect(config.metaball.blockSize).toBe(8)
+    expect(config.metaball.fuseAll).toBe(true)
   })
 })

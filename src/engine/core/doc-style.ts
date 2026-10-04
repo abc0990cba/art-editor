@@ -1,5 +1,12 @@
 import { sameShapeParams } from '../cell-shapes/index.ts'
-import type { Doc, ElementStyle, MetaballSettings, PixelStyle, StyleScope } from './doc.ts'
+import type {
+  Doc,
+  ElementStyle,
+  ExtrudeSettings,
+  MetaballSettings,
+  PixelStyle,
+  StyleScope,
+} from './doc.ts'
 
 /** The element style non-element (global-scope) ink renders with. */
 export function elementFromDoc(doc: Doc): ElementStyle {
@@ -13,6 +20,7 @@ export function elementFromDoc(doc: Doc): ElementStyle {
     connectivity: doc.connectivity,
     metaball: { ...doc.metaball },
     texture: { ...doc.texture },
+    extrude: { ...doc.extrude },
   }
 }
 
@@ -24,8 +32,15 @@ function sameMetaball(a: MetaballSettings, b: MetaballSettings): boolean {
     a.quality === b.quality &&
     a.squareEdges === b.squareEdges &&
     a.iso === b.iso &&
-    a.falloff === b.falloff
+    a.falloff === b.falloff &&
+    a.unit === b.unit &&
+    a.blockSize === b.blockSize
   )
+}
+
+/** Equality of the extrude block of two frozen element styles. */
+function sameExtrude(a: ExtrudeSettings, b: ExtrudeSettings): boolean {
+  return a.depth === b.depth && a.dx === b.dx && a.dy === b.dy && a.color === b.color
 }
 
 /** Deep equality of two frozen element styles (render grouping merges equal elements). */
@@ -35,6 +50,7 @@ export function sameElementStyle(a: ElementStyle, b: ElementStyle): boolean {
     a.connectivity === b.connectivity &&
     samePixelStyle(a.style, b.style) &&
     sameMetaball(a.metaball, b.metaball) &&
+    sameExtrude(a.extrude, b.extrude) &&
     a.texture.effect === b.texture.effect &&
     a.texture.amount === b.texture.amount &&
     a.texture.scale === b.texture.scale &&

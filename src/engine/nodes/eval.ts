@@ -184,5 +184,6 @@ function cloneBaseStyle(base: ElementStyle): ElementStyle {
     connectivity: base.connectivity,
     metaball: { ...base.metaball },
     texture: { ...base.texture },
+    extrude: { ...base.extrude },
   }
 }

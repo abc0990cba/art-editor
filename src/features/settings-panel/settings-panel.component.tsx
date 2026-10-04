@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 
 import { PALETTES, matchedPresetId } from '../../engine/color/index.ts'
 import { serializeGpl, serializeHex } from '../../engine/color/palette-io.ts'
-import type { PixelStyle } from '../../engine/core/doc.ts'
 import { isPlainSquare } from '../../engine/grids/index.ts'
 import {
   BUILTIN_PRESETS,
@@ -32,6 +31,7 @@ import { PresetsDialog } from './presets-dialog.component.tsx'
 import { StyleSection } from './style-section.component.tsx'
 import { SymmetrySection } from './symmetry-section.component.tsx'
 import { TextureSection } from './texture-section.component.tsx'
+import { useStyleTarget } from './use-style-target.hook.ts'
 
 export const PANEL_SECTIONS: readonly { id: string; titleKey: string; icon: string }[] = [
   { id: 'color', titleKey: 'panel.color', icon: 'color' },
@@ -61,21 +61,14 @@ export function SettingsPanel({
   const tool = useStore((s) => s.tool)
   const setTool = useStore((s) => s.setTool)
   const color = useStore((s) => s.color)
-  const setColor = useStore((s) => s.setColor)
   const symmetry = useStore((s) => s.symmetry)
 
-  const patchStyle = useStore((s) => s.patchStyle)
-  const patchMetaball = useStore((s) => s.patchMetaball)
-  const patchTexture = useStore((s) => s.patchTexture)
   const setStyleScope = useStore((s) => s.setStyleScope)
   const selection = useStore((s) => s.selection)
   const clearSelection = useStore((s) => s.clearSelection)
-  const restyleSelection = useStore((s) => s.restyleSelection)
   const fillSelection = useStore((s) => s.fillSelection)
   const patchFillStyle = useStore((s) => s.patchFillStyle)
 
-  const setRenderMode = useStore((s) => s.setRenderMode)
-  const setConnectivity = useStore((s) => s.setConnectivity)
   const recent = useStore((s) => s.recent)
   const applyPalette = useStore((s) => s.applyPalette)
   const paletteAutoApply = useStore((s) => s.paletteAutoApply)
@@ -114,34 +107,8 @@ export function SettingsPanel({
   const presetName = (p: EditorPreset) =>
     isBuiltinPreset(p) ? t(`presetName.${p.id}` as 'presetName.builtin.mandala') : p.name
 
-  const isSquare = isPlainSquare(doc)
-
-  // With a selection active in element scope the Style/Texture sections target the selected
-  // elements (values shown from the first one); otherwise they edit the drawing style.
-  const elementMode = doc.styleScope === 'element'
-  const targetSelection = elementMode && selection.length > 0
-  const firstEl = targetSelection ? doc.elements[selection[0] - 1] : undefined
-  const styleView = firstEl ? firstEl.style : doc.style
-  const modeView = firstEl ? firstEl.renderMode : doc.renderMode
-  const connView = firstEl ? firstEl.connectivity : doc.connectivity
-  const mbView = firstEl ? firstEl.metaball : doc.metaball
-  const texView = firstEl ? firstEl.texture : doc.texture
-
-  const applyStyle = (patch: Partial<PixelStyle>) =>
-    targetSelection ? restyleSelection({ style: patch }) : patchStyle(patch)
-  const applyRenderMode = (mode: typeof doc.renderMode) =>
-    targetSelection ? restyleSelection({ renderMode: mode }) : setRenderMode(mode)
-  const applyConnectivity = (conn: typeof doc.connectivity) =>
-    targetSelection ? restyleSelection({ connectivity: conn }) : setConnectivity(conn)
-  const applyMetaball = (patch: Partial<typeof doc.metaball>) =>
-    targetSelection ? restyleSelection({ metaball: patch }) : patchMetaball(patch)
-  const applyTexture = (patch: Partial<typeof doc.texture>) =>
-    targetSelection ? restyleSelection({ texture: patch }) : patchTexture(patch)
-  // picking a color with a selection active also re-fills the selected shapes with it
-  const applyColor = (h: string) => {
-    setColor(h)
-    if (targetSelection) fillSelection()
-  }
+  // selection-aware target shared by the extracted style/texture sections
+  const target = useStyleTarget(doc, selection)
 
   // the eraser "color" is transparency, Photoshop-style: a checkerboard swatch with the
   // classic red slash, so the brush/eraser pair reads like a foreground/background well
@@ -149,25 +116,6 @@ export function SettingsPanel({
     backgroundImage:
       'linear-gradient(45deg, transparent 45.5%, #e63946 45.5%, #e63946 54.5%, transparent 54.5%), conic-gradient(#9aa0b4 25%, #e8ebf2 0 50%, #9aa0b4 0 75%, #e8ebf2 0)',
     backgroundSize: '100% 100%, 8px 8px',
-  }
-
-  // selection-aware target shared by the extracted style/texture sections
-  const target = {
-    styleView,
-    modeView,
-    connView,
-    mbView,
-    texView,
-    elementMode,
-    targetSelection,
-    isSquare,
-    applyStyle,
-    applyRenderMode,
-    applyConnectivity,
-    applyMetaball,
-    applyTexture,
-    applyColor,
-    clearSelection,
   }
 
   // shown on the collapsed palette-library header: which preset the document palette is
@@ -251,7 +199,7 @@ export function SettingsPanel({
               </span>
             </div>
           </div>
-          {pickerOpen && <ColorPicker color={color} onChange={applyColor} />}
+          {pickerOpen && <ColorPicker color={color} onChange={target.applyColor} />}
           {availableColors.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="text-muted text-xs">{t('palette.available')}</span>
@@ -262,7 +210,7 @@ export function SettingsPanel({
                     hex={c}
                     active={color.toLowerCase() === c}
                     label={c}
-                    onPick={() => applyColor(c)}
+                    onPick={() => target.applyColor(c)}
                   />
                 ))}
               </div>
@@ -278,7 +226,7 @@ export function SettingsPanel({
                     hex={h}
                     active={color.toLowerCase() === h}
                     label={h}
-                    onPick={() => applyColor(h)}
+                    onPick={() => target.applyColor(h)}
                   />
                 ))}
               </div>
@@ -383,7 +331,7 @@ export function SettingsPanel({
                     hex={h}
                     active={color.toLowerCase() === h}
                     label={h}
-                    onPick={() => applyColor(h)}
+                    onPick={() => target.applyColor(h)}
                   />
                 ))}
               </div>
@@ -438,7 +386,7 @@ export function SettingsPanel({
           </button>
           {presetsOpen && <PresetsDialog onClose={() => setPresetsOpen(false)} />}
         </Section>
-        {targetSelection && (
+        {target.targetSelection && (
           <Section title={t('panel.fillSelection')} icon="color">
             <FillStyleControls
               onPatch={(patch) => {

@@ -1,6 +1,7 @@
 import type { PalettePreset } from '../engine/color/index.ts'
 import type {
   Connectivity,
+  ExtrudeSettings,
   MetaballSettings,
   PixelStyle,
   RenderMode,
@@ -17,6 +18,7 @@ export interface StyleSlice {
   setConnectivity: (c: Connectivity) => void
   patchMetaball: (patch: Partial<MetaballSettings>) => void
   patchTexture: (patch: Partial<TextureSettings>) => void
+  patchExtrude: (patch: Partial<ExtrudeSettings>) => void
   /** Switch between per-element frozen styles and the global canvas-wide style */
   setStyleScope: (scope: StyleScope) => void
   setBg: (bg: string) => void
@@ -45,6 +47,8 @@ export function createStyleSlice({ set }: SliceApi): StyleSlice {
       set((s) => ({ doc: { ...s.doc, metaball: { ...s.doc.metaball, ...patch } } })),
     patchTexture: (patch) =>
       set((s) => ({ doc: { ...s.doc, texture: { ...s.doc.texture, ...patch } } })),
+    patchExtrude: (patch) =>
+      set((s) => ({ doc: { ...s.doc, extrude: { ...s.doc.extrude, ...patch } } })),
     setStyleScope: (scope) =>
       set((s) => {
         const doc = withStyleScope(s.doc, scope)

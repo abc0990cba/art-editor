@@ -127,6 +127,7 @@ const STYLE: ElementStyle = (() => {
     connectivity: base.connectivity,
     metaball: base.metaball,
     texture: base.texture,
+    extrude: base.extrude,
   }
 })()
 
@@ -201,6 +202,7 @@ export function sceneHead(
     connectivity: 'edge',
     metaball: base.metaball,
     texture: base.texture,
+    extrude: base.extrude,
     styleScope: 'global',
     bg: '',
     connectorWidth: base.connectorWidth,

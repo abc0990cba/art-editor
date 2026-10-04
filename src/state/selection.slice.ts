@@ -2,6 +2,7 @@ import type {
   Connectivity,
   Doc,
   ElementStyle,
+  ExtrudeSettings,
   Link,
   MetaballSettings,
   PixelStyle,
@@ -35,6 +36,7 @@ export interface ElementStylePatch {
   connectivity?: Connectivity
   metaball?: Partial<MetaballSettings>
   texture?: Partial<TextureSettings>
+  extrude?: Partial<ExtrudeSettings>
 }
 
 /** Drop elements no longer referenced by any cell or connector; remap ids (and selection). */
@@ -312,6 +314,7 @@ export function createSelectionSlice({ set }: SliceApi): SelectionSlice {
                     connectivity: patch.connectivity ?? el.connectivity,
                     metaball: patch.metaball ? { ...el.metaball, ...patch.metaball } : el.metaball,
                     texture: patch.texture ? { ...el.texture, ...patch.texture } : el.texture,
+                    extrude: patch.extrude ? { ...el.extrude, ...patch.extrude } : el.extrude,
                   },
                 }
               }) ?? layers
@@ -329,6 +332,7 @@ export function createSelectionSlice({ set }: SliceApi): SelectionSlice {
             connectivity: patch.connectivity ?? el.connectivity,
             metaball: patch.metaball ? { ...el.metaball, ...patch.metaball } : el.metaball,
             texture: patch.texture ? { ...el.texture, ...patch.texture } : el.texture,
+            extrude: patch.extrude ? { ...el.extrude, ...patch.extrude } : el.extrude,
           }
         })
         return { doc: { ...s.doc, elements } }

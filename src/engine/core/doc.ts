@@ -62,6 +62,14 @@ export type MetaballFalloff = 'tight' | 'smooth' | 'gooey'
 
 export const METABALL_FALLOFFS: readonly MetaballFalloff[] = ['tight', 'smooth', 'gooey']
 
+/**
+ * What one metaball kernel stands for: every painted sub-cell (`cell`) or every fully painted
+ * blockSize-aligned pixel block, so big brush pixels act as single oversized blobs.
+ */
+export type MetaballUnit = 'cell' | 'block'
+
+export const METABALL_UNITS: readonly MetaballUnit[] = ['cell', 'block']
+
 export interface MetaballSettings {
   /** Merge strength 0..100 → kernel radius grows from cell size to ~1.6 cells */
   strength: number
@@ -75,6 +83,31 @@ export interface MetaballSettings {
   iso: number
   /** Falloff curve: smooth (cubic), soft (quadratic), tight (linear) */
   falloff: MetaballFalloff
+  /** Kernel granularity: per painted cell or per complete aligned block (square grid) */
+  unit: MetaballUnit
+  /** Block-unit edge length in cells, 2..8 */
+  blockSize: number
+  /**
+   * Merge every stroke/layer into one field set regardless of frozen element styles (doc-level
+   * metaball settings apply). Square grid only.
+   */
+  fuseAll: boolean
+  /** Contour mode: stroke width in doc units (cell pitch = 1), 0.05..1 */
+  strokeWidth: number
+}
+
+/**
+ * 2.5D extrusion behind the fill (extrude render mode): every painted cell grows a flat body of
+ * `depth` cells along one 8-way direction, drawn before the fill in one body color.
+ */
+export interface ExtrudeSettings {
+  /** Extrusion length in buffer cells, 1..8 */
+  depth: number
+  /** Extrusion direction per axis, -1|0|1 (never both 0) */
+  dx: -1 | 0 | 1
+  dy: -1 | 0 | 1
+  /** Palette value of the body, 0 = auto (the darkest palette color) */
+  color: number
 }
 
 /** Baked vector texture punched into the inner pixel fill (all render modes). */
@@ -161,7 +194,7 @@ export interface TextureSettings {
 }
 
 /** How painted cells turn into geometry. */
-export type RenderMode = 'pixels' | 'outline' | 'metaball'
+export type RenderMode = 'pixels' | 'outline' | 'metaball' | 'contour' | 'extrude'
 
 /**
  * Whether the style settings apply to the whole canvas at once (`global`) or are frozen per drawn
@@ -179,6 +212,7 @@ export interface ElementStyle {
   connectivity: Connectivity
   metaball: MetaballSettings
   texture: TextureSettings
+  extrude: ExtrudeSettings
 }
 
 /**
@@ -209,6 +243,7 @@ export interface Doc {
   connectivity: Connectivity
   metaball: MetaballSettings
   texture: TextureSettings
+  extrude: ExtrudeSettings
   /** Whether styles render canvas-wide (doc fields) or per frozen element */
   styleScope: StyleScope
   /** Frozen style per element; element id n lives at index n - 1 */
@@ -347,6 +382,16 @@ export function defaultDoc(): Doc {
       squareEdges: false,
       iso: 0.5,
       falloff: 'tight',
+      unit: 'cell',
+      blockSize: 3,
+      fuseAll: false,
+      strokeWidth: 0.15,
+    },
+    extrude: {
+      depth: 2,
+      dx: 1,
+      dy: 1,
+      color: 0,
     },
     texture: {
       effect: 'none',

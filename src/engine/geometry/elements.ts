@@ -1,9 +1,7 @@
 import { elementFromDoc, type Doc, type ElementStyle, type Link } from '../core/doc.ts'
 import { gridBuildGeometry } from '../grids/geometry.ts'
 import { isPlainSquare } from '../grids/index.ts'
-import { metaballGeometry } from './metaball.ts'
-import { outlineGeometry } from './outline'
-import { shapeGeometry } from './shape.ts'
+import { squareModeGeometry } from './mode.ts'
 import type { Geometry, StyledPath } from './types.ts'
 
 // element-scope scratch: reused across groups (see elementGeometry)
@@ -65,6 +63,12 @@ export function elementStyleKey(el: ElementStyle): string {
     el.metaball.squareEdges,
     el.metaball.iso,
     el.metaball.falloff,
+    el.metaball.unit,
+    el.metaball.blockSize,
+    el.extrude.depth,
+    el.extrude.dx,
+    el.extrude.dy,
+    el.extrude.color,
     el.texture.effect,
     el.texture.amount,
     el.texture.scale,
@@ -167,12 +171,9 @@ export function elementGeometry(
       texture: g.el.texture,
       links: g.links,
     }
-    let out: StyledPath[]
-    if (!isPlainSquare(doc)) out = gridBuildGeometry(vdoc, sub, g.links)
-    else if (g.el.renderMode === 'metaball')
-      out = metaballGeometry(vdoc, sub, g.links, preview).paths
-    else if (g.el.renderMode === 'outline') out = outlineGeometry(vdoc, sub, g.links)
-    else out = shapeGeometry(vdoc, sub, g.links).paths
+    const out = isPlainSquare(doc)
+      ? squareModeGeometry(vdoc, sub, g.links, preview)
+      : gridBuildGeometry(vdoc, sub, g.links)
     paths.push(...out)
   }
   return { paths }

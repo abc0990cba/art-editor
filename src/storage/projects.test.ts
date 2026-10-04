@@ -62,6 +62,10 @@ function entry(id: string, name: string, updatedAt: number): PixelProjectEntry {
         squareEdges: false,
         iso: 0.5,
         falloff: 'smooth',
+        unit: 'cell',
+        blockSize: 3,
+        fuseAll: false,
+        strokeWidth: 0.15,
       },
       texture: {
         effect: 'none',
@@ -84,6 +88,12 @@ function entry(id: string, name: string, updatedAt: number): PixelProjectEntry {
         dropout: 0,
         spray: 0,
         ramp: 0,
+      },
+      extrude: {
+        depth: 2,
+        dx: 1,
+        dy: 1,
+        color: 0,
       },
       bg: '',
       connectorWidth: 0.3,

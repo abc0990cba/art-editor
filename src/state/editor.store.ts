@@ -6,6 +6,7 @@ import type { PalettePreset } from '../engine/color/index.ts'
 import type {
   Connectivity,
   Doc,
+  ExtrudeSettings,
   GridType,
   Link,
   MetaballSettings,
@@ -179,6 +180,7 @@ export interface State {
   setConnectivity: (c: Connectivity) => void
   patchMetaball: (patch: Partial<MetaballSettings>) => void
   patchTexture: (patch: Partial<TextureSettings>) => void
+  patchExtrude: (patch: Partial<ExtrudeSettings>) => void
   /** Switch between per-element frozen styles and the global canvas-wide style */
   setStyleScope: (scope: StyleScope) => void
   // element selection (UI state; the styled edits themselves are undoable doc actions)
@@ -207,6 +209,14 @@ export interface State {
     op: import('../engine/effects/stylize.ts').StylizeOp,
     params?: Partial<import('../engine/effects/stylize.ts').StylizeParams>,
     color?: string,
+  ) => void
+  /**
+   * Pixel-art morphology op (blockify / dilate / erode / …) on the selection (undoable; square
+   * grid)
+   */
+  pixelOpSelection: (
+    op: import('../engine/effects/morpho.ts').PixelOp,
+    params?: Partial<import('../engine/effects/morpho.ts').PixelOpParams>,
   ) => void
   // layers panel — structure actions mutate the doc's scene tree (undoable)
   setActiveLayer: (id: number | null) => void

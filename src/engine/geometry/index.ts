@@ -9,8 +9,8 @@ import { evalGraphMemo } from '../nodes/eval-memo.ts'
 import { elementStyleKey, elementGeometry } from './elements.ts'
 import { loopsToSmoothPath, metaballIso, traceMetaballLoops } from './metaball-field.ts'
 import { metaballGeometry, metaballPreviewField } from './metaball.ts'
-import { outlineGeometry } from './outline'
-import { borderRadii, mergedCells, roundedRectPath, shapeGeometry } from './shape.ts'
+import { squareModeGeometry } from './mode.ts'
+import { borderRadii, mergedCells, roundedRectPath } from './shape.ts'
 
 export type { Geometry, Staging, StyledPath } from './types.ts'
 import type { Geometry, Staging, StyledPath } from './types.ts'
@@ -23,15 +23,37 @@ let sceneScratchCells: Uint16Array | null = null
 let sceneScratchObjs: Uint32Array | null = null
 
 /**
+ * FuseAll renders the whole document as ONE metaball field set: per-layer isolation and frozen
+ * element styles are bypassed, the doc-level metaball settings shape everything (perColor still
+ * splits by color). Returns null when not fusing. Square grids only — the field pipeline is
+ * square-buffer based.
+ */
+function fusesAll(doc: Doc): boolean {
+  return doc.renderMode === 'metaball' && doc.metaball.fuseAll && isPlainSquare(doc)
+}
+
+/** The fuseAll fast path: one merged field over the synced composite (plus staged delta). */
+function fusedSceneGeometry(
+  doc: Doc,
+  staging: Staging | undefined,
+  preview: boolean,
+): Geometry | null {
+  if (!fusesAll(doc)) return null
+  return metaballGeometry(doc, mergedCells(doc, staging), staging?.links ?? doc.links, preview)
+}
+
+/**
  * Scene rendering: one scoped buffer per visible layer, bottom → top. Each layer runs through the
  * regular builders in isolation, which is what makes layers independent compositing spaces —
- * metaball fields and outlines never fuse across layers.
+ * metaball fields and outlines never fuse across layers. Exception: `metaball.fuseAll` skips the
+ * isolation on purpose and feeds the synced composite through one merged field.
  */
 function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
   const layers = doc.layers!
   const length = doc.cells.length
   const preview = Boolean(staging && staging.cells && staging.cells.size > 0)
-  // staged erase cells without a layer tag punch wherever their composite owner lives
+  const fused = fusedSceneGeometry(doc, staging, preview)
+  if (fused) return fused
   const objLayerOf = new Map<number, number>()
   for (const layer of layers) {
     for (const o of visibleObjs(layer)) objLayerOf.set(o.id, layer.id)
@@ -108,14 +130,10 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
     const scoped: Doc = { ...doc, cells, cellObj: cellObjs, links }
     if (doc.styleScope === 'element') {
       paths.push(...elementGeometry(scoped, cells, links, undefined, preview).paths)
-    } else if (!isPlainSquare(scoped)) {
-      paths.push(...gridBuildGeometry(scoped, cells, links))
-    } else if (doc.renderMode === 'metaball') {
-      paths.push(...metaballGeometry(scoped, cells, links, preview).paths)
-    } else if (doc.renderMode === 'outline') {
-      paths.push(...outlineGeometry(scoped, cells, links))
+    } else if (isPlainSquare(scoped)) {
+      paths.push(...squareModeGeometry(scoped, cells, links, preview))
     } else {
-      paths.push(...shapeGeometry(scoped, cells, links).paths)
+      paths.push(...gridBuildGeometry(scoped, cells, links))
     }
   }
   return { paths }
@@ -126,13 +144,13 @@ export function buildGeometry(doc: Doc, staging?: Staging): Geometry {
   const cells = mergedCells(doc, staging)
   const links = staging?.links ?? doc.links
   const preview = Boolean(staging && staging.cells && staging.cells.size > 0)
+  const fused = fusedSceneGeometry(doc, staging, preview)
+  if (fused) return fused
   if (doc.styleScope === 'element' && (doc.cellObj || staging?.objs)) {
     return elementGeometry(doc, cells, links, staging?.objs, preview)
   }
   if (!isPlainSquare(doc)) return { paths: gridBuildGeometry(doc, cells, links) }
-  if (doc.renderMode === 'metaball') return metaballGeometry(doc, cells, links, preview)
-  if (doc.renderMode === 'outline') return { paths: outlineGeometry(doc, cells, links) }
-  return shapeGeometry(doc, cells, links)
+  return { paths: squareModeGeometry(doc, cells, links, preview) }
 }
 
 /* --------------------------- diffusion-guides overlay --------------------------- */

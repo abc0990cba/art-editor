@@ -5,6 +5,7 @@ import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { RoundingControls } from './rounding-controls.component.tsx'
 import { ShapePicker } from './shape-picker.component.tsx'
+import { ExtrudeKnobs, MetaballKnobs } from './style-mode-knobs.component.tsx'
 import { PixelStylePreview } from './style-previews.component.tsx'
 
 /** Selection-aware style target shared by the style/texture sections. */
@@ -14,6 +15,7 @@ export interface StyleTarget {
   connView: Doc['connectivity']
   mbView: Doc['metaball']
   texView: Doc['texture']
+  exView: Doc['extrude']
   elementMode: boolean
   targetSelection: boolean
   isSquare: boolean
@@ -22,6 +24,7 @@ export interface StyleTarget {
   applyConnectivity: (c: Doc['connectivity']) => void
   applyMetaball: (patch: Partial<Doc['metaball']>) => void
   applyTexture: (patch: Partial<Doc['texture']>) => void
+  applyExtrude: (patch: Partial<Doc['extrude']>) => void
   applyColor: (hex: string) => void
 }
 
@@ -45,12 +48,14 @@ export function StyleSection({
     modeView,
     connView,
     mbView,
+    exView,
     elementMode,
     targetSelection,
     applyStyle,
     applyRenderMode,
     applyConnectivity,
     applyMetaball,
+    applyExtrude,
   } = target
   const isSquare = target.isSquare
   const curved = isCurvedShape(styleView.shape)
@@ -101,12 +106,14 @@ export function StyleSection({
       <div className="text-muted text-overline font-semibold tracking-wider uppercase">
         {t('style.group.mode')}
       </div>
-      <div className="flex gap-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
         {(
           [
             ['pixels', 'mode.pixels'],
             ['outline', 'mode.outline'],
             ['metaball', 'mode.metaball'],
+            ['contour', 'mode.contour'],
+            ['extrude', 'mode.extrude'],
           ] as const
         ).map(([mode, key]) => (
           <Chip
@@ -255,81 +262,16 @@ export function StyleSection({
           )}
         </>
       )}
-      {modeView === 'metaball' && (
-        <>
-          <div className="text-muted text-overline font-semibold tracking-wider uppercase">
-            {t('style.group.metaball')}
-          </div>
-          <Slider
-            label={t('metaball.strength')}
-            title={t('metaball.strength.desc')}
-            value={mbView.strength}
-            min={0}
-            max={100}
-            onChange={(v) => applyMetaball({ strength: v })}
-          />
-          <Slider
-            label={t('metaball.iso')}
-            title={t('metaball.iso.desc')}
-            value={mbView.iso}
-            min={0.2}
-            max={0.8}
-            step={0.01}
-            display={pct}
-            onChange={(v) => applyMetaball({ iso: v })}
-          />
-          <div className="text-body flex items-center justify-between text-xs">
-            <span>{t('metaball.falloff')}</span>
-            <div className="flex gap-1">
-              {(['tight', 'smooth', 'gooey'] as const).map((f) => (
-                <Chip
-                  key={f}
-                  active={mbView.falloff === f}
-                  title={t('metaball.falloff.desc')}
-                  onClick={() => applyMetaball({ falloff: f })}
-                >
-                  {t(`metaball.falloff.${f}` as 'metaball.falloff.tight')}
-                </Chip>
-              ))}
-            </div>
-          </div>
-          <CheckRow
-            label={t('metaball.perColor')}
-            title={t('metaball.perColor.desc')}
-            checked={mbView.perColor}
-            onChange={(v) => applyMetaball({ perColor: v })}
-          />
-          <div className="text-body flex items-center justify-between text-xs">
-            <span>{t('metaball.quality')}</span>
-            <div className="flex gap-1">
-              {([2, 4, 6, 8] as const).map((q, i) => (
-                <Chip
-                  key={q}
-                  active={mbView.quality === q}
-                  title={t('metaball.quality.desc')}
-                  onClick={() => applyMetaball({ quality: q })}
-                >
-                  {
-                    [
-                      t('metaball.quality.low'),
-                      t('metaball.quality.med'),
-                      t('metaball.quality.high'),
-                      t('metaball.quality.ultra'),
-                    ][i]
-                  }
-                </Chip>
-              ))}
-            </div>
-          </div>
-          {isSquare && (
-            <CheckRow
-              label={t('metaball.squareEdges')}
-              title={t('metaball.squareEdges.desc')}
-              checked={mbView.squareEdges}
-              onChange={(v) => applyMetaball({ squareEdges: v })}
-            />
-          )}
-        </>
+      {(modeView === 'metaball' || modeView === 'contour') && (
+        <MetaballKnobs
+          mb={mbView}
+          isSquare={isSquare}
+          contour={modeView === 'contour'}
+          onPatch={applyMetaball}
+        />
+      )}
+      {modeView === 'extrude' && (
+        <ExtrudeKnobs ex={exView} palette={doc.palette} onPatch={applyExtrude} />
       )}
     </Section>
   )

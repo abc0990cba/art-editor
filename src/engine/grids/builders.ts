@@ -141,12 +141,13 @@ function makeHex(cols: number, rows: number): Grid {
       const rf = ((2 / 3) * yr) / HEX_R
       let rx = Math.round(qf)
       let ry = Math.round(rf)
-      const rz = Math.round(-qf - rf)
+      let rz = Math.round(-qf - rf)
       const dq = Math.abs(rx - qf)
       const dy = Math.abs(ry - rf)
-      const dz = Math.abs(rz - -qf - rf)
+      const dz = Math.abs(rz + qf + rf)
       if (dq > dy && dq > dz) rx = -ry - rz
       else if (dy > dz) ry = -rx - rz
+      else rz = -rx - ry
       const row = ry
       const col = rx + Math.floor((row - (row & 1)) / 2)
       if (row < 0 || row >= rows || col < 0 || col >= cols) return -1
