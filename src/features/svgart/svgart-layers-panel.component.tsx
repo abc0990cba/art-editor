@@ -69,7 +69,7 @@ export function SvgArtLayersPanel(): ReactElement {
         )}
       </div>
       <div className="flex flex-wrap gap-1">
-        {(['rect', 'ellipse', 'star', 'blob'] as const).map((kind) => (
+        {(['rect', 'ellipse', 'star', 'ngon', 'blob', 'ring'] as const).map((kind) => (
           <Chip
             key={kind}
             onClick={() => addLayer(newShapeLayer(kind as ShapeKind, scene, scene.layers.length))}

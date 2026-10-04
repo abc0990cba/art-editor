@@ -134,6 +134,27 @@ export function polyPath(pts: Pt[]): string {
   return `${d}Z`
 }
 
+/**
+ * Ring (donut): outer circle + counter-oriented inner circle on one path — the renderer cuts the
+ * hole via `fill-rule="evenodd"`, which Illustrator keeps as a live compound path.
+ */
+export function ringShape(center: Pt, R: number, r: number): Shape {
+  const outer = ellipseD(center, R, R, 0)
+  const inner = ellipseD(center, Math.max(1, r), Math.max(1, r), 0)
+  const anchors: Pt[] = []
+  const n = 12
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2
+    anchors.push({ x: center.x + R * Math.cos(a), y: center.y + R * Math.sin(a) })
+  }
+  return { kind: 'path', d: `${outer} ${inner}`, anchors, evenodd: true }
+}
+
+/** Ellipse as absolute path data (4 kappa cubics), rotation baked in degrees. */
+export function ellipseD(cx: Pt, rx: number, ry: number, rotation: number): string {
+  return ellipsePath(cx, rx, ry, rotation)
+}
+
 function rectPath(cx: Pt, w: number, h: number, radius: number, rotation: number): string {
   const phi = rad(rotation)
   const cos = Math.cos(phi)

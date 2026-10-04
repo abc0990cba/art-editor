@@ -179,3 +179,154 @@ function applyRadialHandle(
       return paint
   }
 }
+
+/** Scale a shape by `factor` around `center` (default: the shape's own center); dims clamp at 1. */
+export function scaleShape(shape: Shape, factor: number, center?: Pt): Shape {
+  const f = Math.max(0.01, factor)
+  const c = center ?? shapeCenter(shape)
+  switch (shape.kind) {
+    case 'rect':
+      return {
+        ...shape,
+        w: Math.max(1, shape.w * f),
+        h: Math.max(1, shape.h * f),
+        radius: Math.max(0, shape.radius * f),
+        cx: scaleAroundCenter(shape.cx, c, f),
+      }
+    case 'ellipse':
+      return {
+        ...shape,
+        rx: Math.max(1, shape.rx * f),
+        ry: Math.max(1, shape.ry * f),
+        cx: scaleAroundCenter(shape.cx, c, f),
+      }
+    case 'star':
+      return {
+        ...shape,
+        R: Math.max(1, shape.R * f),
+        r: Math.max(0.5, shape.r * f),
+        cx: scaleAroundCenter(shape.cx, c, f),
+      }
+    case 'poly':
+      return { kind: 'poly', points: shape.points.map((p) => scalePt(p, c, f)) }
+    case 'path':
+      return {
+        kind: 'path',
+        d: scalePathData(shape.d, c, f),
+        anchors: shape.anchors.map((p) => scalePt(p, c, f)),
+        evenodd: shape.evenodd,
+      }
+  }
+}
+
+export function scaleLayer(layer: SvgLayer, factor: number, pivot?: Pt): SvgLayer {
+  return { ...layer, shape: scaleShape(layer.shape, factor, pivot) }
+}
+
+/**
+ * Mirror a shape across a vertical ('x') or horizontal ('y') axis through `center`. Parametric
+ * shapes mirror by negating their rotation; point/path shapes mirror coordinates and path data.
+ */
+export function flipShape(shape: Shape, axis: 'x' | 'y', center: Pt): Shape {
+  switch (shape.kind) {
+    case 'rect':
+    case 'ellipse':
+    case 'star':
+      return { ...shape, rotation: -shape.rotation }
+    case 'poly':
+      return { kind: 'poly', points: shape.points.map((p) => flipPt(p, axis, center)) }
+    case 'path':
+      return {
+        kind: 'path',
+        d: flipPathData(shape.d, axis, center),
+        anchors: shape.anchors.map((p) => flipPt(p, axis, center)),
+        evenodd: shape.evenodd,
+      }
+  }
+}
+
+export function flipLayer(layer: SvgLayer, axis: 'x' | 'y', pivot?: Pt): SvgLayer {
+  return { ...layer, shape: flipShape(layer.shape, axis, pivot ?? shapeCenter(layer.shape)) }
+}
+
+/** Translate the layer so its bbox center lands on `target` (per-axis when given). */
+export function alignLayer(
+  layer: SvgLayer,
+  target: Pt,
+  axes: 'x' | 'y' | 'both' = 'both',
+): SvgLayer {
+  const c = shapeCenter(layer.shape)
+  const tx = axes === 'y' ? 0 : target.x - c.x
+  const ty = axes === 'x' ? 0 : target.y - c.y
+  return translateLayer(layer, tx, ty)
+}
+
+/** `count` additional copies of the layer, rotated i·360/count around `center` (radial repeat). */
+export function rotatedCopies(layer: SvgLayer, count: number, center: Pt): SvgLayer[] {
+  const n = Math.max(2, Math.min(24, Math.round(count)))
+  const out: SvgLayer[] = []
+  for (let i = 1; i <= n; i++) {
+    const copy = rotateLayer(
+      { ...layer, id: `${layer.id}-r${i}`, name: `${layer.name} ${i + 1}` },
+      (i * 360) / n,
+      center,
+    )
+    out.push(copy)
+  }
+  return out
+}
+
+/** One mirrored copy of the layer across a scene axis (mandala mirror). */
+export function mirroredCopy(layer: SvgLayer, axis: 'x' | 'y', pivot: Pt): SvgLayer {
+  return flipLayer({ ...layer, id: `${layer.id}-m`, name: `${layer.name} ·m` }, axis, pivot)
+}
+
+function scaleAroundCenter(p: Pt, c: Pt, f: number): Pt {
+  return { x: c.x + (p.x - c.x) * f, y: c.y + (p.y - c.y) * f }
+}
+
+function scalePt(p: Pt, c: Pt, f: number): Pt {
+  return scaleAroundCenter(p, c, f)
+}
+
+function scalePathData(d: string, c: Pt, f: number): string {
+  return transformPathData(d, (x, y) => {
+    const p = scaleAroundCenter({ x, y }, c, f)
+    return [p.x, p.y]
+  })
+}
+
+function flipPt(p: Pt, axis: 'x' | 'y', c: Pt): Pt {
+  return axis === 'x' ? { x: 2 * c.x - p.x, y: p.y } : { x: p.x, y: 2 * c.y - p.y }
+}
+
+function flipPathData(d: string, axis: 'x' | 'y', c: Pt): string {
+  return transformPathData(d, (x, y) => {
+    const p = flipPt({ x, y }, axis, c)
+    return [p.x, p.y]
+  })
+}
+
+/** Shared path-data walker for the generator subset (absolute M/L/C/Z). */
+function transformPathData(d: string, map: (x: number, y: number) => [number, number]): string {
+  return d.replaceAll(/([MLCZ])([^MLCZ]*)/g, (_, cmd: string, args: string) => {
+    if (cmd === 'Z') return cmd
+    const nums = args
+      .trim()
+      .split(/[\s,]+/)
+      .filter((s) => s !== '')
+      .map(Number)
+    const out: string[] = []
+    for (let i = 0; i < nums.length; i += 2) {
+      const x = nums[i]
+      const y = nums[i + 1]
+      if (y === undefined || Number.isNaN(x) || Number.isNaN(y)) {
+        out.push(String(x))
+        break
+      }
+      const [tx, ty] = map(x, y)
+      out.push(`${fmt(tx)} ${fmt(ty)}`)
+    }
+    return `${cmd}${out.join(' ')}`
+  })
+}

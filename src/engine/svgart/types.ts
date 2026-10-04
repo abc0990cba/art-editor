@@ -23,14 +23,15 @@ export interface BBox {
 /**
  * Parametric shapes; rotation is in degrees around `cx`. `poly` holds absolute points (star faces,
  * polygons); `path` is a free contour with its on-curve anchors kept for hit-testing and
- * transforms.
+ * transforms. `evenodd` marks contours with counter-oriented subpaths (rings) — serialized as
+ * `fill-rule="evenodd"` (AI-safe).
  */
 export type Shape =
   | { kind: 'rect'; cx: Pt; w: number; h: number; radius: number; rotation: number }
   | { kind: 'ellipse'; cx: Pt; rx: number; ry: number; rotation: number }
   | { kind: 'star'; cx: Pt; R: number; r: number; points: number; rotation: number }
   | { kind: 'poly'; points: Pt[] }
-  | { kind: 'path'; d: string; anchors: Pt[] }
+  | { kind: 'path'; d: string; anchors: Pt[]; evenodd?: boolean }
 
 export interface GradStop {
   /** 0..1 position along the gradient axis. */

@@ -5,12 +5,23 @@
 
 export { hexColor, mustHex, rgbToHex } from './color.ts'
 export { paintCompat } from './compat.ts'
-export { dragHandle, rotateLayer, translateLayer, translatePathData } from './edit.ts'
+export {
+  alignLayer,
+  dragHandle,
+  flipLayer,
+  mirroredCopy,
+  rotateLayer,
+  rotatedCopies,
+  scaleLayer,
+  translateLayer,
+  translatePathData,
+} from './edit.ts'
 export {
   blobShape,
   mulberry32,
   num,
   pointsBBox,
+  ringShape,
   shapeBBox,
   shapePath,
   smoothClosedPath,
@@ -27,7 +38,17 @@ export {
 } from './hit.ts'
 export { oklabLightness, oklabToRgb, rgbToOklab } from './oklab.ts'
 export { normalizePaint, normalizeScene, normalizeShape, paintPreviewHex } from './normalize.ts'
-export { mixColor, paintToCss, rampStops, sortStops, stopAlphaAt, stopColorAt } from './paint.ts'
+export {
+  mixColor,
+  paintToCss,
+  rampFromColors,
+  rampStops,
+  reverseStops,
+  evenStops,
+  sortStops,
+  stopAlphaAt,
+  stopColorAt,
+} from './paint.ts'
 export { FORBIDDEN_RE, sceneToSvg } from './serialize.ts'
 export { softSpotLayer } from './softlayers.ts'
 export {

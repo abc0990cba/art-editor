@@ -1,11 +1,12 @@
 import type { ReactElement } from 'react'
 
 import {
-  hexColor,
+  evenStops,
   mustHex,
   paintCompat,
   paintToCss,
-  rgbToHex,
+  rampFromColors,
+  reverseStops,
   shapeBBox,
   type GradStop,
   type Paint,
@@ -13,13 +14,16 @@ import {
   type SvgLayer,
 } from '../../engine/svgart/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { Chip, Section, Slider } from '../../shared/ui/index.tsx'
+import { Chip, Section } from '../../shared/ui/index.tsx'
 import { useStore } from '../../state/editor.store.ts'
+import { PaintEditor } from './svgart-paint-editor.component.tsx'
+import { STOP_RAMPS } from './svgart-ramps.util.ts'
 
 /**
  * The selected layer's fill stack: solid/linear/radial paints painted bottom-to-top, each clipped
- * to the layer shape. Every effect here is AI-safe; the badge marks the radial focus (the one
- * "verify in your Illustrator" construct, see docs/research/ai-import.md).
+ * to the layer shape. Adds reorder/duplicate, stop quick operations (reverse/even) and one-tap
+ * palette ramps. Every effect here is AI-safe; the badge marks the radial focus (the one "verify in
+ * your Illustrator" construct, see docs/research/ai-import.md).
  */
 export function SvgArtFillEditor(): ReactElement | null {
   const { t } = useI18n()
@@ -29,14 +33,10 @@ export function SvgArtFillEditor(): ReactElement | null {
   const select = useStore((s) => s.selectSvgArtLayer)
   const layer = scene.layers.find((l) => l.id === selection.layerId)
   if (!layer) return null
+  const selectedFill = layer.fills[selection.fillIndex]
 
   const patchLayer = (next: SvgLayer): void => {
     updateScene((s) => ({ ...s, layers: s.layers.map((l) => (l.id === layer.id ? next : l)) }))
-  }
-  const patchFill = (index: number, paint: Paint): void => {
-    const fills = layer.fills.slice()
-    fills[index] = paint
-    patchLayer({ ...layer, fills })
   }
   const addFill = (kind: 'solid' | 'linear' | 'radial'): void => {
     const bb = shapeBBox(layer.shape)
@@ -73,6 +73,39 @@ export function SvgArtFillEditor(): ReactElement | null {
     patchLayer({ ...layer, fills: layer.fills.filter((_, i) => i !== index) })
     select(layer.id, 0)
   }
+  const duplicateFill = (index: number): void => {
+    const copy = structuredCloneFill(layer.fills[index])
+    if (!copy) return
+    const fills = layer.fills.slice()
+    fills.splice(index + 1, 0, copy)
+    patchLayer({ ...layer, fills })
+    select(layer.id, index + 1)
+  }
+  const moveFill = (index: number, delta: 1 | -1): void => {
+    const j = index + delta
+    if (j < 0 || j >= layer.fills.length) return
+    const fills = [...layer.fills]
+    const [moved] = fills.splice(index, 1)
+    if (moved === undefined) return
+    fills.splice(j, 0, moved)
+    patchLayer({ ...layer, fills })
+    select(layer.id, j)
+  }
+  const patchFill = (index: number, paint: Paint): void => {
+    const fills = layer.fills.slice()
+    fills[index] = paint
+    patchLayer({ ...layer, fills })
+  }
+  const applyStopOp = (op: 'reverse' | 'even'): void => {
+    if (!selectedFill || selectedFill.kind === 'solid') return
+    const stops =
+      op === 'reverse' ? reverseStops(selectedFill.stops) : evenStops(selectedFill.stops)
+    patchFill(selection.fillIndex, { ...selectedFill, stops })
+  }
+  const applyRamp = (colors: RGB[]): void => {
+    if (!selectedFill || selectedFill.kind === 'solid') return
+    patchFill(selection.fillIndex, { ...selectedFill, stops: rampFromColors(colors, 1) })
+  }
 
   return (
     <Section title={t('svgart.fill.section')} icon="color" defaultOpen>
@@ -83,7 +116,12 @@ export function SvgArtFillEditor(): ReactElement | null {
             paint={paint}
             layer={layer}
             active={selection.fillIndex === i}
+            first={i === 0}
+            last={i === layer.fills.length - 1}
             onSelect={() => select(layer.id, i)}
+            onUp={() => moveFill(i, 1)}
+            onDown={() => moveFill(i, -1)}
+            onDuplicate={() => duplicateFill(i)}
             onRemove={() => removeFill(i)}
           />
         ))}
@@ -93,27 +131,76 @@ export function SvgArtFillEditor(): ReactElement | null {
         <Chip onClick={() => addFill('linear')}>+ {t('svgart.fill.linear')}</Chip>
         <Chip onClick={() => addFill('radial')}>+ {t('svgart.fill.radial')}</Chip>
       </div>
-      {layer.fills[selection.fillIndex] && (
-        <PaintEditor
-          paint={layer.fills[selection.fillIndex] as Paint}
-          onChange={(paint) => patchFill(selection.fillIndex, paint)}
-        />
+      {selectedFill && (
+        <>
+          <PaintEditor
+            paint={selectedFill}
+            onChange={(paint) => patchFill(selection.fillIndex, paint)}
+          />
+          {selectedFill.kind !== 'solid' && (
+            <div className="border-line flex flex-col gap-1 border-t pt-2">
+              <div className="flex flex-wrap gap-1">
+                <Chip onClick={() => applyStopOp('reverse')} title={t('svgart.fill.reverse.desc')}>
+                  {t('svgart.fill.reverse')}
+                </Chip>
+                <Chip onClick={() => applyStopOp('even')} title={t('svgart.fill.even.desc')}>
+                  {t('svgart.fill.even')}
+                </Chip>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {STOP_RAMPS.map((ramp) => (
+                  <button
+                    key={ramp.id}
+                    type="button"
+                    onClick={() => applyRamp(ramp.colors)}
+                    title={t(`svgart.ramp.${ramp.id}` as 'svgart.ramp.sunset')}
+                    className="border-line h-7 w-10 shrink-0 overflow-hidden rounded-md border"
+                    aria-label={t(`svgart.ramp.${ramp.id}` as 'svgart.ramp.sunset')}
+                  >
+                    <span
+                      className="block h-full w-full"
+                      style={{
+                        background: `linear-gradient(90deg, ${ramp.colors.map((c, i) => `${paintToCss({ kind: 'solid', color: c, alpha: 1 })} ${(i / (ramp.colors.length - 1)) * 100}%`).join(', ')})`,
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </Section>
   )
+}
+
+function structuredCloneFill(paint: Paint | undefined): Paint | null {
+  if (!paint) return null
+  if (paint.kind === 'solid') return { ...paint }
+  return { ...paint, stops: paint.stops.map((s) => ({ ...s, color: { ...s.color } })) }
 }
 
 function FillRow({
   paint,
   layer,
   active,
+  first,
+  last,
   onSelect,
+  onUp,
+  onDown,
+  onDuplicate,
   onRemove,
 }: {
   paint: Paint
   layer: SvgLayer
   active: boolean
+  first: boolean
+  last: boolean
   onSelect: () => void
+  onUp: () => void
+  onDown: () => void
+  onDuplicate: () => void
   onRemove: () => void
 }): ReactElement {
   const { t } = useI18n()
@@ -144,6 +231,32 @@ function FillRow({
         </span>
         <button
           type="button"
+          onClick={onUp}
+          disabled={last}
+          className="text-muted hover:text-body flex h-6 w-5 shrink-0 items-center justify-center rounded text-xs transition disabled:opacity-40"
+          aria-label={t('svgart.fill.up')}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          onClick={onDown}
+          disabled={first}
+          className="text-muted hover:text-body flex h-6 w-5 shrink-0 items-center justify-center rounded text-xs transition disabled:opacity-40"
+          aria-label={t('svgart.fill.down')}
+        >
+          ↓
+        </button>
+        <button
+          type="button"
+          onClick={onDuplicate}
+          className="text-muted hover:text-body flex h-6 w-5 shrink-0 items-center justify-center rounded text-xs transition"
+          aria-label={t('svgart.fill.duplicate')}
+        >
+          ⧉
+        </button>
+        <button
+          type="button"
           onClick={onRemove}
           className="text-muted flex h-6 w-6 shrink-0 items-center justify-center rounded transition hover:text-red-400"
           aria-label={t('svgart.fill.delete')}
@@ -153,207 +266,4 @@ function FillRow({
       </div>
     </div>
   )
-}
-
-/** Editor of one paint: alpha, color (solid) or the stop list (gradients). */
-function PaintEditor({
-  paint,
-  onChange,
-}: {
-  paint: Paint
-  onChange: (p: Paint) => void
-}): ReactElement {
-  const { t } = useI18n()
-  if (paint.kind === 'solid') {
-    return (
-      <div className="border-line flex flex-col gap-2 border-t pt-2">
-        <ColorField
-          label={t('svgart.fill.color')}
-          color={paint.color}
-          onChange={(color) => onChange({ ...paint, color })}
-        />
-        <AlphaSlider
-          label={t('svgart.fill.alpha')}
-          alpha={paint.alpha}
-          onChange={(alpha) => onChange({ ...paint, alpha })}
-        />
-      </div>
-    )
-  }
-  const setStops = (stops: GradStop[]): void => onChange({ ...paint, stops })
-  return (
-    <div className="border-line flex flex-col gap-2 border-t pt-2">
-      {paint.kind === 'radial' && (
-        <UnitsChips units={paint.units} onChange={(units) => onChange({ ...paint, units })} />
-      )}
-      {sortStopsForEdit(paint.stops).map((s, i) => (
-        <StopRow
-          key={i}
-          stop={s}
-          onChange={(next) => setStops(paint.stops.map((old) => (old === s ? next : old)))}
-          onRemove={() => setStops(paint.stops.filter((old) => old !== s))}
-          canRemove={paint.stops.length > 2}
-        />
-      ))}
-      <Chip
-        onClick={() =>
-          setStops([...paint.stops, { offset: 1, color: midColor(paint.stops), alpha: 1 }])
-        }
-      >
-        + {t('svgart.fill.stop.add')}
-      </Chip>
-      <AlphaSlider
-        label={t('svgart.fill.alpha')}
-        alpha={paint.alpha}
-        onChange={(alpha) => onChange({ ...paint, alpha })}
-      />
-    </div>
-  )
-}
-
-function UnitsChips({
-  units,
-  onChange,
-}: {
-  units: 'user' | 'bbox'
-  onChange: (u: 'user' | 'bbox') => void
-}): ReactElement {
-  const { t } = useI18n()
-  return (
-    <div className="flex gap-1">
-      <Chip
-        active={units === 'bbox'}
-        onClick={() => onChange('bbox')}
-        title={t('svgart.fill.bbox.desc')}
-      >
-        {t('svgart.fill.bbox')}
-      </Chip>
-      <Chip
-        active={units === 'user'}
-        onClick={() => onChange('user')}
-        title={t('svgart.fill.user.desc')}
-      >
-        {t('svgart.fill.user')}
-      </Chip>
-    </div>
-  )
-}
-
-function StopRow({
-  stop,
-  onChange,
-  onRemove,
-  canRemove,
-}: {
-  stop: GradStop
-  onChange: (s: GradStop) => void
-  onRemove: () => void
-  canRemove: boolean
-}): ReactElement {
-  const { t } = useI18n()
-  return (
-    <div className="flex items-center gap-1.5">
-      <input
-        type="color"
-        value={rgbToHex(stop.color)}
-        onChange={(e) => onChange({ ...stop, color: hexColor(e.target.value) ?? stop.color })}
-        className="border-line h-7 w-9 shrink-0 cursor-pointer rounded border bg-none p-0"
-        aria-label={t('svgart.fill.color')}
-      />
-      <input
-        type="number"
-        min={0}
-        max={1}
-        step={0.01}
-        value={stop.offset}
-        onChange={(e) => onChange({ ...stop, offset: clamp01(Number(e.target.value)) })}
-        className="border-line bg-chip text-body h-7 w-14 rounded border px-1 text-xs outline-none max-lg:min-h-11"
-        aria-label={t('svgart.fill.offset')}
-      />
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.01}
-        value={stop.alpha}
-        onChange={(e) => onChange({ ...stop, alpha: clamp01(Number(e.target.value)) })}
-        className="accent-accent-line min-w-0 flex-1"
-        aria-label={t('svgart.fill.stopAlpha')}
-      />
-      {canRemove ? (
-        <button
-          type="button"
-          onClick={onRemove}
-          className="text-muted flex h-6 w-6 shrink-0 items-center justify-center rounded transition hover:text-red-400"
-          aria-label={t('svgart.fill.stop.delete')}
-        >
-          ✕
-        </button>
-      ) : (
-        <span className="w-6 shrink-0" />
-      )}
-    </div>
-  )
-}
-
-function ColorField({
-  label,
-  color,
-  onChange,
-}: {
-  label: string
-  color: RGB
-  onChange: (c: RGB) => void
-}): ReactElement {
-  return (
-    <label className="flex items-center gap-2">
-      <input
-        type="color"
-        value={rgbToHex(color)}
-        onChange={(e) => onChange(hexColor(e.target.value) ?? color)}
-        className="border-line h-7 w-9 shrink-0 cursor-pointer rounded border bg-none p-0"
-        aria-label={label}
-      />
-      <span className="text-muted text-xs">{label}</span>
-    </label>
-  )
-}
-
-function AlphaSlider({
-  label,
-  alpha,
-  onChange,
-}: {
-  label: string
-  alpha: number
-  onChange: (a: number) => void
-}): ReactElement {
-  return (
-    <Slider
-      label={label}
-      value={Math.round(alpha * 100)}
-      min={0}
-      max={100}
-      onChange={(v) => onChange(v / 100)}
-    />
-  )
-}
-
-function sortStopsForEdit(stops: GradStop[]): GradStop[] {
-  return [...stops].sort((a, b) => a.offset - b.offset)
-}
-
-function midColor(stops: GradStop[]): RGB {
-  const first = stops[0]?.color
-  const last = stops[stops.length - 1]?.color
-  if (first === undefined || last === undefined) return mustHex('#808080')
-  return {
-    r: (first.r + last.r) / 2,
-    g: (first.g + last.g) / 2,
-    b: (first.b + last.b) / 2,
-  }
-}
-
-function clamp01(v: number): number {
-  return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0
 }

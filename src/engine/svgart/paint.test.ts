@@ -2,7 +2,17 @@ import { describe, expect, it } from 'vitest'
 
 import { mustHex } from './index.ts'
 import { rgbToOklab } from './index.ts'
-import { mixColor, paintToCss, rampStops, sortStops, stopAlphaAt, stopColorAt } from './index.ts'
+import {
+  evenStops,
+  mixColor,
+  paintToCss,
+  rampFromColors,
+  rampStops,
+  reverseStops,
+  sortStops,
+  stopAlphaAt,
+  stopColorAt,
+} from './index.ts'
 import type { GradStop } from './index.ts'
 
 const ORANGE = mustHex('#ff8000')
@@ -109,5 +119,31 @@ describe('paintToCss (editor stop bars)', () => {
     expect(paintToCss(bboxPaint, bbox)).toContain('circle at 50.0% 50.0%')
     const userPaint = { ...bboxPaint, units: 'user', cx: 100, cy: 50 } as const
     expect(paintToCss(userPaint, bbox)).toContain('circle at 50.0% 50.0%')
+  })
+})
+
+describe('stop quick operations', () => {
+  it('reverseStops mirrors offsets and keeps colors attached', () => {
+    const r = reverseStops(STOPS)
+    expect(r[0]?.offset).toBeCloseTo(0.2, 5)
+    expect(r[0]?.color).toEqual(PURPLE)
+    expect(r[1]?.offset).toBeCloseTo(0.8, 5)
+    expect(r[1]?.color).toEqual(ORANGE)
+  })
+
+  it('evenStops redistributes offsets only', () => {
+    const e = evenStops([
+      { offset: 0.1, color: ORANGE, alpha: 1 },
+      { offset: 0.2, color: PURPLE, alpha: 0.5 },
+      { offset: 0.9, color: ORANGE, alpha: 1 },
+    ])
+    expect(e.map((s) => s.offset)).toEqual([0, 0.5, 1])
+    expect(e[1]?.color).toEqual(PURPLE)
+  })
+
+  it('rampFromColors lays one stop per color', () => {
+    const r = rampFromColors([ORANGE, PURPLE, ORANGE])
+    expect(r.map((s) => s.offset)).toEqual([0, 0.5, 1])
+    expect(r[2]?.color).toEqual(ORANGE)
   })
 })

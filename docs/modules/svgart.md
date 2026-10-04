@@ -20,7 +20,7 @@ no worker — serialization is cheap.
 | [`src/engine/svgart/paint.ts`](../../src/engine/svgart/paint.ts) | stop evaluation (pad semantics), `rampStops` (sRGB/OKLab), CSS previews for the stop bars |
 | [`src/engine/svgart/figures.ts`](../../src/engine/svgart/figures.ts) | parametric contours → absolute path `d`; rotations baked (ellipse = 4 kappa cubics) |
 | [`src/engine/svgart/hit.ts`](../../src/engine/svgart/hit.ts) | point-in-shape (even-odd), `fillHandles` (axis/center/rim/focus), `topLayerAt` |
-| [`src/engine/svgart/edit.ts`](../../src/engine/svgart/edit.ts) | pure edit ops: translate/rotate layers (incl. path-data transforms), `dragHandle` |
+| [`src/engine/svgart/edit.ts`](../../src/engine/svgart/edit.ts) | pure edit ops: translate/rotate/scale/flip/align layers, radial-repeat & mirror copies, ring-aware path-data transforms, `dragHandle` |
 | [`src/engine/svgart/serialize.ts`](../../src/engine/svgart/serialize.ts) | `sceneToSvg` — the AI-safe output; `FORBIDDEN_RE` pins the contract |
 | [`src/engine/svgart/softlayers.ts`](../../src/engine/svgart/softlayers.ts) | glow/shadow/highlight as ellipses with radial `stop-opacity` falloffs (the star_v3 technique) |
 | [`src/engine/svgart/light.ts`](../../src/engine/svgart/light.ts) | 2.5D light bake: face brightness `ambient + strength·(1−ambient)·max(0, cos Δ)`, light-aligned axes |
@@ -52,10 +52,16 @@ soft layers. `sphereScene` is one bbox radial with an offset focus + contact sha
 `auroraScene` stacks seeded soft spots. All output is plain layers — no runtime re-generation.
 
 **Editing.** The stage converts pointer events to scene coordinates through the fitted stage
-rect (`fitInto`) and calls pure engine ops: `translateLayer`/`rotateLayer` (path `d` included —
-`translatePathData`/`rotatePathData` cover the generator's absolute M/L/C/Z subset) and
-`dragHandle` (bbox-fraction radials map through `shapeBBox`). Fill/stop editing happens with
-immutable updaters through `updateSvgArtScene`.
+rect (`fitInto`) and streams pure engine ops from the `useStageDrag` hook: `translateLayer`/
+`rotateLayer`/`scaleLayer` (path `d` included — the `*PathData` walkers cover the generator's
+absolute M/L/C/Z subset; scale gestures scale an untouched snapshot so every frame is absolute)
+and `dragHandle` (bbox-fraction radials map through `shapeBBox`). Quick actions in the shape
+panel compose the same ops: duplicate, flips, center-align, front/back, radial repeat
+(`rotatedCopies` ×4/6/8/12 around the scene center), mirrored copies. Rings are one path with
+counter-oriented circles cut by `fill-rule="evenodd"` (Illustrator keeps compound paths live).
+Stops have reverse/distribute ops plus palette ramps; the scene background is a plain paint
+editable in the same PaintEditor as fills. Studio hotkeys (inputs and dialogs excluded):
+arrows nudge (Shift ×10), Delete removes the layer, Cmd/Ctrl+D duplicates, Escape deselects.
 
 ## Feature & persistence
 

@@ -25,7 +25,9 @@ export function sceneToSvg(scene: SvgScene): string {
   scene.layers.forEach((layer, li) => {
     if (!layer.visible || layer.fills.length === 0) return
     const d = shapePath(layer.shape)
-    const marks = layer.fills.map((paint, fi) => paintOn(paint, d, defs, `g${li}f${fi}`))
+    const rule =
+      layer.shape.kind === 'path' && layer.shape.evenodd === true ? ' fill-rule="evenodd"' : ''
+    const marks = layer.fills.map((paint, fi) => paintOn(paint, d, defs, `g${li}f${fi}`, rule))
     if (layer.opacity < 1) body.push(`<g opacity="${num(layer.opacity)}">`, ...marks, '</g>')
     else body.push(...marks)
   })
@@ -40,10 +42,10 @@ function rectPathData(w: number, h: number): string {
   return `M0 0H${num(w)}V${num(h)}H0Z`
 }
 
-function paintOn(paint: Paint, d: string, defs: string[], id: string): string {
+function paintOn(paint: Paint, d: string, defs: string[], id: string, rule = ''): string {
   const fill = fillRef(paint, defs, id)
   const alpha = paint.alpha < 1 ? ` fill-opacity="${num(paint.alpha)}"` : ''
-  return `<path d="${d}" fill="${fill}"${alpha}/>`
+  return `<path d="${d}" fill="${fill}"${rule}${alpha}/>`
 }
 
 function fillRef(paint: Paint, defs: string[], id: string): string {

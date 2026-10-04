@@ -1,32 +1,18 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 
 import {
-  dragHandle,
   fillHandles,
-  nearestHandle,
-  rotateLayer,
   sceneToSvg,
   shapeBBox,
   shapeCenter,
   shapePath,
-  topLayerAt,
-  translateLayer,
   type Handle,
-  type HandleId,
   type Pt,
   type Shape,
+  type SvgLayer,
 } from '../../engine/svgart/index.ts'
 import { useStore } from '../../state/editor.store.ts'
-
-/** One active pointer gesture in scene coordinates. */
-interface Drag {
-  kind: 'move' | 'rotate' | 'handle'
-  layerId: string
-  fillIndex: number
-  handle?: HandleId
-  last: Pt
-  lastAngle: number
-}
+import { useStageDrag } from './use-stage-drag.hook.ts'
 
 /** Fitted stage rectangle (scene scaled into the host box, centered). */
 interface Fit {
@@ -39,7 +25,8 @@ interface Fit {
 
 /**
  * The studio stage: the exact serialized SVG (what leaves to Illustrator), plus a selection overlay
- * with canvas handles — shape move/rotate, linear axis ends, radial center/rim/focus.
+ * with canvas handles — shape move/rotate/scale, linear axis ends, radial center/rim/focus. Gesture
+ * logic lives in `useStageDrag`; this component owns sizing/rendering.
  */
 export function SvgArtStage(): ReactElement {
   const scene = useStore((s) => s.svgartScene)
@@ -48,7 +35,6 @@ export function SvgArtStage(): ReactElement {
   const select = useStore((s) => s.selectSvgArtLayer)
   const hostRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
-  const drag = useRef<Drag | null>(null)
   const [host, setHost] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
 
   useLayoutEffect(() => {
@@ -62,13 +48,14 @@ export function SvgArtStage(): ReactElement {
 
   const svg = useMemo(() => sceneToSvg(scene), [scene])
   const fit = fitInto(host.w, host.h, scene.width, scene.height)
-  const selected = scene.layers.find((l) => l.id === selection.layerId) ?? null
+  const selected: SvgLayer | null = scene.layers.find((l) => l.id === selection.layerId) ?? null
   const selectedFill = selected?.fills[selection.fillIndex]
   const handles = useMemo(
     () => (selected && selectedFill ? fillHandles(selected.shape, selectedFill) : []),
     [selected, selectedFill],
   )
   const arm = selected ? rotateArm(selected.shape, scene) : null
+  const scaleAt = selected ? scaleKnob(selected.shape) : null
 
   const toScene = (e: React.PointerEvent): Pt => {
     const box = stageRef.current?.getBoundingClientRect()
@@ -78,93 +65,18 @@ export function SvgArtStage(): ReactElement {
       y: ((e.clientY - box.top) / box.height) * scene.height,
     }
   }
-
-  const onPointerDown = (e: React.PointerEvent): void => {
-    if (drag.current !== null) return
-    e.currentTarget.setPointerCapture(e.pointerId)
-    const p = toScene(e)
-    const tol = 14 / (fit.scale || 1)
-    const handle = selected ? nearestHandle(handles, p, tol) : null
-    if (handle && selected) {
-      drag.current = {
-        kind: 'handle',
-        layerId: selected.id,
-        fillIndex: selection.fillIndex,
-        handle: handle.id,
-        last: p,
-        lastAngle: 0,
-      }
-      return
-    }
-    if (selected && arm && Math.hypot(arm.x - p.x, arm.y - p.y) <= tol) {
-      const c = shapeCenter(selected.shape)
-      drag.current = {
-        kind: 'rotate',
-        layerId: selected.id,
-        fillIndex: selection.fillIndex,
-        last: p,
-        lastAngle: Math.atan2(p.y - c.y, p.x - c.x),
-      }
-      return
-    }
-    const hit = topLayerAt(scene, p)
-    if (hit) {
-      select(hit.id)
-      drag.current = {
-        kind: 'move',
-        layerId: hit.id,
-        fillIndex: selection.fillIndex,
-        last: p,
-        lastAngle: 0,
-      }
-    } else {
-      select(null)
-    }
-  }
-
-  const onPointerMove = (e: React.PointerEvent): void => {
-    const d = drag.current
-    if (d === null) return
-    const p = toScene(e)
-    if (d.kind === 'move') {
-      const dx = p.x - d.last.x
-      const dy = p.y - d.last.y
-      d.last = p
-      updateScene((s) => ({
-        ...s,
-        layers: s.layers.map((l) => (l.id === d.layerId ? translateLayer(l, dx, dy) : l)),
-      }))
-      return
-    }
-    if (d.kind === 'rotate') {
-      const layer = scene.layers.find((l) => l.id === d.layerId)
-      if (!layer) return
-      const c = shapeCenter(layer.shape)
-      const angle = Math.atan2(p.y - c.y, p.x - c.x)
-      let delta = ((angle - d.lastAngle) * 180) / Math.PI
-      if (delta > 180) delta -= 360
-      if (delta < -180) delta += 360
-      d.lastAngle = angle
-      updateScene((s) => ({
-        ...s,
-        layers: s.layers.map((l) => (l.id === d.layerId ? rotateLayer(l, delta) : l)),
-      }))
-      return
-    }
-    if (d.handle !== undefined) {
-      const handle = d.handle
-      updateScene((s) => ({
-        ...s,
-        layers: s.layers.map((l) =>
-          l.id === d.layerId ? dragHandle(l, d.fillIndex, handle, p) : l,
-        ),
-      }))
-    }
-  }
-
-  const endDrag = (): void => {
-    drag.current = null
-  }
+  const gestures = useStageDrag({
+    scene,
+    selected,
+    fitScale: fit.scale,
+    fillIndex: selection.fillIndex,
+    handles,
+    arm,
+    scaleAt,
+    toScene,
+    updateScene,
+    select,
+  })
 
   return (
     <div ref={hostRef} className="bg-app relative min-h-0 flex-1 overflow-hidden">
@@ -173,35 +85,41 @@ export function SvgArtStage(): ReactElement {
           ref={stageRef}
           className="absolute touch-none shadow-[0_0_0_1px_var(--line)]"
           style={{ left: fit.left, top: fit.top, width: fit.width, height: fit.height }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
+          {...gestures}
         >
           <div
             className="[&>svg]:block [&>svg]:h-full [&>svg]:w-full"
             dangerouslySetInnerHTML={{ __html: svg }}
           />
-          <StageOverlay scene={scene} fit={fit} selected={selected} arm={arm} handles={handles} />
+          <StageOverlay
+            scene={scene}
+            fit={fit}
+            selected={selected}
+            arm={arm}
+            handles={handles}
+            scaleAt={scaleAt}
+          />
         </div>
       )}
     </div>
   )
 }
 
-/** Selection outline, rotation arm and the gradient handle knobs (pure overlay, no events). */
+/** Selection outline, rotation arm, scale knob and gradient handle knobs (overlay, no events). */
 function StageOverlay({
   scene,
   fit,
   selected,
   arm,
   handles,
+  scaleAt,
 }: {
   scene: { width: number; height: number }
   fit: Fit
   selected: { shape: Shape } | null
   arm: Pt | null
   handles: Handle[]
+  scaleAt: Pt | null
 }): ReactElement {
   const pct = (p: Pt): { left: string; top: string } => ({
     left: `${(p.x / scene.width) * 100}%`,
@@ -239,6 +157,12 @@ function StageOverlay({
           style={pct(arm)}
         />
       )}
+      {selected && scaleAt && (
+        <span
+          className="border-accent-line bg-panel absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-sm border-2"
+          style={pct(scaleAt)}
+        />
+      )}
       {handles.map((h) => (
         <HandleKnob key={h.id} at={h.at} pct={pct} dark={h.id === 'radial-focus'} />
       ))}
@@ -263,6 +187,12 @@ function HandleKnob({
       style={pct(at)}
     />
   )
+}
+
+/** Scale knob: the bottom-right corner of the shape's enclosing box. */
+function scaleKnob(shape: Shape): Pt {
+  const bb = shapeBBox(shape)
+  return { x: bb.x + bb.w, y: bb.y + bb.h }
 }
 
 /** Rotation arm tip: above the shape's enclosing box. */

@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
 import { mustHex } from './index.ts'
-import { dragHandle, rotateLayer, translateLayer, translatePathData } from './index.ts'
+import {
+  alignLayer,
+  dragHandle,
+  flipLayer,
+  mirroredCopy,
+  rotateLayer,
+  rotatedCopies,
+  scaleLayer,
+  translateLayer,
+  translatePathData,
+} from './index.ts'
 import type { SvgLayer } from './index.ts'
 
 const rectLayer: SvgLayer = {
@@ -137,5 +147,58 @@ describe('dragHandle', () => {
 describe('translatePathData', () => {
   it('passes Z through and keeps command structure', () => {
     expect(translatePathData('M0 0L10 0Z', 1, 2)).toBe('M1 2L11 2Z')
+  })
+})
+
+describe('scaleLayer', () => {
+  it('scales parametric dims around the own center', () => {
+    const scaled = scaleLayer(rectLayer, 2)
+    expect(scaled.shape.kind === 'rect' && scaled.shape.w).toBe(80)
+    expect(scaled.shape.kind === 'rect' && scaled.shape.h).toBe(40)
+    expect(scaled.shape.kind === 'rect' && scaled.shape.cx).toEqual({ x: 100, y: 100 })
+  })
+
+  it('scales polygon points around an explicit pivot', () => {
+    const scaled = scaleLayer(polyLayer, 2, { x: 0, y: 0 })
+    expect(scaled.shape.kind === 'poly' && scaled.shape.points[1]).toEqual({ x: 20, y: 0 })
+  })
+})
+
+describe('flipLayer', () => {
+  it('mirrors parametric rotation around the own center', () => {
+    const tilted: SvgLayer = {
+      ...rectLayer,
+      shape: { kind: 'rect', cx: { x: 100, y: 100 }, w: 40, h: 20, radius: 4, rotation: 30 },
+    }
+    const flipped = flipLayer(tilted, 'x')
+    expect(flipped.shape.kind === 'rect' && flipped.shape.rotation).toBe(-30)
+  })
+
+  it('mirrors polygon x coordinates around the pivot', () => {
+    const flipped = flipLayer(polyLayer, 'x', { x: 5, y: 5 })
+    expect(flipped.shape.kind === 'poly' && flipped.shape.points[1]).toEqual({ x: 0, y: 0 })
+  })
+})
+
+describe('alignLayer', () => {
+  it('moves the layer center onto the target', () => {
+    const aligned = alignLayer(rectLayer, { x: 0, y: 0 })
+    expect(aligned.shape.kind === 'rect' && aligned.shape.cx).toEqual({ x: 0, y: 0 })
+  })
+})
+
+describe('rotatedCopies and mirroredCopy', () => {
+  it('makes count rotated copies with stepped angles and unique ids', () => {
+    const copies = rotatedCopies(rectLayer, 4, { x: 0, y: 0 })
+    expect(copies).toHaveLength(4)
+    expect(copies[0]?.id).toBe('r-r1')
+    // The pivot sits at the rect center, so the shape only turns in place.
+    expect(copies[1]?.shape.kind === 'rect' && copies[1].shape.rotation).toBe(180)
+  })
+
+  it('appends a mirrored twin', () => {
+    const twin = mirroredCopy(polyLayer, 'x', { x: 0, y: 0 })
+    expect(twin.id).toBe('p-m')
+    expect(twin.shape.kind === 'poly' && twin.shape.points[1]).toEqual({ x: -10, y: 0 })
   })
 })

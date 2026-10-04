@@ -3,7 +3,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { mustHex } from './index.ts'
+import { mustHex, ringShape } from './index.ts'
 import { FORBIDDEN_RE, sceneToSvg } from './index.ts'
 import { softSpotLayer } from './index.ts'
 import { starScene } from './index.ts'
@@ -156,6 +156,27 @@ describe('sceneToSvg markup', () => {
     expect(svg).not.toContain('<defs>')
     expect(svg).not.toContain('<path')
     expect(svg).toContain('<svg')
+  })
+
+  it('emits fill-rule evenodd for ring paths', () => {
+    const scene: SvgScene = {
+      width: 100,
+      height: 100,
+      background: null,
+      layers: [
+        {
+          id: 'ring',
+          name: 'Ring',
+          visible: true,
+          opacity: 1,
+          shape: ringShape({ x: 50, y: 50 }, 30, 12),
+          fills: [{ kind: 'solid', color: WHITE, alpha: 1 }],
+        },
+      ],
+    }
+    const svg = sceneToSvg(scene)
+    expect(svg).toContain('fill-rule="evenodd"')
+    assertAiSafe(svg)
   })
 
   it('emits no defs when only solid paints exist', () => {

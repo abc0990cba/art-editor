@@ -127,3 +127,25 @@ function rgba(c: RGB, alpha: number): string {
   const a = Math.round(clamp01(alpha) * 100) / 100
   return `rgba(${to(c.r)}, ${to(c.g)}, ${to(c.b)}, ${a})`
 }
+
+/** Reverse a stop list: order flips, offsets mirror to 1−o (colors/alphas ride along). */
+export function reverseStops(stops: GradStop[]): GradStop[] {
+  return sortStops(stops)
+    .slice()
+    .reverse()
+    .map((s) => ({ ...s, offset: clamp01(1 - s.offset) }))
+}
+
+/** Keep each stop's color/alpha but redistribute offsets evenly across 0..1. */
+export function evenStops(stops: GradStop[]): GradStop[] {
+  const s = sortStops(stops)
+  if (s.length <= 1) return s
+  return s.map((stop, i) => ({ ...stop, offset: i / (s.length - 1) }))
+}
+
+/** Even multi-color ramp (one stop per color); the browser mixes each segment linearly. */
+export function rampFromColors(colors: RGB[], alpha = 1): GradStop[] {
+  const list = colors.length > 0 ? colors : [{ r: 0, g: 0, b: 0 }]
+  if (list.length === 1) return [{ offset: 0, color: list[0]!, alpha }]
+  return list.map((color, i) => ({ offset: i / (list.length - 1), color, alpha }))
+}

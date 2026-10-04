@@ -48,6 +48,16 @@
 - [ ] 6.1 Empty states, mobile 44px targets, design-review pass
 - [x] 6.2 `docs/architecture/engine-map.md` row + `docs/modules/svgart.md`
 
+## 8. Rich editing pass (follow-up, same capability)
+
+- [x] 8.1 Engine: `scaleLayer`/`flipShape`/`alignLayer`/`rotatedCopies`/`mirroredCopy`, ring shape
+      (`fill-rule="evenodd"`), stop ops (`reverseStops`/`evenStops`/`rampFromColors`) — tests
+- [x] 8.2 Quick actions per layer (duplicate, flips, center, front/back, radial repeat ×4/6/8/12,
+      mirrored copy), editable X/Y + scale slider, canvas scale knob
+- [x] 8.3 Fill stack reorder/duplicate, stop reverse/distribute, 6 palette ramps
+- [x] 8.4 Scene background editor (none/solid/linear/radial); N-gon + ring factories
+- [x] 8.5 Studio hotkeys: arrows nudge (Shift ×10), Delete, Cmd/Ctrl+D duplicate, Escape deselect
+
 ## 7. Deferred (follow-up changes)
 
 - [ ] 7.1 SVG import/parsing (edit studio-authored or gen3-style files in-app)

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 
 import { sceneToSvg, TEMPLATE_IDS, type TemplateId } from '../../engine/svgart/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
@@ -7,8 +7,10 @@ import { Chip } from '../../shared/ui/index.tsx'
 import { MobileSheet } from '../../shared/ui/mobile-sheet.component.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
 import { useStore } from '../../state/editor.store.ts'
+import { SvgArtBackgroundPanel } from './svgart-background-panel.component.tsx'
 import { SvgArtFillEditor } from './svgart-fill-editor.component.tsx'
 import { SvgArtLayersPanel } from './svgart-layers-panel.component.tsx'
+import { duplicateLayer, nudgeLayer, removeLayerById, withUniqueIds } from './svgart-ops.util.ts'
 import { SvgArtShapePanel } from './svgart-shape-panel.component.tsx'
 import { SvgArtStage } from './svgart-stage.component.tsx'
 
@@ -28,6 +30,7 @@ export function SvgArtWorkspace(): ReactElement {
 
   const svg = useMemo(() => sceneToSvg(scene), [scene])
   const kb = Math.max(1, Math.round(new Blob([svg]).size / 1024))
+  useStudioHotkeys()
 
   const exportSvg = (): void => {
     download(new Blob([svg], { type: 'image/svg+xml' }), `svgart-${stamp()}.svg`)
@@ -86,6 +89,7 @@ export function SvgArtWorkspace(): ReactElement {
         <SvgArtLayersPanel />
         <SvgArtShapePanel />
         <SvgArtFillEditor />
+        <SvgArtBackgroundPanel />
       </aside>
 
       {panelOpen && (
@@ -94,6 +98,7 @@ export function SvgArtWorkspace(): ReactElement {
             <SvgArtLayersPanel />
             <SvgArtShapePanel />
             <SvgArtFillEditor />
+            <SvgArtBackgroundPanel />
           </div>
         </MobileSheet>
       )}
@@ -111,6 +116,58 @@ export function SvgArtWorkspace(): ReactElement {
       {codeOpen && <CodeDialog svg={svg} onClose={() => setCodeOpen(false)} />}
     </div>
   )
+}
+
+/**
+ * Studio keyboard shortcuts, active while the studio workspace is mounted: arrows nudge the
+ * selected layer (Shift = ×10), Delete removes it, Cmd/Ctrl+D duplicates, Escape deselects. Inputs
+ * and open dialogs are excluded (the global editor convention).
+ */
+function useStudioHotkeys(): void {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null
+      if (target) {
+        const tag = target.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable)
+          return
+        if (target.closest('[role="dialog"]')) return
+      }
+      const s = useStore.getState()
+      if (s.boundEntry?.kind !== 'svgart') return
+      const id = s.svgartSelection.layerId
+      const step = e.shiftKey ? 10 : 1
+      const nudges: Record<string, [number, number]> = {
+        ArrowLeft: [-step, 0],
+        ArrowRight: [step, 0],
+        ArrowUp: [0, -step],
+        ArrowDown: [0, step],
+      }
+      const nudge = nudges[e.key]
+      if (nudge !== undefined && id !== null) {
+        e.preventDefault()
+        const [dx, dy] = nudge
+        s.updateSvgArtScene((scene) => nudgeLayer(scene, id, dx, dy))
+        return
+      }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && id !== null) {
+        e.preventDefault()
+        s.updateSvgArtScene((scene) => removeLayerById(scene, id))
+        s.selectSvgArtLayer(null)
+        return
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd' && id !== null) {
+        e.preventDefault()
+        const { scene: next, newId } = duplicateLayer(s.svgartScene, id)
+        s.updateSvgArtScene(() => withUniqueIds(next))
+        s.selectSvgArtLayer(newId, 0)
+        return
+      }
+      if (e.key === 'Escape') s.selectSvgArtLayer(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 }
 
 /** Template re-apply: replaces the whole scene, so the dialog warns before the four buttons. */
