@@ -6,11 +6,12 @@ import { download, stamp } from '../../shared/lib/file-download.util.ts'
 import { Chip } from '../../shared/ui/index.tsx'
 import { MobileSheet } from '../../shared/ui/mobile-sheet.component.tsx'
 import { Dialog, DialogContent, DialogTitle } from '../../shared/ui/shadcn/dialog.tsx'
-import { useStore } from '../../state/editor.store.ts'
+import { redo, undo, useCanUndoRedo, useStore } from '../../state/editor.store.ts'
+import { selectedIds } from '../../state/svgart.slice.ts'
 import { SvgArtBackgroundPanel } from './svgart-background-panel.component.tsx'
 import { SvgArtFillEditor } from './svgart-fill-editor.component.tsx'
 import { SvgArtLayersPanel } from './svgart-layers-panel.component.tsx'
-import { duplicateLayer, nudgeLayer, removeLayerById, withUniqueIds } from './svgart-ops.util.ts'
+import { duplicateLayers, nudgeLayers, removeLayersById, withUniqueIds } from './svgart-ops.util.ts'
 import { SvgArtShapePanel } from './svgart-shape-panel.component.tsx'
 import { SvgArtStage } from './svgart-stage.component.tsx'
 
@@ -22,14 +23,18 @@ import { SvgArtStage } from './svgart-stage.component.tsx'
 export function SvgArtWorkspace(): ReactElement {
   const { t } = useI18n()
   const scene = useStore((s) => s.svgartScene)
+  const profile = useStore((s) => s.svgartProfile)
+  const setProfile = useStore((s) => s.setSvgArtProfile)
   const applyTemplate = useStore((s) => s.applySvgArtTemplate)
+  const { canUndo, canRedo } = useCanUndoRedo()
   const [panelOpen, setPanelOpen] = useState(false)
   const [codeOpen, setCodeOpen] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const svg = useMemo(() => sceneToSvg(scene), [scene])
+  const svg = useMemo(() => sceneToSvg(scene, { profile }), [scene, profile])
   const kb = Math.max(1, Math.round(new Blob([svg]).size / 1024))
+  const blendCount = scene.layers.filter((l) => l.visible && l.blend !== undefined).length
   useStudioHotkeys()
 
   const exportSvg = (): void => {
@@ -48,39 +53,20 @@ export function SvgArtWorkspace(): ReactElement {
   return (
     <div className="relative flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="border-line flex h-10 shrink-0 items-center gap-2 overflow-x-auto border-b px-2 max-lg:h-14">
-          <Chip
-            className="shrink-0 max-lg:min-h-11 max-lg:text-sm"
-            onClick={() => setTemplateOpen(true)}
-            title={t('svgart.template.desc')}
-          >
-            {t('svgart.template')}
-          </Chip>
-          <span className="text-muted text-overline hidden shrink-0 md:inline">
-            {scene.layers.length} · {kb} KB
-          </span>
-          <div className="ml-auto flex shrink-0 items-center gap-1">
-            <Chip
-              className="shrink-0 max-lg:min-h-11 max-lg:text-sm"
-              onClick={() => setCodeOpen(true)}
-            >
-              {t('svgart.code')}
-            </Chip>
-            <Chip
-              className="shrink-0 max-lg:min-h-11 max-lg:text-sm"
-              onClick={exportSvg}
-              title={t('svgart.exportSvg.desc')}
-            >
-              {t('svgart.exportSvg')}
-            </Chip>
-            <Chip
-              className="shrink-0 max-lg:min-h-11 max-lg:text-sm"
-              onClick={() => void copySvg()}
-            >
-              {copied ? t('svgart.copied') : t('svgart.copySvg')}
-            </Chip>
-          </div>
-        </div>
+        <StudioToolbar
+          blendCount={blendCount}
+          canRedo={canRedo}
+          canUndo={canUndo}
+          copied={copied}
+          kb={kb}
+          layerCount={scene.layers.length}
+          onCopy={() => void copySvg()}
+          onExport={exportSvg}
+          onOpenCode={() => setCodeOpen(true)}
+          onOpenTemplate={() => setTemplateOpen(true)}
+          onToggleProfile={() => setProfile(profile === 'ai' ? 'browser' : 'ai')}
+          profile={profile}
+        />
         <SvgArtStage />
         <MobileParamsBar onOpen={() => setPanelOpen(true)} />
       </div>
@@ -126,16 +112,10 @@ export function SvgArtWorkspace(): ReactElement {
 function useStudioHotkeys(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      const target = e.target as HTMLElement | null
-      if (target) {
-        const tag = target.tagName
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable)
-          return
-        if (target.closest('[role="dialog"]')) return
-      }
+      if (isBlockedTarget(e.target)) return
       const s = useStore.getState()
       if (s.boundEntry?.kind !== 'svgart') return
-      const id = s.svgartSelection.layerId
+      const ids = selectedIds(s.svgartSelection)
       const step = e.shiftKey ? 10 : 1
       const nudges: Record<string, [number, number]> = {
         ArrowLeft: [-step, 0],
@@ -144,23 +124,23 @@ function useStudioHotkeys(): void {
         ArrowDown: [0, step],
       }
       const nudge = nudges[e.key]
-      if (nudge !== undefined && id !== null) {
+      if (nudge !== undefined && ids.length > 0) {
         e.preventDefault()
         const [dx, dy] = nudge
-        s.updateSvgArtScene((scene) => nudgeLayer(scene, id, dx, dy))
+        s.updateSvgArtScene((scene) => nudgeLayers(scene, ids, dx, dy))
         return
       }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && id !== null) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && ids.length > 0) {
         e.preventDefault()
-        s.updateSvgArtScene((scene) => removeLayerById(scene, id))
+        s.updateSvgArtScene((scene) => removeLayersById(scene, ids))
         s.selectSvgArtLayer(null)
         return
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd' && id !== null) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd' && ids.length > 0) {
         e.preventDefault()
-        const { scene: next, newId } = duplicateLayer(s.svgartScene, id)
+        const { scene: next, newIds } = duplicateLayers(s.svgartScene, ids)
         s.updateSvgArtScene(() => withUniqueIds(next))
-        s.selectSvgArtLayer(newId, 0)
+        s.selectSvgArtLayer(newIds.at(-1) ?? null, 0)
         return
       }
       if (e.key === 'Escape') s.selectSvgArtLayer(null)
@@ -281,5 +261,100 @@ function CodeDialog({ svg, onClose }: { svg: string; onClose: () => void }): Rea
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** Workspace toolbar: template, undo/redo, export profile (with blend warning), code/export/copy. */
+function StudioToolbar({
+  blendCount,
+  canRedo,
+  canUndo,
+  copied,
+  kb,
+  layerCount,
+  onCopy,
+  onExport,
+  onOpenCode,
+  onOpenTemplate,
+  onToggleProfile,
+  profile,
+}: {
+  blendCount: number
+  canRedo: boolean
+  canUndo: boolean
+  copied: boolean
+  kb: number
+  layerCount: number
+  onCopy: () => void
+  onExport: () => void
+  onOpenCode: () => void
+  onOpenTemplate: () => void
+  onToggleProfile: () => void
+  profile: 'ai' | 'browser'
+}): ReactElement {
+  const { t } = useI18n()
+  const cls = 'shrink-0 max-lg:min-h-11 max-lg:text-sm'
+  return (
+    <div className="border-line flex h-10 shrink-0 items-center gap-2 overflow-x-auto border-b px-2 max-lg:h-14">
+      <Chip className={cls} onClick={onOpenTemplate} title={t('svgart.template.desc')}>
+        {t('svgart.template')}
+      </Chip>
+      <Chip
+        className={cls}
+        disabled={!canUndo}
+        onClick={() => undo()}
+        title={`${t('svgart.undo')} (⌘Z)`}
+      >
+        ↶
+      </Chip>
+      <Chip
+        className={cls}
+        disabled={!canRedo}
+        onClick={() => redo()}
+        title={`${t('svgart.redo')} (⇧⌘Z)`}
+      >
+        ↷
+      </Chip>
+      <Chip
+        className={cls}
+        active={profile === 'browser'}
+        onClick={onToggleProfile}
+        title={t('svgart.profile.desc')}
+      >
+        {profile === 'ai' ? t('svgart.profile.ai') : t('svgart.profile.browser')}
+      </Chip>
+      {blendCount > 0 && profile === 'ai' && (
+        <span className="text-overline shrink-0 text-amber-500" title={t('svgart.profile.warn')}>
+          ⚠ {blendCount}
+        </span>
+      )}
+      <span className="text-muted text-overline hidden shrink-0 md:inline">
+        {layerCount} · {kb} KB
+      </span>
+      <div className="ml-auto flex shrink-0 items-center gap-1">
+        <Chip className={cls} onClick={onOpenCode}>
+          {t('svgart.code')}
+        </Chip>
+        <Chip className={cls} onClick={onExport} title={t('svgart.exportSvg.desc')}>
+          {t('svgart.exportSvg')}
+        </Chip>
+        <Chip className={cls} onClick={onCopy}>
+          {copied ? t('svgart.copied') : t('svgart.copySvg')}
+        </Chip>
+      </div>
+    </div>
+  )
+}
+
+/** Inputs and open dialogs own the keyboard; the studio shortcuts must not steal it. */
+function isBlockedTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  const tag = target.tagName
+  return (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SELECT' ||
+    target.isContentEditable ||
+    target.closest('[role="dialog"]') !== null
   )
 }

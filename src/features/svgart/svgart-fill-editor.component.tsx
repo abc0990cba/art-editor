@@ -2,6 +2,7 @@ import type { ReactElement } from 'react'
 
 import {
   evenStops,
+  jitterStops,
   mustHex,
   paintCompat,
   paintToCss,
@@ -106,6 +107,13 @@ export function SvgArtFillEditor(): ReactElement | null {
     if (!selectedFill || selectedFill.kind === 'solid') return
     patchFill(selection.fillIndex, { ...selectedFill, stops: rampFromColors(colors, 1) })
   }
+  const jitter = (): void => {
+    if (!selectedFill || selectedFill.kind === 'solid') return
+    patchFill(selection.fillIndex, {
+      ...selectedFill,
+      stops: jitterStops(selectedFill.stops, 0.05, Math.floor(Math.random() * 2 ** 31)),
+    })
+  }
 
   return (
     <Section title={t('svgart.fill.section')} icon="color" defaultOpen>
@@ -138,39 +146,73 @@ export function SvgArtFillEditor(): ReactElement | null {
             onChange={(paint) => patchFill(selection.fillIndex, paint)}
           />
           {selectedFill.kind !== 'solid' && (
-            <div className="border-line flex flex-col gap-1 border-t pt-2">
-              <div className="flex flex-wrap gap-1">
-                <Chip onClick={() => applyStopOp('reverse')} title={t('svgart.fill.reverse.desc')}>
-                  {t('svgart.fill.reverse')}
-                </Chip>
-                <Chip onClick={() => applyStopOp('even')} title={t('svgart.fill.even.desc')}>
-                  {t('svgart.fill.even')}
-                </Chip>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {STOP_RAMPS.map((ramp) => (
-                  <button
-                    key={ramp.id}
-                    type="button"
-                    onClick={() => applyRamp(ramp.colors)}
-                    title={t(`svgart.ramp.${ramp.id}` as 'svgart.ramp.sunset')}
-                    className="border-line h-7 w-10 shrink-0 overflow-hidden rounded-md border"
-                    aria-label={t(`svgart.ramp.${ramp.id}` as 'svgart.ramp.sunset')}
-                  >
-                    <span
-                      className="block h-full w-full"
-                      style={{
-                        background: `linear-gradient(90deg, ${ramp.colors.map((c, i) => `${paintToCss({ kind: 'solid', color: c, alpha: 1 })} ${(i / (ramp.colors.length - 1)) * 100}%`).join(', ')})`,
-                      }}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
+            <StopsQuickOps
+              onEven={() => applyStopOp('even')}
+              onJitter={jitter}
+              onRamp={applyRamp}
+              onReverse={() => applyStopOp('reverse')}
+            />
           )}
         </>
       )}
     </Section>
+  )
+}
+
+/** Reverse / distribute / grain chips plus the palette-ramp swatches (gradient fills only). */
+function StopsQuickOps({
+  onEven,
+  onJitter,
+  onRamp,
+  onReverse,
+}: {
+  onEven: () => void
+  onJitter: () => void
+  onRamp: (colors: RGB[]) => void
+  onReverse: () => void
+}): ReactElement {
+  const { t } = useI18n()
+  return (
+    <div className="border-line flex flex-col gap-1 border-t pt-2">
+      <div className="flex flex-wrap gap-1">
+        <Chip onClick={onReverse} title={t('svgart.fill.reverse.desc')}>
+          {t('svgart.fill.reverse')}
+        </Chip>
+        <Chip onClick={onEven} title={t('svgart.fill.even.desc')}>
+          {t('svgart.fill.even')}
+        </Chip>
+        <Chip onClick={onJitter} title={t('svgart.fill.jitter.desc')}>
+          {t('svgart.fill.jitter')}
+        </Chip>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {STOP_RAMPS.map((ramp) => {
+          const label = t(`svgart.ramp.${ramp.id}` as 'svgart.ramp.sunset')
+          return (
+            <button
+              key={ramp.id}
+              type="button"
+              onClick={() => onRamp(ramp.colors)}
+              title={label}
+              aria-label={label}
+              className="border-line h-7 w-10 shrink-0 overflow-hidden rounded-md border"
+            >
+              <span
+                className="block h-full w-full"
+                style={{
+                  background: `linear-gradient(90deg, ${ramp.colors
+                    .map(
+                      (c, i) =>
+                        `${paintToCss({ kind: 'solid', color: c, alpha: 1 })} ${(i / (ramp.colors.length - 1)) * 100}%`,
+                    )
+                    .join(', ')})`,
+                }}
+              />
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 

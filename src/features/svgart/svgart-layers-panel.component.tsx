@@ -20,6 +20,7 @@ export function SvgArtLayersPanel(): ReactElement {
   const scene = useStore((s) => s.svgartScene)
   const selection = useStore((s) => s.svgartSelection)
   const select = useStore((s) => s.selectSvgArtLayer)
+  const toggle = useStore((s) => s.toggleSvgArtLayer)
   const updateScene = useStore((s) => s.updateSvgArtScene)
 
   const addLayer = (layer: SvgLayer): void => {
@@ -56,8 +57,10 @@ export function SvgArtLayersPanel(): ReactElement {
           <LayerRow
             key={layer.id}
             layer={layer}
-            active={selection.layerId === layer.id}
-            onSelect={() => select(layer.id, 0)}
+            active={selection.layerId === layer.id || selection.extraIds.includes(layer.id)}
+            onSelect={(additive) =>
+              additive && selection.layerId !== null ? toggle(layer.id) : select(layer.id, 0)
+            }
             onToggleVisible={() => patchLayer(layer.id, { visible: !layer.visible })}
             onUp={() => moveLayer(layer.id, 1)}
             onDown={() => moveLayer(layer.id, -1)}
@@ -103,7 +106,8 @@ function LayerRow({
 }: {
   layer: SvgLayer
   active: boolean
-  onSelect: () => void
+  /** `additive` (Cmd/Ctrl-click) toggles the layer inside the multi-selection. */
+  onSelect: (additive: boolean) => void
   onToggleVisible: () => void
   onUp: () => void
   onDown: () => void
@@ -126,7 +130,7 @@ function LayerRow({
       </button>
       <button
         type="button"
-        onClick={onSelect}
+        onClick={(e) => onSelect(e.metaKey || e.ctrlKey)}
         className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
       >
         <span

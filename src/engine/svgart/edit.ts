@@ -330,3 +330,31 @@ function transformPathData(d: string, map: (x: number, y: number) => [number, nu
     return `${cmd}${out.join(' ')}`
   })
 }
+
+/**
+ * Drag one gradient stop on the canvas: the pointer is projected onto the paint's axis (the p1→p2
+ * segment for linear, the center→rim ray for radial) and the stop takes the projected offset. Other
+ * stops keep their offsets.
+ */
+export function dragStopHandle(shape: Shape, paint: Paint, index: number, at: Pt): Paint {
+  if (paint.kind === 'solid') return paint
+  const stop = paint.stops[index]
+  if (stop === undefined) return paint
+  let a: Pt
+  let b: Pt
+  if (paint.kind === 'linear') {
+    a = paint.p1
+    b = paint.p2
+  } else {
+    const bb = shapeBBox(shape)
+    a = { x: bb.x + paint.cx * bb.w, y: bb.y + paint.cy * bb.h }
+    b = { x: bb.x + (paint.cx + paint.r) * bb.w, y: bb.y + paint.cy * bb.h }
+  }
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const len2 = dx * dx + dy * dy
+  const t = len2 < 1e-9 ? 0 : ((at.x - a.x) * dx + (at.y - a.y) * dy) / len2
+  const offset = Math.min(1, Math.max(0, t))
+  const stops = paint.stops.map((s, i) => (i === index ? { ...s, offset } : s))
+  return { ...paint, stops }
+}

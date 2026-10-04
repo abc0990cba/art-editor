@@ -8,6 +8,7 @@ export { paintCompat } from './compat.ts'
 export {
   alignLayer,
   dragHandle,
+  dragStopHandle,
   flipLayer,
   mirroredCopy,
   rotateLayer,
@@ -32,9 +33,10 @@ export {
   nearestHandle,
   pointInShape,
   shapeCenter,
+  stopTicks,
   topLayerAt,
   type Handle,
-  type HandleId,
+  type StopTick,
 } from './hit.ts'
 export { oklabLightness, oklabToRgb, rgbToOklab } from './oklab.ts'
 export { normalizePaint, normalizeScene, normalizeShape, paintPreviewHex } from './normalize.ts'
@@ -42,6 +44,7 @@ export {
   mixColor,
   paintToCss,
   rampFromColors,
+  jitterStops,
   rampStops,
   reverseStops,
   evenStops,
@@ -49,7 +52,7 @@ export {
   stopAlphaAt,
   stopColorAt,
 } from './paint.ts'
-export { FORBIDDEN_RE, sceneToSvg } from './serialize.ts'
+export { FORBIDDEN_RE, sceneToSvg, type ExportProfile } from './serialize.ts'
 export { softSpotLayer } from './softlayers.ts'
 export {
   AURORA_DEFAULTS,
@@ -64,4 +67,4 @@ export {
   type TemplateId,
 } from './templates.ts'
 export type { RGB } from '../color/color.ts'
-export type { GradStop, Paint, Pt, Shape, SvgLayer, SvgScene } from './types.ts'
+export type { BBox, BlendMode, GradStop, Paint, Pt, Shape, SvgLayer, SvgScene } from './types.ts'

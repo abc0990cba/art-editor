@@ -55,13 +55,29 @@ soft layers. `sphereScene` is one bbox radial with an offset focus + contact sha
 rect (`fitInto`) and streams pure engine ops from the `useStageDrag` hook: `translateLayer`/
 `rotateLayer`/`scaleLayer` (path `d` included — the `*PathData` walkers cover the generator's
 absolute M/L/C/Z subset; scale gestures scale an untouched snapshot so every frame is absolute)
-and `dragHandle` (bbox-fraction radials map through `shapeBBox`). Quick actions in the shape
-panel compose the same ops: duplicate, flips, center-align, front/back, radial repeat
-(`rotatedCopies` ×4/6/8/12 around the scene center), mirrored copies. Rings are one path with
-counter-oriented circles cut by `fill-rule="evenodd"` (Illustrator keeps compound paths live).
-Stops have reverse/distribute ops plus palette ramps; the scene background is a plain paint
-editable in the same PaintEditor as fills. Studio hotkeys (inputs and dialogs excluded):
-arrows nudge (Shift ×10), Delete removes the layer, Cmd/Ctrl+D duplicates, Escape deselects.
+and `dragHandle` (bbox-fraction radials map through `shapeBBox`). **Multi-selection**: the
+selection is the primary layer plus `extraIds`; Shift-click toggles, an empty-space drag marquees
+(bbox intersection), and group moves/nudges/duplicates/flips/align/z-order act on the whole set
+from per-layer snapshots. **Snap guides**: while a group moves, its bbox edges/centers snap to
+the canvas center and to every other visible layer's lines within 8 screen px (guide lines render
+in the overlay). **On-canvas stops**: the selected gradient renders its stops as diamond ticks
+along its axis (`stopTicks`); dragging one projects the pointer back onto the axis
+(`dragStopHandle`). Quick actions in the shape panel compose the same ops: duplicate, flips,
+center-align, front/back, radial repeat (`rotatedCopies` ×4/6/8/12 around the scene center),
+mirrored copies. Rings are one path with counter-oriented circles cut by `fill-rule="evenodd"`
+(Illustrator keeps compound paths live). Stops also have reverse/distribute/jitter ops plus
+palette ramps; **jitterStops** bakes seeded OKLab noise into stop colors — the filter-free
+answer to gradient banding. The scene background is a plain paint editable in the same
+PaintEditor as fills. Studio hotkeys (inputs and dialogs excluded): arrows nudge (Shift ×10),
+Delete removes, Cmd/Ctrl+D duplicates, Escape deselects.
+
+**Undo and export profiles.** The studio scene rides the app's shared zundo history
+(`partialize` carries `svgartScene` beside the pixel `doc` — only one kind is active at a time),
+so ⌘Z/⇧⌘Z and the toolbar chips undo studio edits. `sceneToSvg` takes a profile: `ai` (default)
+is the Illustrator-safe subset enforced by `FORBIDDEN_RE`; `browser` additionally emits per-layer
+`mix-blend-mode` wrapped in one `isolation:isolate` group — Chrome/Firefox/Safari render exactly
+this, while the AI-safe profile drops blends and the toolbar warns how many layers would lose
+them. The live stage serializes with the active profile, so the preview always matches exports.
 
 ## Feature & persistence
 

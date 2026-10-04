@@ -18,9 +18,10 @@ import {
 } from './light.ts'
 import { rampStops } from './paint.ts'
 import { softSpotLayer } from './softlayers.ts'
+import { CUBE_DEFAULTS, CYLINDER_DEFAULTS, cubeScene, cylinderScene } from './templates-solid.ts'
 import type { GradStop, Paint, Pt, Shape, SvgLayer, SvgScene } from './types.ts'
 
-export type TemplateId = 'blank' | 'star' | 'sphere' | 'aurora'
+export type TemplateId = 'blank' | 'star' | 'sphere' | 'cube' | 'cylinder' | 'aurora'
 
 export interface StarOptions {
   size: number
@@ -87,7 +88,7 @@ export const AURORA_DEFAULTS: AuroraOptions = {
 }
 
 /** Registry entry for the creation dialog (labels live in i18n). */
-export const TEMPLATE_IDS: TemplateId[] = ['blank', 'star', 'sphere', 'aurora']
+export const TEMPLATE_IDS: TemplateId[] = ['blank', 'star', 'sphere', 'cube', 'cylinder', 'aurora']
 
 export function templateScene(id: TemplateId, size = 800): SvgScene {
   switch (id) {
@@ -95,6 +96,10 @@ export function templateScene(id: TemplateId, size = 800): SvgScene {
       return starScene({ ...STAR_DEFAULTS, size })
     case 'sphere':
       return sphereScene({ ...SPHERE_DEFAULTS, size })
+    case 'cube':
+      return cubeScene({ ...CUBE_DEFAULTS, size })
+    case 'cylinder':
+      return cylinderScene({ ...CYLINDER_DEFAULTS, size })
     case 'aurora':
       return auroraScene({ ...AURORA_DEFAULTS, size })
     case 'blank':

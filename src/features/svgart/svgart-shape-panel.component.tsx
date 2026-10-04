@@ -8,13 +8,15 @@ import {
   scaleLayer,
   shapeCenter,
   translateLayer,
+  type BlendMode,
   type Shape,
   type SvgLayer,
 } from '../../engine/svgart/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
-import { Section, Slider } from '../../shared/ui/index.tsx'
+import { Chip, Section, Slider } from '../../shared/ui/index.tsx'
 import { useStore } from '../../state/editor.store.ts'
-import { duplicateLayer, reorderLayer, withUniqueIds } from './svgart-ops.util.ts'
+import { selectedIds } from '../../state/svgart.slice.ts'
+import { duplicateLayers, reorderLayers, withUniqueIds } from './svgart-ops.util.ts'
 
 /**
  * Parameters of the selected studio layer: quick actions (duplicate, flips, align, z-order), name,
@@ -28,6 +30,7 @@ export function SvgArtShapePanel(): ReactElement | null {
   const updateScene = useStore((s) => s.updateSvgArtScene)
   const select = useStore((s) => s.selectSvgArtLayer)
   const layer = scene.layers.find((l) => l.id === selection.layerId)
+  const ids = selectedIds(selection)
   // Scale slider state is per-layer: moving the selection resets it to 100%.
   const scale = useRef({ id: '', value: 100 })
   if (!layer) return null
@@ -56,9 +59,14 @@ export function SvgArtShapePanel(): ReactElement | null {
     mapSelected((l) => translateLayer(l, x - c.x, y - c.y))
   }
   const duplicate = (): void => {
-    const { scene: next, newId } = duplicateLayer(scene, layer.id)
+    const { scene: next, newIds } = duplicateLayers(scene, ids)
     updateScene(() => withUniqueIds(next))
-    select(newId, 0)
+    select(newIds.at(-1) ?? null, 0)
+  }
+  /** Quick actions act on the whole selection; the panel fields stay on the primary. */
+  const mapAllSelected = (update: (l: SvgLayer) => SvgLayer): void => {
+    const set = new Set(ids)
+    updateScene((s) => ({ ...s, layers: s.layers.map((l) => (set.has(l.id) ? update(l) : l)) }))
   }
   const radialRepeat = (count: number): void => {
     const copies = rotatedCopies(layer, count, { x: scene.width / 2, y: scene.height / 2 })
@@ -76,43 +84,39 @@ export function SvgArtShapePanel(): ReactElement | null {
         <QuickAction
           label="↔"
           title={t('svgart.quick.flipH')}
-          onClick={() => mapSelected((l) => flipLayer(l, 'x'))}
+          onClick={() => mapAllSelected((l) => flipLayer(l, 'x'))}
         />
         <QuickAction
           label="↕"
           title={t('svgart.quick.flipV')}
-          onClick={() => mapSelected((l) => flipLayer(l, 'y'))}
+          onClick={() => mapAllSelected((l) => flipLayer(l, 'y'))}
         />
         <QuickAction
           label="⌖"
           title={t('svgart.quick.center')}
-          onClick={() => mapSelected((l) => alignLayer(l, sceneCenter))}
+          onClick={() => mapAllSelected((l) => alignLayer(l, sceneCenter))}
         />
         <QuickAction
           label="⤒"
           title={t('svgart.quick.front')}
-          onClick={() => updateScene((s) => withUniqueIds(reorderLayer(s, layer.id, 'front')))}
+          onClick={() => updateScene((s) => withUniqueIds(reorderLayers(s, ids, 'front')))}
         />
         <QuickAction
           label="⤓"
           title={t('svgart.quick.back')}
-          onClick={() => updateScene((s) => withUniqueIds(reorderLayer(s, layer.id, 'back')))}
+          onClick={() => updateScene((s) => withUniqueIds(reorderLayers(s, ids, 'back')))}
         />
       </div>
-      <div className="flex flex-wrap gap-1">
-        <span className="text-muted flex h-7 items-center text-xs max-lg:hidden">
-          {t('svgart.quick.repeat')}
-        </span>
-        {[4, 6, 8, 12].map((n) => (
-          <QuickAction
-            key={n}
-            label={`×${n}`}
-            title={`${t('svgart.quick.repeat')} ×${n}`}
-            onClick={() => radialRepeat(n)}
-          />
-        ))}
-        <QuickAction label="⇄" title={t('svgart.quick.mirror')} onClick={mirrorCopy} />
-      </div>
+      <RepeatRow onMirror={mirrorCopy} onRepeat={radialRepeat} />
+      <BlendChips
+        blend={layer.blend}
+        onChange={(blend) =>
+          updateScene((s) => ({
+            ...s,
+            layers: s.layers.map((l) => (ids.includes(l.id) ? { ...l, blend } : l)),
+          }))
+        }
+      />
       <label className="flex flex-col gap-1">
         <span className="text-muted text-xs">{t('svgart.layer.name')}</span>
         <input
@@ -289,5 +293,78 @@ function ShapeFields({
       />
       {rotation}
     </>
+  )
+}
+
+const BLEND_MODES: BlendMode[] = [
+  'multiply',
+  'screen',
+  'overlay',
+  'soft-light',
+  'hard-light',
+  'darken',
+  'lighten',
+]
+
+/** Per-layer blend mode; browser-only, so the chips carry the AI badge in their tooltip. */
+function BlendChips({
+  blend,
+  onChange,
+}: {
+  blend: BlendMode | undefined
+  onChange: (blend: BlendMode | undefined) => void
+}): ReactElement {
+  const { t } = useI18n()
+  return (
+    <div className="border-line flex flex-col gap-1 border-t pt-2">
+      <span className="text-muted text-xs">{t('svgart.blend.title')}</span>
+      <div className="flex flex-wrap gap-1">
+        <Chip
+          active={blend === undefined}
+          onClick={() => onChange(undefined)}
+          title={t('svgart.ai.safe')}
+        >
+          {t('svgart.blend.normal')}
+        </Chip>
+        {BLEND_MODES.map((mode) => (
+          <Chip
+            key={mode}
+            active={blend === mode}
+            onClick={() => onChange(mode)}
+            title={`${t('svgart.blend.browserOnly')} — ${mode}`}
+          >
+            {mode}
+          </Chip>
+        ))}
+      </div>
+      <span className="text-muted text-overline">{t('svgart.blend.note')}</span>
+    </div>
+  )
+}
+
+/** Radial-repeat preset counts around the scene center, plus a mirrored twin copy. */
+function RepeatRow({
+  onMirror,
+  onRepeat,
+}: {
+  onMirror: () => void
+  onRepeat: (count: number) => void
+}): ReactElement {
+  const { t } = useI18n()
+  return (
+    <div className="flex flex-wrap gap-1">
+      <span className="text-muted flex h-7 items-center text-xs max-lg:hidden">
+        {t('svgart.quick.repeat')}
+      </span>
+      {[4, 6, 8, 12].map((n) => (
+        <QuickAction
+          key={n}
+          label={`×${n}`}
+          title={`${t('svgart.quick.repeat')} ×${n}`}
+          onClick={() => onRepeat(n)}
+        />
+      ))}
+      <QuickAction label="⇄" title={t('svgart.quick.mirror')} onClick={onMirror} />
+    </div>
   )
 }

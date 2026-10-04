@@ -6,6 +6,7 @@
 
 import type { RGB } from '../color/color.ts'
 import { rgbToHex } from './color.ts'
+import { mulberry32 } from './figures.ts'
 import { clamp01, oklabToRgb, rgbToOklab } from './oklab.ts'
 import type { BBox, GradStop, Paint } from './types.ts'
 
@@ -148,4 +149,31 @@ export function rampFromColors(colors: RGB[], alpha = 1): GradStop[] {
   const list = colors.length > 0 ? colors : [{ r: 0, g: 0, b: 0 }]
   if (list.length === 1) return [{ offset: 0, color: list[0]!, alpha }]
   return list.map((color, i) => ({ offset: i / (list.length - 1), color, alpha }))
+}
+
+/**
+ * Bake grain into stop colors: per-stop OKLab jitter (seeded) between each stop and its neighbors'
+ * average. This is the filter-free answer to gradient banding — browsers interpolate linearly
+ * between stops, and slightly irregular stops break up the bands. AI-safe: plain sRGB stops out.
+ */
+export function jitterStops(stops: GradStop[], amount = 0.04, seed = 1): GradStop[] {
+  const s = sortStops(stops)
+  if (s.length < 2 || amount <= 0) return s
+  const rand = mulberry32(seed)
+  return s.map((stop, i) => {
+    const prev = s[Math.max(0, i - 1)]!
+    const next = s[Math.min(s.length - 1, i + 1)]!
+    const mid = mixColor(prev.color, next.color, 0.5, 'oklab')
+    const base = mixColor(stop.color, mid, 0.35, 'oklab')
+    const lab = rgbToOklab(base)
+    const j = (): number => (rand() - 0.5) * 2 * amount
+    return {
+      ...stop,
+      color: oklabToRgb({
+        L: clamp01(lab.L + j()),
+        a: lab.a + j(),
+        b: lab.b + j(),
+      }),
+    }
+  })
 }

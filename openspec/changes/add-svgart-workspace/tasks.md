@@ -58,6 +58,18 @@
 - [x] 8.4 Scene background editor (none/solid/linear/radial); N-gon + ring factories
 - [x] 8.5 Studio hotkeys: arrows nudge (Shift ×10), Delete, Cmd/Ctrl+D duplicate, Escape deselect
 
+## 9. Rich editing pass 2 (follow-up, same capability)
+
+- [x] 9.1 Undo/redo for the studio (scene rides the shared temporal history; toolbar chips + ⌘Z)
+- [x] 9.2 Multi-selection: Shift-click, rubber-band marquee, group move/nudge/duplicate/delete,
+      group flips/align/z-order; per-layer quick actions stay available
+- [x] 9.3 Smart snap guides (canvas center + other layers' bbox edges/centers) during group moves
+- [x] 9.4 Gradient stops as on-canvas handles (drag projects onto the paint axis)
+- [x] 9.5 Blend modes per layer with two export profiles: AI-safe (default, drops blends) and
+      Browser (mix-blend-mode + isolation); profile toggle with a dropped-blends warning
+- [x] 9.6 Stop grain: `jitterStops` bakes OKLab noise into stops (banding killer, AI-safe)
+- [x] 9.7 Templates: isometric cube and cylinder (light-shaded faces)
+
 ## 7. Deferred (follow-up changes)
 
 - [ ] 7.1 SVG import/parsing (edit studio-authored or gen3-style files in-app)

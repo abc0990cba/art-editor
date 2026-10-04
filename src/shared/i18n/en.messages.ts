@@ -994,6 +994,23 @@ export const en = {
   'svgart.exportSvg.desc': 'Download the serialized scene',
   'svgart.copySvg': 'Copy SVG',
   'svgart.copied': 'Copied',
+  'svgart.undo': 'Undo',
+  'svgart.redo': 'Redo',
+  'svgart.profile.ai': 'AI-safe',
+  'svgart.profile.browser': 'Browser',
+  'svgart.profile.desc':
+    'Export profile: AI-safe drops blend modes, Browser keeps mix-blend-mode with isolation',
+  'svgart.profile.warn':
+    'Blend layers are dropped in the AI-safe profile — switch to the Browser profile to keep them',
+  'svgart.blend.title': 'Blend mode',
+  'svgart.blend.normal': 'Normal',
+  'svgart.blend.browserOnly': 'Browser-only: Illustrator resets it on import',
+  'svgart.blend.note': 'Browser profile export keeps blends live; AI-safe export drops them',
+  'svgart.fill.jitter': 'Grain',
+  'svgart.fill.jitter.desc':
+    'Bake OKLab noise into the stops to break up gradient banding (AI-safe)',
+  'svgart.template.cube': 'Cube (light)',
+  'svgart.template.cylinder': 'Cylinder',
   'svgart.add.ngon': 'Polygon',
   'svgart.add.ring': 'Ring',
   'svgart.quick.duplicate': 'Duplicate layer',

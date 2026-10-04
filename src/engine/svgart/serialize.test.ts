@@ -158,6 +158,30 @@ describe('sceneToSvg markup', () => {
     expect(svg).toContain('<svg')
   })
 
+  it('drops blends in the ai profile and keeps them isolated in the browser profile', () => {
+    const blended: SvgScene = {
+      width: 100,
+      height: 100,
+      background: { kind: 'solid', color: WHITE, alpha: 1 },
+      layers: [
+        {
+          id: 'b',
+          name: 'B',
+          visible: true,
+          opacity: 1,
+          blend: 'screen',
+          shape: { kind: 'rect', cx: { x: 50, y: 50 }, w: 40, h: 40, radius: 0, rotation: 0 },
+          fills: [{ kind: 'solid', color: ORANGE, alpha: 1 }],
+        },
+      ],
+    }
+    const safe = sceneToSvg(blended)
+    expect(safe).not.toMatch(FORBIDDEN_RE)
+    const browser = sceneToSvg(blended, { profile: 'browser' })
+    expect(browser).toContain('mix-blend-mode:screen')
+    expect(browser).toContain('isolation:isolate')
+  })
+
   it('emits fill-rule evenodd for ring paths', () => {
     const scene: SvgScene = {
       width: 100,

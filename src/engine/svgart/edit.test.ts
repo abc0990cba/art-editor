@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { mustHex } from './index.ts'
 import {
   alignLayer,
+  dragStopHandle,
   dragHandle,
   flipLayer,
   mirroredCopy,
@@ -200,5 +201,54 @@ describe('rotatedCopies and mirroredCopy', () => {
     const twin = mirroredCopy(polyLayer, 'x', { x: 0, y: 0 })
     expect(twin.id).toBe('p-m')
     expect(twin.shape.kind === 'poly' && twin.shape.points[1]).toEqual({ x: -10, y: 0 })
+  })
+})
+
+describe('dragStopHandle', () => {
+  it('projects the pointer onto the linear axis and moves only that stop', () => {
+    const layer: SvgLayer = {
+      ...rectLayer,
+      fills: [
+        {
+          kind: 'linear',
+          p1: { x: 0, y: 0 },
+          p2: { x: 100, y: 0 },
+          stops: [
+            { offset: 0, color: mustHex('#ffffff'), alpha: 1 },
+            { offset: 1, color: mustHex('#000000'), alpha: 1 },
+          ],
+          alpha: 1,
+        },
+      ],
+    }
+    const paint = layer.fills[0]
+    const moved = dragStopHandle(layer.shape, paint!, 1, { x: 30, y: 40 })
+    expect(moved.kind === 'linear' && moved.stops[1]?.offset).toBeCloseTo(0.3, 5)
+    expect(moved.kind === 'linear' && moved.stops[0]?.offset).toBe(0)
+  })
+
+  it('clamps bbox radial projections into 0..1', () => {
+    const layer: SvgLayer = {
+      ...rectLayer,
+      fills: [
+        {
+          kind: 'radial',
+          units: 'bbox',
+          cx: 0.5,
+          cy: 0.5,
+          r: 0.25,
+          fx: null,
+          fy: null,
+          stops: [
+            { offset: 0, color: mustHex('#ffffff'), alpha: 1 },
+            { offset: 1, color: mustHex('#000000'), alpha: 1 },
+          ],
+          alpha: 1,
+        },
+      ],
+    }
+    const paint = layer.fills[0]
+    const moved = dragStopHandle(layer.shape, paint!, 1, { x: 500, y: 0 })
+    expect(moved.kind === 'radial' && moved.stops[1]?.offset).toBe(1)
   })
 })

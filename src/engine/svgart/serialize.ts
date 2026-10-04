@@ -9,14 +9,22 @@
 
 import { rgbToHex } from './color.ts'
 import { num, shapePath } from './figures.ts'
-import type { GradStop, Paint, SvgScene } from './types.ts'
+import type { GradStop, Paint, SvgLayer, SvgScene } from './types.ts'
+
+/**
+ * Export profiles. `ai` (default): the subset Illustrator opens as live vectors — blends dropped.
+ * `browser`: adds `mix-blend-mode` on layers that set it, wrapped in one isolation group so blends
+ * composite against the scene only (Chrome/Firefox/Safari render exactly this).
+ */
+export type ExportProfile = 'ai' | 'browser'
 
 /** Anything this regex matches must never appear in studio output (guarded by tests). */
 export const FORBIDDEN_RE =
   /gradientTransform|mix-blend-mode|<filter|<mask|<pattern|feGaussian|feDropShadow|feTurbulence|feDisplacement|spreadMethod="(?:reflect|repeat)"|\sfr=/
 
 /** Serialize the whole scene to a standalone SVG document. */
-export function sceneToSvg(scene: SvgScene): string {
+export function sceneToSvg(scene: SvgScene, opts: { profile?: ExportProfile } = {}): string {
+  const profile = opts.profile ?? 'ai'
   const defs: string[] = []
   const body: string[] = []
   if (scene.background) {
@@ -28,14 +36,30 @@ export function sceneToSvg(scene: SvgScene): string {
     const rule =
       layer.shape.kind === 'path' && layer.shape.evenodd === true ? ' fill-rule="evenodd"' : ''
     const marks = layer.fills.map((paint, fi) => paintOn(paint, d, defs, `g${li}f${fi}`, rule))
-    if (layer.opacity < 1) body.push(`<g opacity="${num(layer.opacity)}">`, ...marks, '</g>')
-    else body.push(...marks)
+    const blend = blendMarkup(layer, profile)
+    const opacity = layer.opacity < 1 ? `<g opacity="${num(layer.opacity)}">` : ''
+    const close = layer.opacity < 1 ? '</g>' : ''
+    body.push(...[blend.open, opacity, ...marks, close, blend.close].filter((part) => part !== ''))
   })
   const size = `viewBox="0 0 ${num(scene.width)} ${num(scene.height)}" width="${num(scene.width)}" height="${num(scene.height)}"`
   const parts = [`<svg xmlns="http://www.w3.org/2000/svg" ${size}>`]
   if (defs.length > 0) parts.push(`<defs>${defs.join('')}</defs>`)
-  parts.push(...body, '</svg>')
+  const isolating =
+    profile === 'browser' && scene.layers.some((l) => l.visible && l.blend !== undefined)
+  if (isolating) parts.push('<g style="isolation:isolate">')
+  parts.push(...body)
+  if (isolating) parts.push('</g>')
+  parts.push('</svg>')
   return parts.join('\n')
+}
+
+/** Browser profile: one blend wrapper per layer; the ai profile drops blends entirely. */
+function blendMarkup(
+  layer: Pick<SvgLayer, 'blend'>,
+  profile: ExportProfile,
+): { open: string; close: string } {
+  if (profile !== 'browser' || layer.blend === undefined) return { open: '', close: '' }
+  return { open: `<g style="mix-blend-mode:${layer.blend}">`, close: '</g>' }
 }
 
 function rectPathData(w: number, h: number): string {

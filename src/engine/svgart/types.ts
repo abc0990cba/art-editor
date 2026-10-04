@@ -64,6 +64,20 @@ export type Paint =
       alpha: number
     }
 
+/** Blend modes of the CSS compositing spec; browser-native, reset by Illustrator SVG import. */
+export type BlendMode =
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'darken'
+  | 'lighten'
+  | 'color-dodge'
+  | 'color-burn'
+  | 'hard-light'
+  | 'soft-light'
+  | 'difference'
+  | 'exclusion'
+
 /** One scene layer: a shape painted by its fill stack, each fill clipped to the shape. */
 export interface SvgLayer {
   id: string
@@ -74,6 +88,11 @@ export interface SvgLayer {
   shape: Shape
   /** Painted bottom-to-top. */
   fills: Paint[]
+  /**
+   * CSS mix-blend-mode against the layers below. Browser-only: the AI-safe profile drops it
+   * (Illustrator resets the property on import); the browser profile emits it with isolation.
+   */
+  blend?: BlendMode
 }
 
 export interface SvgScene {

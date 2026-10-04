@@ -95,7 +95,7 @@ describe('templateScene registry', () => {
       expect(scene.width).toBe(400)
       expect(scene.height).toBe(400)
     }
-    expect(TEMPLATE_IDS).toEqual(['blank', 'star', 'sphere', 'aurora'])
+    expect(TEMPLATE_IDS).toEqual(['blank', 'star', 'sphere', 'cube', 'cylinder', 'aurora'])
   })
 
   it('blank starts with a dark solid background and no layers', () => {
@@ -109,5 +109,31 @@ describe('templateScene registry', () => {
     expect(scene.layers.filter((l) => l.id.startsWith('face-'))).toHaveLength(12)
     const sphere = sphereScene({ ...SPHERE_DEFAULTS, size: 400 })
     expect(sphere.width).toBe(400)
+  })
+})
+
+describe('cube and cylinder templates', () => {
+  it('cube has three shaded faces and a floor shadow', () => {
+    const scene = templateScene('cube', 400)
+    const ids = scene.layers.map((l) => l.id)
+    expect(ids).toContain('face-top')
+    expect(ids).toContain('face-left')
+    expect(ids).toContain('face-right')
+    expect(ids).toContain('contact-shadow')
+    const svg = sceneToSvg(scene)
+    expect(svg).not.toMatch(FORBIDDEN_RE)
+  })
+
+  it('cylinder keeps the highlight toward the light', () => {
+    const scene = templateScene('cylinder', 400)
+    const body = scene.layers.find((l) => l.id === 'body')
+    const fill = body?.fills[0]
+    expect(fill?.kind).toBe('linear')
+    if (fill?.kind === 'linear') {
+      const highlight = fill.stops.reduce((a, b) => (b.offset < a.offset ? b : a))
+      void highlight
+      // Light from −60° → the bright band sits left of center.
+      expect(fill.stops.filter((s) => s.color.r > 0.9).length).toBeGreaterThan(0)
+    }
   })
 })

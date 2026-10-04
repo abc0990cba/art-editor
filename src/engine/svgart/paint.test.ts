@@ -4,6 +4,7 @@ import { mustHex } from './index.ts'
 import { rgbToOklab } from './index.ts'
 import {
   evenStops,
+  jitterStops,
   mixColor,
   paintToCss,
   rampFromColors,
@@ -139,6 +140,19 @@ describe('stop quick operations', () => {
     ])
     expect(e.map((s) => s.offset)).toEqual([0, 0.5, 1])
     expect(e[1]?.color).toEqual(PURPLE)
+  })
+
+  it('jitterStops perturbs colors but keeps offsets and stays deterministic', () => {
+    const stops = rampStops(ORANGE, PURPLE, 7, 'srgb')
+    const a = jitterStops(stops, 0.05, 42)
+    const b = jitterStops(stops, 0.05, 42)
+    expect(a).toEqual(b)
+    expect(a.map((s) => s.offset)).toEqual(stops.map((s) => s.offset))
+    expect(a.some((s, i) => s.color !== stops[i]?.color && s.color.r !== stops[i]?.color.r)).toBe(
+      true,
+    )
+    const untouched = jitterStops(stops, 0, 42)
+    expect(untouched).toEqual(stops)
   })
 
   it('rampFromColors lays one stop per color', () => {

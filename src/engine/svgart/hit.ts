@@ -113,3 +113,48 @@ export function shapeCenter(shape: Shape): Pt {
   const bb = shapeBBox(shape)
   return { x: bb.x + bb.w / 2, y: bb.y + bb.h / 2 }
 }
+
+/** A gradient stop rendered on the canvas: its index in the paint and its scene position. */
+export interface StopTick {
+  index: number
+  offset: number
+  at: Pt
+}
+
+/**
+ * Positions of the paint's stops along its axis: linear → the p1→p2 segment; radial → the ray from
+ * the center through the rim handle (user units or bbox fractions, mapped through the shape).
+ */
+export function stopTicks(shape: Shape, paint: Paint): StopTick[] {
+  if (paint.kind === 'solid') return []
+  const stops = [...paint.stops].sort((a, b) => a.offset - b.offset)
+  if (paint.kind === 'linear') {
+    return stops.map((s) => ({
+      index: paint.stops.indexOf(s),
+      offset: s.offset,
+      at: {
+        x: paint.p1.x + (paint.p2.x - paint.p1.x) * clampFrac(s.offset),
+        y: paint.p1.y + (paint.p2.y - paint.p1.y) * clampFrac(s.offset),
+      },
+    }))
+  }
+  const c = paintPoint(shape, paint.cx, paint.cy)
+  const rim = paintPoint(shape, paint.cx + paint.r, paint.cy)
+  return stops.map((s) => ({
+    index: paint.stops.indexOf(s),
+    offset: s.offset,
+    at: {
+      x: c.x + (rim.x - c.x) * clampFrac(s.offset),
+      y: c.y + (rim.y - c.y) * clampFrac(s.offset),
+    },
+  }))
+}
+
+function paintPoint(shape: Shape, fx: number, fy: number): Pt {
+  const bb = shapeBBox(shape)
+  return { x: bb.x + fx * bb.w, y: bb.y + fy * bb.h }
+}
+
+function clampFrac(v: number): number {
+  return v < 0 ? 0 : v > 1 ? 1 : v
+}

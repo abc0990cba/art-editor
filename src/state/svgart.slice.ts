@@ -1,26 +1,37 @@
 import {
   normalizeScene,
   templateScene,
+  type ExportProfile,
   type SvgScene,
   type TemplateId,
 } from '../engine/svgart/index.ts'
 import { saveProject, type SvgArtProjectEntry } from '../storage/projects.ts'
 import type { State } from './editor.store.ts'
 
-/** What the studio stage and panels have selected. */
+/**
+ * What the studio stage and panels have selected: the primary layer (`layerId`, the panels' edit
+ * target) plus `extraIds` — the rest of a multi-selection (Shift-click, marquee). The full set is
+ * `[layerId, ...extraIds]`.
+ */
 export interface SvgArtSelection {
   layerId: string | null
-  /** Index into the selected layer's fill stack. */
+  extraIds: string[]
+  /** Index into the primary layer's fill stack. */
   fillIndex: number
 }
 
-/** The SVG-studio slice: runtime host of the open studio project (outside undo history). */
+/** The SVG-studio slice: runtime host of the open studio project (undo history carries the scene). */
 export interface SvgArtSlice {
   svgartScene: SvgScene
   svgartSelection: SvgArtSelection
+  /** Serialization profile of the live stage and of exports: 'ai' (default) or 'browser'. */
+  svgartProfile: ExportProfile
   /** Immutable scene updater — the feature builds the next scene, the store just receives it. */
   updateSvgArtScene: (update: (scene: SvgScene) => SvgScene) => void
   selectSvgArtLayer: (layerId: string | null, fillIndex?: number) => void
+  /** Toggle one layer inside the multi-selection (Shift-click; keeps the primary if one exists). */
+  toggleSvgArtLayer: (layerId: string) => void
+  setSvgArtProfile: (profile: ExportProfile) => void
   /** Replace the scene with a fresh template (also the creation-dialog entry point). */
   applySvgArtTemplate: (id: TemplateId) => void
   /** Restore the workspace from the opened project's authored scene */
@@ -34,6 +45,11 @@ interface SliceApi {
 }
 
 const SAVE_THROTTLE_MS = 1500
+
+/** Full selection set from the slice shape. */
+export function selectedIds(selection: SvgArtSelection): string[] {
+  return selection.layerId === null ? [] : [selection.layerId, ...selection.extraIds]
+}
 
 /**
  * SVG-studio state and actions, composed into the main store — the gradient slice pattern. Every
@@ -49,23 +65,43 @@ export function createSvgArtSlice({ set, get }: SliceApi): SvgArtSlice {
   }
   return {
     svgartScene: templateScene('blank'),
-    svgartSelection: { layerId: null, fillIndex: 0 },
+    svgartSelection: { layerId: null, extraIds: [], fillIndex: 0 },
+    svgartProfile: 'ai',
 
     updateSvgArtScene: (update) => {
       set((s) => ({ svgartScene: update(s.svgartScene) }))
       saveSoon()
     },
     selectSvgArtLayer: (layerId, fillIndex = 0) => {
-      set({ svgartSelection: { layerId, fillIndex } })
+      set({ svgartSelection: { layerId, extraIds: [], fillIndex } })
     },
+    toggleSvgArtLayer: (layerId) => {
+      set((s) => {
+        const sel = s.svgartSelection
+        if (sel.layerId === layerId)
+          return { svgartSelection: { layerId: null, extraIds: [], fillIndex: 0 } }
+        if (sel.extraIds.includes(layerId)) {
+          return {
+            svgartSelection: { ...sel, extraIds: sel.extraIds.filter((id) => id !== layerId) },
+          }
+        }
+        const primary = sel.layerId ?? layerId
+        const extraIds = sel.layerId === null ? [] : [...sel.extraIds, layerId]
+        return { svgartSelection: { layerId: primary, extraIds, fillIndex: 0 } }
+      })
+    },
+    setSvgArtProfile: (profile) => set({ svgartProfile: profile }),
     applySvgArtTemplate: (id) => {
-      set({ svgartScene: templateScene(id), svgartSelection: { layerId: null, fillIndex: 0 } })
+      set({
+        svgartScene: templateScene(id),
+        svgartSelection: { layerId: null, extraIds: [], fillIndex: 0 },
+      })
       saveSoon()
     },
     loadSvgArtEntry: (entry) => {
       set({
         svgartScene: normalizeScene(entry.scene),
-        svgartSelection: { layerId: null, fillIndex: 0 },
+        svgartSelection: { layerId: null, extraIds: [], fillIndex: 0 },
       })
       lastSave = 0
       saveSoon()

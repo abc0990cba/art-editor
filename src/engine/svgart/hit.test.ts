@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
 import { mustHex } from './index.ts'
-import { fillHandles, nearestHandle, pointInShape, shapeCenter, topLayerAt } from './index.ts'
-import type { Shape, SvgScene } from './index.ts'
+import {
+  fillHandles,
+  nearestHandle,
+  pointInShape,
+  shapeCenter,
+  stopTicks,
+  topLayerAt,
+} from './index.ts'
+import type { Paint, Shape, SvgScene } from './index.ts'
 
 const rect = {
   kind: 'rect',
@@ -155,5 +162,43 @@ describe('topLayerAt', () => {
   })
   it('centers are bbox midpoints', () => {
     expect(shapeCenter(rect)).toEqual({ x: 100, y: 100 })
+  })
+})
+
+describe('stopTicks', () => {
+  it('places linear stops along the p1→p2 axis', () => {
+    const paint: Paint = {
+      kind: 'linear',
+      p1: { x: 0, y: 0 },
+      p2: { x: 100, y: 0 },
+      stops: [
+        { offset: 0, color: mustHex('#ffffff'), alpha: 1 },
+        { offset: 0.5, color: mustHex('#808080'), alpha: 1 },
+        { offset: 1, color: mustHex('#000000'), alpha: 1 },
+      ],
+      alpha: 1,
+    }
+    const ticks = stopTicks(rect, paint)
+    expect(ticks[1]?.at).toEqual({ x: 50, y: 0 })
+  })
+
+  it('maps bbox radial stops through the shape box', () => {
+    const paint: Paint = {
+      kind: 'radial',
+      units: 'bbox',
+      cx: 0.5,
+      cy: 0.5,
+      r: 0.25,
+      fx: null,
+      fy: null,
+      stops: [
+        { offset: 0, color: mustHex('#ffffff'), alpha: 1 },
+        { offset: 1, color: mustHex('#000000'), alpha: 1 },
+      ],
+      alpha: 1,
+    }
+    const ticks = stopTicks(rect, paint)
+    // Rect bbox x 80..120: rim at fraction cx+r = 0.75 → x = 110.
+    expect(ticks[1]?.at).toEqual({ x: 110, y: 100 })
   })
 })

@@ -360,11 +360,14 @@ export interface State {
   setGradientResult: (result: GradientResult | null) => void
   setGradientStatus: (status: GradientStatus, error?: string | null) => void
   loadGradientEntry: (entry: GradientProjectEntry) => void
-  // svgart studio workspace (authored vector scenes; outside undo history)
+  // svgart studio workspace (authored vector scenes; the undo history carries the scene)
   svgartScene: SvgScene
   svgartSelection: SvgArtSelection
+  svgartProfile: 'ai' | 'browser'
   updateSvgArtScene: (update: (scene: SvgScene) => SvgScene) => void
   selectSvgArtLayer: (layerId: string | null, fillIndex?: number) => void
+  toggleSvgArtLayer: (layerId: string) => void
+  setSvgArtProfile: (profile: 'ai' | 'browser') => void
   applySvgArtTemplate: (id: TemplateId) => void
   loadSvgArtEntry: (entry: SvgArtProjectEntry) => void
 }
@@ -383,14 +386,16 @@ function throttle<A extends unknown[]>(fn: (...args: A) => void, ms: number): (.
   }
 }
 
-// Undo history stores whole cell buffers; cap the number of steps so huge
-// canvases stay within a ~32 MB history budget (never fewer than 8 steps).
+// Undo history stores whole cell buffers (pixel) or authored scenes (studio); cap the number of
+// steps so huge canvases stay within a ~32 MB history budget (never fewer than 8 steps).
 // zundo reads `limit` from this options object on every history push, so
 // mutating it here changes the effective cap.
-const temporalOptions: ZundoOptions<State, { doc: Doc }> = {
+const temporalOptions: ZundoOptions<State, { doc: Doc; svgartScene: SvgScene }> = {
   // root-shaped slice: zundo restores via setState() merge, so the
-  // partialized value must itself be shaped like the store root
-  partialize: (s) => ({ doc: s.doc }),
+  // partialized value must itself be shaped like the store root. Only one
+  // workspace kind is active at a time, so carrying both fields is safe: the
+  // idle one never changes and merges back unchanged.
+  partialize: (s) => ({ doc: s.doc, svgartScene: s.svgartScene }),
   limit: 100,
   handleSet: (handleSet) => throttle(handleSet, 350),
 }

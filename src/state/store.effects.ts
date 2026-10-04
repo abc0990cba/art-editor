@@ -3,11 +3,12 @@ import type { ZundoOptions } from 'zundo'
 import type { Doc } from '../engine/core/doc.ts'
 import { serialize } from '../engine/core/project.ts'
 import { allObjs } from '../engine/core/scene.ts'
+import type { SvgScene } from '../engine/svgart/index.ts'
 import { DOC_KEY } from './doc.slice.ts'
 import type { State, useStore } from './editor.store.ts'
 import { resolvedTheme } from './ui.slice.ts'
 
-type TemporalOptions = ZundoOptions<State, { doc: Doc }>
+type TemporalOptions = ZundoOptions<State, { doc: Doc; svgartScene: SvgScene }>
 
 // Undo history stores whole cell buffers; cap the number of steps so huge canvases stay within a
 // ~256 MB history budget (never fewer than 2 steps). zundo reads `limit` from this options object

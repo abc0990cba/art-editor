@@ -138,20 +138,22 @@ export function NewProjectDialog({
                   {t('svgart.template')}
                 </span>
                 <div className="grid grid-cols-2 gap-2">
-                  {(['blank', 'star', 'sphere', 'aurora'] as const).map((id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setTemplate(id)}
-                      className={`flex min-h-11 items-center justify-center rounded-md border px-2 py-1.5 text-xs transition ${
-                        template === id
-                          ? 'border-accent-line bg-accent-soft text-accent-text'
-                          : 'border-line bg-chip text-body hover:border-chip-line'
-                      }`}
-                    >
-                      {t(`svgart.template.${id}`)}
-                    </button>
-                  ))}
+                  {(['blank', 'star', 'sphere', 'cube', 'cylinder', 'aurora'] as const).map(
+                    (id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setTemplate(id)}
+                        className={`flex min-h-11 items-center justify-center rounded-md border px-2 py-1.5 text-xs transition ${
+                          template === id
+                            ? 'border-accent-line bg-accent-soft text-accent-text'
+                            : 'border-line bg-chip text-body hover:border-chip-line'
+                        }`}
+                      >
+                        {t(`svgart.template.${id}`)}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             )}
