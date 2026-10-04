@@ -18,8 +18,10 @@ export { useMediaQuery } from './use-media-query.hook.ts'
  * Ditherlab chip look layered over the shadcn button: compact plate, themed borders. Phones grow
  * chips to 44px touch targets.
  */
+// upstream shadcn button base is `whitespace-nowrap shrink-0` — chips must wrap long labels
+// instead (documented adaptation; do not edit the vendored button.tsx)
 const CHIP_CLASS =
-  'text-body h-auto rounded-md border px-2 py-1 text-xs font-normal dark:text-body dark:hover:text-body max-lg:min-h-11 max-lg:px-3 max-lg:text-sm'
+  'text-body h-auto min-w-0 whitespace-normal rounded-md border px-2 py-1 text-xs font-normal dark:text-body dark:hover:text-body max-lg:min-h-11 max-lg:px-3 max-lg:text-sm'
 
 export function Chip({
   active,

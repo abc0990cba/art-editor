@@ -50,9 +50,9 @@ export function MetaballKnobs({
         display={pct}
         onChange={(v) => onPatch({ iso: v })}
       />
-      <div className="text-body flex items-center justify-between text-xs">
+      <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
         <span>{t('metaball.falloff')}</span>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {(['tight', 'smooth', 'gooey'] as const).map((f) => (
             <Chip
               key={f}
@@ -67,9 +67,9 @@ export function MetaballKnobs({
       </div>
       {isSquare && (
         <>
-          <div className="text-body flex items-center justify-between text-xs">
+          <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
             <span title={t('metaball.unit.desc')}>{t('metaball.unit')}</span>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {(['cell', 'block'] as const).map((u) => (
                 <Chip
                   key={u}
@@ -103,9 +103,9 @@ export function MetaballKnobs({
         checked={mb.perColor}
         onChange={(v) => onPatch({ perColor: v })}
       />
-      <div className="text-body flex items-center justify-between text-xs">
+      <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
         <span>{t('metaball.quality')}</span>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {([2, 4, 6, 8] as const).map((q, i) => (
             <Chip
               key={q}
@@ -184,7 +184,7 @@ export function ExtrudeKnobs({
         display={(v) => String(Math.round(v))}
         onChange={(v) => onPatch({ depth: Math.round(v) })}
       />
-      <div className="text-body flex items-center justify-between text-xs">
+      <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
         <span title={t('extrude.dir.desc')}>{t('extrude.dir')}</span>
         <div className="grid grid-cols-3 gap-1" role="group" aria-label={t('extrude.dir')}>
           {([-1, 0, 1] as const).map((dy) =>
@@ -205,7 +205,7 @@ export function ExtrudeKnobs({
           )}
         </div>
       </div>
-      <div className="text-body flex items-center justify-between text-xs">
+      <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
         <span title={t('extrude.color.desc')}>{t('extrude.color')}</span>
         <div className="flex flex-wrap items-center justify-end gap-1">
           <Chip

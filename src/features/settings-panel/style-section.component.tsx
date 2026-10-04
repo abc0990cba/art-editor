@@ -69,9 +69,9 @@ export function StyleSection({
         connectivity={connView}
         metaball={mbView}
       />
-      <div className="text-body flex items-center justify-between text-xs">
+      <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
         <span title={t('style.scope.element.desc')}>{t('style.scope')}</span>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           <Chip
             active={elementMode}
             title={t('style.scope.element.desc')}
@@ -90,7 +90,7 @@ export function StyleSection({
       </div>
       {!elementMode && <p className="text-muted text-overline">{t('style.scope.global.hint')}</p>}
       {targetSelection && (
-        <div className="border-accent-line bg-accent-soft text-accent-text flex items-center justify-between rounded-md border px-2 py-1 text-xs">
+        <div className="border-accent-line bg-accent-soft text-accent-text flex flex-wrap items-center justify-between gap-y-1 rounded-md border px-2 py-1 text-xs">
           <span>
             {t('style.target.selection')} · {selection.length}
           </span>
@@ -129,7 +129,7 @@ export function StyleSection({
       {modeView !== 'pixels' && isPlainSquare(doc) && (
         <div className="flex flex-col gap-1">
           <span className="text-muted text-xs">{t('connectivity.label')}</span>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {(
               [
                 ['edge', 'connectivity.edge'],
@@ -241,7 +241,7 @@ export function StyleSection({
             display={(v) => `${Math.round(v)}°`}
             onChange={(v) => applyStyle({ angleJitter: v })}
           />
-          <div className="text-body flex items-center justify-between text-xs">
+          <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
             <span title={t('style.jitterSeed.desc')}>{t('style.jitterSeed')}</span>
             <div className="flex items-center gap-1.5">
               <span className="text-muted tabular-nums">{styleView.jitterSeed}</span>

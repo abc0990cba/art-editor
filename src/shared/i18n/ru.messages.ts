@@ -555,7 +555,7 @@ export const ru: Dict = {
   'selection.drag.hint': 'Перетащите, чтобы переместить · Del — стереть',
   'selection.drag.blocked': 'Перемещение работает только на квадратной сетке',
   'mode.pixels': 'Пиксели',
-  'mode.contour': 'Контур',
+  'mode.contour': 'Линии',
   'mode.extrude': 'Экструзия',
   'mode.outline': 'Контур',
   'mode.metaball': 'Мягкие формы',

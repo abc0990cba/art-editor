@@ -33,9 +33,9 @@ export function RoundingControls({
         display={pct}
         onChange={(v) => onApply({ radius: v })}
       />
-      <div className="text-muted flex items-center justify-between text-xs">
+      <div className="text-muted flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
         <span>{t('style.cornerStyle')}</span>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {(
             [
               ['arc', 'style.corner.arc'],
@@ -64,7 +64,7 @@ export function RoundingControls({
       <div className="text-muted text-overline font-semibold tracking-wider uppercase">
         {t('style.group.rounding')}
       </div>
-      <div className="flex gap-1.5">
+      <div className="flex flex-wrap gap-1.5">
         <Chip
           active={style.radius === 0 && c.tl === null}
           title={t('style.square.desc')}

@@ -32,9 +32,9 @@ export function CanvasSection() {
             checked={doc.radialEven}
             onChange={(v) => setRadialEven(v)}
           />
-          <div className="text-body flex items-center justify-between text-xs">
+          <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
             <span>{t('fill.scope')}</span>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {(['cell', 'sector', 'ring'] as const).map((sc) => (
                 <Chip
                   key={sc}
@@ -51,9 +51,9 @@ export function CanvasSection() {
       )}
       {isPlainSquare(doc) && (
         <>
-          <div className="text-body flex items-center justify-between text-xs">
+          <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
             <span>{t('fill.scope')}</span>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {(['cell', 'row', 'column'] as const).map((sc) => (
                 <Chip
                   key={sc}
@@ -66,11 +66,11 @@ export function CanvasSection() {
               ))}
             </div>
           </div>
-          <div className="text-body flex items-center justify-between text-xs">
+          <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
             <Tooltip label={t('grid.sub.desc')}>
               <span>{t('grid.sub')}</span>
             </Tooltip>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {([1, 2, 3] as const).map((sv) => (
                 <Chip
                   key={sv}
@@ -95,7 +95,7 @@ export function CanvasSection() {
         display={pct}
         onChange={setConnectorWidth}
       />
-      <div className="text-body flex items-center justify-between text-xs">
+      <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
         <Tooltip label={t('canvas.bg.desc')}>
           <span>{t('canvas.bg')}</span>
         </Tooltip>

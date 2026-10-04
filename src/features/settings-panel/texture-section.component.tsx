@@ -314,9 +314,9 @@ export function TextureSection({ target }: { target: StyleTarget }) {
               />
             </>
           )}
-          <div className="text-body flex items-center justify-between text-xs">
+          <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
             <span title={t('texture.gapMode.desc')}>{t('texture.gapMode')}</span>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {(['cell', 'figure'] as const).map((m) => (
                 <Chip
                   key={m}
@@ -338,7 +338,7 @@ export function TextureSection({ target }: { target: StyleTarget }) {
             display={(v) => `${Math.round(v)}%`}
             onChange={(v) => applyTexture({ gap: v / 100 })}
           />
-          <div className="text-body flex items-center justify-between text-xs">
+          <div className="text-body flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
             <span title={t('texture.seed.desc')}>{t('texture.seed')}</span>
             <div className="flex items-center gap-1.5">
               <span className="text-muted tabular-nums">{texView.seed}</span>
