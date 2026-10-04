@@ -2,9 +2,7 @@ import type { Doc, Link } from '../engine/core/doc.ts'
 import { bufferWidth } from '../engine/core/doc.ts'
 import {
   allObjs,
-  objLayer,
   pruneEmptyObjs,
-  stealCells,
   syncDoc,
   updateNode,
   type SceneItem,
@@ -86,18 +84,11 @@ function transformScene(doc: Doc, selection: number[], x: SelectionXform): Doc |
   const sel = new Set(selection)
   const movers = allObjs(doc.layers!).filter((o) => sel.has(o.id))
   if (movers.length === 0) return null
-  // targets steal from the objects beneath (tree order decides overlap winners), like a move
-  const claims = new Map<number, Set<number>>()
-  for (const [i, cell] of mapped) {
-    const layer = objLayer(doc.layers!, cell.o)!
-    let claim = claims.get(layer.id)
-    if (!claim) claims.set(layer.id, (claim = new Set()))
-    claim.add(i)
-  }
-  let layers = doc.layers!
-  for (const [layerId, idxs] of claims) layers = stealCells(layers, layerId, idxs)
   // connector endpoints ride the same affine map
   const mapLink = (l: Link): Link => mappedLink(l, m)
+  // the movers' baked ink replaces their own cells; objects beneath are untouched — the
+  // composite shows the transformed selection on top without destroying what it covers
+  let layers = doc.layers!
   for (const mover of movers) {
     const cells = new Map<number, number>()
     for (const [i, cell] of mapped) if (cell.o === mover.id) cells.set(i, cell.v)

@@ -51,7 +51,9 @@ art → punch erases with `destination-out` → repaint background with `destina
 paths; otherwise the fallback full `buildGeometry(doc, st)` — the fallback cliff, which since
 2026-10-03 only remains for connector edits and non-square grids (textured/outline/metaball docs
 preview as plain fragments under the plain-until-release contract; shape drags stage into a
-pooled typed buffer read by the pixel preview directly).
+pooled typed buffer read by the pixel preview directly). The pixel preview bitmap belongs to
+one staging session: a new session wipes it (`ensureSession`), so edits that happen between
+drags (pixel ops, undo, moves) can never blit stale pixels into the next preview.
 `commitStaging` produces one undoable step via `paintCells`/`paintCellsValues`; in element
 scope the fresh shape selects itself (Illustrator-style). Window-level
 pointerup/pointercancel/blur finish drags "so a lost pointerup can never turn later hover

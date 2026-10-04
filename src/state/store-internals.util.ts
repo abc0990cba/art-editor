@@ -49,9 +49,12 @@ export function resolveElement(doc: Doc, snapshot: ElementStyle): { doc: Doc; id
 }
 
 /**
- * Scene-path paint commit shared by paintCells / paintCellsValues / fills: erase entries steal
- * cells back on the active layer, paint entries join a fresh object appended on top (one stroke =
- * one object — interrupted lines stay separately selectable).
+ * Scene-path paint commit shared by paintCells / paintCellsValues / fills: paint entries join a
+ * fresh object appended on top (one stroke = one object — interrupted lines stay separately
+ * selectable). Painting over never destroys the covered objects — they keep their ink and the
+ * composite (tree order) hides it, so moving the covering figure away reveals them intact. The
+ * erase set stays destructive: the eraser punches every object of the layer under the stroke,
+ * matching its live preview.
  */
 export function commitStroke(
   doc: Doc,
@@ -72,7 +75,6 @@ export function commitStroke(
   er.obj.graph = { graphVersion: 1, nodes: offsetGraphNodes() }
   if (paint.size > 0 || extraLinks.length > 0) {
     er.obj.links.push(...extraLinks)
-    layers = stealCells(layers, layer.id, new Set(paint.keys()))
     layers = appendToLayer(layers, layer.id, er.obj)
   }
   layers = pruneEmptyObjs(layers, new Set([er.obj.id])).layers
@@ -81,7 +83,8 @@ export function commitStroke(
 
 /**
  * Shape-tool commit as a parametric source graph: the node regenerates the ink from its parameters,
- * so geometry edits in the node editor move the shape on the canvas.
+ * so geometry edits in the node editor move the shape on the canvas. Like plain strokes, the shape
+ * is appended on top without stealing — overlap hides, it does not destroy.
  */
 export function commitStrokeParametric(
   doc: Doc,
@@ -98,7 +101,6 @@ export function commitStrokeParametric(
     graphVersion: 1,
     nodes: [{ id: genNodeId(), op: parametric.op, params: { ...parametric.params } }],
   }
-  layers = stealCells(layers, layer.id, new Set(paint.keys()))
   layers = appendToLayer(layers, layer.id, er.obj)
   return syncDoc({ ...er.doc, layers })
 }

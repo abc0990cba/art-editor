@@ -68,6 +68,8 @@ export interface StagePaintState {
     last: number[]
     palette: readonly string[] | undefined
     lut: Uint32Array
+    /** Staging session the buffer content belongs to; a new session wipes it. */
+    st: Staging | null
   } | null
   colorCache: Map<string, number>
 }

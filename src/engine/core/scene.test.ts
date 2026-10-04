@@ -89,17 +89,6 @@ describe('scene: composite and object identity', () => {
     expect(hidden.cells[cell(doc, 2, 2)]).toBe(red)
   })
 
-  it('painting over ink in the same layer steals the cell and GCs the emptied object', () => {
-    stroke([[2, 2]])
-    stroke([[2, 2]], GREEN)
-    const doc = state().doc
-    // one object remains (the emptied one is pruned), the covering one owns the cell
-    expect(allObjs(doc.layers!)).toHaveLength(1)
-    expect(compositeOwners(doc)).toHaveLength(1)
-    expect(doc.cells[cell(doc, 2, 2)]).not.toBe(RED.replace('#', '') ? 1 : 1)
-    expect(doc.layers![0].children[0].kind).toBe('obj')
-  })
-
   it('same-style objects on one layer fuse via metaball, across layers they never do', () => {
     state().setRenderMode('metaball')
     stroke([

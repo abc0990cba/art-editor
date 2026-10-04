@@ -11,7 +11,10 @@
  * `cellObj` reference them directly. `nextNodeId` in the Doc hands out fresh ids.
  *
  * Tree order is bottom → top: `children[0]` renders first (lowest), the last child is the topmost.
- * The layers panel displays the reversed order, like every major editor.
+ * Objects keep their own ink even when covered: within a layer, overlap hides instead of destroying
+ * — the composite (last writer wins per cell) decides visibility, so moving or hiding the covering
+ * figure reveals the ones beneath intact. Only the eraser (`stealCells`) and explicit bakes remove
+ * another object's cells. The layers panel displays the reversed order, like every major editor.
  */
 
 import { paletteLuma } from '../color/color.ts'

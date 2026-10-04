@@ -1,3 +1,4 @@
+import type { Staging } from '../../engine/geometry/index.ts'
 import type { StagePaintParams, StagePaintState } from './stage-paint.util.ts'
 import {
   blit,
@@ -40,6 +41,7 @@ export function pixelFrame(
   const cells = st0.cells!
   const px = ensurePixelBuffer(state, p.bw, p.bh)
   if (!px) return false
+  ensureSession(px, st0)
   const len = ensurePixelLut(state, px, p.staging.current!.palette ?? p.doc.palette)
   const bbox = fillPixelBuffer(px, cells, len)
   if (bbox) px.ctx.putImageData(px.img, 0, 0, bbox.minX, bbox.minY, bbox.w, bbox.h)
@@ -59,6 +61,7 @@ function pixelFrameBuf(
   const state = p.state
   const px = ensurePixelBuffer(state, p.bw, p.bh)
   if (!px) return false
+  ensureSession(px, p.staging.current!)
   const len = ensurePixelLut(state, px, p.staging.current!.palette ?? p.doc.palette)
   const bbox = fillPixelBufferBuf(px, buf, len)
   if (bbox) px.ctx.putImageData(px.img, 0, 0, bbox.minX, bbox.minY, bbox.w, bbox.h)
@@ -152,8 +155,24 @@ function ensurePixelBuffer(state: StagePaintState, bw: number, bh: number): Stag
     last: [],
     palette: undefined,
     lut: new Uint32Array(0),
+    st: null,
   }
   return px
+}
+
+/**
+ * The bitmap content belongs to exactly one staging session: a fresh drag (and any doc edit that
+ * happened between sessions — pixel ops, undo, moves) must never blit the previous session's
+ * leftover pixels, so the whole u32/canvas pair is wiped when the session changes. u32 has to be
+ * zeroed together with the canvas: putImageData uploads only the dirty bbox, and a cell whose stale
+ * value equals the new one would otherwise never reach the wiped canvas.
+ */
+function ensureSession(px: NonNullable<StagePaintState['px']>, st: Staging): void {
+  if (px.st === st) return
+  px.st = st
+  px.u32.fill(0)
+  px.ctx.clearRect(0, 0, px.canvas.width, px.canvas.height)
+  px.last.length = 0
 }
 
 function ensurePixelLut(

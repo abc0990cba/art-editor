@@ -12,10 +12,8 @@ import type {
 import {
   allObjs,
   nodeProtected,
-  objLayer,
   pruneEmptyObjs,
   removeObjs,
-  stealCells,
   syncDoc,
   translateObjCells,
   updateNode,
@@ -122,8 +120,9 @@ function movedPixelSet(movers: SceneObj[], cols: number, sub: number): Set<numbe
 }
 
 /**
- * Scene path of a selection move: translate each object's own cells; targets steal from the objects
- * beneath (tree order decides who wins when movers overlap).
+ * Scene path of a selection move: translate each object's own cells. Movers are appended back at
+ * their tree slot without touching the objects beneath — overlap hides instead of destroying, so
+ * moving away later reveals them intact.
  */
 function moveSelectionScene(doc: Doc, selection: number[], dx: number, dy: number): Doc | null {
   const sub = doc.sub
@@ -141,19 +140,9 @@ function moveSelectionScene(doc: Doc, selection: number[], dx: number, dy: numbe
       .filter((o) => o.graph?.nodes.some((nd) => !nd.unknown && nodeDef(nd.op)?.kind === 'source'))
       .map((o) => o.id),
   )
-  const claims = new Map<number, Set<number>>()
-  for (const mover of movers) {
-    if (procedural.has(mover.id)) continue
-    const layer = objLayer(doc.layers!, mover.id)!
-    let claim = claims.get(layer.id)
-    if (!claim) claims.set(layer.id, (claim = new Set()))
-    for (const [i] of translateObjCells(mover, bdx, bdy, bw, bh)) claim.add(i)
-  }
   let layers = doc.layers!
-  for (const [layerId, idxs] of claims) layers = stealCells(layers, layerId, idxs)
   for (const mover of movers) {
     if (procedural.has(mover.id)) {
-      console.log('DEBUG store: procedural move for', mover.id)
       layers =
         updateNode(layers, mover.id, (nd) =>
           nd.kind === 'obj' && nd.graph

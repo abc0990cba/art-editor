@@ -98,7 +98,12 @@ unattributed ink as a bottom object with the doc-level style).
 
 - `layers === null` vs `[]` is a *semantic* difference: null = flat; set = derived buffers.
 - The derived `palette` on scene docs includes graph hexes — it is not the user's base list.
-- Within a layer, a cell has exactly one owner (`stealCells` paint-over rule).
+- Overlap within a layer hides instead of destroying: objects keep their full ink and the
+  composite (bottom → top, last writer wins) decides visibility, so moving or hiding the
+  covering object reveals the ones beneath intact. `stealCells` is reserved for deliberately
+  destructive callers only — the eraser (punches every object of the layer under the stroke,
+  matching its live preview) and bakes (freeze the visible composite onto its owners).
+  Decision record: [ADR-0010](../decisions/0010-overlap-hides-not-destroys.md).
 - `pruneEmptyObjs` never drops objects owning a source node (their graph regenerates ink).
 - `resizeDoc` preserves content anchored top-left; `changeSub` is square-grid-only (other
   grids index cells 1:1 and must not resample).

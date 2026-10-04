@@ -61,7 +61,9 @@ export function paintStage(p: StagePaintParams): void {
   if (!stCells && !bufActive) {
     state.session = null
     state.dead = null
-    if (state.px) state.px.last.length = 0
+    // drop the preview-buffer session: its content is stale the moment staging ends, and the
+    // next drag must start from a wiped bitmap (see ensureSession)
+    if (state.px) state.px.st = null
     ctx.clearRect(0, 0, size.w, size.h)
     blit(ctx, state.bg, size)
     ctx.save()

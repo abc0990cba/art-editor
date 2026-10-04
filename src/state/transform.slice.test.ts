@@ -79,4 +79,22 @@ describe('transform slice', () => {
     expect(doc.cells[4 * W + 4]).toBe(1) // clone at +1,+1
     expect(allObjs(doc.layers!).length).toBe(2)
   })
+
+  it('transforming one of two overlapping objects never bites the other', () => {
+    paintBlock(3, 3)
+    paintBlock(4, 4) // overlaps the first block at (4,4); on top of it
+    const topId = state().doc.cellObj?.[4 * W + 4] ?? 0
+    state().selectElements([topId])
+    state().transformSelection({ kind: 'scale', sx: 2, sy: 2, ax: 4, ay: 4 })
+    const doc = state().doc
+    // the covered object kept all four of its cells — the transform's destination footprint
+    // (and the earlier paint-over) must not steal them
+    const bottom = allObjs(doc.layers!)[0]
+    expect(bottom?.cells.size).toBe(4)
+    expect(bottom?.cells.get(4 * W + 4)).toBe(4)
+    // its cells that the scaled copy does not cover still show in the composite
+    expect(doc.cells[3 * W + 3]).toBe(1)
+    expect(doc.cells[3 * W + 4]).toBe(2) // (4,3)
+    expect(doc.cells[4 * W + 3]).toBe(3) // (3,4)
+  })
 })

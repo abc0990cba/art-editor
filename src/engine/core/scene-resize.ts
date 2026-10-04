@@ -132,8 +132,10 @@ export function removeObjs(
 }
 
 /**
- * Drop the given buffer indices from every object of one layer (the paint-over rule: within a layer
- * a cell has exactly one owner, and new ink takes it over).
+ * Drop the given buffer indices from every object of one layer. Deliberately destructive callers
+ * only: the eraser (punches every object under the stroke, matching its live preview) and bakes
+ * (freeze the visible composite onto its owners). Painting and moving never steal — overlap hides,
+ * it does not destroy (see the composite: tree order decides who wins a cell).
  */
 export function stealCells(
   layers: SceneLayer[],
