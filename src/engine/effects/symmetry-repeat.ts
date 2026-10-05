@@ -221,14 +221,42 @@ export function repeatPoints(
       const iHi = Math.ceil(uMax - uc) + 1
       const jLo = Math.floor(vMin - vc) - 1
       const jHi = Math.ceil(vMax - vc) + 1
-      for (let i = iLo; i <= iHi; i++) {
-        for (let j = jLo; j <= jHi; j++) {
-          if (seen.size >= limit) return
-          const px = Math.round((uc + i) * ax * c + (vc + j) * bx * c)
-          const py = Math.round((uc + i) * ay * c + (vc + j) * by * c)
-          push(px, py)
+      const toPx = (i: number, j: number): [number, number] => [
+        Math.round((uc + i) * ax * c + (vc + j) * bx * c),
+        Math.round((uc + i) * ay * c + (vc + j) * by * c),
+      ]
+      // fast path: the whole tile window fits the orbit budget — plain row-major, no cap checks
+      if ((iHi - iLo + 1) * (jHi - jLo + 1) <= limit - seen.size) {
+        for (let i = iLo; i <= iHi; i++) {
+          for (let j = jLo; j <= jHi; j++) {
+            const [px, py] = toPx(i, j)
+            push(px, py)
+          }
+        }
+        continue
+      }
+      // over budget: expand nearest-first from the stroke's own lattice cell — the offsets are
+      // relative to the (transformed) pointer already, so ring 0 is offset (0,0) — so the copies
+      // around the stroke survive instead of an arbitrary canvas corner, and the visible field
+      // stays stable while the pointer crosses cell boundaries
+      const rMax = Math.max(Math.abs(iLo), Math.abs(iHi), Math.abs(jLo), Math.abs(jHi))
+      const emit = (i: number, j: number): boolean => {
+        if (i < iLo || i > iHi || j < jLo || j > jHi) return true
+        if (seen.size >= limit) return false
+        const [px, py] = toPx(i, j)
+        push(px, py)
+        return true
+      }
+      let full = emit(0, 0)
+      for (let r = 1; r <= rMax && full; r++) {
+        for (let i = -r; i <= r && full; i++) {
+          full = emit(i, -r) && emit(i, r)
+        }
+        for (let j = -r + 1; j <= r - 1 && full; j++) {
+          full = emit(-r, j) && emit(r, j)
         }
       }
+      if (!full) return
     }
   }
 }

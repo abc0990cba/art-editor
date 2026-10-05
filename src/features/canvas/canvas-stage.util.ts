@@ -19,6 +19,8 @@ export const ANTS_SPEED = 30
  */
 export interface DragState {
   kind: 'pan' | 'draw' | 'shape' | 'move' | 'marquee' | 'xform' | 'pen'
+  /** Owning pointerId: moves/ups from any other pointer (palm, second finger) are ignored */
+  pid?: number
   sx?: number
   sy?: number
   panX?: number

@@ -34,13 +34,42 @@ function sameMetaball(a: MetaballSettings, b: MetaballSettings): boolean {
     a.iso === b.iso &&
     a.falloff === b.falloff &&
     a.unit === b.unit &&
-    a.blockSize === b.blockSize
+    a.blockSize === b.blockSize &&
+    a.strokeWidth === b.strokeWidth
   )
 }
 
 /** Equality of the extrude block of two frozen element styles. */
 function sameExtrude(a: ExtrudeSettings, b: ExtrudeSettings): boolean {
   return a.depth === b.depth && a.dx === b.dx && a.dy === b.dy && a.color === b.color
+}
+
+/** Equality of the texture block of two frozen element styles. */
+function sameTexture(a: ElementStyle['texture'], b: ElementStyle['texture']): boolean {
+  return (
+    a.effect === b.effect &&
+    a.amount === b.amount &&
+    a.scale === b.scale &&
+    a.sizeMin === b.sizeMin &&
+    a.sizeMax === b.sizeMax &&
+    a.shape === b.shape &&
+    a.edge === b.edge &&
+    a.dist === b.dist &&
+    a.gap === b.gap &&
+    a.gapMode === b.gapMode &&
+    a.even === b.even &&
+    a.angle === b.angle &&
+    a.seed === b.seed &&
+    a.jitter === b.jitter &&
+    a.variation === b.variation &&
+    a.wobble === b.wobble &&
+    a.merge === b.merge &&
+    a.dropout === b.dropout &&
+    a.spray === b.spray &&
+    a.ramp === b.ramp &&
+    a.htLattice === b.htLattice &&
+    a.hatchStyle === b.hatchStyle
+  )
 }
 
 /** Deep equality of two frozen element styles (render grouping merges equal elements). */
@@ -51,26 +80,7 @@ export function sameElementStyle(a: ElementStyle, b: ElementStyle): boolean {
     samePixelStyle(a.style, b.style) &&
     sameMetaball(a.metaball, b.metaball) &&
     sameExtrude(a.extrude, b.extrude) &&
-    a.texture.effect === b.texture.effect &&
-    a.texture.amount === b.texture.amount &&
-    a.texture.scale === b.texture.scale &&
-    a.texture.sizeMin === b.texture.sizeMin &&
-    a.texture.sizeMax === b.texture.sizeMax &&
-    a.texture.shape === b.texture.shape &&
-    a.texture.edge === b.texture.edge &&
-    a.texture.dist === b.texture.dist &&
-    a.texture.gap === b.texture.gap &&
-    a.texture.gapMode === b.texture.gapMode &&
-    a.texture.even === b.texture.even &&
-    a.texture.angle === b.texture.angle &&
-    a.texture.seed === b.texture.seed &&
-    a.texture.jitter === b.texture.jitter &&
-    a.texture.variation === b.texture.variation &&
-    a.texture.wobble === b.texture.wobble &&
-    a.texture.merge === b.texture.merge &&
-    a.texture.dropout === b.texture.dropout &&
-    a.texture.spray === b.texture.spray &&
-    a.texture.ramp === b.texture.ramp
+    sameTexture(a.texture, b.texture)
   )
 }
 

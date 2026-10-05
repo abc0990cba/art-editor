@@ -65,6 +65,7 @@ export function elementStyleKey(el: ElementStyle): string {
     el.metaball.falloff,
     el.metaball.unit,
     el.metaball.blockSize,
+    el.metaball.strokeWidth,
     el.extrude.depth,
     el.extrude.dx,
     el.extrude.dy,
@@ -89,6 +90,8 @@ export function elementStyleKey(el: ElementStyle): string {
     el.texture.dropout,
     el.texture.spray,
     el.texture.ramp,
+    el.texture.htLattice ?? '',
+    el.texture.hatchStyle ?? '',
   ].join('|')
   styleKeyCache.set(el, k)
   return k

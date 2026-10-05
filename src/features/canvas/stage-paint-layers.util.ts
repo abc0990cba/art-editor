@@ -1,3 +1,4 @@
+import { gridCoveragePoly } from '../../engine/grids/index.ts'
 import { checkerTileFor } from './canvas-stage.util.ts'
 import { strokeDiffusionContour } from './diffusion-guides.util.ts'
 import { buildLayer, pathId, type StagePaintParams } from './stage-paint.util.ts'
@@ -21,11 +22,32 @@ function viewKeyOf(p: StagePaintParams, size: { w: number; h: number; dpr: numbe
   return `${p.view.x}|${p.view.y}|${p.view.zoom}|${size.w}|${size.h}|${size.dpr}`
 }
 
+/**
+ * Clip path of the drawable coverage, or null when the plate is a full rect and a plain fillRect is
+ * exact. Radial plates clip at the inscribed disc, rotated plates at the turned rect — nothing may
+ * paint where no cell can exist.
+ */
+function coverageClipPath(p: StagePaintParams): Path2D | null {
+  const pts = gridCoveragePoly(p.doc)
+  const full =
+    pts.length === 4 &&
+    pts[0]!.x === 0 &&
+    pts[0]!.y === 0 &&
+    pts[1]!.x === p.extent.w &&
+    pts[2]!.y === p.extent.h
+  if (full) return null
+  const path = new Path2D()
+  pts.forEach((pt, i) => (i === 0 ? path.moveTo(pt.x, pt.y) : path.lineTo(pt.x, pt.y)))
+  path.closePath()
+  return path
+}
+
 export function ensureBackground(
   p: StagePaintParams,
   size: { dpr: number; w: number; h: number },
 ): void {
-  const bgKey = `${viewKeyOf(p, size)}|${p.resolvedTheme}|${p.doc.bg ?? ''}`
+  const d = p.doc
+  const bgKey = `${viewKeyOf(p, size)}|${p.resolvedTheme}|${d.bg ?? ''}|${d.gridType}|${d.cols}|${d.rows}|${d.gridRotation ?? 0}`
   if (p.state.bg && p.state.bgKey === bgKey) return
   p.state.bgKey = bgKey
   p.state.bg ??= document.createElement('canvas')
@@ -33,6 +55,8 @@ export function ensureBackground(
     g.save()
     g.translate(p.view.x, p.view.y)
     g.scale(p.view.zoom, p.view.zoom)
+    const clip = coverageClipPath(p)
+    if (clip) g.clip(clip)
     if (p.doc.bg) {
       g.fillStyle = p.doc.bg
       g.fillRect(0, 0, p.extent.w, p.extent.h)

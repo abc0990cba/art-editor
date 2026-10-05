@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { pointInPolys, regionCells } from './fill.ts'
+import { ellipsePoints, linePoints } from './lines.ts'
 
 describe('regionCells', () => {
   it('classifies a closed rect outline on a square buffer', () => {
@@ -50,6 +51,52 @@ describe('regionCells', () => {
     const { inside, outside } = regionCells(new Set(), 4, 4)
     expect(inside.size).toBe(0)
     expect(outside.size).toBe(0)
+  })
+
+  // production pin: the exterior flood is 4-connected while Bresenham outlines are
+  // 8-connected, but discrete Jordan duality keeps every closed rasterized shape watertight —
+  // the fill of a dragged ellipse/line shape must never leak past the outline
+  it('holds the flood inside for every rasterized ellipse (shape-fill sweep)', () => {
+    for (let w = 3; w <= 40; w++) {
+      for (let h = 3; h <= 40; h++) {
+        const bw = w + 8
+        const bh = h + 8
+        const outline = new Set(ellipsePoints(2, 2, 2 + w, 2 + h, {}).map(([x, y]) => y * bw + x))
+        const { inside } = regionCells(outline, bw, bh)
+        // the flood may not escape: interior stays within the outline's bounding ring
+        let escaped = false
+        for (const i of inside) {
+          const x = i % bw
+          const y = (i - x) / bw
+          if (x <= 1 || y <= 1 || x >= w + 3 || y >= h + 3) escaped = true
+        }
+        expect(escaped, `ellipse ${w}x${h} leaked`).toBe(false)
+      }
+    }
+  }, 20_000)
+
+  it('holds the flood inside for closed diagonal-heavy loops (45° diamond sweep)', () => {
+    for (let r = 2; r <= 30; r++) {
+      const bw = 2 * r + 10
+      const bh = bw
+      const c = r + 3
+      const pts = [
+        ...linePoints(c, c - r, c + r, c),
+        ...linePoints(c + r, c, c, c + r),
+        ...linePoints(c, c + r, c - r, c),
+        ...linePoints(c - r, c, c, c - r),
+      ]
+      const outline = new Set(pts.map(([x, y]) => y * bw + x))
+      const { inside } = regionCells(outline, bw, bh)
+      let bad = inside.size < 2 * r * r - 2 * r
+      for (const i of inside) {
+        const x = i % bw
+        const y = (i - x) / bw
+        // diamond interior: |x-c| + |y-c| < r
+        if (Math.abs(x - c) + Math.abs(y - c) >= r + 0.5) bad = true
+      }
+      expect(bad, `diamond r=${r} misclassified`).toBe(false)
+    }
   })
 })
 

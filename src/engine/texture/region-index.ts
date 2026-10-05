@@ -80,8 +80,9 @@ export function fnvFloat(acc: number, v: number): number {
 /**
  * Digest of a region cell list. Covers every input the scan reads: tile positions and connectivity
  * as integer words (cheap in bulk), the fill rect size and corner fillets as exact float mixes (x/y
- * and the tile bounds are derived from these plus sub). Callers that already hold buffer
- * coordinates mix their own words inline instead and pass that digest.
+ * and the tile bounds are derived from these plus sub — note y needs h: sizeX/sizeY scale the fill
+ * rect independently). Callers that already hold buffer coordinates mix their own words inline
+ * instead and pass that digest.
  */
 export function hashCells(cells: TextureCell[], sub: number): number {
   let acc = fnvWord(FNV_OFFSET, cells.length)
@@ -90,6 +91,7 @@ export function hashCells(cells: TextureCell[], sub: number): number {
     acc = fnvWord(acc, Math.round(c.cx0 * sub))
     acc = fnvWord(acc, Math.round(c.cy0 * sub))
     acc = fnvFloat(acc, c.w)
+    acc = fnvFloat(acc, c.h)
     acc = fnvFloat(acc, c.radii[0])
     acc = fnvFloat(acc, c.radii[1])
     acc = fnvFloat(acc, c.radii[2])

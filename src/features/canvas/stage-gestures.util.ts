@@ -16,6 +16,8 @@ import {
   type DocPoint,
   type DragState,
 } from './canvas-stage.util.ts'
+import { clickSelectionIds } from './select-hit.util.ts'
+import type { XformHandle } from './selection-transform.util.ts'
 
 /** Where a connector anchor lands for a pointer position (null = outside the canvas). */
 export function linkAnchorAt(
@@ -85,9 +87,99 @@ export interface MarqueeResolveArgs {
   showScopeHint: () => void
 }
 
+/** Press surface of the selection transform box (structural slice of useSelectionTransform). */
+interface XformPress {
+  hit(
+    p: DocPoint,
+    zoom: number,
+    touch: boolean,
+  ): { kind: 'handle' | 'rotate'; handle: XformHandle } | null
+  begin(kind: 'handle' | 'rotate', handle: XformHandle, p: DocPoint): boolean
+}
+
+export interface BeginSelectArgs {
+  e: { pointerId: number; shiftKey: boolean; altKey: boolean }
+  p: DocPoint
+  /** Buffer cell under the press (-1 outside) */
+  idx: number
+  zoom: number
+  touch: boolean
+  doc: Doc
+  selection: number[]
+  activeLayerId: number | null
+  isSquare: boolean
+  xform: XformPress
+  drag: { current: DragState | null }
+  setDragKind: (k: DragState['kind'] | null) => void
+  selectElements: (ids: number[]) => void
+  removeFromSelection: (ids: number[]) => void
+  clearSelection: () => void
+  setActiveLayer: (id: number) => void
+  pickable: (id: number) => boolean
+  showScopeHint: () => void
+}
+
+/** Select-tool press: handle grab, group-aware pick, Shift/Alt add/remove, marquee on empty space. */
+export function beginSelectDrag(args: BeginSelectArgs): void {
+  const { e, p, idx, doc, selection } = args
+  // a grab of a transform-box handle (or its rotate zone) wins over everything else
+  if (selection.length > 0) {
+    const hit = args.xform.hit(p, args.zoom, args.touch)
+    if (hit && args.xform.begin(hit.kind, hit.handle, p)) {
+      args.drag.current = { kind: 'xform', pid: e.pointerId, sx: p.x, sy: p.y }
+      args.setDragKind('xform')
+      return
+    }
+  }
+  // locked or hidden-ancestor objects are not pickable
+  const rawObj = idx >= 0 ? (doc.cellObj?.[idx] ?? 0) : 0
+  const obj = args.pickable(rawObj) ? rawObj : 0
+  if (obj > 0 && e.shiftKey) {
+    // Shift adds/toggles the clicked entity — the whole group is the click unit
+    const ids = clickSelectionIds(doc, obj)
+    if (ids.some((id) => selection.includes(id))) args.removeFromSelection(ids)
+    else args.selectElements([...selection, ...ids])
+    return
+  }
+  if (obj > 0) {
+    beginObjMoveDrag({
+      e,
+      p,
+      obj,
+      doc,
+      selection,
+      activeLayerId: args.activeLayerId,
+      isSquare: args.isSquare,
+      clickIds: clickSelectionIds(doc, obj),
+      drag: args.drag,
+      setDragKind: args.setDragKind,
+      selectElements: args.selectElements,
+      removeFromSelection: args.removeFromSelection,
+      setActiveLayer: args.setActiveLayer,
+    })
+    return
+  }
+  // empty space: a plain click clears, Shift/Alt keep the selection and stretch an
+  // additive/subtractive rubber band; everything inside becomes selected on release
+  if (!e.shiftKey && !e.altKey) args.clearSelection()
+  args.drag.current = {
+    kind: 'marquee',
+    pid: e.pointerId,
+    sx: p.x,
+    sy: p.y,
+    start: [p.x, p.y],
+    additive: e.shiftKey,
+    subtractive: e.altKey,
+  }
+  args.setDragKind('marquee')
+  // artwork is there but unselectable: canvas-wide styles keep cellObj empty,
+  // so a select click would do nothing — surface why instead of staying silent
+  if (doc.styleScope === 'global' && idx >= 0 && doc.cells[idx] > 0) args.showScopeHint()
+}
+
 /** Select press on an object: Shift toggle, Alt-clone, layer activation and the move snapshot. */
 export function beginObjMoveDrag(args: {
-  e: { shiftKey: boolean; altKey: boolean }
+  e: { shiftKey: boolean; altKey: boolean; pointerId: number }
   p: DocPoint
   obj: number
   doc: Doc
@@ -131,7 +223,15 @@ export function beginObjMoveDrag(args: {
       if (o > 0 && sel.includes(o) && snapDoc.cells[i] > 0) moved.push([i, snapDoc.cells[i], o])
     }
   }
-  args.drag.current = { kind: 'move', sx: args.p.x, sy: args.p.y, moved, dx: 0, dy: 0 }
+  args.drag.current = {
+    kind: 'move',
+    pid: args.e.pointerId,
+    sx: args.p.x,
+    sy: args.p.y,
+    moved,
+    dx: 0,
+    dy: 0,
+  }
   args.setDragKind('move')
 }
 

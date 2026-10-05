@@ -42,6 +42,8 @@ export interface PenToolParams {
   ensureStaging: () => Staging
   scheduleStaging: () => void
   bumpStaging: () => void
+  /** Sync the stage geometry with the store doc before a post-commit frame (see commitStaging). */
+  refreshGeometry: () => void
   /** RAF-coalesced overlay redraw (the pen skeleton lives there) */
   scheduleOverlay: () => void
 }
@@ -367,14 +369,23 @@ export function usePenTool(P: PenToolParams) {
   useEffect(() => () => cancelAnimationFrame(rafRef.current), [])
 
   // the draft can also change outside the canvas gestures (panel action buttons edit the path
-  // directly): restage the pixel preview whenever the store's path identity moves
+  // directly): restage the pixel preview whenever the store's path identity moves — and when
+  // undo/redo swaps the document under an open draft, so the staged ink follows the reverted
+  // document instead of ghosting over it
   useEffect(() => {
     let last = useStore.getState().pen?.path ?? null
+    let lastDoc = useStore.getState().doc
     return useStore.subscribe((s) => {
       const path = s.pen?.path ?? null
-      if (path === last) return
-      last = path
-      schedule()
+      if (path !== last) {
+        last = path
+        schedule()
+        return
+      }
+      if (s.doc !== lastDoc && s.pen) {
+        lastDoc = s.doc
+        schedule()
+      }
     })
   }, [schedule])
 
@@ -437,6 +448,9 @@ export function usePenTool(P: PenToolParams) {
       const p = paramsRef.current
       if (p.stagingRef.current) {
         p.stagingRef.current = null
+        // a commit just landed in the store: the imperative frame must paint the committed
+        // document, not the pre-commit geometry closure
+        p.refreshGeometry()
         p.bumpStaging()
       }
     }, []),

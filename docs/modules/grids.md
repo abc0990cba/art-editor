@@ -13,7 +13,9 @@ square and non-square grids alike). Public entries: [`src/engine/grids/index.ts`
 
 | File | Role |
 |---|---|
-| [`src/engine/grids/index.ts`](../../src/engine/grids/index.ts) | `Grid` interface, `makeGrid` (memoized), `isPlainSquare`, `docSize`, `cellCoordLabel`, conversion: `gridConvertMap`/`convertLink`/`convertGridDoc` |
+| [`src/engine/grids/index.ts`](../../src/engine/grids/index.ts) | `Grid` interface, `makeGrid` re-export, `isPlainSquare`, `docSize`, `cellCoordLabel`, conversion: `gridConvertMap`/`convertLink`/`convertGridDoc` |
+| [`src/engine/grids/lattice.ts`](../../src/engine/grids/lattice.ts) | `makeGrid` — the memoized lattice factory (`type:cols:rows:even:rot%360` cache) |
+| [`src/engine/grids/coverage.ts`](../../src/engine/grids/coverage.ts) | `gridCoveragePoly` / `gridCoverageClip` — the drawable region of a plate (full rect / radial disc / turned rect) shared by backgrounds, exports and metaball clamps |
 | [`src/engine/grids/builders.ts`](../../src/engine/grids/builders.ts) | `buildGrid` dispatch, `attachEdgeMap` (shared-edge adjacency), `makeSquare`, `makeHex` (pointy-top axial), `makeTriangle` (▲▼ bands), `makeRadial` (polar rings) |
 | [`src/engine/grids/lattices.ts`](../../src/engine/grids/lattices.ts) | `buildLattice`: `makeSheared` (diamond/iso), `makeBrick` (running bond), `makeOctasquare` (truncated 4.8.8), `makeHexFlat` (flat-top odd-q), `makeRhombille` (3 lozenges per pointy-top hex) |
 | [`src/engine/grids/geometry.ts`](../../src/engine/grids/geometry.ts) | `gridBuildGeometry` — pixels/outline/metaball for every non-square grid, `gridMetaballField` |

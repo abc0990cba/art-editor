@@ -4,6 +4,7 @@ import { STAGE_THEMES, docExtent, type Doc } from '../../engine/core/doc.ts'
 import { nodeProtected, type SceneLayer } from '../../engine/core/scene.ts'
 import { scrollbarMetrics } from '../../engine/core/scrollbars.ts'
 import { selectionBox, type CellBox } from '../../engine/effects/selection-xform.ts'
+import type { Geometry } from '../../engine/geometry/index.ts'
 import { ensureTileGeometry } from '../../engine/geometry/tiles.ts'
 import { cellCoordLabel } from '../../engine/grids/index.ts'
 import { isShapeTool } from '../../engine/shapes/index.ts'
@@ -34,7 +35,7 @@ import {
   drawTransformBox,
 } from './selection-transform.util.ts'
 import {
-  beginObjMoveDrag,
+  beginSelectDrag,
   commitPendingLink,
   linkAnchorAt,
   previewPendingLink,
@@ -164,6 +165,29 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     if (fitSignal > 0) fit()
   }, [fitSignal, fit])
 
+  // committed geometry only: during strokes the base layer composites the staged delta
+  // on top of a cached artwork bitmap (see the base render effect), so the full-document
+  // rebuild runs on doc changes — not on every rAF tick of a stroke.
+  // The rebuild is tile-incremental: `ensureTileGeometry` diffs the buffers against the previous
+  // document and re-emits only the tiles that changed (plain pixel docs; everything else falls
+  // back to the whole-document builder). The assignment below is the previous-doc handshake —
+  // the memo for this render must see the PREVIOUS document; the engine-side WeakMap cache
+  // keeps a StrictMode double render idempotent.
+  const prevDocRef = useRef<Doc | null>(null)
+  const geometry = useMemo(() => ensureTileGeometry(prevDocRef.current, doc), [doc])
+  prevDocRef.current = doc
+  // live mirror of the committed geometry for imperative frames: commit paths rebuild it from
+  // the fresh store document BEFORE their post-commit frame (the render closure still holds
+  // the pre-commit doc, which would blink the just-drawn stroke off for one frame)
+  const geometryRef = useRef<Geometry | null>(null)
+  geometryRef.current = geometry
+  /** Sync `geometryRef` with the store document (the tile cache makes the rebuild incremental). */
+  const refreshGeometry = useCallback(() => {
+    const d = useStore.getState().doc
+    geometryRef.current = ensureTileGeometry(prevDocRef.current, d)
+    prevDocRef.current = d
+  }, [])
+
   const {
     stagingRef,
     frameDeltaRef,
@@ -209,19 +233,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       const k = drag.current?.kind
       if (k === 'move' || k === 'xform') drawOverlayRef.current()
     },
+    onCommitPaint: refreshGeometry,
   })
-
-  // committed geometry only: during strokes the base layer composites the staged delta
-  // on top of a cached artwork bitmap (see the base render effect), so the full-document
-  // rebuild runs on doc changes — not on every rAF tick of a stroke.
-  // The rebuild is tile-incremental: `ensureTileGeometry` diffs the buffers against the previous
-  // document and re-emits only the tiles that changed (plain pixel docs; everything else falls
-  // back to the whole-document builder). The assignment below is the previous-doc handshake —
-  // the memo for this render must see the PREVIOUS document; the engine-side WeakMap cache
-  // keeps a StrictMode double render idempotent.
-  const prevDocRef = useRef<Doc | null>(null)
-  const geometry = useMemo(() => ensureTileGeometry(prevDocRef.current, doc), [doc])
-  prevDocRef.current = doc
 
   const [hover, setHover] = useState<Hover | null>(null)
   const drag = useRef<DragState | null>(null)
@@ -265,6 +278,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     ensureStaging,
     scheduleStaging,
     bumpStaging,
+    refreshGeometry,
     scheduleOverlay: scheduleMarquee,
   })
   const penRef = useRef(pen)
@@ -363,28 +377,35 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   // can never turn later hover moves into stray stamps. A selection move drag
   // commits through moveSelection instead of the paint path; a marquee drag
   // resolves the rubber band into element ids (add/subtract per its modifiers).
-  const finishDragRef = useRef<() => void>(() => {})
+  const finishDragRef = useRef<(pid?: number) => void>(() => {})
   /** A scene object the select tool may pick: visible, not locked, not under a locked parent. */
   const pickableObj = useCallback(
     (id: number): boolean => id > 0 && !(doc.layers && nodeProtected(doc.layers, id)),
     [doc.layers],
   )
-  finishDragRef.current = () => {
+  finishDragRef.current = (pid) => {
     const d = drag.current
     if (!d) return
+    // a second pointer lifting must never commit the owner's in-flight stroke (undefined =
+    // the pointer-blind paths: window blur, scrollbar-adjacent cancel)
+    if (pid !== undefined && pid !== d.pid) return
     drag.current = null
     setDragKind(null)
     setPanning(false)
     if (d.kind === 'move') {
       stagingRef.current = null
+      if ((d.dx ?? 0) !== 0 || (d.dy ?? 0) !== 0) {
+        moveSelection(d.dx!, d.dy!)
+        refreshGeometry()
+      }
       bumpStaging()
-      if ((d.dx ?? 0) !== 0 || (d.dy ?? 0) !== 0) moveSelection(d.dx!, d.dy!)
       return
     }
     if (d.kind === 'xform') {
       stagingRef.current = null
-      bumpStaging()
       xform.finish()
+      refreshGeometry()
+      bumpStaging()
       return
     }
     if (d.kind === 'pen') {
@@ -417,76 +438,47 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     commitStaging()
   }
   useEffect(() => {
-    const stop = () => finishDragRef.current()
+    // window-level safety net, pointer-aware (the pid gate lives in finishDragRef): only the
+    // owning pointer's up/cancel ends the drag; blur ends it regardless
+    const stop = (e: PointerEvent) => finishDragRef.current(e.pointerId)
     window.addEventListener('pointerup', stop)
     window.addEventListener('pointercancel', stop)
-    window.addEventListener('blur', stop)
+    const onBlur = () => finishDragRef.current()
+    window.addEventListener('blur', onBlur)
     return () => {
       window.removeEventListener('pointerup', stop)
       window.removeEventListener('pointercancel', stop)
-      window.removeEventListener('blur', stop)
+      window.removeEventListener('blur', onBlur)
     }
   }, [])
 
   // ---- pointer handlers ----
-  /** Select-tool press: group-aware pick, Shift/Alt add/remove, empty space starts a marquee. */
+  /** Select-tool press, extracted (see beginSelectDrag): the component passes its live inputs. */
   const beginSelect = (
     e: React.PointerEvent<HTMLCanvasElement>,
     p: { x: number; y: number },
     idx: number,
   ) => {
-    // a grab of a transform-box handle (or its rotate zone) wins over everything else
-    if (selection.length > 0) {
-      const hit = xform.hit(p, view.zoom, e.pointerType === 'touch')
-      if (hit && xform.begin(hit.kind, hit.handle, p)) {
-        drag.current = { kind: 'xform', sx: p.x, sy: p.y }
-        setDragKind('xform')
-        return
-      }
-    }
-    // locked or hidden-ancestor objects are not pickable
-    const rawObj = idx >= 0 ? (doc.cellObj?.[idx] ?? 0) : 0
-    const obj = pickableObj(rawObj) ? rawObj : 0
-    if (obj > 0 && e.shiftKey) {
-      // Shift adds/toggles the clicked entity — the whole group is the click unit
-      const ids = clickSelectionIds(doc, obj)
-      if (ids.some((id) => selection.includes(id))) removeFromSelection(ids)
-      else selectElements([...selection, ...ids])
-      return
-    }
-    if (obj > 0) {
-      beginObjMoveDrag({
-        e,
-        p,
-        obj,
-        doc,
-        selection,
-        activeLayerId,
-        isSquare,
-        clickIds: clickSelectionIds(doc, obj),
-        drag,
-        setDragKind,
-        selectElements,
-        removeFromSelection,
-        setActiveLayer,
-      })
-      return
-    }
-    // empty space: a plain click clears, Shift/Alt keep the selection and stretch an
-    // additive/subtractive rubber band; everything inside becomes selected on release
-    if (!e.shiftKey && !e.altKey) clearSelection()
-    drag.current = {
-      kind: 'marquee',
-      sx: p.x,
-      sy: p.y,
-      start: [p.x, p.y],
-      additive: e.shiftKey,
-      subtractive: e.altKey,
-    }
-    setDragKind('marquee')
-    // artwork is there but unselectable: canvas-wide styles keep cellObj empty,
-    // so a select click would do nothing — surface why instead of staying silent
-    if (doc.styleScope === 'global' && idx >= 0 && doc.cells[idx] > 0) showScopeHint()
+    beginSelectDrag({
+      e,
+      p,
+      idx,
+      zoom: view.zoom,
+      touch: e.pointerType === 'touch',
+      doc,
+      selection,
+      activeLayerId,
+      isSquare,
+      xform,
+      drag,
+      setDragKind,
+      selectElements,
+      removeFromSelection,
+      clearSelection,
+      setActiveLayer,
+      pickable: pickableObj,
+      showScopeHint,
+    })
   }
 
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -495,9 +487,19 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     } catch {
       /* synthetic pointers have no active id — drawing still works uncaptured */
     }
+    // one gesture at a time: a second pointer (palm resting, second finger) must never
+    // stomp the in-flight drag — it would interleave stamps and commit early
+    if (drag.current && e.pointerId !== drag.current.pid) return
     // middle/right button, held Space or the hand tool all pan instead of drawing
     if (e.button === 1 || e.button === 2 || spaceRef.current || tool === 'hand') {
-      drag.current = { kind: 'pan', sx: e.clientX, sy: e.clientY, panX: view.x, panY: view.y }
+      drag.current = {
+        kind: 'pan',
+        pid: e.pointerId,
+        sx: e.clientX,
+        sy: e.clientY,
+        panX: view.x,
+        panY: view.y,
+      }
       setDragKind('pan')
       setPanning(true)
       return
@@ -511,7 +513,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     // shape drags only record their start point; the preview builds in onPointerMove
     if (tool === 'line' || tool === 'rect' || tool === 'ellipse' || isShapeTool(tool)) {
       if (!drawBlocked) {
-        drag.current = { kind: 'shape', start: [p.x, p.y] }
+        drag.current = { kind: 'shape', pid: e.pointerId, start: [p.x, p.y] }
         shapeStartRef.current = [p.x, p.y]
         shapeLastRef.current = [p.x, p.y]
         setDragKind('shape')
@@ -526,7 +528,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       case 'pencil':
       case 'eraser': {
         if (drawBlocked) break
-        const ds: DragState = { kind: 'draw', last: idx, removedLinks: new Set() }
+        const ds: DragState = { kind: 'draw', pid: e.pointerId, last: idx, removedLinks: new Set() }
         drag.current = ds
         setDragKind('draw')
         stampBrush(idx, tool === 'eraser', ds, p, e.altKey)
@@ -586,7 +588,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       }
       case 'pen': {
         if (drawBlocked) break
-        drag.current = { kind: 'pen' }
+        drag.current = { kind: 'pen', pid: e.pointerId }
         setDragKind('pen')
         penRef.current.pointerDown(e, p, view.zoom)
         break
@@ -595,9 +597,11 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
   }
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    // only the owning pointer drives the drag — a second touch must neither paint nor finish
+    if (drag.current && e.pointerId !== drag.current.pid) return
     // a drag whose button was released outside the canvas must not keep painting
     if (drag.current && e.buttons === 0) {
-      finishDragRef.current()
+      finishDragRef.current(e.pointerId)
       return
     }
     const p = toDoc(e)
@@ -704,8 +708,8 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     }
   }
 
-  const onPointerUp = () => {
-    finishDragRef.current()
+  const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    finishDragRef.current(e.pointerId)
   }
 
   /**
@@ -777,7 +781,9 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       wrap: wrapRef.current,
       state: paintRef.current!,
       doc,
-      geometry,
+      // read through the mirror: the post-commit imperative frame runs before React re-renders,
+      // and commitStaging has already refreshed the mirror to the committed geometry
+      geometry: geometryRef.current!,
       view,
       extent,
       stage,
@@ -795,7 +801,6 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
       bh,
     })
   }, [
-    geometry,
     view,
     doc,
     showGrid,

@@ -1,7 +1,9 @@
 import type { Doc, Link } from '../core/doc.ts'
 import type { Pt } from '../geometry/marching-squares.ts'
-import { buildGrid } from './builders.ts'
-import { rotatedGrid } from './rotate.ts'
+import { makeGrid } from './lattice.ts'
+
+export { gridCoveragePoly } from './coverage.ts'
+export { makeGrid } from './lattice.ts'
 
 export type GridType =
   | 'square'
@@ -51,26 +53,6 @@ export interface Grid {
   cellByAngle(i: number, targetAngle: number): number
   /** Radial grids only: [ring index, sector index in the ring, sector count of the ring] */
   ringSectorOf?(i: number): [number, number, number]
-}
-
-const cache = new Map<string, Grid>()
-
-export function makeGrid(
-  type: GridType,
-  cols: number,
-  rows: number,
-  even = false,
-  rotation = 0,
-): Grid {
-  const rot = ((rotation % 360) + 360) % 360
-  const key = `${type}:${cols}:${rows}:${even ? 'e' : 'u'}:${rot}`
-  let g = cache.get(key)
-  if (!g) {
-    g = buildGrid(type, cols, rows, even)
-    if (rot !== 0) g = rotatedGrid(g, rot)
-    cache.set(key, g)
-  }
-  return g
 }
 
 /**

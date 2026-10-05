@@ -83,6 +83,45 @@ describe('repeat modes (wallpaper / tiling)', () => {
     }
   })
 
+  it('orbit truncation keeps the copies nearest the stroke, not a canvas corner', () => {
+    // on-lattice stroke point, budget of exactly the 7×7 lattice neighborhood around it
+    const x = 104
+    const y = 104
+    const pts = symmetryPoints(x, y, 200, 200, 'p1', 8, CELL, undefined, 49)
+    expect(pts).toHaveLength(49)
+    const set = new Set(pts.map(([a, b]) => `${a},${b}`))
+    for (let di = -3; di <= 3; di++) {
+      for (let dj = -3; dj <= 3; dj++) {
+        expect(set.has(`${x + di * CELL},${y + dj * CELL}`)).toBe(true)
+      }
+    }
+  })
+
+  it('truncation near a canvas edge keeps the nearest in-bounds cells', () => {
+    const x = 196
+    const y = 3
+    const pts = symmetryPoints(x, y, 200, 200, 'p1', 8, CELL, undefined, 49)
+    expect(pts.length).toBeLessThanOrEqual(49)
+    const set = new Set(pts.map(([a, b]) => `${a},${b}`))
+    // the closest in-bounds translations (leftward columns, downward rows) all survive
+    for (let di = -1; di <= 0; di++) {
+      for (let dj = 0; dj <= 3; dj++) {
+        expect(set.has(`${x + di * CELL},${y + dj * CELL}`)).toBe(true)
+      }
+    }
+  })
+
+  it('untruncated repeat orbits enumerate every in-bounds translation', () => {
+    const pts = symmetryPoints(196, 3, 200, 200, 'p1', 8, CELL)
+    expect(pts).toHaveLength(625)
+    const set = new Set(pts.map(([a, b]) => `${a},${b}`))
+    for (let px = 196 % CELL; px < 200; px += CELL) {
+      for (let py = 3 % CELL; py < 200; py += CELL) {
+        expect(set.has(`${px},${py}`)).toBe(true)
+      }
+    }
+  })
+
   it('all repeat modes keep the original point and stay in bounds', () => {
     for (const mode of REPEAT_MODES) {
       const pts = orbit(mode, 5, 11)

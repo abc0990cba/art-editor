@@ -51,6 +51,12 @@ export interface CanvasStagingParams {
    * re-render the stage component.
    */
   onStagingFrame: () => void
+  /**
+   * Runs after a commit painted into the store but before the post-commit frame: the stage
+   * refreshes its geometry from the fresh document here, so the imperative frame right after
+   * pointerup shows the committed stroke instead of one stale pre-commit frame.
+   */
+  onCommitPaint?: () => void
 }
 
 /**
@@ -72,6 +78,7 @@ export function useCanvasStaging({
   fillStyle,
   activeLayerState,
   onStagingFrame,
+  onCommitPaint,
 }: CanvasStagingParams) {
   const paintCells = useStore((s) => s.paintCells)
   const paintCellsValues = useStore((s) => s.paintCellsValues)
@@ -284,6 +291,12 @@ export function useCanvasStaging({
     (idxs: number[], erase: boolean, dragState: DragState, pDoc: DocPoint | null): number => {
       const st = ensureStaging()
       const v = colorValueFor(color)
+      if (!erase && v > doc.palette.length) {
+        // a color not in the palette yet: the commit appends it (resolveColor), but the staged
+        // preview wraps values modulo the current palette — carry the future palette so the
+        // stroke previews in its real color instead of palette[0]
+        st.palette = [...doc.palette, color.toLowerCase()]
+      }
       for (const idx of idxs) {
         st.cells.set(idx, erase ? null : v)
         if (!erase) st.objs!.set(idx, PENDING_OBJ)
@@ -692,6 +705,9 @@ export function useCanvasStaging({
       // only connectors were removed during this stroke
       paintCells(new Map<number, number | null>(), '', st.links)
     }
+    // the imperative frame after the commit must paint the committed document, not the
+    // pre-commit geometry closure — the stage rebuilds its geometry from the fresh store here
+    onCommitPaint?.()
     bumpStaging()
     // shapePaint/toolOpts decide whether the commit becomes a parametric node or
     // per-cell fill+stroke values — a stale closure here would drop the user's style
@@ -710,6 +726,7 @@ export function useCanvasStaging({
     concentricRadii,
     symmetry,
     bumpStaging,
+    onCommitPaint,
   ])
 
   return {

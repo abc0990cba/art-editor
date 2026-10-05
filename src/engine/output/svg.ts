@@ -1,6 +1,7 @@
 import type { Doc } from '../core/doc'
 import { docExtent } from '../core/doc'
 import { buildGeometry } from '../geometry'
+import { coverageBgElement } from './coverage-bg'
 
 export interface SvgOptions {
   includeBg: boolean
@@ -22,7 +23,7 @@ export function buildSvg(doc: Doc, opts: SvgOptions): string {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * scale}" height="${h * scale}">`,
   )
   if (opts.includeBg && doc.bg) {
-    parts.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="${doc.bg}"/>`)
+    parts.push(coverageBgElement(doc, doc.bg))
   }
   for (const p of geometry.paths) {
     const fill = p.fill ?? 'none'

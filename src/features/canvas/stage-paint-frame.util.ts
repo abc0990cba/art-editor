@@ -69,6 +69,7 @@ export function paintStage(p: StagePaintParams): void {
     ctx.save()
     ctx.translate(view.x, view.y)
     ctx.scale(view.zoom, view.zoom)
+    ctx.clip(extentClipPath(p.extent))
     drawGeometry(ctx, p.geometry.paths)
     ctx.restore()
     blit(ctx, state.grid, size)
@@ -88,6 +89,17 @@ export function paintStage(p: StagePaintParams): void {
   state.session = null
   if (pixelPreviewEligible(p) && pixelFrame(p, ctx, size, art)) return
   legacyFrame(p, ctx, size)
+}
+
+/**
+ * Clip of the doc extent in doc-space: anything the geometry draws past the canvas rectangle
+ * (rotated cell forms and angle jitter on border cells) stays invisible, exactly like the export
+ * viewBox crops it.
+ */
+function extentClipPath(extent: { w: number; h: number }): Path2D {
+  const clip = new Path2D()
+  clip.rect(0, 0, extent.w, extent.h)
+  return clip
 }
 
 /** Committed-artwork bitmap, rebuilt only when the geometry or the view changes. */
@@ -134,6 +146,7 @@ function ensureArt(
       actx.save()
       actx.translate(p.view.x, p.view.y)
       actx.scale(p.view.zoom, p.view.zoom)
+      actx.clip(extentClipPath(p.extent))
       drawGeometry(actx, p.geometry.paths)
       actx.restore()
     }
@@ -372,6 +385,7 @@ function legacyFrame(
     ctx.save()
     ctx.translate(view.x, view.y)
     ctx.scale(view.zoom, view.zoom)
+    ctx.clip(extentClipPath(p.extent))
     drawGeometry(ctx, paths)
     ctx.restore()
   }

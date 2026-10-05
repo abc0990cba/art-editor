@@ -1,6 +1,7 @@
 import type { Doc } from '../core/doc'
 import { docExtent } from '../core/doc'
 import { buildGeometry, type StyledPath } from '../geometry'
+import { fillCoverageBg } from './coverage-bg'
 
 /**
  * Parsed Path2D cache keyed by the path string itself. Geometry rebuilds (every commit, pan or
@@ -74,11 +75,8 @@ export async function renderPng(doc: Doc, size: PngSize, includeBg: boolean): Pr
   canvas.height = clampPngSide(size.height)
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('no 2d context')
-  if (includeBg && doc.bg) {
-    ctx.fillStyle = doc.bg
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-  }
   ctx.scale(canvas.width / w, canvas.height / h)
+  if (includeBg && doc.bg) fillCoverageBg(ctx, doc, doc.bg)
   drawGeometry(ctx, buildGeometry(doc).paths)
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => {
@@ -97,11 +95,8 @@ export function renderThumbnailDataURL(doc: Doc, maxSide = 320): string {
   canvas.height = Math.max(1, Math.round(h * scale))
   const ctx = canvas.getContext('2d')
   if (!ctx) return ''
-  if (doc.bg) {
-    ctx.fillStyle = doc.bg
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-  }
   ctx.scale(scale, scale)
+  if (doc.bg) fillCoverageBg(ctx, doc, doc.bg)
   drawGeometry(ctx, buildGeometry(doc).paths)
   return canvas.toDataURL('image/png')
 }
