@@ -57,7 +57,8 @@ edges, canonical 1e-6 keys) filleted by `emitFilletPath` from [geometry](geometr
 true corners fillet, arc samples and T-junction splits stay smooth; `metaball` →
 `gridMetaballField` (kernel splats at cell centers, √-scaled by the local cell size so
 sub-unit radial rings don't fuse into a saturated center blob, + link capsules, `step`
-capped so the long side stays ≤ 600 nodes) traced by the shared field tracer. Connectors stroke between
+capped so the long side stays ≤ 600 nodes, radial fields clamped to the disc boundary) traced
+by the shared field tracer. Connectors stroke between
 `grid.center` endpoints. Corner connectivity and sub-cells are square-grid features.
 
 **Grid conversion** ([`src/engine/grids/index.ts`](../../src/engine/grids/index.ts)): `gridConvertMap` samples every new
@@ -88,7 +89,10 @@ a `CELL_SHAPES` entry + silhouette + fragment + 2 i18n keys.
   same way: `count = 3·cols·rows`, hex cell `h` owning lozenges `3h`, `3h+1`, `3h+2`.
 - Radial `radialEven` grades sector counts per ring into halving bands so cell arc length
   stays close to ring thickness; arc polygons carry shared boundary samples so edge-key
-  adjacency survives the ring transition.
+  adjacency survives the ring transition. Each arc stop interval is subdivided adaptively
+  (`max(4, ceil(interval / 8°))`) so every sample turn stays under the fillet core's corner
+  threshold — coarse sectors and even-graded inner rings (down to the ring-0 half disc) never
+  scallop; intervals ≤ 32° keep the old 4 samples and render byte-identical.
 - `isPlainSquare(doc)` ([`src/engine/grids/index.ts`](../../src/engine/grids/index.ts)) gates every square-buffer fast
   path: selection moves, transforms, texture effects, connectivity, brush tips, repeat
   symmetry. A *rotated* square loses all of them and renders through the generic lattice

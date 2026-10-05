@@ -250,6 +250,8 @@ export interface State {
   groupSelection: () => void
   /** Dissolve the outermost groups containing the selected objects */
   ungroupSelection: () => void
+  /** Unite same-color same-style objects of each layer into one object per color (undoable) */
+  mergeSameColors: () => void
   /** Same-style objects on one layer merge into shared fields/silhouettes */
   setFuseObjects: (v: boolean) => void
   /** Attach, replace or remove the live node graph of one object (undoable) */

@@ -517,6 +517,9 @@ export const en = {
   'layers.group.desc': 'Group the selected objects (Ctrl+G); they must share a parent',
   'layers.ungroup': 'Ungroup',
   'layers.ungroup.desc': 'Dissolve the group around the selection (Ctrl+Shift+G)',
+  'layers.mergeColors': 'Merge same colors',
+  'layers.mergeColors.desc':
+    'Unite blocks of one color into a single object per layer — fewer objects, same picture. With a selection only it merges, without it the whole document.',
   'layers.show': 'Show',
   'layers.hide': 'Hide',
   'layers.lock': 'Lock',

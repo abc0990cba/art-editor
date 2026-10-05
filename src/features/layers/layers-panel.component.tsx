@@ -77,6 +77,102 @@ function objSwatch(doc: Doc, style: SceneItem & { kind: 'obj' }): string | null 
   return null
 }
 
+const iconBtn =
+  'border-chip-line bg-chip text-body hover:bg-chip-active flex h-6 w-6 items-center justify-center rounded-md border disabled:opacity-40'
+
+/** The action row under the tree: new layer, group, ungroup and merge-same-colors. */
+function PanelActions() {
+  const { t } = useI18n()
+  const selection = useStore((s) => s.selection)
+  const addLayer = useStore((s) => s.addLayer)
+  const groupSelection = useStore((s) => s.groupSelection)
+  const ungroupSelection = useStore((s) => s.ungroupSelection)
+  const mergeSameColors = useStore((s) => s.mergeSameColors)
+  return (
+    <div className="flex items-center gap-1">
+      <Tooltip label={t('layers.new.desc')}>
+        <button
+          type="button"
+          aria-label={t('layers.new')}
+          className="border-chip-line bg-chip text-body hover:bg-chip-active flex h-6 items-center gap-1 rounded-md border px-1.5 text-xs"
+          onClick={addLayer}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+          >
+            <path d="M8 3.2v9.6M3.2 8h9.6" />
+          </svg>
+          {t('layers.new')}
+        </button>
+      </Tooltip>
+      <Tooltip label={t('layers.group.desc')}>
+        <button
+          type="button"
+          aria-label={t('layers.group')}
+          disabled={selection.length === 0}
+          className={iconBtn}
+          onClick={groupSelection}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.3"
+          >
+            <rect x="2" y="2" width="12" height="12" rx="1.5" strokeDasharray="2.4 2" />
+            <rect x="5" y="5" width="6" height="6" rx="1" />
+          </svg>
+        </button>
+      </Tooltip>
+      <Tooltip label={t('layers.ungroup.desc')}>
+        <button
+          type="button"
+          aria-label={t('layers.ungroup')}
+          disabled={selection.length === 0}
+          className={iconBtn}
+          onClick={ungroupSelection}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.3"
+          >
+            <rect x="2" y="2" width="12" height="12" rx="1.5" strokeDasharray="2.4 2" />
+            <path d="M5.5 8h5M8 5.5v5" strokeDasharray="1.6 1.6" />
+          </svg>
+        </button>
+      </Tooltip>
+      <Tooltip label={t('layers.mergeColors.desc')}>
+        <button
+          type="button"
+          aria-label={t('layers.mergeColors')}
+          className={iconBtn}
+          onClick={mergeSameColors}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            className="h-3.5 w-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.3"
+          >
+            <circle cx="4.9" cy="4.6" r="2.3" />
+            <circle cx="11.1" cy="4.6" r="2.3" />
+            <circle cx="8" cy="11.4" r="2.3" fill="currentColor" stroke="none" />
+          </svg>
+        </button>
+      </Tooltip>
+    </div>
+  )
+}
+
 export function LayersPanel() {
   const { t } = useI18n()
   const doc = useStore((s) => s.doc)
@@ -84,14 +180,11 @@ export function LayersPanel() {
   const activeLayerId = useStore((s) => s.activeLayerId)
   const selectElements = useStore((s) => s.selectElements)
   const setActiveLayer = useStore((s) => s.setActiveLayer)
-  const addLayer = useStore((s) => s.addLayer)
   const deleteLayer = useStore((s) => s.deleteLayer)
   const renameNode = useStore((s) => s.renameNode)
   const toggleNodeVisible = useStore((s) => s.toggleNodeVisible)
   const toggleNodeLocked = useStore((s) => s.toggleNodeLocked)
   const reorderNode = useStore((s) => s.reorderNode)
-  const groupSelection = useStore((s) => s.groupSelection)
-  const ungroupSelection = useStore((s) => s.ungroupSelection)
   const setFuseObjects = useStore((s) => s.setFuseObjects)
   const setStyleScope = useStore((s) => s.setStyleScope)
 
@@ -275,67 +368,7 @@ export function LayersPanel() {
         })}
       </div>
 
-      <div className="flex items-center gap-1">
-        <Tooltip label={t('layers.new.desc')}>
-          <button
-            type="button"
-            aria-label={t('layers.new')}
-            className="border-chip-line bg-chip text-body hover:bg-chip-active flex h-6 items-center gap-1 rounded-md border px-1.5 text-xs"
-            onClick={addLayer}
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className="h-3.5 w-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.4"
-            >
-              <path d="M8 3.2v9.6M3.2 8h9.6" />
-            </svg>
-            {t('layers.new')}
-          </button>
-        </Tooltip>
-        <Tooltip label={t('layers.group.desc')}>
-          <button
-            type="button"
-            aria-label={t('layers.group')}
-            disabled={selection.length === 0}
-            className="border-chip-line bg-chip text-body hover:bg-chip-active flex h-6 w-6 items-center justify-center rounded-md border disabled:opacity-40"
-            onClick={groupSelection}
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className="h-3.5 w-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.3"
-            >
-              <rect x="2" y="2" width="12" height="12" rx="1.5" strokeDasharray="2.4 2" />
-              <rect x="5" y="5" width="6" height="6" rx="1" />
-            </svg>
-          </button>
-        </Tooltip>
-        <Tooltip label={t('layers.ungroup.desc')}>
-          <button
-            type="button"
-            aria-label={t('layers.ungroup')}
-            disabled={selection.length === 0}
-            className="border-chip-line bg-chip text-body hover:bg-chip-active flex h-6 w-6 items-center justify-center rounded-md border disabled:opacity-40"
-            onClick={ungroupSelection}
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className="h-3.5 w-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.3"
-            >
-              <rect x="2" y="2" width="12" height="12" rx="1.5" strokeDasharray="2.4 2" />
-              <path d="M5.5 8h5M8 5.5v5" strokeDasharray="1.6 1.6" />
-            </svg>
-          </button>
-        </Tooltip>
-      </div>
+      <PanelActions />
 
       <label className="text-body flex cursor-pointer items-start gap-2 text-xs">
         <input

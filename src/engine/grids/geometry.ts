@@ -306,6 +306,14 @@ export function gridMetaballField(
     // The square root keeps same-ring neighbors merging gooey-ly like square-grid neighbors.
     sources.push({ x: c.x, y: c.y, v, r: Math.sqrt(minCornerRun(grid.polygon(i))) })
   }
+  // radial: clamp blobs at the disc boundary — the polar analog of the square border clamp
+  // (rMax = rows), so contours close along the canvas circle instead of spilling into the
+  // empty square margin around the disc
+  const clip =
+    grid.type === 'radial'
+      ? (x: number, y: number) =>
+          (x - grid.w / 2) ** 2 + (y - grid.h / 2) ** 2 <= grid.rows * grid.rows + 1e-9
+      : undefined
   return buildMetaballField({
     w: grid.w,
     h: grid.h,
@@ -317,6 +325,7 @@ export function gridMetaballField(
     sub: doc.sub,
     falloff: doc.metaball.falloff,
     squareEdges: false,
+    clip,
   })
 }
 

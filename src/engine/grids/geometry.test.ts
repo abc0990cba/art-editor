@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultDoc } from '../core/doc.ts'
+import { defaultDoc, type Doc } from '../core/doc.ts'
 import { buildGeometry } from '../geometry/index.ts'
+import { metaballIso, traceMetaballLoops } from '../geometry/metaball-field.ts'
 import { gridMetaballField } from './geometry.ts'
-import { makeGrid, type GridType } from './index.ts'
+import { makeGrid, type Grid, type GridType } from './index.ts'
 
 type GridKind = 'hex' | 'triangle' | 'radial' | 'diamond' | 'iso' | 'brick' | 'octasquare'
 
@@ -178,5 +179,143 @@ describe('grid-aware rounding', () => {
     expect(sampleAt(0, 0)).toBeGreaterThan(0.5)
     // √-scaled kernel (r ≈ 0.72) is dead by 0.65; a unit kernel would still glow ≈0.19 here
     expect(sampleAt(0.65, 0)).toBeLessThan(0.01)
+  })
+
+  it('metaball merges an adjacent pair on every lattice', () => {
+    // square-grid control: orthogonal neighbors at one pitch
+    const square = cellDoc('square', 8, 8, () => 0)
+    square.cells[1] = 1
+    square.metaball.strength = 60
+    const squareGrid = makeGrid('square', 8, 8, false)
+    expect(
+      traceMetaballLoops(
+        gridMetaballField(square, squareGrid, square.cells, () => true),
+        metaballIso(square),
+        false,
+      ),
+    ).toHaveLength(1)
+    // radial control: same-ring pair one true sector apart (not an arbitrary angle offset)
+    const radial = cellDoc('radial', 24, 8, () => 0)
+    radial.cells.fill(0)
+    const grid = makeGrid('radial', 24, 8, false)
+    const span = (2 * Math.PI) / 24
+    const a = grid.cellAt(grid.w / 2 + 3.5 * Math.cos(0.3), grid.h / 2 + 3.5 * Math.sin(0.3))
+    const b = grid.cellAt(
+      grid.w / 2 + 3.5 * Math.cos(0.3 + span),
+      grid.h / 2 + 3.5 * Math.sin(0.3 + span),
+    )
+    radial.cells[a] = 1
+    radial.cells[b] = 1
+    radial.metaball.strength = 60
+    expect(
+      traceMetaballLoops(
+        gridMetaballField(radial, grid, radial.cells, () => true),
+        metaballIso(radial),
+        false,
+      ),
+    ).toHaveLength(1)
+  })
+})
+
+describe('radial styles on coarse and even-graded rings', () => {
+  function radialDoc(cols: number, rows: number, even: boolean, mode: Doc['renderMode']) {
+    const doc = defaultDoc()
+    doc.gridType = 'radial'
+    doc.cols = cols
+    doc.rows = rows
+    doc.radialEven = even
+    doc.renderMode = mode
+    const grid = makeGrid('radial', cols, rows, even)
+    doc.cells = new Uint16Array(grid.count)
+    return { doc, grid }
+  }
+
+  /** Paint the cell of `ring` containing the angle `mid` (radians, canvas-center relative). */
+  function paintRingCell(doc: Doc, grid: Grid, ring: number, mid: number): number {
+    const r = ring + 0.5
+    const i = grid.cellAt(grid.w / 2 + r * Math.cos(mid), grid.h / 2 + r * Math.sin(mid))
+    doc.cells[i] = 1
+    return i
+  }
+
+  /** Fillet arcs that actually round something (the 180° apex emits a zero-radius degenerate). */
+  const nonzeroArcs = (d: string) =>
+    [...d.matchAll(/A([\d.]+)/g)].map((m) => Number(m[1])).filter((r) => r > 0.01)
+
+  it('outline: coarse uniform sectors fillet only the true wedge corners', () => {
+    // 45–90° sector spans turn their arc chords by 9–18° — above the corner threshold until
+    // the arcs are sampled adaptively; only the 4 wedge corners may ever fillet
+    for (const cols of [4, 6, 8]) {
+      const { doc, grid } = radialDoc(cols, 4, false, 'outline')
+      paintRingCell(doc, grid, 3, 0)
+      doc.style = { ...doc.style, convexRadius: 0.2, concaveRadius: 0.1 }
+      const paths = buildGeometry(doc).paths
+      expect(paths, `cols=${cols}`).toHaveLength(1)
+      expect(nonzeroArcs(paths[0].d), `cols=${cols}`).toHaveLength(4)
+    }
+  })
+
+  it('outline: even-graded rings stay smooth down to the half-disc center', () => {
+    // ring 0 always grades to 2 sectors (a half disc with 2 true corners); the rest have 4
+    for (let ring = 0; ring < 8; ring++) {
+      const { doc, grid } = radialDoc(16, 8, true, 'outline')
+      paintRingCell(doc, grid, ring, 0.8 + ring)
+      doc.style = { ...doc.style, convexRadius: 0.2, concaveRadius: 0.1 }
+      const paths = buildGeometry(doc).paths
+      expect(paths, `ring=${ring}`).toHaveLength(1)
+      expect(paths[0].d, `ring=${ring}`).not.toContain('NaN')
+      expect(nonzeroArcs(paths[0].d), `ring=${ring}`).toHaveLength(ring === 0 ? 2 : 4)
+    }
+  })
+
+  it('outline: adjacent ring-0 half-discs union into a corner-free disc', () => {
+    const { doc, grid } = radialDoc(16, 8, true, 'outline')
+    paintRingCell(doc, grid, 0, 0.8)
+    paintRingCell(doc, grid, 0, 0.8 + Math.PI)
+    doc.style = { ...doc.style, convexRadius: 0.2, concaveRadius: 0.1 }
+    const paths = buildGeometry(doc).paths
+    expect(paths).toHaveLength(1)
+    expect(paths[0].d).not.toContain('NaN')
+    // the diameter is shared away; the silhouette is the sampled circle, nothing to fillet
+    expect(nonzeroArcs(paths[0].d)).toHaveLength(0)
+  })
+
+  it('pixels: even-graded wedges round by ring thickness on every ring', () => {
+    for (let ring = 0; ring < 8; ring++) {
+      const { doc, grid } = radialDoc(16, 8, true, 'pixels')
+      paintRingCell(doc, grid, ring, 0.8 + ring)
+      doc.style = { ...doc.style, radius: 0.5 }
+      const arcs = nonzeroArcs(buildGeometry(doc).paths[0].d)
+      expect(arcs.length, `ring=${ring}`).toBe(ring === 0 ? 2 : 4)
+      for (const r of arcs) expect(r, `ring=${ring}`).toBeGreaterThan(0.3)
+    }
+  })
+
+  it('metaball: even-mode half-disc center cells merge into one blob', () => {
+    const { doc, grid } = radialDoc(16, 8, true, 'metaball')
+    paintRingCell(doc, grid, 0, 0.8)
+    paintRingCell(doc, grid, 0, 0.8 + Math.PI)
+    doc.metaball.strength = 60
+    const field = gridMetaballField(doc, grid, doc.cells, () => true)
+    expect(traceMetaballLoops(field, metaballIso(doc), false)).toHaveLength(1)
+  })
+
+  it('metaball: the field clamps to the disc boundary', () => {
+    const { doc, grid } = radialDoc(24, 8, false, 'metaball')
+    paintRingCell(doc, grid, 7, 0.3)
+    doc.metaball.strength = 100
+    const field = gridMetaballField(doc, grid, doc.cells, () => true)
+    const cx = grid.w / 2
+    const cy = grid.h / 2
+    let hot = 0
+    for (let y = 0; y < field.fh; y++) {
+      for (let x = 0; x < field.fw; x++) {
+        if (field.f[y * field.fw + x] <= 0) continue
+        hot++
+        const r = Math.hypot(x * field.scale - cx, y * field.scale - cy)
+        expect(r, `node ${x},${y}`).toBeLessThanOrEqual(grid.rows + 1e-6)
+      }
+    }
+    expect(hot).toBeGreaterThan(0)
   })
 })

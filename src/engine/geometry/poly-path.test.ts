@@ -48,6 +48,23 @@ const pieSlice = (): Pt[] => {
   return pts
 }
 
+/**
+ * Half disc: the two radial edges are collinear at the center apex, so the loop has exactly two
+ * true corners — the even-mode radial grid's ring-0 wedge is this shape.
+ */
+const halfDisc = (): Pt[] => {
+  const pts: Pt[] = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+  ]
+  for (let a = 5; a < 180; a += 5) {
+    const r = (a * Math.PI) / 180
+    pts.push({ x: Math.cos(r), y: Math.sin(r) })
+  }
+  pts.push({ x: -1, y: 0 })
+  return pts
+}
+
 type Cmd = { c: 'M' | 'L'; p: Pt } | { c: 'A'; r: number; from: Pt; to: Pt; sweep: number }
 
 /** Minimal path parser: M/L point lists and circular A commands. */
@@ -199,6 +216,19 @@ describe('roundedPolygonPath tangency', () => {
       expect(Number.isFinite(a.r)).toBe(true)
     }
   })
+
+  it('two-corner loops (radial half-disc wedges) still round at their true corners', () => {
+    // shallow fillets stay inside the first segment — full tangency applies
+    const shallow = roundedPolygonPath(halfDisc(), 0.05, false)
+    expect(arcCmds(shallow)).toHaveLength(2)
+    expectAllTangent(shallow)
+    // deep fillets reach past the first arc chord via runPoint (the documented curved-run
+    // approximation) — count and magnitude only, like the pie-slice case above
+    const deep = roundedPolygonPath(halfDisc(), 0.5, false)
+    const list = arcCmds(deep)
+    expect(list).toHaveLength(2)
+    for (const a of list) expect(a.r).toBeGreaterThan(0.3)
+  })
 })
 
 describe('minCornerRun', () => {
@@ -208,13 +238,18 @@ describe('minCornerRun', () => {
     expect(minCornerRun(splitTriangle)).toBeCloseTo(1, 6) // the split base counts once
   })
 
-  it('falls back to the shortest segment for polygons without 3 corners', () => {
-    expect(
-      minCornerRun([
-        { x: 0, y: 0 },
-        { x: 2, y: 0 },
-        { x: 4, y: 0 },
-      ]),
-    ).toBeCloseTo(2, 6)
+  it('falls back to the shortest segment for corner-free loops', () => {
+    // a circle sampled every 5°: no vertex turns past the corner threshold
+    const circle: Pt[] = []
+    for (let a = 0; a < 360; a += 5) {
+      const r = (a * Math.PI) / 180
+      circle.push({ x: Math.cos(r), y: Math.sin(r) })
+    }
+    expect(minCornerRun(circle)).toBeCloseTo(2 * Math.sin((2.5 * Math.PI) / 180), 6)
+  })
+
+  it('measures merged collinear runs on two-corner loops', () => {
+    // the diameter counts once: radial edge + collinear radial edge = 2, arc run ≈ π
+    expect(minCornerRun(halfDisc())).toBeCloseTo(2, 6)
   })
 })

@@ -259,7 +259,12 @@ function makeRadial(cols: number, rows: number, even: boolean): Grid {
   const cx = w / 2
   const cy = h / 2
   const rMax = rows
-  const ARC = 4 // samples per arc edge (keeps neighbor edge keys exact)
+  // arc chords turn by interval/samples degrees; keep that turn under the fillet core's
+  // corner threshold (~10°) so arc samples never round as true corners on coarse rings.
+  // A pure function of the interval keeps shared arc pieces identically sampled on both
+  // sides of a ring boundary (the q6 edge-key quantization absorbs fp noise).
+  const MAX_ARC_TURN = (8 * Math.PI) / 180
+  const arcSamples = (interval: number) => Math.max(4, Math.ceil(interval / MAX_ARC_TURN))
   const center = (i: number) => {
     const ring = ringOfArr[i]
     const sector = i - ringStart[ring]
@@ -286,8 +291,9 @@ function makeRadial(cols: number, rows: number, even: boolean): Grid {
     stops.push(a1)
     const pts: Pt[] = [at(stops[0])]
     for (let k = 0; k < stops.length - 1; k++) {
-      for (let j = 1; j <= ARC; j++) {
-        pts.push(at(stops[k] + ((stops[k + 1] - stops[k]) * j) / (ARC + 1)))
+      const n = arcSamples(stops[k + 1] - stops[k])
+      for (let j = 1; j <= n; j++) {
+        pts.push(at(stops[k] + ((stops[k + 1] - stops[k]) * j) / (n + 1)))
       }
       pts.push(at(stops[k + 1]))
     }

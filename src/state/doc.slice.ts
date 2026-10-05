@@ -1,6 +1,7 @@
 import type { Doc, GridType, SubDetail } from '../engine/core/doc.ts'
 import { defaultDoc, elementFromDoc } from '../engine/core/doc.ts'
 import { deserialize } from '../engine/core/project.ts'
+import { mergeObjsByColor } from '../engine/core/scene-merge.ts'
 import type { SceneLayer, SceneObj } from '../engine/core/scene.ts'
 import {
   appendToLayer,
@@ -11,6 +12,7 @@ import {
   newLayer,
   newObj,
   nodeProtected,
+  objIdsWithin,
   reorderNode as reorderNodeInTree,
   resizedDoc,
   subbedDoc,
@@ -73,6 +75,8 @@ export interface DocSlice {
   groupSelection: () => void
   /** Dissolve the outermost groups containing the selected objects */
   ungroupSelection: () => void
+  /** Unite same-color same-style objects of each layer into one object per color (undoable) */
+  mergeSameColors: () => void
   /** Same-style objects on one layer merge into shared fields/silhouettes */
   setFuseObjects: (v: boolean) => void
   /** Attach, replace or remove the live node graph of one object (undoable) */
@@ -208,6 +212,18 @@ function applyGraphPresetToDoc(s: State, presetId: string): Partial<State> {
   }
 }
 
+/** The merge scope: the selection's objects (groups expand to members), or undefined = whole doc. */
+function mergeScope(layers: SceneLayer[], selection: number[]): Set<number> | undefined {
+  const scope = new Set<number>()
+  for (const id of selection) {
+    const ref = findNode(layers, id)
+    if (!ref) continue
+    if (ref.item.kind === 'obj') scope.add(id)
+    else if (ref.item.kind === 'group') for (const oid of objIdsWithin(ref.item)) scope.add(oid)
+  }
+  return scope.size > 0 ? scope : undefined
+}
+
 /**
  * Document/grid/scene-structure state and actions, composed into the main store. Kept apart so
  * editor.store.ts stays under the file-size ratchet.
@@ -337,6 +353,16 @@ export function createDocSlice({ set }: SliceApi): DocSlice {
         if (!s.doc.layers || s.selection.length === 0) return s
         return {
           doc: syncDoc({ ...s.doc, layers: ungroupAround(s.doc.layers, new Set(s.selection)) }),
+        }
+      }),
+    mergeSameColors: () =>
+      set((s) => {
+        if (!s.doc.layers) return s
+        const res = mergeObjsByColor(s.doc.layers, mergeScope(s.doc.layers, s.selection))
+        if (!res) return s
+        return {
+          doc: syncDoc({ ...s.doc, layers: res.layers }),
+          selection: [...new Set(s.selection.map((id) => res.idMap.get(id) ?? id))],
         }
       }),
     setFuseObjects: (v) => set((s) => ({ doc: { ...s.doc, fuseObjects: v } })),

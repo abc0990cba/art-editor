@@ -51,9 +51,40 @@ export interface MetaballField {
 }
 
 /**
+ * Zero field nodes outside the doc-unit clip region (grid-shaped canvas bounds, e.g. the radial
+ * disc).
+ */
+function applyClip(
+  f: Float32Array,
+  fw: number,
+  fh: number,
+  step: number,
+  clip: (x: number, y: number) => boolean,
+): void {
+  for (let y = 0; y < fh; y++) {
+    for (let x = 0; x < fw; x++) {
+      if (!clip(x * step, y * step)) f[y * fw + x] = 0
+    }
+  }
+}
+
+/** Border nodes: zeroed, or mirrored inward with squareEdges so blobs lock onto the canvas edge. */
+function applyBorder(f: Float32Array, fw: number, fh: number, squareEdges: boolean): void {
+  for (let x = 0; x < fw; x++) {
+    f[x] = squareEdges ? f[fw + x] : 0
+    f[(fh - 1) * fw + x] = squareEdges ? f[(fh - 2) * fw + x] : 0
+  }
+  for (let y = 0; y < fh; y++) {
+    f[y * fw] = squareEdges ? f[y * fw + 1] : 0
+    f[y * fw + fw - 1] = squareEdges ? f[y * fw + fw - 2] : 0
+  }
+}
+
+/**
  * Sum of kernel splats (power-law falloff) from `sources` and `capsules` filtered by `take`. `step`
  * is the node pitch in doc units; `squareEdges` mirrors the border nodes so contours can run
- * straight along the canvas edge instead of clamping to zero.
+ * straight along the canvas edge instead of clamping to zero. `clip` zeroes field nodes outside a
+ * doc-unit region (grid-shaped canvas bounds, e.g. the radial disc).
  */
 export function buildMetaballField(opts: {
   w: number
@@ -66,6 +97,7 @@ export function buildMetaballField(opts: {
   sub: number
   falloff: MetaballFalloff
   squareEdges: boolean
+  clip?: (x: number, y: number) => boolean
 }): MetaballField {
   const fw = Math.ceil(opts.w / opts.step) + 1
   const fh = Math.ceil(opts.h / opts.step) + 1
@@ -135,14 +167,8 @@ export function buildMetaballField(opts: {
   // Clamp blobs at the canvas border so contours always close inside. With squareEdges the
   // border nodes mirror the adjacent inner node instead: blobs meeting the canvas edge lock
   // onto it and marching squares draws the shared stretch as a straight border segment.
-  for (let x = 0; x < fw; x++) {
-    f[x] = opts.squareEdges ? f[fw + x] : 0
-    f[(fh - 1) * fw + x] = opts.squareEdges ? f[(fh - 2) * fw + x] : 0
-  }
-  for (let y = 0; y < fh; y++) {
-    f[y * fw] = opts.squareEdges ? f[y * fw + 1] : 0
-    f[y * fw + fw - 1] = opts.squareEdges ? f[y * fw + fw - 2] : 0
-  }
+  applyBorder(f, fw, fh, opts.squareEdges)
+  if (opts.clip) applyClip(f, fw, fh, opts.step, opts.clip)
   return { f, fw, fh, scale: opts.step }
 }
 

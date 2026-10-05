@@ -107,7 +107,9 @@ doc-level in global scope). That null matrix *is* the stroke-fallback cliff
   `tight|smooth|gooey` → power `3|2|1` (gooier = field reaches further, fatter merge). Trace
   runs at `metaball.iso` (clamped 0.2–0.8, default 0.5) with marching squares and
   midpoint-quadratic smoothing. `corner` connectivity adds kernels at diagonal junctions
-  (square only); `squareEdges` mirrors the field at the canvas border so blobs lock onto it.
+  (square only); `squareEdges` mirrors the field at the canvas border so blobs lock onto it;
+  the optional doc-unit `clip` zeroes nodes outside a region (radial passes the disc so blobs
+  close along the canvas circle).
   Field side is capped at 360 nodes for the in-stroke preview vs 700 committed — the preview
   quality drop is intentional.
 - **Marching squares** ([`src/engine/geometry/marching-squares.ts`](../../src/engine/geometry/marching-squares.ts)): 16-case
@@ -123,7 +125,9 @@ doc-level in global scope). That null matrix *is* the stroke-fallback cliff
   neighboring corners (arc samples included), arc radius `t/tan(θ/2)`. For 90° corners the
   radius equals `t`, so square-grid output is byte-identical to the pre-tangent emitter;
   hexagon/triangle/octagon corners lost their old tangent kinks (the rosette look). Chamfer
-  keeps the same tangent points as a straight cut. `minCornerRun` measures a polygon's
+  keeps the same tangent points as a straight cut. Loops with one or two true corners (the
+  radial half-disc wedges) round like any other — only corner-free loops (full-disc unions)
+  emit plain polygons. `minCornerRun` measures a polygon's
   shortest true edge with those runs merged — it is the per-grid rounding base in
   [grids](grids.md).
 - **Cell-form jitter** (`src/engine/effects/jitter.ts`): pixels-mode per-cell size/angle
