@@ -37,17 +37,81 @@ describe('outline connectivity', () => {
     expect((g.paths[0].d.match(/M/g) ?? []).length).toBe(1)
   })
 
-  it('corner-bridge adds a junction-aligned diamond overlay as a same-color path', () => {
+  it('corner-bridge fuses a square web into the single silhouette path', () => {
     const doc = diagonalDoc()
     doc.connectivity = 'corner-bridge'
     const g = buildGeometry(doc)
-    // silhouette path (single pinched loop) + separate bridge path of the same color
+    // one continuous path — the web is part of the silhouette, no overlay path anymore
+    expect(g.paths).toHaveLength(1)
     expect((g.paths[0].d.match(/M/g) ?? []).length).toBe(1)
-    expect(g.paths[1].fill).toBe(g.paths[0].fill)
-    // junction is the doc point (2,2); the diamond spans the surrounding edge midpoints
-    // (1.5..2.5 on both axes) with concave-radius fillets
-    expect(g.paths[1].d).toContain('M2.323 1.823')
-    expect(g.paths[1].d).toContain('A0.25')
+    // junction is the doc point (2,2); each web leaves the cell edges 0.25 (concave radius)
+    // before the junction and turns through the cell-grid corner (e.g. 1.75, 2.25), filleted
+    // with tangent arcs clamped to half the step (r = 0.12)
+    const d = g.paths[0].d
+    expect(d).toContain('A0.12')
+    // ↖ web (into the empty cell (1,2)): tangent points on the cell grid
+    expect(d).toContain('1.75 2.13')
+    expect(d).toContain('1.87 2.25')
+    // ↘ web (into the empty cell (2,1))
+    expect(d).toContain('2.13 1.75')
+    expect(d).toContain('2.25 1.87')
+  })
+
+  it('zero concave radius makes corner-bridge byte-identical to corner mode', () => {
+    const bridged = diagonalDoc()
+    bridged.connectivity = 'corner-bridge'
+    bridged.style.concaveRadius = 0
+    const corner = diagonalDoc()
+    corner.connectivity = 'corner'
+    corner.style.concaveRadius = 0
+    expect(buildGeometry(bridged).paths[0].d).toBe(buildGeometry(corner).paths[0].d)
+  })
+
+  it('no web where an orthogonal neighbor is filled (L-shape)', () => {
+    const bridged = docWith([
+      [1, 1],
+      [2, 1],
+      [1, 2],
+    ])
+    bridged.connectivity = 'corner-bridge'
+    const corner = docWith([
+      [1, 1],
+      [2, 1],
+      [1, 2],
+    ])
+    corner.connectivity = 'corner'
+    expect(buildGeometry(bridged).paths[0].d).toBe(buildGeometry(corner).paths[0].d)
+  })
+
+  it('web scales with sub-detail', () => {
+    const doc = diagonalDoc()
+    doc.connectivity = 'corner-bridge'
+    doc.sub = 2
+    doc.cells = new Uint16Array(16 * 16)
+    for (const [cx, cy] of [
+      [1, 1],
+      [2, 2],
+    ] as const) {
+      for (let dy = 0; dy < 2; dy++) {
+        for (let dx = 0; dx < 2; dx++) doc.cells[(cy * 2 + dy) * 16 + cx * 2 + dx] = 1
+      }
+    }
+    const g = buildGeometry(doc)
+    expect(g.paths).toHaveLength(1)
+    // step s = 0.125, delta = 0.005: the web enters at the grid line x = 1.875 on the contour
+    // edge, tangent arc r = (s − delta)/2 = 0.06
+    expect(g.paths[0].d).toContain('1.815 2.005')
+    expect(g.paths[0].d).toContain('2.185 1.995')
+  })
+
+  it('chamfer style cuts the web corners straight', () => {
+    const doc = diagonalDoc()
+    doc.connectivity = 'corner-bridge'
+    doc.style.cornerStyle = 'chamfer'
+    const d = buildGeometry(doc).paths[0].d
+    expect((d.match(/A/g) ?? []).length).toBe(0)
+    // the chamfer passes through the web tangent points on the cell grid
+    expect(d).toContain('1.75 2.13')
   })
 
   it('different colors never join even with corner connectivity', () => {
@@ -113,7 +177,7 @@ describe('bridge junction direction symmetry', () => {
     doc.renderMode = 'outline'
     doc.connectivity = 'corner-bridge'
     const g = buildGeometry(doc)
-    return g.paths[1].d // bridge overlay path
+    return g.paths[0].d // fused silhouette with the webs
   }
   const sorted = (pts: [number, number][]) =>
     JSON.stringify(
@@ -122,8 +186,8 @@ describe('bridge junction direction symmetry', () => {
         .sort((p, q) => p[0] - q[0] || p[1] - q[1]),
     )
 
-  it('overlay is identical for the two diagonal orientations', () => {
-    // ↘ pair and ↗ pair sharing the same junction (2,2)
+  it('web mirrors with the pair across the junction line', () => {
+    // the ↗ pair (1,2),(2,1) is the ↘ pair (1,1),(2,2) mirrored across y = 2 through the junction
     const a = sorted(
       pts(
         mk([
@@ -135,16 +199,16 @@ describe('bridge junction direction symmetry', () => {
     const b = sorted(
       pts(
         mk([
-          [2, 1],
           [1, 2],
+          [2, 1],
         ]),
-      ),
+      ).map(([x, y]) => [x, 4 - y] as [number, number]),
     )
     expect(a).toBe(b)
   })
 
-  it('overlay is identical for a vertical mirror of the same pair', () => {
-    // mirror across x = 3.5: (1,1)→(6,1), (2,2)→(5,2)
+  it('web mirrors with the pair across a vertical line', () => {
+    // ↘ pair (1,1),(2,2) mirrored across x = 4: (1,1)→(6,1), (2,2)→(5,2), junction (2,2)→(6,2)
     const a = sorted(
       pts(
         mk([
@@ -159,7 +223,7 @@ describe('bridge junction direction symmetry', () => {
           [6, 1],
           [5, 2],
         ]),
-      ).map(([x, y]) => [x - 4, y] as [number, number]),
+      ).map(([x, y]) => [8 - x, y] as [number, number]),
     )
     expect(a).toBe(bm)
   })

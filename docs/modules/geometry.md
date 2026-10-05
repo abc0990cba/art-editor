@@ -20,7 +20,7 @@ metaball field and the outline silhouette. Non-square lattices render through
 | [`src/engine/geometry/shape.ts`](../../src/engine/geometry/shape.ts) | `shapeGeometry` — rect/run fragments, `roundedRectPath`, `mergedCells`, `borderRadii`, `fmt` |
 | [`src/engine/geometry/metaball.ts`](../../src/engine/geometry/metaball.ts) | `metaballGeometry`, `metaballPreviewField` — square-grid kernel sources, per-color fields |
 | [`src/engine/geometry/metaball-field.ts`](../../src/engine/geometry/metaball-field.ts) | `buildMetaballField` scalar field, `traceMetaballLoops`, `loopsToSmoothPath`, `metaballIso`, `kernelRadius` |
-| [`src/engine/geometry/outline.ts`](../../src/engine/geometry/outline.ts) | `outlineGeometry` — exact cell-edge silhouette, `emitFilletPath`, corner-bridge overlays |
+| [`src/engine/geometry/outline.ts`](../../src/engine/geometry/outline.ts) | `outlineGeometry` — exact cell-edge silhouette, `emitFilletPath`, fused corner-bridge webs |
 | [`src/engine/geometry/marching-squares.ts`](../../src/engine/geometry/marching-squares.ts) | `marchingSquares(field, fw, fh, iso) → Pt[][]`; the shared `Pt` type |
 | [`src/engine/geometry/poly-path.ts`](../../src/engine/geometry/poly-path.ts) | `filletPath`, `roundedPolygonPath`, `minCornerRun`, `fmt` — the tangent-fillet rounding core shared by the outline emitter, the grid renderer and cell forms |
 
@@ -146,7 +146,8 @@ doc-level in global scope). That null matrix *is* the stroke-fallback cliff
 ## Invariants & constraints
 
 - Evenodd fill is contractual downstream ([ADR-0002](../decisions/0002-canvas2d-rendering-webgpu-deferred.md)):
-  texture holes are subpaths; corner-bridge overlays must be a *separate* same-color path.
+  texture holes are subpaths; corner-bridge webs are fused into the silhouette loop itself
+  (never a separate overlay path, whose area would cancel under evenodd).
 - Scratch buffers are module-level and reused per frame (`sceneScratchCells/Objs`,
   `mergeScratch`, `mergeObjScratch`) — builders must fully consume a buffer before the next
   user.

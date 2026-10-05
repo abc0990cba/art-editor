@@ -42,8 +42,8 @@ rect fragments — orders of magnitude fewer path fragments for classic pixel ar
 (PERFLOG M2a: `buildGeometry` −39 %…−99 % depending on content). Anything else goes per-cell.
 
 **Consumption.** `drawGeometry` (`engine/output/png.ts`) fills with `fill(path, 'evenodd')` — the
-fill rule is load-bearing (texture holes, outline bridge overlays and metaball loops rely on
-it). `Path2D`s are cached by the path *string* with a 32 M-char FIFO budget: geometry rebuilds
+fill rule is load-bearing (texture holes and metaball loops rely on it). `Path2D`s are cached by
+the path *string* with a 32 M-char FIFO budget: geometry rebuilds
 produce identical strings, so equal strings are the same path by construction. The SVG
 exporter (`engine/output/svg.ts`) serializes the same `StyledPath[]` to flat `<path>` elements with
 `fill-rule="evenodd"`; PNG rasterization (`renderPng`) scales the same geometry onto a canvas

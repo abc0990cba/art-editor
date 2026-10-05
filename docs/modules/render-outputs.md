@@ -20,7 +20,7 @@ is covered at the end.
 | [`src/engine/output/png.ts`](../../src/engine/output/png.ts) | `drawGeometry` (Path2D cache), `renderPng`, `renderThumbnailDataURL`, `autoPngSize`, `clampPngSide` |
 | [`src/engine/output/svg.ts`](../../src/engine/output/svg.ts) | `buildSvg(doc, { includeBg, scale? })` — flat path list |
 | [`src/engine/output/ascii-export.ts`](../../src/engine/output/ascii-export.ts) | `buildAscii(doc, ramp?, invert?)` — one character per grid cell, tone from palette luminance |
-| [`src/engine/geometry/outline.ts`](../../src/engine/geometry/outline.ts) | `outlineGeometry` — exact cell-edge silhouette + per-corner fillets + corner bridges |
+| [`src/engine/geometry/outline.ts`](../../src/engine/geometry/outline.ts) | `outlineGeometry` — exact cell-edge silhouette + per-corner fillets + fused corner-bridge webs |
 | [`src/engine/geometry/marching-squares.ts`](../../src/engine/geometry/marching-squares.ts) | `marchingSquares(field, fw, fh, iso) → Pt[][]` |
 | [`src/engine/geometry/poly-path.ts`](../../src/engine/geometry/poly-path.ts) | `roundedPolygonPath`, `fmt` — shared fillet helpers |
 
@@ -60,9 +60,11 @@ the saddle average count as inside so corner-touching cells join into one pinche
 `simplifyLoop` restores true 90° corners (each binary-field diagonal is split into two
 half-cell legs through the corner point); `emitFilletPath` fillets with convexity decided per
 loop by majority turn sign, radii clamped to half the adjacent edge lengths, border corners
-kept square under `squareEdges` (`keepCorner`). `connectivity: 'corner-bridge'` adds one
-diamond overlay per diagonal junction as a **separate same-color path** — inside the
-silhouette path its area would cancel under evenodd. Texture holes append into the
+kept square under `squareEdges` (`keepCorner`). `connectivity: 'corner-bridge'` fuses a
+square web into the silhouette loop at each diagonal junction — each neck reflex corner (the
+junction offset by the 0.01 saddle expansion) is replaced by a three-point square detour into
+the empty quadrant, filleted with the concave radius at the transitions and the convex radius
+at the outer corner (one continuous path, no overlay). Texture holes append into the
 silhouette's own path via `regionTextureFragments` ([texture](texture.md)).
 
 **Marching squares** ([`src/engine/geometry/marching-squares.ts`](../../src/engine/geometry/marching-squares.ts)): 16-case

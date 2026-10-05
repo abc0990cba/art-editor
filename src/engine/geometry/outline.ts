@@ -67,6 +67,15 @@ export function outlineGeometry(
           Math.abs(p.y) > 1e-6 &&
           Math.abs(p.y - rows) > 1e-6
       : undefined
+    // corner-bridge: the silhouette loop itself grows a square web through each junction
+    const bridge =
+      doc.connectivity === 'corner-bridge'
+        ? {
+            junctions: bridgeJunctions(doc, cells, v),
+            delta: 0.01 / doc.sub, // saddle expansion of the iso-0.49 contour
+            s: rConcave,
+          }
+        : undefined
     let d = roundedOutlinePath(
       loops,
       rConvex,
@@ -74,16 +83,11 @@ export function outlineGeometry(
       doc.sub,
       doc.style.cornerStyle === 'chamfer',
       keepCorner,
+      bridge,
     )
     if (d && doc.texture.effect !== 'none')
       d += cellTextureFragments(doc, cells, v, doc.texture, fig, texSeed, figSeed)
     if (d) paths.push({ d, fill: cellColor(doc, v) ?? '#888' })
-    // bridges go on a separate same-color path: inside the silhouette path their area would
-    // cancel against the loops under the evenodd rule
-    if (joinCorners && doc.connectivity === 'corner-bridge') {
-      const bridges = bridgeOverlays(doc, cells, v)
-      if (bridges) paths.push({ d: bridges, fill: cellColor(doc, v) ?? '#888' })
-    }
   }
 
   appendLinkStrokes(doc, links, paths)
@@ -221,25 +225,35 @@ function mixOutlineCell(acc: number, x: number, y: number, c: TextureCell): numb
   return fnvWord(fnvWord(fnvWord(acc, x), y), flags | (radiiBits << 4))
 }
 
+/** A corner-bridge junction: the shared corner in doc units and the empty quadrants' signs. */
+interface BridgeJunction {
+  jx: number
+  jy: number
+  quads: [number, number][]
+}
+
+interface BridgeWeb {
+  junctions: BridgeJunction[]
+  /** Doc-unit offset of the neck's reflex corners from the junction (saddle expansion). */
+  delta: number
+  /** Web step size: the concave radius in doc units. */
+  s: number
+}
+
 /**
- * Junction-aligned bridge overlays for corner-bridge connectivity: one diamond per junction where
- * two same-value cells touch diagonally and both orthogonal neighbors are empty. The diamond's
- * vertices sit at the midpoints of the four cell edges meeting at the shared corner, so the joint
- * stays inside the cell envelope and is symmetric in every diagonal direction.
+ * Junction scan for corner-bridge connectivity: one entry per junction where two same-value cells
+ * touch diagonally and both orthogonal neighbors are empty, carrying the quadrant signs of the two
+ * empty neighbors.
  */
-function bridgeOverlays(doc: Doc, cells: Uint16Array, v: number): string {
+function bridgeJunctions(doc: Doc, cells: Uint16Array, v: number): BridgeJunction[] {
   const bw = bufferWidth(doc)
   const bh = bufferHeight(doc)
-  const half = 0.5 / doc.sub // distance from the junction to the surrounding edge midpoints
-  const r = doc.style.concaveRadius / doc.sub
-  const chamfer = doc.style.cornerStyle === 'chamfer'
-  let d = ''
-  const junctions: { jx: number; jy: number }[] = []
+  const junctions: BridgeJunction[] = []
   for (let y = 0; y < bh; y++) {
     for (let x = 0; x < bw; x++) {
       if (cells[y * bw + x] !== v) continue
       const right = x + 1 < bw ? cells[y * bw + x + 1] : 0
-      // ↘ junction: cells (x,y) and (x+1,y+1), orthogonal cells empty
+      // ↘ junction: cells (x,y) and (x+1,y+1), orthogonal cells (x+1,y) and (x,y+1) empty
       if (
         x + 1 < bw &&
         y + 1 < bh &&
@@ -247,9 +261,16 @@ function bridgeOverlays(doc: Doc, cells: Uint16Array, v: number): string {
         right === 0 &&
         cells[(y + 1) * bw + x] === 0
       ) {
-        junctions.push({ jx: (x + 1) / doc.sub, jy: (y + 1) / doc.sub })
+        junctions.push({
+          jx: (x + 1) / doc.sub,
+          jy: (y + 1) / doc.sub,
+          quads: [
+            [1, -1],
+            [-1, 1],
+          ],
+        })
       }
-      // ↗ junction: cells (x,y) and (x+1,y-1), orthogonal cells empty
+      // ↗ junction: cells (x,y) and (x+1,y-1), orthogonal cells (x+1,y) and (x,y-1) empty
       if (
         x + 1 < bw &&
         y - 1 >= 0 &&
@@ -257,26 +278,71 @@ function bridgeOverlays(doc: Doc, cells: Uint16Array, v: number): string {
         right === 0 &&
         cells[(y - 1) * bw + x] === 0
       ) {
-        junctions.push({ jx: (x + 1) / doc.sub, jy: y / doc.sub })
+        junctions.push({
+          jx: (x + 1) / doc.sub,
+          jy: y / doc.sub,
+          quads: [
+            [1, 1],
+            [-1, -1],
+          ],
+        })
       }
     }
   }
-  for (const { jx, jy } of junctions) {
-    d += emitFilletPath(
-      [
-        [
-          { x: jx + half, y: jy },
-          { x: jx, y: jy + half },
-          { x: jx - half, y: jy },
-          { x: jx, y: jy - half },
+  return junctions
+}
+
+/**
+ * Corner-bridge web: the silhouette loop itself grows a square joint through each junction. With
+ * corner connectivity the iso-0.49 contour connects diagonal cells through a zero-width neck whose
+ * boundary wraps each empty quadrant in a reflex corner sitting at the junction offset by `delta`
+ * (the saddle expansion). Each such corner is replaced by a three-point square detour of step `s`
+ * into its empty quadrant: stay on the incoming edge until the step line, turn through a corner on
+ * the cell grid, rejoin the outgoing edge. Filleted by the shared pipeline — the two reflex corners
+ * with the concave radius, the outer corner with the convex radius — so the joint stays
+ * tangent-continuous, keeps axis-aligned straight edges wherever the radii allow, and never
+ * collapses into a circle.
+ */
+function fuseCornerBridges(loops: Pt[][], web: BridgeWeb): Pt[][] {
+  const { junctions, delta, s } = web
+  if (s <= 0 || junctions.length === 0) return loops
+  const eps = 1e-6
+  // replacement detour per neck corner, keyed by quadrant; matched against loop vertices by
+  // tolerance — the vertex coordinates and the junction arithmetic differ in float rounding
+  const corners: { rx: number; ry: number; step: [Pt, Pt, Pt] }[] = []
+  for (const { jx, jy, quads } of junctions) {
+    for (const [qx, qy] of quads) {
+      const rx = jx + qx * delta
+      const ry = jy + qy * delta
+      corners.push({
+        rx,
+        ry,
+        step: [
+          { x: jx + qx * s, y: ry },
+          { x: jx + qx * s, y: jy + qy * s },
+          { x: rx, y: jy + qy * s },
         ],
-      ],
-      r,
-      r,
-      chamfer,
-    )
+      })
+    }
   }
-  return d
+  return loops.map((pts) => {
+    const n = pts.length
+    const out: Pt[] = []
+    for (let k = 0; k < n; k++) {
+      const p = pts[k]
+      const hit = corners.find((c) => Math.abs(p.x - c.rx) < eps && Math.abs(p.y - c.ry) < eps)
+      if (!hit) {
+        out.push(p)
+        continue
+      }
+      const [a, b, c] = hit.step
+      // the first detour point stays on the incoming edge, the last on the outgoing edge
+      const prev = pts[(k - 1 + n) % n]
+      const onPrevEdge = Math.abs(prev.y - p.y) < eps // incoming edge horizontal
+      out.push(...(onPrevEdge ? [a, b, c] : [c, b, a]))
+    }
+    return out
+  })
 }
 
 /**
@@ -303,7 +369,8 @@ export function emitFilletPath(
 
 /**
  * Build the square-grid outline path: restore true 90° corners from the marching-squares staircase
- * (binary crossings cut corners diagonally), then round via the shared emitter.
+ * (binary crossings cut corners diagonally), grow corner-bridge webs when requested, then round via
+ * the shared emitter.
  */
 function roundedOutlinePath(
   loops: Pt[][],
@@ -312,9 +379,11 @@ function roundedOutlinePath(
   sub: number,
   chamfer: boolean,
   keepCorner?: (p: Pt) => boolean,
+  bridge?: BridgeWeb,
 ): string {
   const loopsDoc = loops.map((raw) => simplifyLoop(raw, sub))
-  return emitFilletPath(loopsDoc, rCvx, rCcv, chamfer, keepCorner)
+  const fused = bridge ? fuseCornerBridges(loopsDoc, bridge) : loopsDoc
+  return emitFilletPath(fused, rCvx, rCcv, chamfer, keepCorner)
 }
 
 /**
