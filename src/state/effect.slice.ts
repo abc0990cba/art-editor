@@ -8,12 +8,23 @@ import {
   updateNode,
 } from '../engine/core/scene.ts'
 import {
+  DEFAULT_FILTER_PARAMS,
+  filterInk,
+  type FilterOp,
+  type FilterParams,
+} from '../engine/effects/filters.ts'
+import {
   DEFAULT_PIXEL_OP_PARAMS,
   pixelOpInk,
   type PixelOp,
   type PixelOpParams,
 } from '../engine/effects/morpho.ts'
-import { selectionBox, type CellBox, type InkCell } from '../engine/effects/selection-xform.ts'
+import {
+  selectionBox,
+  selectionInk,
+  type CellBox,
+  type InkCell,
+} from '../engine/effects/selection-xform.ts'
 import {
   DEFAULT_STYLIZE_PARAMS,
   stylizeInk,
@@ -31,23 +42,13 @@ import type { State } from './editor.store.ts'
 
 /**
  * The effect slice: whole-selection artistic post-ops beyond geometry — displacement warps (bulge /
- * twirl / waves / zigzag / polar / roughen) and one-click stylize (outline / shadow / glow). Both
- * bake through the same nearest-neighbor ink remap as the transform slice, so procedural
- * (graph-driven) objects freeze into plain cells; the non-destructive path for them is the
- * `mod.warp` node. All actions are undoable; square grid only.
+ * twirl / waves / zigzag / polar / roughen), one-click stylize (outline / shadow / glow), the
+ * pixel-art morphology ops and the generative filter pack (blobify / smoothen / figurefy /
+ * patternize / drip / dissolve). All bake through the same nearest-neighbor ink remap as the
+ * transform slice, so procedural (graph-driven) objects freeze into plain cells; the
+ * non-destructive path for them is the `mod.warp` node. All actions are undoable; square grid
+ * only.
  */
-
-/** Snapshot of the selection's ink: buffer index → palette value + owner id. */
-function selectionInk(doc: Doc, selection: number[]): Map<number, InkCell> | null {
-  if (!doc.cellObj) return null
-  const sel = new Set(selection)
-  const src = new Map<number, InkCell>()
-  for (let i = 0; i < doc.cellObj.length; i++) {
-    const o = doc.cellObj[i]
-    if (o > 0 && sel.has(o) && doc.cells[i] > 0) src.set(i, { v: doc.cells[i], o })
-  }
-  return src.size === 0 ? null : src
-}
 
 /** Flat (legacy, layer-less) write-back: erase selected cells, then lay the mapped ink down. */
 function bakeFlat(doc: Doc, selection: number[], mapped: Map<number, InkCell>): Doc {
@@ -101,7 +102,7 @@ function bakeSelection(
 ): Doc | null {
   const bw = bufferWidth(doc)
   const bh = doc.rows * doc.sub
-  const src = selectionInk(doc, selection)
+  const src = selectionInk(doc.cells, doc.cellObj, selection)
   if (!src) return null
   const box = selectionBox(doc.cells, doc.cellObj, selection, bw, bh)
   if (!box) return null
@@ -118,6 +119,11 @@ export interface EffectSlice {
   stylizeSelection: (op: StylizeOp, params?: Partial<StylizeParams>, color?: string) => void
   /** Pixel-art morphology op on the selection (undoable; square grid only) */
   pixelOpSelection: (op: PixelOp, params?: Partial<PixelOpParams>) => void
+  /**
+   * Generative filter (blobify / smoothen / figurefy / patternize / drip / dissolve) on the
+   * selection (undoable; square grid only)
+   */
+  filterSelection: (op: FilterOp, params?: Partial<FilterParams>) => void
 }
 
 /** Minimal set/get surface the slice needs from the zustand store. */
@@ -165,6 +171,17 @@ export function createEffectSlice({ set, get }: SliceApi): EffectSlice {
         if (!next) return s
         if (recolors) get().pushRecent(r.doc.palette[r.v - 1] ?? s.color)
         return { doc: next }
+      }),
+
+    filterSelection: (op, params) =>
+      set((s) => {
+        if (s.selection.length === 0 || !isPlainSquare(s.doc)) return s
+        const p = { ...DEFAULT_FILTER_PARAMS, ...params }
+        // generative filters regenerate ink instead of recoloring it: values + owners stay
+        const next = bakeSelection(s.doc, s.selection, (src, box, bw, bh) =>
+          filterInk(op, src, p, { box, bw, bh }),
+        )
+        return next ? { doc: next } : s
       }),
   }
 }

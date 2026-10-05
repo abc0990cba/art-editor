@@ -5,7 +5,8 @@
 Selection-scoped destructive effects in [`src/engine/effects/`](../../src/engine/effects/warp.ts):
 displacement warps ([`warp.ts`](../../src/engine/effects/warp.ts)), stylize post-ops
 ([`stylize.ts`](../../src/engine/effects/stylize.ts)), pixel-art morphology ops
-([`morpho.ts`](../../src/engine/effects/morpho.ts)), geometric selection transforms
+([`morpho.ts`](../../src/engine/effects/morpho.ts)), the generative filter pack
+([`filters.ts`](../../src/engine/effects/filters.ts)), geometric selection transforms
 ([`selection-xform.ts`](../../src/engine/effects/selection-xform.ts)), and the deterministic
 per-cell form jitter ([`jitter.ts`](../../src/engine/effects/jitter.ts)). All operate on sparse ink
 maps over the **square grid only**, all bake through the same nearest-neighbor remap, and all are one
@@ -22,11 +23,19 @@ non-destructive alternative for procedural objects is the `mod.warp` *node*
 | [`src/engine/effects/warp.ts`](../../src/engine/effects/warp.ts) | bulge, fisheye, twirl, waveH/V, zigzag, polar/unpolar, roughen: `warpField`, `warpRegion`, `warpInk`, `inkBox`, `isReversibleWarp` |
 | [`src/engine/effects/stylize.ts`](../../src/engine/effects/stylize.ts) | outline, drop shadow, dithered glow — `outlineInk`, `dropShadowInk`, `glowInk`, `stylizeInk`; returns only ADDED cells |
 | [`src/engine/effects/morpho.ts`](../../src/engine/effects/morpho.ts) | pixel ops: `blockifyInk` (n×n majority quantize), `dilateInk`/`erodeInk` (8-neighborhood passes), `pixelPerfectInk` (stair cleanup), `despeckleInk`, `outlineOnlyInk`, `silhouetteInk`, `longShadowInk`, `scanlinesInk`, dispatched by `pixelOpInk` (shrinking ops replace, additive ops merge) |
+| [`src/engine/effects/filters.ts`](../../src/engine/effects/filters.ts) | the generative filter family contract: `FilterOp` (six ids), merged `FilterParams` + defaults, chip lists, `filterInk()` dispatcher |
+| [`src/engine/effects/gooey.ts`](../../src/engine/effects/gooey.ts) | `blobifyInk` (metaball kernel fusion, strongest-contributor attribution), `smoothenInk` (concave corner fills, 1..3 passes) |
+| [`src/engine/effects/figures.ts`](../../src/engine/effects/figures.ts) | `figurefyInk` (every cell → k×k block with a cell-shape figure, figure/cut modes), `patternizeInk` (`patternAt` re-masking with density/scale/invert) |
+| [`src/engine/effects/organic.ts`](../../src/engine/effects/organic.ts) | `dripInk` (hash-varied melt trails from run ends), `dissolveInk` (hash / value-noise gated removal) |
 | [`src/engine/effects/jitter.ts`](../../src/engine/effects/jitter.ts) | per-cell cell-form variation: `jitterAt` (size/angle noise), `hasJitter` gate |
 
 Tests: [`warp.test.ts`](../../src/engine/effects/warp.test.ts),
 [`stylize.test.ts`](../../src/engine/effects/stylize.test.ts),
 [`morpho.test.ts`](../../src/engine/effects/morpho.test.ts),
+[`filters.test.ts`](../../src/engine/effects/filters.test.ts),
+[`gooey.test.ts`](../../src/engine/effects/gooey.test.ts),
+[`figures.test.ts`](../../src/engine/effects/figures.test.ts),
+[`organic.test.ts`](../../src/engine/effects/organic.test.ts),
 [`selection-xform.test.ts`](../../src/engine/effects/selection-xform.test.ts),
 [`jitter.test.ts`](../../src/engine/effects/jitter.test.ts). Symmetry tests:
 [`symmetry.test.ts`](../../src/engine/effects/symmetry.test.ts) (see [symmetry](symmetry.md)).
@@ -63,6 +72,21 @@ an ordered Bayer screen, not randomness." `stylizeInk(op, src, v, p, space)` dis
 (`dropShadowInk`); glow = BFS frontier tracking Chebyshev rings (`glowInk`), keeping ring *k* where
 `thresholdAt(BAYER8, 8, 64, x, y) < 1 − k/(radius+1)` — a Bayer-dot fade that introduces no new
 palette colors (matrices from [`src/engine/dither/matrices.ts`](../../src/engine/dither/matrices.ts)).
+
+**Generative filters** ([`filters.ts`](../../src/engine/effects/filters.ts) → `gooey.ts` /
+`figures.ts` / `organic.ts`): six ops that *regenerate* the ink instead of reshaping it, dispatched
+by `filterInk(op, src, p, { box, bw, bh })`. `blobifyInk` splats the metaball kernel
+(`t = 1 − d²/R²`, falloff power tight 3 / smooth 2 / gooey 1 — mirrored from
+[`geometry/metaball-field.ts`](../..//src/engine/geometry/metaball-field.ts)) from every ink cell
+over a radius-padded box and keeps cells whose summed field reaches the iso; added cells take the
+strongest single contributor's value + owner (the donor comparison runs in f64 so exactly-equal
+kernels never flip). `smoothenInk` fills the empty cell of any 2×2 block holding the other three
+inked cells — the additive complement of morpho's `pixelPerfect`. `figurefyInk` turns each source
+cell into a k×k block anchored at the selection box origin whose sub-cells sample
+`cellShapeHit` (any registered cell form, default shape params); `cut` mode inverts the mask.
+`patternizeInk` re-masks through `patternAt` at absolute buffer coordinates. `dripInk` grows
+`round(length·(1−variation+variation·hash2))` trails from run-end cells only; `dissolveInk` keeps
+cells whose per-cell hash (scale 1) or smooth value noise (scale > 1) passes the amount.
 
 **Cell-form jitter** ([`jitter.ts`](../../src/engine/effects/jitter.ts)): not a selection op — a
 render-time modifier. `jitterAt(style, i, stride)` samples two smooth value-noise fields (period 8
@@ -116,6 +140,9 @@ are selection-sized, not canvas-sized.
 ## OpenSpec capabilities
 
 - `openspec/specs/drawing-tools/spec.md` (selection effects)
+- `openspec/changes/add-pixel-stylization-pack/` (morphology ops — pending archive)
+- `openspec/changes/add-pixel-generative-filters/` (blobify / smoothen / figurefy / patternize /
+  drip / dissolve — pending archive)
 
 ## Known limitations
 

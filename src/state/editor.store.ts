@@ -220,6 +220,14 @@ export interface State {
     op: import('../engine/effects/morpho.ts').PixelOp,
     params?: Partial<import('../engine/effects/morpho.ts').PixelOpParams>,
   ) => void
+  /**
+   * Generative filter (blobify / smoothen / figurefy / patternize / drip / dissolve) on the
+   * selection (undoable; square grid)
+   */
+  filterSelection: (
+    op: import('../engine/effects/filters.ts').FilterOp,
+    params?: Partial<import('../engine/effects/filters.ts').FilterParams>,
+  ) => void
   // pen tool draft (UI state; committing rasterizes it into one undoable object)
   pen: PenDraft | null
   beginPen: (init?: Partial<PenDraft>) => void

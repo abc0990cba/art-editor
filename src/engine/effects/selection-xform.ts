@@ -119,6 +119,22 @@ export interface InkCell {
   o: number
 }
 
+/** Snapshot of every painted cell owned by the given ids, or null when the selection has no ink. */
+export function selectionInk(
+  cells: Uint16Array,
+  cellObj: Uint32Array | null,
+  ids: readonly number[],
+): Map<number, InkCell> | null {
+  if (!cellObj) return null
+  const sel = new Set(ids)
+  const src = new Map<number, InkCell>()
+  for (let i = 0; i < cellObj.length; i++) {
+    const o = cellObj[i]
+    if (o > 0 && sel.has(o) && cells[i] > 0) src.set(i, { v: cells[i], o })
+  }
+  return src.size === 0 ? null : src
+}
+
 /**
  * Nearest-neighbor remap: for every target cell in the region, sample the source cell under the
  * inverse-mapped center and keep its value + owner. Sampling outside the box picks nothing.
