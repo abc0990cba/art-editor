@@ -78,6 +78,17 @@ function hitTol(touch: boolean, zoom: number): number {
   return (touch ? PEN_HIT_TOUCH_PX : PEN_HIT_PX) / zoom
 }
 
+/** Start an 'add' gesture at a snapped press point — a new corner/smooth anchor in the making. */
+function beginAddGesture(ctx: PenCtx, e: { altKey: boolean }, point: DocPoint): void {
+  const p = ctx.paramsRef.current
+  ctx.gesture.current = {
+    kind: 'add',
+    down: snapPenAnchor([point.x, point.y], p.doc.sub, p.doc.cols, p.doc.rows, e.altKey),
+    start: useStore.getState().pen!.path,
+    created: false,
+  }
+}
+
 /** Pointerdown: hit-priority dispatch — handle, anchor (close on the first), segment, add. */
 function makePointerDown(ctx: PenCtx) {
   return (
@@ -92,13 +103,7 @@ function makePointerDown(ctx: PenCtx) {
     const D = s.pen
     if (!D || D.path.anchors.length === 0) {
       if (!D) s.beginPen()
-      const down = snapPenAnchor([point.x, point.y], p.doc.sub, p.doc.cols, p.doc.rows, e.altKey)
-      ctx.gesture.current = {
-        kind: 'add',
-        down,
-        start: useStore.getState().pen!.path,
-        created: false,
-      }
+      beginAddGesture(ctx, e, point)
       p.scheduleOverlay()
       return
     }
@@ -130,13 +135,7 @@ function makePointerDown(ctx: PenCtx) {
       ctx.gesture.current = { kind: 'bend', down: [point.x, point.y], start: D.path, seg: hit.seg }
     } else {
       if (D.path.closed) s.beginPen()
-      const down = snapPenAnchor([point.x, point.y], p.doc.sub, p.doc.cols, p.doc.rows, e.altKey)
-      ctx.gesture.current = {
-        kind: 'add',
-        down,
-        start: useStore.getState().pen!.path,
-        created: false,
-      }
+      beginAddGesture(ctx, e, point)
     }
     p.scheduleOverlay()
   }
@@ -207,19 +206,45 @@ function moveAddGesture(
     e.shiftKey,
   )
   const hIn: Pt = e.altKey ? [point.x, point.y] : [2 * g.down[0] - hOut[0], 2 * g.down[1] - hOut[1]]
-  ctx.pendingPath.current = {
+  // g.work must track the latest handles: pointerup lands it synchronously, the rAF flush may
+  // never run after the last move
+  const path = {
     ...next,
     anchors: next.anchors.map((a, k) => (k === i ? { ...a, hIn: e.altKey ? null : hIn, hOut } : a)),
   }
+  g.work = path
+  ctx.pendingPath.current = path
   useStore.getState().patchPen({ selected: i })
+}
+
+/**
+ * The first click of a double-click always drops a throwaway corner anchor (pointerdown starts a
+ * draft, pointerup lands it). When the spot carries a committed parametric curve, that fresh
+ * single-anchor draft is dropped so the double-click can reopen the object instead.
+ */
+function doubleClickHitsCommitted(ctx: PenCtx, point: DocPoint, idx: number): boolean {
+  const D = useStore.getState().pen
+  if (!D || D.replaceObjId != null || D.path.anchors.length === 0) return false
+  const p = ctx.paramsRef.current
+  // both clicks of a double-click snap to the same cell, so this double-click's own throwaway
+  // anchors (the first click drops one, the second may stack another) are exactly the stacked
+  // ones — anything else is a real draft and keeps its anchors
+  const snapped = snapPenAnchor([point.x, point.y], p.doc.sub, p.doc.cols, p.doc.rows, false)
+  if (!D.path.anchors.every((a) => a.x === snapped[0] && a.y === snapped[1])) return false
+  const objId = idx >= 0 ? (p.doc.cellObj?.[idx] ?? 0) : 0
+  if (objId <= 0 || !bezierSourceOf(p.doc, objId)) return false
+  useStore.getState().endPen()
+  return true
 }
 
 /** Double-click: insert on a segment, toggle an anchor, or reenter a committed bezier object. */
 function makeDoubleClick(ctx: PenCtx) {
   return (point: DocPoint, idx: number, zoom: number): void => {
     const p = ctx.paramsRef.current
+    doubleClickHitsCommitted(ctx, point, idx)
     const s = useStore.getState()
     const D = s.pen
+    const objId = idx >= 0 ? (p.doc.cellObj?.[idx] ?? 0) : 0
     if (D && D.path.anchors.length > 0) {
       const hit = hitPen(D.path, point.x, point.y, hitTol(false, zoom))
       if (hit?.kind === 'anchor') {
@@ -231,7 +256,6 @@ function makeDoubleClick(ctx: PenCtx) {
       return
     }
     // no draft: a double-click on a committed parametric curve reopens it for editing
-    const objId = idx >= 0 ? (p.doc.cellObj?.[idx] ?? 0) : 0
     const params = objId > 0 ? bezierSourceOf(p.doc, objId) : null
     if (!params) return
     const path = pathFromD(String(params['d'] ?? ''))
@@ -333,11 +357,9 @@ export function usePenTool(P: PenToolParams) {
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = 0
       const s = useStore.getState()
-      if (pendingPath.current) {
-        const path = pendingPath.current
-        pendingPath.current = null
-        if (s.pen) s.patchPen({ path })
-      }
+      const path = pendingPath.current
+      pendingPath.current = null
+      if (path && s.pen) s.patchPen({ path })
       refreshPreview()
       paramsRef.current.scheduleOverlay()
     })
@@ -383,7 +405,8 @@ export function usePenTool(P: PenToolParams) {
     gesture.current = null
     if (!g) return
     // the mailbox is consumed here for terminal gestures — a pending rAF must never
-    // re-apply an older path over newer state
+    // re-apply an older path over newer state; read the latest move BEFORE clearing it
+    const pending = pendingPath.current
     pendingPath.current = null
     if (g.kind === 'add') {
       if (g.created) {
@@ -393,17 +416,12 @@ export function usePenTool(P: PenToolParams) {
       }
       // a plain click places a corner anchor at the snapped press point (dragging creates
       // the smooth variant live in moveAddGesture)
-      apply({
-        anchors: [...g.start.anchors, makeAnchor(g.down[0], g.down[1])],
-        closed: false,
-      })
+      apply({ anchors: [...g.start.anchors, makeAnchor(g.down[0], g.down[1])], closed: false })
       useStore.getState().patchPen({ selected: g.start.anchors.length })
       return
     }
     // anchor/handle/bend drags: land the latest move synchronously (frames may lag)
-    if (pendingPath.current) {
-      apply(pendingPath.current)
-    }
+    if (pending) apply(pending)
     paramsRef.current.scheduleOverlay()
   }
   const pointerDown = makePointerDown(ctx)
@@ -414,9 +432,7 @@ export function usePenTool(P: PenToolParams) {
   const actions = usePenActions({
     inkParams: useCallback(() => paramsRef.current, []),
     getGesture: useCallback(() => gesture.current, []),
-    setGesture: useCallback((g: PenGesture | null) => {
-      gesture.current = g
-    }, []),
+    setGesture: useCallback((g: PenGesture | null) => (gesture.current = g), []),
     clearStaging: useCallback(() => {
       const p = paramsRef.current
       if (p.stagingRef.current) {
