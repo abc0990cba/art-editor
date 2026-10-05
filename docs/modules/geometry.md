@@ -22,7 +22,7 @@ metaball field and the outline silhouette. Non-square lattices render through
 | [`src/engine/geometry/metaball-field.ts`](../../src/engine/geometry/metaball-field.ts) | `buildMetaballField` scalar field, `traceMetaballLoops`, `loopsToSmoothPath`, `metaballIso`, `kernelRadius` |
 | [`src/engine/geometry/outline.ts`](../../src/engine/geometry/outline.ts) | `outlineGeometry` — exact cell-edge silhouette, `emitFilletPath`, corner-bridge overlays |
 | [`src/engine/geometry/marching-squares.ts`](../../src/engine/geometry/marching-squares.ts) | `marchingSquares(field, fw, fh, iso) → Pt[][]`; the shared `Pt` type |
-| [`src/engine/geometry/poly-path.ts`](../../src/engine/geometry/poly-path.ts) | `roundedPolygonPath`, `fmt` — fillet helpers shared with the grid renderer and cell forms |
+| [`src/engine/geometry/poly-path.ts`](../../src/engine/geometry/poly-path.ts) | `filletPath`, `roundedPolygonPath`, `minCornerRun`, `fmt` — the tangent-fillet rounding core shared by the outline emitter, the grid renderer and cell forms |
 
 ## How it works
 
@@ -115,6 +115,17 @@ doc-level in global scope). That null matrix *is* the stroke-fallback cliff
   linearly interpolated and shared through a lazy `Map<edgeId, Pt>` so adjacent cells
   reference the exact same coordinates; segments stitched into closed loops, open chains
   dropped. No rounding here — consumers fillet.
+- **Tangent fillets** ([`src/engine/geometry/poly-path.ts`](../../src/engine/geometry/poly-path.ts)): `filletPath`
+  is the one rounding core behind outline mode's `emitFilletPath`, the non-square grid's
+  `roundedPolygonPath` and every polygonal cell form. Vertices turning less than ~10°
+  (collinear splits, arc samples) pass through unrounded; each true corner gets a circular
+  arc tangent to both edges — tangent length `t` clamped to half the whole edge run to the
+  neighboring corners (arc samples included), arc radius `t/tan(θ/2)`. For 90° corners the
+  radius equals `t`, so square-grid output is byte-identical to the pre-tangent emitter;
+  hexagon/triangle/octagon corners lost their old tangent kinks (the rosette look). Chamfer
+  keeps the same tangent points as a straight cut. `minCornerRun` measures a polygon's
+  shortest true edge with those runs merged — it is the per-grid rounding base in
+  [grids](grids.md).
 - **Cell-form jitter** (`src/engine/effects/jitter.ts`): pixels-mode per-cell size/angle
   variation from two smooth value-noise samples over an 8-cell lattice (seeded,
   deterministic — neighbors correlate). Applied multiplicatively after tone scaling in both

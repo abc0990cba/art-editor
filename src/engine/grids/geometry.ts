@@ -14,7 +14,7 @@ import {
 } from '../geometry/metaball-field.ts'
 import type { MetaballCapsule, MetaballField, MetaballSource } from '../geometry/metaball-field.ts'
 import { emitFilletPath } from '../geometry/outline'
-import { roundedPolygonPath } from '../geometry/poly-path.ts'
+import { minCornerRun, roundedPolygonPath } from '../geometry/poly-path.ts'
 
 const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
 const q6 = (v: number) => Math.round(v * 1e6) / 1e6
@@ -103,9 +103,13 @@ function gridPixels(
         doc.style.sizeX * (j?.size ?? 1),
         doc.style.sizeY * (j?.size ?? 1),
       )
+      const oriented = j?.angle ? rotatePolygon(scaled, j.angle) : scaled
+      // radius is a fraction of the cell's shortest true edge (collinear splits and arc runs
+      // merged): hex at 0.5 rounds to a circle, a radial wedge to a leaf — same feel as the
+      // square grid, where radius is a fraction of the cell side
       d += roundedPolygonPath(
-        j?.angle ? rotatePolygon(scaled, j.angle) : scaled,
-        doc.style.radius * (minEdge(scaled) / 2),
+        oriented,
+        doc.style.radius * minCornerRun(oriented),
         doc.style.cornerStyle === 'chamfer',
       )
     } else {
@@ -193,16 +197,6 @@ function rotatePolygon(poly: Pt[], deg: number): Pt[] {
     const dy = p.y - cy
     return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos }
   })
-}
-
-function minEdge(poly: Pt[]): number {
-  let m = Infinity
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[i]
-    const b = poly[(i + 1) % poly.length]
-    m = Math.min(m, Math.hypot(b.x - a.x, b.y - a.y))
-  }
-  return m
 }
 
 /* ------------------------------- outline tracer ------------------------------- */
@@ -307,7 +301,10 @@ export function gridMetaballField(
     const v = cells[i]
     if (v === 0) continue
     const c = grid.center(i)
-    sources.push({ x: c.x, y: c.y, v })
+    // splats follow the local cell size (√-scaled): radial inner rings have arc lengths far
+    // below the unit pitch, and unit kernels swell lone cells ~4× while saturating the center.
+    // The square root keeps same-ring neighbors merging gooey-ly like square-grid neighbors.
+    sources.push({ x: c.x, y: c.y, v, r: Math.sqrt(minCornerRun(grid.polygon(i))) })
   }
   return buildMetaballField({
     w: grid.w,

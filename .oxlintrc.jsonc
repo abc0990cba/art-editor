@@ -403,16 +403,10 @@
       "src/engine/geometry/outline.ts"
     ],
     "rules": {
-      "eslint/complexity": [
-        "error",
-        {
-          "max": 25
-        }
-      ],
       "eslint/max-params": [
         "error",
         {
-          "max": 8
+          "max": 7
         }
       ]
     }

@@ -48,12 +48,16 @@ still leaves the canvas corners uncovered — `cellAt` returns −1 there.
 **Rendering** ([`src/engine/grids/geometry.ts`](../../src/engine/grids/geometry.ts)): `gridBuildGeometry` runs for every
 grid where `isPlainSquare` is false (the header names the classic hex/triangle/radial, but
 dispatch is generic — diamond/iso/brick/octasquare and rotated squares all land here). Per
-color group: `pixels` → the native cell polygon (`roundedPolygonPath`, sized by `sizeX/Y`,
-tone-scaled, jittered) or a registered cell form via `cellShapeFragment` in the cell's
-bounding box; `outline` → `traceSilhouette` (union boundary along shared polygon edges,
-canonical 1e-6 keys) filleted by `emitFilletPath` from [geometry](geometry.md); `metaball` →
-`gridMetaballField` (kernel splats at cell centers + link capsules, `step` capped so the long
-side stays ≤ 600 nodes) traced by the shared field tracer. Connectors stroke between
+color group: `pixels` → the native cell polygon (`roundedPolygonPath`; the radius is a
+fraction of the cell's shortest true edge from `minCornerRun` — collinear splits and arc
+runs merged, so hex at radius 0.5 rounds to a circle and a radial wedge to a leaf — sized by
+`sizeX/Y`, tone-scaled, jittered) or a registered cell form via `cellShapeFragment` in the
+cell's bounding box; `outline` → `traceSilhouette` (union boundary along shared polygon
+edges, canonical 1e-6 keys) filleted by `emitFilletPath` from [geometry](geometry.md) — only
+true corners fillet, arc samples and T-junction splits stay smooth; `metaball` →
+`gridMetaballField` (kernel splats at cell centers, √-scaled by the local cell size so
+sub-unit radial rings don't fuse into a saturated center blob, + link capsules, `step`
+capped so the long side stays ≤ 600 nodes) traced by the shared field tracer. Connectors stroke between
 `grid.center` endpoints. Corner connectivity and sub-cells are square-grid features.
 
 **Grid conversion** ([`src/engine/grids/index.ts`](../../src/engine/grids/index.ts)): `gridConvertMap` samples every new

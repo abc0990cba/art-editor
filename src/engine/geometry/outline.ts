@@ -5,6 +5,7 @@ import { regionTextureFragments, type TextureCell } from '../texture'
 import { figureSpace, type FigureSpace } from '../texture/figure'
 import { FNV_OFFSET, fnvFloat, fnvWord } from '../texture/region-index.ts'
 import { marchingSquares, type Pt } from './marching-squares.ts'
+import { filletPath } from './poly-path.ts'
 
 /**
  * Outline render mode: same-color cells connected by an edge form one silhouette traced exactly
@@ -280,9 +281,11 @@ function bridgeOverlays(doc: Doc, cells: Uint16Array, v: number): string {
 
 /**
  * Shared corner-rounding emitter: converts closed doc-unit loops into one compound path, rounding
- * each corner — outer corners with the convex radius, inner corners with the concave radius — using
- * circular arcs, or straight 45° cuts in chamfer style. Convexity is decided per loop by majority
- * turn sign; fillets clamp to half of the adjacent edge lengths.
+ * each corner — outer corners with the convex radius, inner corners with the concave radius — via
+ * the tangent fillets of `filletPath` (circular arcs tangent to both edges, or straight 45° cuts in
+ * chamfer style). Convexity is decided per loop by majority turn sign; fillets clamp to half of the
+ * neighboring edge runs. Vertices turning less than ~10° (collinear splits, arc samples) are passed
+ * through unrounded.
  */
 export function emitFilletPath(
   loops: Pt[][],
@@ -293,57 +296,7 @@ export function emitFilletPath(
 ): string {
   let d = ''
   for (const raw of loops) {
-    // drop consecutive duplicates (incl. wrap-around) so segments never have zero length
-    const pts: Pt[] = []
-    for (const p of raw) {
-      const last = pts.at(-1)
-      if (!last || last.x !== p.x || last.y !== p.y) pts.push(p)
-    }
-    if (pts.length > 1) {
-      const f = pts[0]
-      const l = pts[pts.length - 1]
-      if (f.x === l.x && f.y === l.y) pts.pop()
-    }
-    const n = pts.length
-    if (n < 3) continue
-    const seg = (a: Pt, b: Pt) => ({
-      dx: b.x - a.x,
-      dy: b.y - a.y,
-      len: Math.hypot(b.x - a.x, b.y - a.y),
-    })
-    const segs: ReturnType<typeof seg>[] = []
-    for (let i = 0; i < n; i++) segs.push(seg(pts[i], pts[(i + 1) % n]))
-    let crossSum = 0
-    for (let i = 0; i < n; i++) {
-      const a = segs[(i - 1 + n) % n]
-      const b = segs[i]
-      crossSum += Math.sign(a.dx * b.dy - a.dy * b.dx)
-    }
-    const convexSign = Math.sign(crossSum) || 1
-    const t0 = segs[n - 1]
-    let dStr = ''
-    let first = true
-    for (let i = 0; i < n; i++) {
-      const p = pts[i]
-      const inSeg = i === 0 ? t0 : segs[i - 1]
-      const outSeg = segs[i]
-      const cross = inSeg.dx * outSeg.dy - inSeg.dy * outSeg.dx
-      const r = Math.sign(cross) === convexSign ? rCvx : rCcv
-      let t = Math.min(r, inSeg.len / 2, outSeg.len / 2)
-      if (keepCorner && !keepCorner(p)) t = 0
-      const ax = p.x - (inSeg.dx / inSeg.len) * t
-      const ay = p.y - (inSeg.dy / inSeg.len) * t
-      const bx = p.x + (outSeg.dx / outSeg.len) * t
-      const by = p.y + (outSeg.dy / outSeg.len) * t
-      dStr += `${first ? 'M' : 'L'}${fmt(ax)} ${fmt(ay)}`
-      first = false
-      if (t > 0) {
-        dStr += chamfer
-          ? `L${fmt(bx)} ${fmt(by)}`
-          : `A${fmt(t)} ${fmt(t)} 0 0 ${cross > 0 ? 1 : 0} ${fmt(bx)} ${fmt(by)}`
-      }
-    }
-    if (dStr) d += `${dStr}Z`
+    d += filletPath(raw, chamfer, (convex) => (convex ? rCvx : rCcv), keepCorner)
   }
   return d
 }
