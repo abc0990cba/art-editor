@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 
 import { PALETTES } from '../../engine/color/index.ts'
 import { DITHER_CATALOG } from '../../engine/dither/catalog.ts'
@@ -32,8 +32,41 @@ import { DITHER_GROUPS, importRgbOf, paintResult, SELECT_TRIGGER } from './impor
  * The import dialog's visual option fields: each keeps its text select and adds a tile gallery
  * under it — presets, palettes and dithers shown as real conversions of a small thumbnail of the
  * imported photo (same convertImage, 1:1 cells), so a click is judged before it happens. Auto and
- * current palette choices stay select-only: they have no fixed swatches to show.
+ * current palette choices stay select-only: they have no fixed swatches to show. Every gallery
+ * starts collapsed to a one-line header carrying the current choice, same as the settings panel.
  */
+
+/** Collapsed gallery field: label + current choice on the summary line, select and tiles inside. */
+function CollapsibleField({
+  label,
+  value,
+  children,
+}: {
+  label: string
+  /** Current choice rendered after the label; hidden while nothing is picked yet. */
+  value?: string
+  children: ReactNode
+}) {
+  return (
+    <details className="border-line group/field rounded-md border px-2 py-1">
+      <summary className="text-muted hover:text-body flex cursor-pointer list-none items-center gap-2 text-xs select-none max-lg:min-h-11 max-lg:text-sm [&::-webkit-details-marker]:hidden">
+        <span className="shrink-0">{label}</span>
+        {value && <span className="text-body min-w-0 flex-1 truncate text-right">{value}</span>}
+        <svg
+          viewBox="0 0 16 16"
+          className="h-3 w-3 shrink-0 transition-transform group-open/field:rotate-180"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          aria-hidden
+        >
+          <path d="M4 6l4 4 4-4" />
+        </svg>
+      </summary>
+      <div className="mt-1.5 flex flex-col gap-1">{children}</div>
+    </details>
+  )
+}
 
 /** Longest side of the shared gallery thumbnail — enough to read a dither pattern. */
 const THUMB_SIDE = 96
@@ -132,8 +165,10 @@ export function ImportPresetsField({
     [thumb],
   )
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-muted text-xs">{t('import.presets')}</span>
+    <CollapsibleField
+      label={t('import.presets')}
+      value={value ? t(`import.preset.${value}` as 'import.preset.gameboy') : undefined}
+    >
       <Select value={value || undefined} onValueChange={onPick}>
         <SelectTrigger className={SELECT_TRIGGER}>
           <SelectValue placeholder={t('import.presets')} />
@@ -173,7 +208,7 @@ export function ImportPresetsField({
           </button>
         ))}
       </div>
-    </div>
+    </CollapsibleField>
   )
 }
 
@@ -189,9 +224,14 @@ export function ImportPaletteField({
   onPick: (id: string) => void
 }) {
   const { t } = useI18n()
+  const paletteLabel = (sel: string) =>
+    sel === 'auto'
+      ? t('import.palette.auto')
+      : sel === 'current'
+        ? t('import.palette.current')
+        : t(`palette.${sel}` as 'palette.classic12')
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-muted text-xs">{t('import.palette')}</span>
+    <CollapsibleField label={t('import.palette')} value={paletteLabel(value)}>
       <Select value={value} onValueChange={onPick}>
         <SelectTrigger className={SELECT_TRIGGER}>
           <SelectValue />
@@ -235,7 +275,7 @@ export function ImportPaletteField({
           {t('import.colors')}: {autoColors}
         </span>
       )}
-    </div>
+    </CollapsibleField>
   )
 }
 
@@ -277,8 +317,10 @@ export function ImportDitherField({
     }))
   }, [thumb, palette, docPalette, glyphSet, dithers])
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-muted text-xs">{t('import.dither')}</span>
+    <CollapsibleField
+      label={t('import.dither')}
+      value={t(`import.dither.${value}` as 'import.dither.none')}
+    >
       <Select value={value} onValueChange={(v) => onPick(v as ImportDither)}>
         <SelectTrigger className={SELECT_TRIGGER}>
           <SelectValue />
@@ -314,6 +356,6 @@ export function ImportDitherField({
       {DITHER_CATALOG[value].glyphPicker && (
         <GlyphSetPicker value={glyphSet} onChange={onGlyphSet} photo={bitmap} />
       )}
-    </div>
+    </CollapsibleField>
   )
 }

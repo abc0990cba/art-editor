@@ -180,7 +180,8 @@ export function ColorPicker({
       const canvas = barRef.current
       if (!canvas) return
       const r = canvas.getBoundingClientRect()
-      const v = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width))
+      // the bar is painted white (left) → black (right), so the click fraction runs the other way
+      const v = 1 - Math.max(0, Math.min(1, (e.clientX - r.left) / r.width))
       apply({ h: hsvRef.current.h, s: hsvRef.current.s, v })
     },
     [apply],
