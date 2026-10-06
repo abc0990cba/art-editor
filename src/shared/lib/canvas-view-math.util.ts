@@ -1,4 +1,4 @@
-/** Pure view math of the canvas stage: wheel normalization, anchored zoom, clamps, offscreen test. */
+/** Pure view math shared by every zoomable viewport: wheel normalization, anchored zoom, clamps. */
 
 export interface CanvasView {
   zoom: number
@@ -27,17 +27,24 @@ export function wheelZoomFactor(deltaPx: number, pinch: boolean): number {
   return Math.exp(-deltaPx * (pinch ? PINCH_RATE : WHEEL_RATE))
 }
 
+/** Zoom range of a viewport; the pixel-canvas bounds are the default. */
+export interface ZoomBounds {
+  min: number
+  max: number
+}
+
 /**
- * Zoom to `targetZoom` keeping the doc point under the anchor (ax, ay) fixed, clamped to [ZOOM_MIN,
- * ZOOM_MAX].
+ * Zoom to `targetZoom` keeping the doc point under the anchor (ax, ay) fixed, clamped to the
+ * `bounds` — [ZOOM_MIN, ZOOM_MAX] when omitted; viewports with other ranges pass their own.
  */
 export function anchoredZoom(
   view: CanvasView,
   targetZoom: number,
   ax: number,
   ay: number,
+  bounds?: ZoomBounds,
 ): CanvasView {
-  const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, targetZoom))
+  const zoom = Math.min(bounds?.max ?? ZOOM_MAX, Math.max(bounds?.min ?? ZOOM_MIN, targetZoom))
   const s = zoom / view.zoom
   return { zoom, x: ax - (ax - view.x) * s, y: ay - (ay - view.y) * s }
 }

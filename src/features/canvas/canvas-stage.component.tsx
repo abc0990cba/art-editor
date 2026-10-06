@@ -9,6 +9,7 @@ import { ensureTileGeometry } from '../../engine/geometry/tiles.ts'
 import { cellCoordLabel } from '../../engine/grids/index.ts'
 import { isShapeTool } from '../../engine/shapes/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
+import { viewOffscreen } from '../../shared/lib/canvas-view-math.util.ts'
 import { FitCanvasButton } from '../../shared/ui/fit-button.component.tsx'
 import { ZoomControls } from '../../shared/ui/zoom-controls.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
@@ -22,7 +23,6 @@ import {
   type DragState,
   type Hover,
 } from './canvas-stage.util.ts'
-import { viewOffscreen } from './canvas-view-math.util.ts'
 import { diffusionContourPath, hoverCellCenter, strokeKernelRing } from './diffusion-guides.util.ts'
 import { drawToolHover } from './draw-tool-hover.util.ts'
 import { cellPolygonOverlayPath, squareGridLines } from './grid-overlay.util.ts'

@@ -50,6 +50,12 @@ describe('anchoredZoom', () => {
   it('is a no-op when already at the clamped zoom', () => {
     expect(anchoredZoom(view, 1000, 5, 5)).toEqual(anchoredZoom(view, 80, 5, 5))
   })
+  it('honors custom bounds for viewports with other ranges', () => {
+    expect(anchoredZoom(view, 1000, 0, 0, { min: 0.05, max: 64 }).zoom).toBe(64)
+    expect(anchoredZoom(view, 0.01, 0, 0, { min: 0.05, max: 64 }).zoom).toBe(0.05)
+    expect(anchoredZoom(view, 1000, 0, 0, { min: 0.25, max: 2 }).zoom).toBe(2)
+    expect(anchoredZoom(view, 0.01, 0, 0, { min: 0.25, max: 2 }).zoom).toBe(0.25)
+  })
 })
 
 describe('isHorizontalWheel', () => {

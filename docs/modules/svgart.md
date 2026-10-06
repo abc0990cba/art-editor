@@ -55,7 +55,12 @@ soft layers. `sphereScene` is one bbox radial with an offset focus + contact sha
 rect (`fitInto`) and streams pure engine ops from the `useStageDrag` hook: `translateLayer`/
 `rotateLayer`/`scaleLayer` (path `d` included — the `*PathData` walkers cover the generator's
 absolute M/L/C/Z subset; scale gestures scale an untouched snapshot so every frame is absolute)
-and `dragHandle` (bbox-fraction radials map through `shapeBBox`). **Multi-selection**: the
+and `dragHandle` (bbox-fraction radials map through `shapeBBox`). **Camera**: the stage box sits
+under a zoom/pan view (doc-origin offset in host px, the pixel-canvas convention) — wheel zooms
+cursor-anchored via the shared `use-wheel-zoom` (0.5–8), two fingers pinch+pan via `use-pinch-zoom`
+(a second finger hard-aborts an in-progress shape drag), and the fit/zoom plates live in the host
+corners; overlay strokes stay screen-constant and hit/snap tolerances pass `fitScale × viewZoom`.
+**Multi-selection**: the
 selection is the primary layer plus `extraIds`; Shift-click toggles, an empty-space drag marquees
 (bbox intersection), and group moves/nudges/duplicates/flips/align/z-order act on the whole set
 from per-layer snapshots. **Snap guides**: while a group moves, its bbox edges/centers snap to

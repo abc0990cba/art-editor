@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react'
-
 import { hexToRgb } from '../../engine/color/color.ts'
 import {
   DITHER_FAMILIES,
@@ -27,13 +25,6 @@ export const DITHER_GROUPS: {
   label: `import.ditherGroup.${family}`,
   dithers: dithersOfFamily(family),
 }))
-
-/** Checkerboard under transparent preview pixels. */
-export const checkerStyle: CSSProperties = {
-  backgroundImage:
-    'conic-gradient(rgba(128,128,128,0.25) 25%, rgba(128,128,128,0.08) 0 50%, rgba(128,128,128,0.25) 0 75%, rgba(128,128,128,0.08) 0)',
-  backgroundSize: '16px 16px',
-}
 
 /** Signed slider readout (-100..100 → «-12» / «+12»). */
 export const signed = (v: number): string => (v > 0 ? `+${v}` : `${v}`)

@@ -62,7 +62,8 @@ export function CompareSplit({
         aria-valuemax={100}
         aria-valuenow={Math.round(split)}
         onPointerDown={(e) => {
-          e.stopPropagation()
+          // no stopPropagation: the viewport's pinch hook must see this pointer so a pinch can
+          // start with one finger on the handle (the handle keeps its own capture and drag)
           e.currentTarget.setPointerCapture(e.pointerId)
           dragging.current = true
           updateFromClientX(e.clientX)

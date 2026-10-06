@@ -15,7 +15,7 @@ rendering it consumes: [geometry](geometry.md), [render-pipeline](../architectur
 |---|---|
 | [`src/features/canvas/canvas-stage.component.tsx`](../../src/features/canvas/canvas-stage.component.tsx) | base + overlay canvases, pointer tools, grid overlay, effects wiring |
 | [`src/features/canvas/use-canvas-view.hook.ts`](../../src/features/canvas/use-canvas-view.hook.ts) | view navigation: wheel/pinch zoom, pan inputs, view keys (`use-canvas-view`) |
-| [`src/features/canvas/canvas-view-math.util.ts`](../../src/features/canvas/canvas-view-math.util.ts) | pure view math: deltaMode normalization, anchored zoom + clamps, offscreen test |
+| [`src/shared/lib/canvas-view-math.util.ts`](../../src/shared/lib/canvas-view-math.util.ts) | pure view math shared by all zoomable viewports: deltaMode normalization, anchored zoom + clamps, offscreen test |
 | [`src/features/canvas/use-canvas-staging.hook.ts`](../../src/features/canvas/use-canvas-staging.hook.ts) | staging state, rAF loop, symmetry/shape stamping, commit |
 | [`src/features/canvas/canvas-stage.util.ts`](../../src/features/canvas/canvas-stage.util.ts) | `MAX_STAMPS`, `sizeCanvas` (dpr), `blobCells` cache, marquee/label utils |
 | [`src/features/canvas/use-selection-transform.hook.ts`](../../src/features/canvas/use-selection-transform.hook.ts) | scale/rotate/flip handle interaction |
@@ -60,8 +60,10 @@ pointerup/pointercancel/blur finish drags "so a lost pointerup can never turn la
 moves into stray stamps".
 
 **Zoom/pan.** Navigation lives in `use-canvas-view.hook.ts` over the pure math in
-`canvas-view-math.util.ts` (`anchoredZoom` clamps 0.5..80 and keeps the doc point under the
-cursor fixed). Wheel = zoom, cursor-anchored; `wheelDeltaPx` normalizes line/page `deltaMode`
+`shared/lib/canvas-view-math.util.ts` (`anchoredZoom` clamps 0.5..80 and keeps the doc point under the
+cursor fixed; the same math serves every zoomable viewport — previews, node editor, SVG studio —
+via the shared `use-wheel-zoom`/`use-pinch-zoom` hooks). Wheel = zoom, cursor-anchored; `wheelDeltaPx`
+normalizes line/page `deltaMode`
 (a line-mode notch is ×16) and `ctrlKey` wheel (trackpad pinch) gets a stiffer curve;
 Shift+wheel or a horizontal-dominant `deltaX` pans horizontally. Pan inputs: middle button,
 right button (context menu suppressed over the wrap), held Space, and the hand tool (H;

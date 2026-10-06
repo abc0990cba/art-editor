@@ -7,7 +7,7 @@ import {
   wheelZoomFactor,
   ZOOM_STEP,
   type CanvasView,
-} from './canvas-view-math.util.ts'
+} from '../../shared/lib/canvas-view-math.util.ts'
 
 interface ViewDeps {
   wrapRef: RefObject<HTMLDivElement | null>

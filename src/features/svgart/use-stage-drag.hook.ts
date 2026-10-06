@@ -87,13 +87,16 @@ interface DragCtx {
  * rotate arm → layers. Supports multi-selection (drag moves every selected layer from untouched
  * snapshots, Shift-click toggles), rubber-band marquee on empty space, and smart snapping to the
  * canvas center and other layers' bbox edges/centers with guide lines. Everything here is
- * scene-space; screen→scene conversion stays in the component.
+ * scene-space; screen→scene conversion stays in the component. `fitScale` is screen px per scene
+ * unit (base fit × view zoom) and drives the screen-constant tolerances.
  */
 export function useStageDrag(setup: StageDragSetup): {
   onPointerDown: (e: React.PointerEvent) => void
   onPointerMove: (e: React.PointerEvent) => void
   onPointerUp: () => void
   onPointerCancel: () => void
+  /** Hard-abort of any in-progress drag (a pinch landing) — no marquee selection commit */
+  cancelDrag: () => void
   guides: Guides | null
   marquee: { a: Pt; b: Pt } | null
 } {
@@ -119,6 +122,11 @@ export function useStageDrag(setup: StageDragSetup): {
     onPointerMove: (e) => pointerMove(ctx, e),
     onPointerUp: () => pointerFinish(ctx),
     onPointerCancel: () => pointerFinish(ctx),
+    cancelDrag: () => {
+      ctx.drag.current = null
+      ctx.setGuides(null)
+      ctx.setMarquee(null)
+    },
     guides,
     marquee,
   }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { FitCanvasButton } from './fit-button.component.tsx'
 import { usePanPinchGestures, type PanPinchView } from './use-pinch-pan.hook.ts'
+import { useWheelZoom } from './use-wheel-zoom.hook.ts'
 import { ZoomControls } from './zoom-controls.component.tsx'
 
 /**
@@ -14,8 +15,6 @@ import { ZoomControls } from './zoom-controls.component.tsx'
 
 const MIN_ZOOM = 0.05
 const MAX_ZOOM = 64
-
-const clampZoom = (zoom: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
 
 export function PanZoomPreview({
   width,
@@ -46,6 +45,9 @@ export function PanZoomPreview({
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState<PanPinchView>({ zoom: 1, x: 0, y: 0 })
+  // live mirror for the wheel hook's one-shot listener
+  const viewRef = useRef(view)
+  viewRef.current = view
   useEffect(() => {
     onZoomChange?.(view.zoom)
   }, [view.zoom, onZoomChange])
@@ -53,6 +55,13 @@ export function PanZoomPreview({
     containerRef,
     view,
     setView,
+    minZoom: MIN_ZOOM,
+    maxZoom: MAX_ZOOM,
+  })
+  useWheelZoom({
+    target: containerRef,
+    getView: () => viewRef.current,
+    applyView: setView,
     minZoom: MIN_ZOOM,
     maxZoom: MAX_ZOOM,
   })
@@ -79,28 +88,12 @@ export function PanZoomPreview({
     <div
       ref={containerRef}
       className="relative h-full min-h-0 flex-1 touch-none overflow-hidden"
-      onWheel={(e) => {
-        e.preventDefault()
-        const box = containerRef.current?.getBoundingClientRect()
-        if (!box) return
-        const factor = Math.exp(-e.deltaY * 0.0015)
-        setView((v) => {
-          const zoom = clampZoom(v.zoom * factor)
-          const px = e.clientX - box.left
-          const py = e.clientY - box.top
-          return {
-            zoom,
-            x: px - ((px - v.x) * zoom) / v.zoom,
-            y: py - ((py - v.y) * zoom) / v.zoom,
-          }
-        })
-      }}
       onPointerDown={gestures.handlePointerDown}
       onPointerMove={gestures.handlePointerMove}
       onPointerUp={gestures.handlePointerUp}
       onPointerCancel={gestures.handlePointerCancel}
     >
-      {/* checkerboard under the artwork (alpha visibility) — same recipe as the import dialog */}
+      {/* checkerboard under the artwork (alpha visibility) */}
       <div
         className="absolute inset-0"
         aria-hidden
@@ -111,7 +104,7 @@ export function PanZoomPreview({
         }}
       />
       <div
-        className={`absolute origin-top-left transition duration-300 ${
+        className={`absolute origin-top-left transition-[opacity,filter] duration-300 ${
           busy ? 'opacity-55 saturate-[0.55]' : 'opacity-100'
         }`}
         style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}

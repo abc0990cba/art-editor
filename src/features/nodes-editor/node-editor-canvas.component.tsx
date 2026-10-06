@@ -29,6 +29,8 @@ import { download } from '../../shared/lib/file-download.util.ts'
 import { DragNumber } from '../../shared/ui/drag-number.component.tsx'
 import { Chip } from '../../shared/ui/index.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
+import { usePinchZoom } from '../../shared/ui/use-pinch-zoom.hook.ts'
+import { useWheelZoom } from '../../shared/ui/use-wheel-zoom.hook.ts'
 import { useStore } from '../../state/editor.store.ts'
 import { CellsPreview, StyleSamplePreview } from './node-preview.component.tsx'
 
@@ -385,66 +387,33 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
 
   /* ------------------------------ pointer handling ------------------------------ */
 
-  // two-finger touch: pinch to zoom around the fingers, move to pan — capture-phase
-  // listeners win over card dragging, so the gesture works anywhere over the editor
-  useEffect(() => {
-    const vp = viewportRef.current
-    if (!vp) return
-    const pts = new Map<number, { x: number; y: number }>()
-    let start: null | {
-      d0: number
-      cx0: number
-      cy0: number
-      pan0: { x: number; y: number }
-      zoom0: number
-    } = null
-    const down = (e: PointerEvent) => {
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (pts.size === 2 && !start) {
-        dragRef.current = null // a second finger cancels a node drag in progress
-        const [a, b] = [...pts.values()]
-        start = {
-          d0: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
-          cx0: (a.x + b.x) / 2,
-          cy0: (a.y + b.y) / 2,
-          pan0: { x: panRef.current.x, y: panRef.current.y },
-          zoom0: zoomRef.current,
-        }
-      }
-    }
-    const move = (e: PointerEvent) => {
-      if (!pts.has(e.pointerId)) return
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (!start || pts.size < 2) return
-      e.stopPropagation()
-      e.preventDefault()
-      const [a, b] = [...pts.values()]
-      const d = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y))
-      const r = vp.getBoundingClientRect()
-      const cx = (a.x + b.x) / 2 - r.left
-      const cy = (a.y + b.y) / 2 - r.top
-      const zoom = Math.max(0.25, Math.min(2, start.zoom0 * (d / start.d0)))
-      // the world point under the starting centroid stays under the moving one
-      const wx = (start.cx0 - r.left - start.pan0.x) / start.zoom0
-      const wy = (start.cy0 - r.top - start.pan0.y) / start.zoom0
-      setZoom(zoom)
-      setPan({ x: cx - wx * zoom, y: cy - wy * zoom })
-    }
-    const up = (e: PointerEvent) => {
-      pts.delete(e.pointerId)
-      if (pts.size < 2) start = null
-    }
-    vp.addEventListener('pointerdown', down, true)
-    vp.addEventListener('pointermove', move, true)
-    vp.addEventListener('pointerup', up, true)
-    vp.addEventListener('pointercancel', up, true)
-    return () => {
-      vp.removeEventListener('pointerdown', down, true)
-      vp.removeEventListener('pointermove', move, true)
-      vp.removeEventListener('pointerup', up, true)
-      vp.removeEventListener('pointercancel', up, true)
-    }
-  }, [])
+  // camera accessors shared by the wheel and touch-pinch hooks; the view lives in two states, so
+  // both hooks read it through the refs and write it back split
+  const getEditorView = () => ({ zoom: zoomRef.current, x: panRef.current.x, y: panRef.current.y })
+  const applyEditorView = (v: { zoom: number; x: number; y: number }) => {
+    setZoom(v.zoom)
+    setPan({ x: v.x, y: v.y })
+  }
+  useWheelZoom({
+    target: viewportRef,
+    getView: getEditorView,
+    applyView: applyEditorView,
+    minZoom: 0.25,
+    maxZoom: 2,
+  })
+  // two-finger touch: pinch to zoom around the fingers, move to pan — capture-phase listeners
+  // win over card dragging, so the gesture works anywhere over the editor; a second finger
+  // cancels a node drag in progress
+  usePinchZoom({
+    target: viewportRef,
+    getView: getEditorView,
+    applyView: applyEditorView,
+    minZoom: 0.25,
+    maxZoom: 2,
+    onGestureStart: () => {
+      dragRef.current = null
+    },
+  })
 
   const onBackgroundDown = (e: React.PointerEvent) => {
     if (e.button === 1 || e.button === 0) {
@@ -463,18 +432,6 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
 
   const onBackgroundUp = () => {
     dragRef.current = null
-  }
-
-  const onWheel = (e: React.WheelEvent) => {
-    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1
-    const next = Math.max(0.25, Math.min(2, zoom * factor))
-    const applied = next / zoom
-    const rect = viewportRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const mx = e.clientX - rect.left
-    const my = e.clientY - rect.top
-    setPan({ x: mx - (mx - pan.x) * applied, y: my - (my - pan.y) * applied })
-    setZoom(next)
   }
 
   const startWire = (e: React.PointerEvent, fromId: string) => {
@@ -777,7 +734,6 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
         onPointerDown={onBackgroundDown}
         onPointerMove={onBackgroundMove}
         onPointerUp={onBackgroundUp}
-        onWheel={onWheel}
       >
         {objects.length === 0 && (
           <div className="flex h-full items-center justify-center">

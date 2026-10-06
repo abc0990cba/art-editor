@@ -4,7 +4,9 @@ import { useRef, type PointerEvent as ReactPointerEvent, type RefObject } from '
  * Pointer gestures for a zoomable viewport: one finger (or mouse) pans, two fingers pinch-zoom —
  * the content point under the initial midpoint stays under the moving midpoint, so the gesture
  * feels like grabbing the artwork. Wheel zoom stays with the component (it anchors at the cursor).
- * Presses that start on a button are ignored, so overlay plates (zoom/fit) keep their clicks.
+ * Presses that start on a button never pan and never take the container's pointer capture, so
+ * overlay plates (zoom/fit) and the compare handle keep their own gestures — but the pointer is
+ * still tracked, so a pinch starts even when one finger landed on a button.
  */
 
 export interface PanPinchView {
@@ -13,7 +15,7 @@ export interface PanPinchView {
   y: number
 }
 
-type Pt = { x: number; y: number }
+type Pt = { x: number; y: number; button: boolean }
 
 /** Distance and midpoint of a two-finger gesture, in container-local coordinates. */
 const pinchFrame = (a: Pt, b: Pt) => ({
@@ -41,7 +43,7 @@ export function usePanPinchGestures({
 
   const toLocal = (p: Pt): Pt => {
     const box = containerRef.current?.getBoundingClientRect()
-    return box ? { x: p.x - box.left, y: p.y - box.top } : p
+    return box ? { ...p, x: p.x - box.left, y: p.y - box.top } : p
   }
 
   const startPinch = () => {
@@ -60,20 +62,24 @@ export function usePanPinchGestures({
   }
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('button')) return
+    const onButton = !!(e.target as HTMLElement).closest('button')
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY, button: onButton })
+    if (pointers.current.size === 2) {
+      panRef.current = null
+      startPinch()
+      return
+    }
+    if (onButton) return
     e.currentTarget.setPointerCapture(e.pointerId)
-    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (pointers.current.size === 1) {
       panRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, vx: view.x, vy: view.y }
-    } else {
-      panRef.current = null
-      if (pointers.current.size === 2) startPinch()
     }
   }
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!pointers.current.has(e.pointerId)) return
-    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const prev = pointers.current.get(e.pointerId)
+    if (!prev) return
+    pointers.current.set(e.pointerId, { ...prev, x: e.clientX, y: e.clientY })
     if (pinchRef.current) applyPinch()
     else if (panRef.current?.id === e.pointerId) {
       const p = panRef.current
@@ -86,7 +92,8 @@ export function usePanPinchGestures({
     if (pinchRef.current && pointers.current.size < 2) {
       pinchRef.current = null
       // the surviving finger becomes the pan anchor so the gesture continues smoothly
-      const rest = [...pointers.current.entries()][0]
+      // (unless it started on a button — those never pan)
+      const rest = [...pointers.current.entries()].find(([, p]) => !p.button)
       if (rest) panRef.current = { id: rest[0], x: rest[1].x, y: rest[1].y, vx: view.x, vy: view.y }
     }
     if (pointers.current.size === 0) panRef.current = null

@@ -21,7 +21,7 @@ import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
 import { BeforeAfterPreview } from './before-after-preview.component.tsx'
 import { ImportAdjustSections } from './import-adjust-sections.component.tsx'
-import { checkerStyle, FITS, importRgbOf } from './import-controls.util.ts'
+import { FITS, importRgbOf } from './import-controls.util.ts'
 import { ImportEffectsSection } from './import-effects-section.component.tsx'
 import {
   ImportDitherField,
@@ -179,7 +179,6 @@ export function ImportDialog({
                   rgbOf={rgbOf}
                   sub={doc.sub}
                   fit={opts.fit}
-                  backgroundStyle={checkerStyle}
                 />
               </div>
               <div className="flex items-center justify-between gap-2">
