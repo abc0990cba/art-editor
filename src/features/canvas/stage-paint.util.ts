@@ -33,6 +33,11 @@ export function plainSquarePreviewStyle(s: PixelStyle): boolean {
     !s.toneSize &&
     s.sizeJitter === 0 &&
     s.radius === 0 &&
+    s.inlay.shape === 'none' &&
+    s.stroke.width === 0 &&
+    s.field.size === 'none' &&
+    s.field.align === 'none' &&
+    s.field.offset === 'none' &&
     cornerZero(s.corners.tl) &&
     cornerZero(s.corners.tr) &&
     cornerZero(s.corners.br) &&

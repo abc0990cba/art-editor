@@ -1,10 +1,13 @@
 import { makeGrid, type Grid } from '.'
 import { cellShapeFragment } from '../cell-shapes/index.ts'
-import { toneScale } from '../color/color.ts'
 import type { Doc, Link } from '../core/doc'
 import { cellColor } from '../core/doc'
+import { hasField, type FieldSettings } from '../core/field.ts'
+import { fieldAt } from '../effects/fields.ts'
 import { hasJitter, jitterAt } from '../effects/jitter.ts'
 import type { StyledPath } from '../geometry'
+import { baseGroupPath } from '../geometry/emit.ts'
+import { createInlayColorOf, inlayFragment, isInlayOn } from '../geometry/inlay.ts'
 import type { Pt } from '../geometry/marching-squares.ts'
 import {
   buildMetaballField,
@@ -15,6 +18,7 @@ import {
 import type { MetaballCapsule, MetaballField, MetaballSource } from '../geometry/metaball-field.ts'
 import { emitFilletPath } from '../geometry/outline'
 import { minCornerRun, roundedPolygonPath } from '../geometry/poly-path.ts'
+import { toneScaleLookup } from '../geometry/shape.ts'
 import { gridCoverageClip } from './coverage.ts'
 
 const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
@@ -69,6 +73,119 @@ export function gridBuildGeometry(
   return paths
 }
 
+/** Axis-aligned bounding box of a cell polygon. */
+function bboxOf(poly: Pt[]): { minX: number; minY: number; maxX: number; maxY: number } {
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const p of poly) {
+    minX = Math.min(minX, p.x)
+    minY = Math.min(minY, p.y)
+    maxX = Math.max(maxX, p.x)
+    maxY = Math.max(maxY, p.y)
+  }
+  return { minX, minY, maxX, maxY }
+}
+
+/** Centered figure box of a cell bbox collapsed by scale factors (size and tone/jitter scaling). */
+function centeredBox(
+  bbox: ReturnType<typeof bboxOf>,
+  sx: number,
+  sy: number,
+): { x: number; y: number; w: number; h: number } {
+  const w = (bbox.maxX - bbox.minX) * sx
+  const h = (bbox.maxY - bbox.minY) * sy
+  return { x: (bbox.minX + bbox.maxX) / 2 - w / 2, y: (bbox.minY + bbox.maxY) / 2 - h / 2, w, h }
+}
+
+/** Composed per-cell modulation of the non-square path: noise jitter × position field. */
+function cellModulation(
+  doc: Doc,
+  field: FieldSettings,
+  i: number,
+): { size: number; angle: number; dx: number; dy: number } | null {
+  const jit = hasJitter(doc.style) ? jitterAt(doc.style, i, doc.cols) : null
+  if (!hasField(field)) {
+    return jit ? { size: jit.size, angle: jit.angle, dx: 0, dy: 0 } : null
+  }
+  const col = i % doc.cols
+  const f = fieldAt(field, col, (i - col) / doc.cols, doc.cols, doc.rows)
+  return {
+    size: (jit?.size ?? 1) * f.scale,
+    angle: (jit?.angle ?? 0) + f.angle,
+    dx: f.dx,
+    dy: f.dy,
+  }
+}
+
+/**
+ * Base fragment + figure box of one non-square-grid cell: the native polygon (form `square`,
+ * rounded and scaled) or a registered cell form drawn into the cell's bounding box — size and tone
+ * scaling collapse the box about its center, mirroring the square-grid per-cell path. `mod` carries
+ * the composed per-cell modulation (jitter × field); `box` feeds the inlay placement.
+ */
+function gridCellFragment(
+  doc: Doc,
+  toneScaleOf: (v: number) => number,
+  v: number,
+  poly: Pt[],
+  mod: { size: number; angle: number; dx: number; dy: number } | null,
+): { base: string; box: { x: number; y: number; w: number; h: number } } {
+  const shape = doc.style.shape
+  const chamfer = doc.style.cornerStyle === 'chamfer'
+  const radius = doc.style.radius
+  const bbox = bboxOf(poly)
+  const shift = (b: { x: number; y: number; w: number; h: number }) => {
+    if (!mod || (mod.dx === 0 && mod.dy === 0)) return b
+    return { ...b, x: b.x + mod.dx * b.w, y: b.y + mod.dy * b.h }
+  }
+  const shiftPoly = (pts: Pt[]): Pt[] => {
+    if (!mod || (mod.dx === 0 && mod.dy === 0)) return pts
+    const bw = bbox.maxX - bbox.minX
+    const bh = bbox.maxY - bbox.minY
+    return pts.map((p) => ({ x: p.x + mod.dx * bw, y: p.y + mod.dy * bh }))
+  }
+  if (shape === 'square') {
+    const k = mod?.size ?? 1
+    const scaled = scaledPolygon(poly, doc.style.sizeX * k, doc.style.sizeY * k)
+    const oriented = mod?.angle ? rotatePolygon(scaled, mod.angle) : scaled
+    const moved = shiftPoly(oriented)
+    // radius is a fraction of the cell's shortest true edge (collinear splits and arc runs
+    // merged): hex at 0.5 rounds to a circle, a radial wedge to a leaf — same feel as the
+    // square grid, where radius is a fraction of the cell side
+    return {
+      base: roundedPolygonPath(moved, radius * minCornerRun(moved), chamfer),
+      box: shift(centeredBox(bbox, doc.style.sizeX * k, doc.style.sizeY * k)),
+    }
+  }
+  let w = (bbox.maxX - bbox.minX) * doc.style.sizeX
+  let h = (bbox.maxY - bbox.minY) * doc.style.sizeY
+  if (doc.style.toneSize) {
+    const k = toneScaleOf(v)
+    w *= k
+    h *= k
+  }
+  if (mod) {
+    w *= mod.size
+    h *= mod.size
+  }
+  let params = doc.style.shapeParams
+  if (mod?.angle) {
+    params = { ...params, rotation: (params.rotation + mod.angle + 360) % 360 }
+  }
+  const box = shift({
+    x: (bbox.minX + bbox.maxX) / 2 - w / 2,
+    y: (bbox.minY + bbox.maxY) / 2 - h / 2,
+    w,
+    h,
+  })
+  return {
+    base: cellShapeFragment({ id: shape, ...box, params, radius, chamfer }),
+    box,
+  }
+}
+
 /**
  * Pixels mode of the non-square grids: the native cell polygon (form `square`, rounded and scaled),
  * or a registered cell form drawn into each cell's bounding box — size and tone scaling collapse
@@ -81,77 +198,36 @@ function gridPixels(
   list: number[],
   paths: StyledPath[],
 ): void {
-  const shape = doc.style.shape
-  const toneSize = doc.style.toneSize
-  const jitterOn = hasJitter(doc.style)
-  const toneOf = new Map<number, number>()
-  const toneScaleOf = (val: number): number => {
-    let k = toneOf.get(val)
-    if (k === undefined) {
-      k = toneScale(cellColor(doc, val) ?? '#ffffff', doc.style.toneSizeMin)
-      toneOf.set(val, k)
-    }
-    return k
-  }
+  const inlay = doc.style.inlay
+  const inlayOn = isInlayOn(inlay)
+  const radius = doc.style.radius
+  const chamfer = doc.style.cornerStyle === 'chamfer'
+  const inlayColorOf = createInlayColorOf(doc.palette, inlay)
+  const toneScaleOf = toneScaleLookup(doc)
   let d = ''
+  let dInlay = ''
   for (const i of list) {
     const poly = grid.polygon(i)
     // deterministic per-cell size/angle variation, composed after tone scaling
-    const j = jitterOn ? jitterAt(doc.style, i, doc.cols) : null
-    if (shape === 'square') {
-      const scaled = scaledPolygon(
-        poly,
-        doc.style.sizeX * (j?.size ?? 1),
-        doc.style.sizeY * (j?.size ?? 1),
-      )
-      const oriented = j?.angle ? rotatePolygon(scaled, j.angle) : scaled
-      // radius is a fraction of the cell's shortest true edge (collinear splits and arc runs
-      // merged): hex at 0.5 rounds to a circle, a radial wedge to a leaf — same feel as the
-      // square grid, where radius is a fraction of the cell side
-      d += roundedPolygonPath(
-        oriented,
-        doc.style.radius * minCornerRun(oriented),
-        doc.style.cornerStyle === 'chamfer',
-      )
-    } else {
-      let minX = Infinity
-      let minY = Infinity
-      let maxX = -Infinity
-      let maxY = -Infinity
-      for (const p of poly) {
-        minX = Math.min(minX, p.x)
-        minY = Math.min(minY, p.y)
-        maxX = Math.max(maxX, p.x)
-        maxY = Math.max(maxY, p.y)
-      }
-      let w = (maxX - minX) * doc.style.sizeX
-      let h = (maxY - minY) * doc.style.sizeY
-      if (toneSize) {
-        const k = toneScaleOf(cells[i])
-        w *= k
-        h *= k
-      }
-      if (j) {
-        w *= j.size
-        h *= j.size
-      }
-      let params = doc.style.shapeParams
-      if (j?.angle) {
-        params = { ...params, rotation: (params.rotation + j.angle + 360) % 360 }
-      }
-      d += cellShapeFragment({
-        id: shape,
-        x: (minX + maxX) / 2 - w / 2,
-        y: (minY + maxY) / 2 - h / 2,
-        w,
-        h,
-        params,
-        radius: doc.style.radius,
-        chamfer: doc.style.cornerStyle === 'chamfer',
-      })
+    const mod = cellModulation(doc, doc.style.field, i)
+    const { base, box } = gridCellFragment(doc, toneScaleOf, cells[i], poly, mod)
+    d += base
+    if (inlayOn) {
+      dInlay += inlayFragment(inlay, box, mod?.angle ?? 0, radius, chamfer)
     }
   }
-  if (d) paths.push({ d, fill: cellColor(doc, cells[list[0]]) ?? '#888' })
+  if (d) {
+    paths.push(
+      baseGroupPath(
+        cellColor(doc, cells[list[0]]) ?? '#888',
+        doc.palette,
+        doc.style.stroke,
+        cells[list[0]],
+        d,
+      ),
+    )
+  }
+  if (dInlay) paths.push({ d: dInlay, fill: inlayColorOf(cells[list[0]]) })
 }
 
 function appendGridLinkStrokes(

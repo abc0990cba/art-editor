@@ -322,6 +322,37 @@ const HIT_OF: Record<CellShapeId, (x: number, y: number, p: ShapeParams) => bool
   trapezoid: (x, y, p) => unitPolyHit(trapezoidPoly(p.thickness), x, y),
   shield: (x, y) => unitPolyHit(UNIT_SHIELD, x, y),
   leaf: (x, y, p) => unitPolyHit(leafPoly(p.thickness), x, y),
+  quadrant: (x, y) => x * x + (y - 1) * (y - 1) <= 0.9604,
+  bowtie: (x, y, p) => {
+    const t = clamp(p.thickness, 0.05, 0.5)
+    const e = t + (1 - 2 * t) * (y <= 0.5 ? y : 1 - y)
+    return x >= e && x <= 1 - e
+  },
+  hourglass: (x, y, p) => {
+    const t = clamp(p.thickness, 0.05, 0.5)
+    const e = t + (1 - 2 * t) * (x <= 0.5 ? x : 1 - x)
+    return y >= e && y <= 1 - e
+  },
+  keyhole: (x, y, p) => {
+    const w = clamp(p.thickness, 0.05, 0.5) / 2
+    if ((x - 0.5) * (x - 0.5) + (y - 0.38) * (y - 0.38) <= 0.09) return true
+    if (y < 0.38 || y > 1) return false
+    const half = 0.3 + ((w - 0.3) * (y - 0.38)) / 0.62
+    return Math.abs(x - 0.5) <= half
+  },
+  eye: (x, y) => {
+    const k = Math.sqrt(0.3125)
+    const d1 = (x - 0.5) * (x - 0.5) + (y - 0.5 - k) * (y - 0.5 - k)
+    const d2 = (x - 0.5) * (x - 0.5) + (y - 0.5 + k) * (y - 0.5 + k)
+    return d1 <= 0.5625 && d2 <= 0.5625
+  },
+  parallelogram: (x, y, p) => {
+    const t = clamp(p.thickness, 0.05, 0.5)
+    return x >= t * (1 - y) && x <= 1 - t * y
+  },
+  waveStrip: (x, y, p) =>
+    Math.abs(y - (0.5 + 0.25 * Math.sin(2 * Math.PI * x))) <=
+    clamp(p.thickness, 0.05, 0.5) / 2 + 0.01,
   egg: (x, y) => unitPolyHit(EGG_HITS, x, y),
   arrow: (x, y, p) => unitPolyHit(arrowPoly(p.thickness), x, y),
 }

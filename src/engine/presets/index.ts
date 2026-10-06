@@ -14,6 +14,9 @@ import type {
   TextureSettings,
 } from '../core/doc'
 import { defaultDoc, MAX_SIZE, METABALL_FALLOFFS, METABALL_UNITS, MIN_SIZE } from '../core/doc'
+import { normalizeField, sameField } from '../core/field.ts'
+import { normalizeInlay, sameInlay } from '../core/inlay.ts'
+import { normalizeStroke, sameStroke } from '../core/stroke.ts'
 import { clampCell, REPEAT_MODES } from '../effects/symmetry'
 import { GRID_TYPES } from '../grids'
 import type { EditorPreset, PresetConfig, PresetInput, PresetSeed } from './configs'
@@ -230,6 +233,9 @@ export function normalizePresetConfig(raw: unknown): PresetConfig {
       sizeJitter: clamp(Number(st.sizeJitter ?? base.style.sizeJitter), 0, 1),
       angleJitter: clamp(Number(st.angleJitter ?? base.style.angleJitter), 0, 180),
       jitterSeed: clamp(Math.round(Number(st.jitterSeed) || base.style.jitterSeed), 1, 9999),
+      inlay: normalizeInlay(st.inlay, base.style.inlay),
+      field: normalizeField(st.field, base.style.field),
+      stroke: normalizeStroke(st.stroke, base.style.stroke),
     },
     renderMode: renderModes.includes(d['renderMode'] as RenderMode)
       ? (d['renderMode'] as RenderMode)
@@ -329,6 +335,9 @@ function stylesEqual(a: PixelStyle, b: PixelStyle): boolean {
     a.sizeJitter === b.sizeJitter &&
     a.angleJitter === b.angleJitter &&
     a.jitterSeed === b.jitterSeed &&
+    sameInlay(a.inlay, b.inlay) &&
+    sameField(a.field, b.field) &&
+    sameStroke(a.stroke, b.stroke) &&
     a.corners.tl === b.corners.tl &&
     a.corners.tr === b.corners.tr &&
     a.corners.br === b.corners.br &&

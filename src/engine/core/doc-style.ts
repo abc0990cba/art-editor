@@ -7,6 +7,9 @@ import type {
   PixelStyle,
   StyleScope,
 } from './doc.ts'
+import { sameField } from './field.ts'
+import { sameInlay } from './inlay.ts'
+import { sameStroke } from './stroke.ts'
 
 /** The element style non-element (global-scope) ink renders with. */
 export function elementFromDoc(doc: Doc): ElementStyle {
@@ -15,6 +18,9 @@ export function elementFromDoc(doc: Doc): ElementStyle {
       ...doc.style,
       corners: { ...doc.style.corners },
       shapeParams: { ...doc.style.shapeParams },
+      inlay: { ...doc.style.inlay },
+      field: { ...doc.style.field },
+      stroke: { ...doc.style.stroke },
     },
     renderMode: doc.renderMode,
     connectivity: doc.connectivity,
@@ -100,6 +106,9 @@ function samePixelStyle(a: PixelStyle, b: PixelStyle): boolean {
     a.sizeJitter === b.sizeJitter &&
     a.angleJitter === b.angleJitter &&
     a.jitterSeed === b.jitterSeed &&
+    sameInlay(a.inlay, b.inlay) &&
+    sameField(a.field, b.field) &&
+    sameStroke(a.stroke, b.stroke) &&
     a.corners.tl === b.corners.tl &&
     a.corners.tr === b.corners.tr &&
     a.corners.br === b.corners.br &&

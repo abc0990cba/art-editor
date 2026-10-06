@@ -8,10 +8,14 @@ import {
   type Link,
   type TextureSettings,
 } from '../core/doc.ts'
-import { hasJitter, jitterAt } from '../effects/jitter.ts'
+import { hasField } from '../core/field.ts'
+import { cellModulation } from '../effects/fields.ts'
+import { hasJitter } from '../effects/jitter.ts'
 import { figureSpace, type FigureSpace } from '../texture/figure.ts'
 import { regionTextureFragments, type TextureCell } from '../texture/index.ts'
 import { FNV_OFFSET, fnvFloat, fnvWord } from '../texture/region-index.ts'
+import { baseGroupPath, emitInlayPaths } from './emit.ts'
+import { inlayFragment, isInlayOn } from './inlay.ts'
 import type { Geometry, Staging, StyledPath } from './types.ts'
 
 export const fmt = (v: number) => String(Math.round(v * 1000) / 1000)
@@ -197,6 +201,35 @@ export interface TileRange {
   by1: number
 }
 
+/** Tone-scale lookup per palette value: darker ink draws a larger figure (toneSize option). */
+export function toneScaleLookup(doc: Doc): (v: number) => number {
+  const toneOf = new Map<number, number>()
+  return (v: number): number => {
+    let k = toneOf.get(v)
+    if (k === undefined) {
+      k = toneScale(cellColor(doc, v) ?? '#ffffff', doc.style.toneSizeMin)
+      toneOf.set(v, k)
+    }
+    return k
+  }
+}
+
+/** Digest seed of every texture-hole style input beyond the per-cell region layout. */
+function textureSeed(
+  radii: number[],
+  cw: number,
+  ch: number,
+  chamfer: boolean,
+  sub: number,
+): number {
+  let seed = FNV_OFFSET
+  for (const r of radii) seed = fnvFloat(seed, r)
+  seed = fnvFloat(seed, cw)
+  seed = fnvFloat(seed, ch)
+  if (chamfer) seed = fnvWord(seed, 1)
+  return fnvWord(seed, sub)
+}
+
 /**
  * Pixels-mode geometry of one document buffer: horizontal runs of same-value cells collapse into
  * one rect fragment when every per-cell fragment would be a plain square (the run-merge fast path),
@@ -231,38 +264,34 @@ export function shapeGeometry(
   const shape = doc.style.shape
   const sp = doc.style.shapeParams
   const toneSize = doc.style.toneSize
-  const toneSizeMin = doc.style.toneSizeMin
-  // tone-scale lookup per palette value: darker ink draws a larger figure
-  const toneOf = new Map<number, number>()
-  const toneScaleOf = (v: number): number => {
-    let k = toneOf.get(v)
-    if (k === undefined) {
-      k = toneScale(cellColor(doc, v) ?? '#ffffff', toneSizeMin)
-      toneOf.set(v, k)
-    }
-    return k
-  }
+  const toneScaleOf = toneScaleLookup(doc)
   // unrotated square keeps every classic fast path: run merging and rect-shaped texture holes
   // (angle jitter rotates per cell, so it leaves the plain-rect path like a base rotation)
-  const plainSquare = shape === 'square' && sp.rotation === 0 && doc.style.angleJitter === 0
+  const field = doc.style.field
+  const fieldOn = hasField(field)
+  const fieldRotates = field.align !== 'none' || field.offset !== 'none'
+  const plainSquare =
+    shape === 'square' && sp.rotation === 0 && doc.style.angleJitter === 0 && !fieldRotates
   const jitterOn = hasJitter(doc.style)
+  // inner figure inlay: per-cell second fragment in its own color groups (paints on top)
+  const inlay = doc.style.inlay
+  const inlayOn = isInlayOn(inlay)
   const tex = doc.texture
   // texture holes are punched as evenodd subpaths of the cell rect — on rotated or non-square
   // forms they would paint specks outside the ink, so baked texture stays a plain-square feature
   // (shrunk-by-jitter figures excluded for the same reason)
-  const textured = tex.effect !== 'none' && plainSquare && !toneSize && doc.style.sizeJitter === 0
+  const textured =
+    tex.effect !== 'none' &&
+    plainSquare &&
+    !toneSize &&
+    doc.style.sizeJitter === 0 &&
+    field.size === 'none'
   // texture is one continuous pattern per color: sides shared with the same
   // value stay connected (no seams), open sides carry the gap margin.
   // Tile-scoped scans exclude texture at the caller (the tile cache only runs on untextured
   // docs) — a tile-local region would place specks differently than the whole-doc pattern.
   const texCells = textured && !tile ? new Map<number, TextureCell[]>() : undefined
-  // digest seed: every style input of the texture holes beyond the per-cell layout
-  let texSeed = FNV_OFFSET
-  for (const r of radii) texSeed = fnvFloat(texSeed, r)
-  texSeed = fnvFloat(texSeed, cw)
-  texSeed = fnvFloat(texSeed, ch)
-  if (chamfer) texSeed = fnvWord(texSeed, 1)
-  texSeed = fnvWord(texSeed, doc.sub)
+  const texSeed = textureSeed(radii, cw, ch, chamfer, doc.sub)
   const digests = textured ? new Map<number, number>() : undefined
   const texCtx: TexCellCtx | null =
     texCells && digests
@@ -270,6 +299,7 @@ export function shapeGeometry(
       : null
 
   const groups = new Map<number, string[]>()
+  const inlayGroups = new Map<number, string[]>()
   // Horizontal runs of same-value cells collapse into one rect fragment when every per-cell
   // fragment would be a plain square (zero radii, no texture, no size scaling, no cell form or
   // rotation, no tone-driven size): classic pixel-art ink then builds orders of magnitude fewer
@@ -282,7 +312,9 @@ export function shapeGeometry(
     doc.style.sizeY === 1 &&
     plainSquare &&
     !toneSize &&
-    !jitterOn
+    !jitterOn &&
+    !inlayOn &&
+    !fieldOn
   // one cell fragment: tone-scaled box, then the rect or form path, then texture bookkeeping
   const pushCell = (v: number, bx: number, by: number, end: number) => {
     let x = bx / doc.sub + (1 / doc.sub - cw) / 2
@@ -297,27 +329,24 @@ export function shapeGeometry(
       x = bx / doc.sub + (1 / doc.sub - w) / 2
       y = by / doc.sub + (1 / doc.sub - h) / 2
     }
-    let spHere = sp
-    let shrink = 1
-    if (jitterOn) {
-      // deterministic per-cell size/angle variation (never on merged runs: runMerge is off)
-      const j = jitterAt(doc.style, by * bw + bx, bw)
-      shrink = j.size
-      const w2 = w * shrink
-      const h2 = h * shrink
-      x = bx / doc.sub + (1 / doc.sub - w2) / 2
-      y = by / doc.sub + (1 / doc.sub - h2) / 2
+    const m = jitterOn || fieldOn ? cellModulation(doc, bx, by, bw, bh) : null
+    if (m) {
+      const w2 = w * m.shrink
+      const h2 = h * m.shrink
+      x = bx / doc.sub + (1 / doc.sub - w2) / 2 + m.dx / doc.sub
+      y = by / doc.sub + (1 / doc.sub - h2) / 2 + m.dy / doc.sub
       w = w2
       h = h2
-      if (j.angle !== 0) spHere = { ...sp, rotation: (sp.rotation + j.angle + 360) % 360 }
     }
+    const cellAngle = m?.angle ?? 0
+    const spHere = cellAngle === 0 ? sp : { ...sp, rotation: (sp.rotation + cellAngle + 360) % 360 }
     const onBorder = squareEdges && (bx === 0 || by === 0 || bx === bw - 1 || by === bh - 1)
     const radiiHere =
       runMerge || !onBorder
         ? radii
         : borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
     const scaledRadii =
-      shrink === 1 ? radiiHere : radiiHere.map((r) => Math.min(0.5 * Math.min(w, h), r * shrink))
+      m === null ? radiiHere : radiiHere.map((r) => Math.min(0.5 * Math.min(w, h), r * m.shrink))
     let frags = groups.get(v)
     if (!frags) groups.set(v, (frags = []))
     frags.push(
@@ -334,6 +363,11 @@ export function shapeGeometry(
             chamfer,
           }),
     )
+    if (inlayOn) {
+      let ifrags = inlayGroups.get(v)
+      if (!ifrags) inlayGroups.set(v, (ifrags = []))
+      ifrags.push(inlayFragment(inlay, { x, y, w, h }, cellAngle, doc.style.radius, chamfer))
+    }
     if (texCells && texCtx) {
       pushTextureCell(texCtx, v, bx, by, radiiHere)
     }
@@ -357,8 +391,11 @@ export function shapeGeometry(
 
   const paths: StyledPath[] = []
   for (const [v, frags] of groups) {
-    paths.push({ d: frags.join(''), fill: cellColor(doc, v) ?? '#888' })
+    paths.push(
+      baseGroupPath(cellColor(doc, v) ?? '#888', doc.palette, doc.style.stroke, v, frags.join('')),
+    )
   }
+  emitInlayPaths(doc.palette, inlay, inlayGroups, paths)
   paths.push(...linkStrokePaths(doc, links))
   return { paths }
 }

@@ -3,10 +3,12 @@ import { paletteLuma, toneScale } from '../color/color.ts'
 import type { Doc, ElementStyle, Link } from '../core/doc'
 import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from '../core/doc'
 import { visibleObjs } from '../core/scene'
+import { isStrokeOn, strokeColorOf } from '../core/stroke.ts'
 import { gridBuildGeometry, gridMetaballField } from '../grids/geometry.ts'
 import { isPlainSquare, makeGrid } from '../grids/index.ts'
 import { evalGraphMemo } from '../nodes/eval-memo.ts'
 import { elementStyleKey, elementGeometry } from './elements.ts'
+import { createInlayColorOf, inlayFragment, isInlayOn } from './inlay.ts'
 import { loopsToSmoothPath, metaballIso, traceMetaballLoops } from './metaball-field.ts'
 import { metaballGeometry, metaballPreviewField } from './metaball.ts'
 import { squareModeGeometry } from './mode.ts'
@@ -278,6 +280,10 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
     staging.palette
       ? (staging.palette[(v - 1) % staging.palette.length] ?? '#888')
       : (cellColor(doc, v) ?? '#888')
+  // inlay fragments keyed by resolved color, painted after every base group (mirrors shapeGeometry)
+  const inlayFrags = new Map<string, string[]>()
+  const inlayColorForKey = new Map<string, (v: number) => string>()
+  const palette = staging.palette ?? doc.palette
 
   for (const [i, v] of s) {
     if (v === null || v === 0) {
@@ -293,15 +299,66 @@ export function stagingPreview(doc: Doc, staging: Staging): StagingPreview | nul
     let frags = g.frags.get(v)
     if (!frags) g.frags.set(v, (frags = []))
     frags.push(stagedCellPath(el, colorOf(v), i, bw, bh, doc.sub))
+    if (isInlayOn(el.style.inlay)) {
+      let inlayColorOf = inlayColorForKey.get(key)
+      if (!inlayColorOf) {
+        inlayColorOf = createInlayColorOf(palette, el.style.inlay)
+        inlayColorForKey.set(key, inlayColorOf)
+      }
+      const ic = inlayColorOf(v)
+      let ilist = inlayFrags.get(ic)
+      if (!ilist) inlayFrags.set(ic, (ilist = []))
+      ilist.push(stagedInlayPath(el, colorOf(v), i, bw, doc.sub))
+    }
   }
 
   const paths: StyledPath[] = []
+  const stroke = doc.style.stroke
+  const strokeOn = isStrokeOn(stroke)
   for (const g of groups.values()) {
     for (const [v, frags] of g.frags) {
-      paths.push({ d: frags.join(''), fill: colorOf(v) })
+      const d = frags.join('')
+      paths.push(
+        strokeOn
+          ? {
+              d,
+              fill: stroke.fill ? colorOf(v) : undefined,
+              stroke: strokeColorOf(palette, stroke, v),
+              strokeWidth: stroke.width,
+            }
+          : { d, fill: colorOf(v) },
+      )
     }
   }
+  for (const [ic, ilist] of inlayFrags) {
+    paths.push({ d: ilist.join(''), fill: ic })
+  }
   return { paths, erase }
+}
+
+/** Base figure box of one staged cell (stretch + tone sizing), shared by the base/inlay fragments. */
+function stagedFigureBox(
+  st: ElementStyle['style'],
+  color: string,
+  bx: number,
+  by: number,
+  sub: number,
+): { x: number; y: number; w: number; h: number } {
+  const cw = st.sizeX / sub
+  const ch = st.sizeY / sub
+  let x = bx / sub + (1 / sub - cw) / 2
+  let y = by / sub + (1 / sub - ch) / 2
+  let w = cw
+  let h = ch
+  if (st.toneSize) {
+    // mirrors shapeGeometry: the figure shrinks with its color's lightness
+    const k = toneScale(color, st.toneSizeMin)
+    w = cw * k
+    h = ch * k
+    x = bx / sub + (1 / sub - w) / 2
+    y = by / sub + (1 / sub - h) / 2
+  }
+  return { x, y, w, h }
 }
 
 /**
@@ -319,14 +376,12 @@ export function stagedCellPath(
   sub: number,
 ): string {
   const st = el.style
-  const cw = st.sizeX / sub
-  const ch = st.sizeY / sub
   const bx = i % bw
   const by = (i - bx) / bw
-  let x = bx / sub + (1 / sub - cw) / 2
-  let y = by / sub + (1 / sub - ch) / 2
-  const rBase = st.radius * Math.min(cw, ch)
-  const corner = (o: number | null) => (o === null ? rBase : o * Math.min(cw, ch))
+  const { x, y, w, h } = stagedFigureBox(st, color, bx, by, sub)
+  const rBase = (st.radius * Math.min(st.sizeX, st.sizeY)) / sub
+  const corner = (o: number | null) =>
+    o === null ? rBase : (o * Math.min(st.sizeX, st.sizeY)) / sub
   const radii = [
     corner(st.corners.tl),
     corner(st.corners.tr),
@@ -338,28 +393,34 @@ export function stagedCellPath(
       ? borderRadii(radii, bx === 0, by === 0, bx === bw - 1, by === bh - 1)
       : radii
   const chamfer = st.cornerStyle === 'chamfer'
-  let fw = cw
-  let fh = ch
-  if (st.toneSize) {
-    // mirrors shapeGeometry: the figure shrinks with its color's lightness
-    const k = toneScale(color, st.toneSizeMin)
-    fw = cw * k
-    fh = ch * k
-    x = bx / sub + (1 / sub - fw) / 2
-    y = by / sub + (1 / sub - fh) / 2
-  }
   return st.shape === 'square' && st.shapeParams.rotation === 0
-    ? roundedRectPath(x, y, fw, fh, radiiHere, chamfer)
+    ? roundedRectPath(x, y, w, h, radiiHere, chamfer)
     : cellShapeFragment({
         id: st.shape,
         x,
         y,
-        w: fw,
-        h: fh,
+        w,
+        h,
         params: st.shapeParams,
         radius: st.radius,
         chamfer,
       })
+}
+
+/** Inlay fragment of ONE staged cell ('' when the style has no inner figure). */
+export function stagedInlayPath(
+  el: ElementStyle,
+  color: string,
+  i: number,
+  bw: number,
+  sub: number,
+): string {
+  const st = el.style
+  if (!isInlayOn(st.inlay)) return ''
+  const bx = i % bw
+  const by = (i - bx) / bw
+  const box = stagedFigureBox(st, color, bx, by, sub)
+  return inlayFragment(st.inlay, box, 0, st.radius, st.cornerStyle === 'chamfer')
 }
 
 /** Squared distance from a pixel-cell coordinate to a link (for eraser hit testing). */

@@ -164,6 +164,10 @@ describe('cell form hit tests', () => {
       'leaf',
       'egg',
       'arrow',
+      'keyhole',
+      'eye',
+      'parallelogram',
+      'waveStrip',
     ] as const) {
       expect(cellShapeHit(id, 0.01, 0.01, DEFAULT_SHAPE_PARAMS), id).toBe(false)
     }

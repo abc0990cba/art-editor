@@ -11,7 +11,9 @@ import { clamp, DEFAULT_SHAPE_PARAMS, type CellShapeId, type ShapeParams } from 
 import {
   arrowPoly,
   leafPoly,
+  parallelogramPoly,
   trapezoidPoly,
+  waveStripPoly,
   UNIT_EGG,
   UNIT_OCTAGON,
   UNIT_PENTAGON,
@@ -170,6 +172,80 @@ const FRAG_OF: Record<CellShapeId, (pl: CellShapePlacement) => string> = {
   leaf: (pl) => polyFrag(leafPoly(pl.params.thickness), pl),
   egg: (pl) => cubicFrag(UNIT_EGG, pl),
   arrow: (pl) => polyFrag(arrowPoly(pl.params.thickness), pl),
+  quadrant: (pl) => {
+    const { s, pt } = arcFrame(pl)
+    const r = fmt(0.5 * s)
+    return `M${pt(0, 0)}A${r} ${r} 0 0 1 ${pt(1, 1)}L${pt(0, 1)}Z`
+  },
+  bowtie: (pl) => twoWings(pl, false),
+  hourglass: (pl) => twoWings(pl, true),
+  keyhole: (pl) => {
+    const { s, pt } = arcFrame(pl)
+    const r = fmt(0.3 * s)
+    const w = clamp(pl.params.thickness, 0.05, 0.5) / 2
+    return `M${pt(0.5 - w, 1)}L${pt(0.2, 0.38)}A${r} ${r} 0 0 1 ${pt(0.8, 0.38)}L${pt(0.5 + w, 1)}Z`
+  },
+  eye: (pl) => {
+    // lens from two 0.75s arcs + an elliptical iris hole (thickness)
+    const s2 = Math.min(pl.w, pl.h)
+    const cx = pl.x + pl.w / 2
+    const cy = pl.y + pl.h / 2
+    const rad = (pl.params.rotation * Math.PI) / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const pt = (ux: number, uy: number) => {
+      const dx = (ux - 0.5) * s2
+      const dy = (uy - 0.5) * s2
+      return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos }
+    }
+    const r = fmt(0.75 * s2)
+    const iris = ellipseFrag(
+      pt(0.5, 0.5).x,
+      pt(0.5, 0.5).y,
+      0.2 * s2 * pl.params.thickness * 2,
+      0.2 * s2 * pl.params.thickness * 2,
+    )
+    return (
+      `M${fmt(pt(0, 0.5).x)} ${fmt(pt(0, 0.5).y)}` +
+      `A${r} ${r} 0 0 1 ${fmt(pt(1, 0.5).x)} ${fmt(pt(1, 0.5).y)}` +
+      `A${r} ${r} 0 0 1 ${fmt(pt(0, 0.5).x)} ${fmt(pt(0, 0.5).y)}Z` +
+      iris
+    )
+  },
+  parallelogram: (pl) => polyFrag(parallelogramPoly(pl.params.thickness), pl),
+  waveStrip: (pl) => polyFrag(waveStripPoly(pl.params.thickness), pl),
+}
+
+/** Two mirrored triangle wings: bowtie (top/bottom triangles) or hourglass (left/right). */
+function twoWings(pl: CellShapePlacement, vertical: boolean): string {
+  const t = clamp(pl.params.thickness, 0.05, 0.5)
+  const triA = vertical
+    ? [
+        [0, t],
+        [0.5, 0.5],
+        [0, 1 - t],
+      ]
+    : [
+        [t, 0],
+        [1 - t, 0],
+        [0.5, 0.5],
+      ]
+  const triB = vertical
+    ? [
+        [1, t],
+        [0.5, 0.5],
+        [1, 1 - t],
+      ]
+    : [
+        [t, 1],
+        [1 - t, 1],
+        [0.5, 0.5],
+      ]
+  const a = placePoints(triA as UnitPt[], pl, pl.params.rotation)
+  const b = placePoints(triB as UnitPt[], pl, pl.params.rotation)
+  const tri = (p: { x: number; y: number }[]) =>
+    `M${fmt(p[0].x)} ${fmt(p[0].y)}L${fmt(p[1].x)} ${fmt(p[1].y)}L${fmt(p[2].x)} ${fmt(p[2].y)}Z`
+  return tri(a) + tri(b)
 }
 
 /**

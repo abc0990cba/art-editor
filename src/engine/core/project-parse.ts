@@ -3,8 +3,11 @@ import { GRID_TYPES, makeGrid } from '../grids'
 import { validateGraph } from '../nodes'
 import type { Doc, ElementStyle, Link, PixelStyle, SubDetail } from './doc'
 import { defaultDoc, MAX_SIZE, METABALL_FALLOFFS, METABALL_UNITS, MIN_SIZE } from './doc'
+import { normalizeField } from './field.ts'
+import { normalizeInlay } from './inlay.ts'
 import type { SceneGroup, SceneItem, SceneLayer, SceneObj } from './scene'
 import { decodeObjCells, sceneFromLegacy, syncDoc } from './scene'
+import { normalizeStroke } from './stroke.ts'
 
 /** Inverse of encodeCellObj; returns null for an empty/blank encoding. */
 export function decodeCellObj(rle: unknown, length: number): Uint32Array | null {
@@ -138,6 +141,9 @@ function normalizeStyle(raw: unknown, base: PixelStyle): PixelStyle {
     sizeJitter: clamp(Number(st.sizeJitter ?? base.sizeJitter), 0, 1),
     angleJitter: clamp(Number(st.angleJitter ?? base.angleJitter), 0, 180),
     jitterSeed: clamp(Math.round(Number(st.jitterSeed) || base.jitterSeed), 1, 9999),
+    inlay: normalizeInlay(st.inlay, base.inlay),
+    field: normalizeField(st.field, base.field),
+    stroke: normalizeStroke(st.stroke, base.stroke),
   }
 }
 

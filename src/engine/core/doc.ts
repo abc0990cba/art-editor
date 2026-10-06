@@ -4,7 +4,10 @@ import { DEFAULT_SHAPE_PARAMS, type CellShapeId, type ShapeParams } from '../cel
 import { CLASSIC_12 } from '../color'
 import type { ScreenLattice } from '../dither/screen-engine.ts'
 import { docSize, type GridType } from '../grids'
+import { DEFAULT_FIELD, type FieldSettings } from './field.ts'
+import { DEFAULT_INLAY, type InlaySettings } from './inlay.ts'
 import type { SceneLayer } from './scene'
+import { DEFAULT_STROKE, type StrokeSettings } from './stroke.ts'
 
 export { elementFromDoc, sameElementStyle, withStyleScope } from './doc-style.ts'
 export { STAGE_THEMES, type StageTheme } from './stage-themes.ts'
@@ -55,6 +58,12 @@ export interface PixelStyle {
   angleJitter: number
   /** Noise seed 1..9999 — the same seed reproduces the same size/angle field */
   jitterSeed: number
+  /** Optional inner figure drawn inside every painted cell (pixels mode) */
+  inlay: InlaySettings
+  /** Grid-wide per-cell modulators: size / align / offset fields (pixels mode) */
+  field: FieldSettings
+  /** Hollow-cell outline (pixels mode): width 0 = off */
+  stroke: StrokeSettings
 }
 
 /** Kernel falloff curve: how far outside the cell center a kernel still pushes the field up. */
@@ -372,6 +381,9 @@ export function defaultDoc(): Doc {
       sizeJitter: 0,
       angleJitter: 0,
       jitterSeed: 1,
+      inlay: { ...DEFAULT_INLAY },
+      field: { ...DEFAULT_FIELD },
+      stroke: { ...DEFAULT_STROKE },
     },
     renderMode: 'pixels',
     connectivity: 'edge',

@@ -1,6 +1,9 @@
 /** Built-in form study presets: one cell shape per preset, with tuned size and palette. */
 
 import { DEFAULT_SHAPE_PARAMS, type CellShapeId, type ShapeParams } from '../cell-shapes/index.ts'
+import { DEFAULT_FIELD, type FieldSettings } from '../core/field.ts'
+import { DEFAULT_INLAY, type InlaySettings } from '../core/inlay.ts'
+import { DEFAULT_STROKE, type StrokeSettings } from '../core/stroke.ts'
 import type { PresetSeed } from './configs'
 
 interface FormSpec {
@@ -16,6 +19,12 @@ interface FormSpec {
   toneSize?: boolean
   toneSizeMin?: number
   params?: Partial<ShapeParams>
+  /** Inner-figure inlay block (undefined = none, the default) */
+  inlay?: Partial<InlaySettings>
+  /** Grid-wide cell-field block (undefined = all kinds off, the default) */
+  field?: Partial<FieldSettings>
+  /** Hollow-cell stroke block (undefined = width 0, the default) */
+  stroke?: Partial<StrokeSettings>
 }
 
 const formPreset = (s: FormSpec): PresetSeed => ({
@@ -37,6 +46,9 @@ const formPreset = (s: FormSpec): PresetSeed => ({
       toneSizeMin: s.toneSizeMin ?? 0.15,
       sizeX: s.size ?? 1,
       sizeY: s.size ?? 1,
+      inlay: { ...DEFAULT_INLAY, ...s.inlay },
+      field: { ...DEFAULT_FIELD, ...s.field },
+      stroke: { ...DEFAULT_STROKE, ...s.stroke },
     },
     bg: s.bg,
     symmetry: { mode: 'none', n: 8, showGuides: false },
@@ -238,5 +250,143 @@ export const FORMS_PRESETS: PresetSeed[] = [
     cols: 24,
     palette: ['#7f1d1d', '#b91c1c', '#eab308', '#fef3c7'],
     bg: '#292524',
+  }),
+  formPreset({
+    name: 'Bullseye',
+    id: 'builtin.form-bullseye',
+    shape: 'circle',
+    size: 0.95,
+    cols: 26,
+    palette: ['#f4f4f5', '#d4d4d8', '#a1a1aa', '#71717a'],
+    bg: '#22252a',
+    inlay: { shape: 'circle', scale: 0.4, colorMode: 'darken', depth: 0.5 },
+  }),
+  formPreset({
+    name: 'Halo',
+    id: 'builtin.form-halo',
+    shape: 'square',
+    size: 0.94,
+    cols: 26,
+    palette: ['#2b2b28', '#f2ead8', '#e5d9b8', '#d8c99a'],
+    bg: '#2b2b28',
+    inlay: { shape: 'ring', scale: 0.62, thickness: 0.16, colorMode: 'slot', slot: 1 },
+  }),
+  formPreset({
+    name: 'Emoji',
+    id: 'builtin.form-emoji',
+    shape: 'circle',
+    size: 0.96,
+    cols: 24,
+    radius: 0.5,
+    palette: ['#fff1d6', '#ffd6a5', '#ffa552', '#c24914'],
+    bg: '#2b1b12',
+    inlay: {
+      source: 'glyph',
+      glyph: '⭐',
+      resolution: 6,
+      dotShape: 'square',
+      dotScale: 0.9,
+      colorMode: 'slot',
+      slot: 4,
+    },
+  }),
+  formPreset({
+    name: 'Funnel',
+    id: 'builtin.form-funnel',
+    shape: 'circle',
+    cols: 32,
+    palette: ['#101418', '#3a4750', '#8b9ba3', '#e6e2d8'],
+    bg: '#101418',
+    field: { size: 'funnel', amount: 1, min: 0.08 },
+  }),
+  formPreset({
+    name: 'Vortex',
+    id: 'builtin.form-vortex',
+    shape: 'capsule',
+    cols: 28,
+    params: { rotation: 90 },
+    palette: ['#0b132b', '#3a506b', '#5bc0be', '#c0d461'],
+    bg: '#0b132b',
+    field: { size: 'rings', align: 'swirl', offset: 'vortex', period: 6 },
+  }),
+  formPreset({
+    name: 'Truchet Weave',
+    id: 'builtin.form-truchet',
+    shape: 'semicircle',
+    size: 1,
+    cols: 24,
+    palette: ['#1a1a2e', '#e94560'],
+    bg: '#e94560',
+    field: { align: 'truchet', seed: 7 },
+  }),
+  formPreset({
+    name: 'Blueprint',
+    id: 'builtin.form-blueprint',
+    shape: 'square',
+    size: 0.9,
+    cols: 24,
+    radius: 0.1,
+    palette: ['#d7e3f4', '#a9c1de', '#6f8fb5', '#3d5875'],
+    bg: '#22303f',
+    stroke: { width: 0.09, colorMode: 'same', fill: false },
+  }),
+  formPreset({
+    name: 'Contour Dots',
+    id: 'builtin.form-contour-dots',
+    shape: 'circle',
+    size: 0.88,
+    cols: 26,
+    palette: ['#f4f1de', '#e8ddc0', '#d8c99a', '#b8a06a'],
+    bg: '#2b2b28',
+    stroke: { width: 0.08, colorMode: 'lighten', depth: 0.4, fill: false },
+  }),
+  formPreset({
+    name: 'Waveband',
+    id: 'builtin.form-waveband',
+    shape: 'waveStrip',
+    cols: 28,
+    params: { thickness: 0.3 },
+    palette: ['#0d1b2a', '#1b493b', '#5fa8d3', '#cae9ff'],
+    bg: '#0d1b2a',
+  }),
+  formPreset({
+    name: 'Keyholes',
+    id: 'builtin.form-keyholes',
+    shape: 'keyhole',
+    size: 0.95,
+    cols: 22,
+    params: { thickness: 0.35 },
+    palette: ['#2d2016', '#8c5e3c', '#c98f4e', '#e8c896'],
+    bg: '#2d2016',
+  }),
+  formPreset({
+    name: 'Eyes',
+    id: 'builtin.form-eyes',
+    shape: 'eye',
+    size: 0.98,
+    cols: 26,
+    params: { thickness: 0.3 },
+    palette: ['#101418', '#3a4750', '#8b9ba3', '#e6e2d8'],
+    bg: '#e6e2d8',
+  }),
+  formPreset({
+    name: 'Bowties',
+    id: 'builtin.form-bowties',
+    shape: 'bowtie',
+    size: 0.95,
+    cols: 24,
+    params: { thickness: 0.2 },
+    palette: ['#e63946', '#f1faee', '#a8dadc', '#457b9d'],
+    bg: '#1b1b1e',
+  }),
+  formPreset({
+    name: 'Tides',
+    id: 'builtin.form-tides',
+    shape: 'circle',
+    size: 0.9,
+    cols: 32,
+    palette: ['#0d1b2a', '#1b493b', '#5fa8d3', '#cae9ff'],
+    bg: '#cae9ff',
+    field: { size: 'waveX', period: 10, angle: 20 },
   }),
 ]

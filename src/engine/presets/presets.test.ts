@@ -13,7 +13,8 @@ const HEX = /^#[0-9a-f]{3,8}$/
 describe('built-in presets', () => {
   it('are 20..70 with unique ids and sane configs', () => {
     expect(BUILTIN_PRESETS.length).toBeGreaterThanOrEqual(20)
-    expect(BUILTIN_PRESETS.length).toBeLessThanOrEqual(70)
+    // raised 70 → 80 when the pixel-style expansion batches (inlays, fields, variety) landed
+    expect(BUILTIN_PRESETS.length).toBeLessThanOrEqual(80)
     expect(new Set(BUILTIN_PRESETS.map((p) => p.id)).size).toBe(BUILTIN_PRESETS.length)
     for (const p of BUILTIN_PRESETS) {
       expect(p.id.startsWith('builtin.')).toBe(true)

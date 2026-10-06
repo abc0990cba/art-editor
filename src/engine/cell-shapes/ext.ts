@@ -108,3 +108,32 @@ export function leafPoly(thickness: number): UnitPt[] {
   }
   return pts
 }
+
+/** Skewed bar: the top edge shifted right by `skew` (thickness knob), bottom edge full. */
+export function parallelogramPoly(skew: number): UnitPt[] {
+  const t = clamp01(skew)
+  return [
+    [t, 0],
+    [1, 0],
+    [1 - t, 1],
+    [0, 1],
+  ]
+}
+
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
+
+/** Horizontal sine band: the band center follows one sine period, `thickness` is the band height. */
+export function waveStripPoly(thickness: number): UnitPt[] {
+  const h = clamp01(thickness) / 2
+  const pts: UnitPt[] = []
+  const N = 16
+  for (let i = 0; i <= N; i++) {
+    const x = i / N
+    pts.push([x, 0.5 + 0.25 * Math.sin(2 * Math.PI * x) - h])
+  }
+  for (let i = N; i >= 0; i--) {
+    const x = i / N
+    pts.push([x, 0.5 + 0.25 * Math.sin(2 * Math.PI * x) + h])
+  }
+  return pts
+}

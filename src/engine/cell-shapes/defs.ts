@@ -34,6 +34,13 @@ export type CellShapeId =
   | 'leaf'
   | 'egg'
   | 'arrow'
+  | 'quadrant'
+  | 'bowtie'
+  | 'hourglass'
+  | 'keyhole'
+  | 'eye'
+  | 'parallelogram'
+  | 'waveStrip'
 
 /** Picker/display order. */
 export const CELL_SHAPE_IDS = [
@@ -65,6 +72,13 @@ export const CELL_SHAPE_IDS = [
   'leaf',
   'egg',
   'arrow',
+  'quadrant',
+  'bowtie',
+  'hourglass',
+  'keyhole',
+  'eye',
+  'parallelogram',
+  'waveStrip',
 ] as const satisfies readonly CellShapeId[]
 
 /** Shared shape knobs; every shape reads what it needs and ignores the rest. */
@@ -123,6 +137,13 @@ export const CELL_SHAPES: readonly CellShapeDef[] = [
   { id: 'leaf', params: ['thickness', 'rotation'], curved: true },
   { id: 'egg', params: ['rotation'], curved: true },
   { id: 'arrow', params: ['thickness', 'rotation'], curved: false },
+  { id: 'quadrant', params: ['rotation'], curved: true },
+  { id: 'bowtie', params: ['thickness', 'rotation'], curved: false },
+  { id: 'hourglass', params: ['thickness', 'rotation'], curved: false },
+  { id: 'keyhole', params: ['thickness', 'rotation'], curved: true },
+  { id: 'eye', params: ['thickness', 'rotation'], curved: true },
+  { id: 'parallelogram', params: ['thickness', 'rotation'], curved: false },
+  { id: 'waveStrip', params: ['thickness', 'rotation'], curved: false },
 ]
 
 export function isCellShapeId(v: unknown): v is CellShapeId {

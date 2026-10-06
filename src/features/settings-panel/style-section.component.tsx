@@ -3,8 +3,11 @@ import type { Doc } from '../../engine/core/doc.ts'
 import { isPlainSquare } from '../../engine/grids/index.ts'
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { CheckRow, Chip, Section, Slider } from '../../shared/ui/index.tsx'
+import { FieldSection } from './field-section.component.tsx'
+import { InlaySection } from './inlay-section.component.tsx'
 import { RoundingControls } from './rounding-controls.component.tsx'
 import { ShapePicker } from './shape-picker.component.tsx'
+import { StrokeSection } from './stroke-section.component.tsx'
 import { ExtrudeKnobs, MetaballKnobs } from './style-mode-knobs.component.tsx'
 import { PixelStylePreview } from './style-previews.component.tsx'
 
@@ -179,6 +182,9 @@ export function StyleSection({
             {t('style.group.shape')}
           </div>
           <ShapePicker style={styleView} onApply={applyStyle} />
+          <InlaySection style={styleView} palette={doc.palette} onApply={applyStyle} />
+          <FieldSection style={styleView} onApply={applyStyle} />
+          <StrokeSection style={styleView} onApply={applyStyle} />
           <CheckRow
             label={t('style.toneSize')}
             title={t('style.toneSize.desc')}

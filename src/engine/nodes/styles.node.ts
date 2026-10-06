@@ -1,6 +1,14 @@
 /** Style nodes: write the object's appearance parameters (no raster input). */
 
 import { CELL_SHAPE_IDS, isCellShapeId, normalizeShapeParams } from '../cell-shapes/index.ts'
+import {
+  FIELD_ALIGN_KINDS,
+  FIELD_OFFSET_KINDS,
+  FIELD_SIZE_KINDS,
+  normalizeField,
+} from '../core/field.ts'
+import { INLAY_COLOR_MODES, normalizeInlay } from '../core/inlay.ts'
+import { normalizeStroke } from '../core/stroke.ts'
 import { defineNode } from './types.ts'
 
 export const STYLE_NODES = [
@@ -10,7 +18,7 @@ export const STYLE_NODES = [
     domain: { in: 'style', out: 'style' },
     label: 'Pixel shape',
     category: 'style',
-    tags: ['radius', 'rounding', 'corner', 'size', 'shape', 'form', 'tone'],
+    tags: ['radius', 'rounding', 'corner', 'size', 'shape', 'form', 'tone', 'inlay', 'inner'],
     params: {
       radius: { kind: 'number', min: 0, max: 0.5, step: 0.01, default: 0.3 },
       sizeX: { kind: 'number', min: 0.05, max: 1, step: 0.05, default: 1 },
@@ -21,6 +29,28 @@ export const STYLE_NODES = [
       rotation: { kind: 'number', min: 0, max: 359, step: 1, default: 0 },
       toneSize: { kind: 'bool', default: false },
       toneSizeMin: { kind: 'number', min: 0.05, max: 1, step: 0.01, default: 0.2 },
+      inlayShape: {
+        kind: 'select',
+        options: ['none', ...CELL_SHAPE_IDS] as const,
+        default: 'none',
+      },
+      inlayScale: { kind: 'number', min: 0.1, max: 0.9, step: 0.01, default: 0.45 },
+      inlayOffsetX: { kind: 'number', min: -0.5, max: 0.5, step: 0.01, default: 0 },
+      inlayOffsetY: { kind: 'number', min: -0.5, max: 0.5, step: 0.01, default: 0 },
+      inlayRotation: { kind: 'number', min: 0, max: 359, step: 1, default: 0 },
+      inlaySource: { kind: 'select', options: ['shape', 'glyph'] as const, default: 'shape' },
+      inlayGlyph: { kind: 'string', default: '😀' },
+      inlayResolution: { kind: 'int', min: 4, max: 12, default: 8 },
+      strokeWidth: { kind: 'number', min: 0, max: 0.45, step: 0.01, default: 0 },
+      strokeMode: {
+        kind: 'select',
+        options: ['same', 'darken', 'lighten'] as const,
+        default: 'same',
+      },
+      strokeFill: { kind: 'bool', default: true },
+      inlayColorMode: { kind: 'select', options: INLAY_COLOR_MODES, default: 'darken' },
+      inlaySlot: { kind: 'int', min: 1, max: 999, default: 1 },
+      inlayDepth: { kind: 'number', min: 0, max: 1, step: 0.01, default: 0.35 },
     },
     evaluate: (_ctx, p, style) => {
       style.style.radius = p.num('radius')
@@ -35,6 +65,24 @@ export const STYLE_NODES = [
       })
       style.style.toneSize = p.bool('toneSize')
       style.style.toneSizeMin = p.num('toneSizeMin')
+      style.style.inlay = normalizeInlay({
+        source: p.str('inlaySource'),
+        glyph: p.str('inlayGlyph'),
+        resolution: p.int('inlayResolution'),
+        shape: p.str('inlayShape'),
+        scale: p.num('inlayScale'),
+        offsetX: p.num('inlayOffsetX'),
+        offsetY: p.num('inlayOffsetY'),
+        rotation: p.num('inlayRotation'),
+        colorMode: p.str('inlayColorMode'),
+        slot: p.int('inlaySlot'),
+        depth: p.num('inlayDepth'),
+      })
+      style.style.stroke = normalizeStroke({
+        width: p.num('strokeWidth'),
+        colorMode: p.str('strokeMode'),
+        fill: p.bool('strokeFill'),
+      })
     },
   }),
   defineNode({
@@ -101,6 +149,40 @@ export const STYLE_NODES = [
       style.texture.scale = p.num('scale')
       style.texture.angle = p.num('angle')
       style.texture.seed = p.int('seed')
+    },
+  }),
+  defineNode({
+    id: 'style.field',
+    kind: 'style',
+    domain: { in: 'style', out: 'style' },
+    label: 'Field',
+    category: 'style',
+    tags: ['field', 'funnel', 'vortex', 'wave', 'rings', 'truchet', 'scatter', 'spiral'],
+    params: {
+      size: { kind: 'select', options: FIELD_SIZE_KINDS, default: 'funnel' },
+      align: { kind: 'select', options: FIELD_ALIGN_KINDS, default: 'none' },
+      offset: { kind: 'select', options: FIELD_OFFSET_KINDS, default: 'none' },
+      amount: { kind: 'number', min: 0, max: 1, step: 0.01, default: 1 },
+      min: { kind: 'number', min: 0.05, max: 1, step: 0.01, default: 0.1 },
+      angle: { kind: 'number', min: 0, max: 359, step: 1, default: 0 },
+      period: { kind: 'int', min: 2, max: 64, default: 8 },
+      phase: { kind: 'number', min: 0, max: 359, step: 1, default: 0 },
+      seed: { kind: 'int', min: 1, max: 9999, default: 1 },
+      invert: { kind: 'bool', default: false },
+    },
+    evaluate: (_ctx, p, style) => {
+      style.style.field = normalizeField({
+        size: p.str('size'),
+        align: p.str('align'),
+        offset: p.str('offset'),
+        amount: p.num('amount'),
+        min: p.num('min'),
+        angle: p.num('angle'),
+        period: p.int('period'),
+        phase: p.num('phase'),
+        seed: p.int('seed'),
+        invert: p.bool('invert'),
+      })
     },
   }),
 ]

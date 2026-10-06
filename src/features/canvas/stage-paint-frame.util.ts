@@ -1,12 +1,16 @@
 import { elementFromDoc } from '../../engine/core/doc-style.ts'
 import type { Doc, ElementStyle } from '../../engine/core/doc.ts'
 import { cellColor } from '../../engine/core/doc.ts'
+import { strokeColorOf } from '../../engine/core/stroke.ts'
+import { isStrokeOn } from '../../engine/core/stroke.ts'
 import {
   buildGeometry,
   stagedCellPath,
+  stagedInlayPath,
   stagingPreview,
   type Staging,
 } from '../../engine/geometry/index.ts'
+import { createInlayColorOf, isInlayOn } from '../../engine/geometry/inlay.ts'
 import { drawGeometry } from '../../engine/output/png.ts'
 import { sizeCanvas } from './canvas-stage.util.ts'
 import { ensureBackground, ensureGrid } from './stage-paint-layers.util.ts'
@@ -287,6 +291,20 @@ function applyStaged(
       sctx.fillStyle = color
       sctx.fill(fp)
     }
+    const stroke = el.style.stroke
+    if (isStrokeOn(stroke)) {
+      sctx.lineWidth = stroke.width
+      sctx.lineCap = 'round'
+      for (const [color, sp] of drawn.strokes) {
+        sctx.strokeStyle = color
+        sctx.stroke(sp)
+      }
+    }
+    // inner figures paint after every base fragment, in their own colors (evenodd: ring holes)
+    for (const [color, ip] of drawn.inlays) {
+      sctx.fillStyle = color
+      sctx.fill(ip, 'evenodd')
+    }
     if (drawn.punch) {
       sctx.globalCompositeOperation = 'destination-out'
       sctx.fill(drawn.punch)
@@ -309,7 +327,16 @@ function applyStaged(
 /** Classify staged indices into per-color ink batches and an erase punch path (null = bail). */
 function splitStaged(s: StagedCtx): StagedDraw | null {
   const fills = new Map<string, Path2D>()
+  const inlays = new Map<string, Path2D>()
+  const strokes = new Map<string, Path2D>()
   let punch: Path2D | null = null
+  const inlayOn = isInlayOn(s.el.style.inlay)
+  const inlayColorOf = inlayOn
+    ? createInlayColorOf(s.sess.st.palette ?? s.doc.palette, s.el.style.inlay)
+    : null
+  const stroke = s.el.style.stroke
+  const strokeOn = isStrokeOn(stroke)
+  const strokePalette = s.sess.st.palette ?? s.doc.palette
   for (const idx of s.idxs) {
     const v = s.cells.get(idx)
     if (v === null || v === undefined || v === 0) {
@@ -325,8 +352,23 @@ function splitStaged(s: StagedCtx): StagedDraw | null {
     let fp = fills.get(color)
     if (!fp) fills.set(color, (fp = new Path2D()))
     fp.addPath(frag)
+    if (strokeOn) {
+      const sc = strokeColorOf(strokePalette, stroke, v)
+      let sp = strokes.get(sc)
+      if (!sp) strokes.set(sc, (sp = new Path2D()))
+      sp.addPath(frag)
+    }
+    if (inlayOn && inlayColorOf) {
+      const inlay = stagedInlayPath(s.el, color, idx, s.bw, s.sub)
+      if (inlay) {
+        const ic = inlayColorOf(v)
+        let ip = inlays.get(ic)
+        if (!ip) inlays.set(ic, (ip = new Path2D()))
+        ip.addPath(new Path2D(inlay))
+      }
+    }
   }
-  return { fills, punch }
+  return { fills, strokes, inlays, punch }
 }
 
 interface StagedCtx {
@@ -343,6 +385,10 @@ interface StagedCtx {
 
 interface StagedDraw {
   fills: Map<string, Path2D>
+  /** Hollow-cell stroke outlines per resolved stroke color, painted after the fills */
+  strokes: Map<string, Path2D>
+  /** Inner-figure inlay fragments per resolved color, painted after the base fills */
+  inlays: Map<string, Path2D>
   punch: Path2D | null
 }
 
