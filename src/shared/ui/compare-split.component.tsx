@@ -3,11 +3,11 @@ import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n/i18n.provider.tsx'
 
 /**
- * Before/after comparison for the raster-anchored workspaces: the `left` layer sits under the
- * `right` one, and a draggable divider (left of it = left layer, right = right layer) sweeps across
- * the picture — the import-dialog pattern. Only the round handle (and arrow keys) move the split,
- * so the surrounding viewport keeps its pan gesture; the box lives in document pixels and follows
- * the parent's zoom/pan transform.
+ * Before/after comparison for the raster-anchored workspaces: a draggable divider sweeps across the
+ * picture — left of it only the `left` layer shows, right of it only the `right` one (its
+ * transparent areas reveal the parent viewport's checkerboard). Only the round handle (and arrow
+ * keys) move the split, so the surrounding viewport keeps its pan gesture; the box lives in
+ * document pixels and follows the parent's zoom/pan transform.
  */
 export function CompareSplit({
   width,
@@ -39,9 +39,11 @@ export function CompareSplit({
 
   return (
     <div ref={boxRef} className="relative isolate select-none" style={{ width, height }}>
-      {/* left layer (under) */}
-      <div className="absolute inset-0">{left}</div>
-      {/* right layer (over), clipped to the right of the divider */}
+      {/* left layer, clipped to the left of the divider */}
+      <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - split}% 0 0)` }}>
+        {left}
+      </div>
+      {/* right layer, clipped to the right of the divider */}
       <div className="absolute inset-0" style={{ clipPath: `inset(0 0 0 ${split}%)` }}>
         {right}
       </div>
