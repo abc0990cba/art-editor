@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { defaultDoc } from '../core/doc.ts'
 import { deserialize, serialize } from '../core/project.ts'
+import { gridSymmetryOrbit } from '../effects/symmetry-grid.ts'
 import { buildGeometry, stagingPreview } from '../geometry/index.ts'
 import { makeGrid } from './index.ts'
 
@@ -97,13 +98,13 @@ describe('rotated grids', () => {
     expect((geo.paths[0].d.match(/M/g) ?? []).length).toBe(1)
   })
 
-  it('angle symmetry stays on the rotated radius rings (cellByAngle)', () => {
+  it('radial symmetry copies stay near the rotated radius rings', () => {
     const g = makeGrid('square', 16, 16, false, 30)
-    const i = 8 * 16 + 8
-    const r0 = g.radiusOf(i)
-    for (let a = 0; a < 12; a++) {
-      const j = g.cellByAngle(i, (a / 12) * 2 * Math.PI)
-      if (j >= 0) expect(Math.abs(g.radiusOf(j) - r0)).toBeLessThanOrEqual(0.75)
+    for (let i = 0; i < g.count; i += 7) {
+      const r0 = g.radiusOf(i)
+      for (const j of gridSymmetryOrbit(g, i, { mode: 'radial', n: 12 })) {
+        if (j >= 0) expect(Math.abs(g.radiusOf(j) - r0)).toBeLessThanOrEqual(1.5)
+      }
     }
   })
 

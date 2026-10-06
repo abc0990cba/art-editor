@@ -843,7 +843,7 @@ export function CanvasStage({ onDropFile }: { onDropFile?: (file: File) => void 
     ctx.scale(view.zoom, view.zoom)
 
     if (symmetry.showGuides && symmetry.mode !== 'none') {
-      drawGuides({ ctx, view, theme: stage, W, H, sub: doc.sub }, symmetry)
+      drawGuides({ ctx, view, theme: stage, W, H, sub: doc.sub, grid }, symmetry)
     }
 
     if (reducedMotionRef.current === null) {

@@ -1,4 +1,5 @@
 import type { StageTheme, SymmetryState, Doc } from '../../engine/core/doc.ts'
+import { rotationCenter, symmetryAxes, type SymAxes } from '../../engine/effects/symmetry-grid.ts'
 import { isRepeat, repeatDef, type RepeatDef } from '../../engine/effects/symmetry.ts'
 import type { Pt } from '../../engine/geometry/marching-squares.ts'
 import type { Grid } from '../../engine/grids/index.ts'
@@ -231,6 +232,12 @@ interface GuideCtx {
   W: number
   H: number
   sub: number
+  /** The doc lattice — axes and rosette center are derived from it (must match the symmetry math) */
+  grid: Grid
+  /** Lattice-aligned mirror axes of `grid` (resolved once in drawGuides) */
+  axes: SymAxes
+  /** Lattice-aligned rosette center of `grid` */
+  center: Pt
 }
 
 function lineSeg(g: GuideCtx, x1: number, y1: number, x2: number, y2: number): void {
@@ -241,28 +248,29 @@ function lineSeg(g: GuideCtx, x1: number, y1: number, x2: number, y2: number): v
 /** Center axes of the mirror modes; diag8 adds both diagonals. */
 function drawAxisGuides(g: GuideCtx, sym: SymmetryState): void {
   const m = sym.mode
-  const { ctx, W, H } = g
+  const { ctx, W, H, axes } = g
   if (m !== 'mirrorX' && m !== 'mirrorY' && m !== 'quad' && m !== 'diag8') return
   ctx.beginPath()
-  if (m === 'mirrorX' || m === 'quad') lineSeg(g, W / 2, 0, W / 2, H)
-  if (m === 'mirrorY' || m === 'quad') lineSeg(g, 0, H / 2, W, H / 2)
+  if (m === 'mirrorX' || m === 'quad') lineSeg(g, axes.x, 0, axes.x, H)
+  if (m === 'mirrorY' || m === 'quad') lineSeg(g, 0, axes.y, W, axes.y)
   if (m === 'diag8') {
     // the 8-way orbit mirrors across both center axes and both diagonals
-    lineSeg(g, W / 2, 0, W / 2, H)
-    lineSeg(g, 0, H / 2, W, H / 2)
-    lineSeg(g, 0, 0, W, H)
-    lineSeg(g, W, 0, 0, H)
+    const d = W + H
+    lineSeg(g, axes.x, 0, axes.x, H)
+    lineSeg(g, 0, axes.y, W, axes.y)
+    lineSeg(g, axes.x - d, axes.y - d, axes.x + d, axes.y + d)
+    lineSeg(g, axes.x - d, axes.y + d, axes.x + d, axes.y - d)
   }
   ctx.stroke()
 }
 
 /** Radial/kaleido spokes, the orbit circle and the paintable wedge edges. */
 function drawRadialGuides(g: GuideCtx, sym: SymmetryState): void {
-  const { ctx, W, H } = g
+  const { ctx, W, H, center } = g
   const m = sym.mode
   if (m !== 'radial' && m !== 'kaleido') return
-  const cx = W / 2
-  const cy = H / 2
+  const cx = center.x
+  const cy = center.y
   const R = (Math.max(W, H) / 2) * 1.2
   ctx.beginPath()
   for (let k = 0; k < sym.n; k++) {
@@ -374,7 +382,12 @@ function drawRepeatGuides(g: GuideCtx, sym: SymmetryState): void {
 }
 
 /** Symmetry guide overlay: axes, spokes, repeat lattices — dashed, in doc space. */
-export function drawGuides(g: GuideCtx, sym: SymmetryState): void {
+export function drawGuides(base: Omit<GuideCtx, 'axes' | 'center'>, sym: SymmetryState): void {
+  const g: GuideCtx = {
+    ...base,
+    axes: symmetryAxes(base.grid),
+    center: rotationCenter(base.grid),
+  }
   const { ctx, view, theme } = g
   // called inside the overlay effect's doc-space transform (translate+scale already applied) —
   // only isolate drawing state here, or the doubled transform would push guides off-canvas

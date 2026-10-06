@@ -48,8 +48,6 @@ export function rotatedGrid(base: Grid, deg: number): Grid {
     edgeNeighbors: base.edgeNeighbors,
     radiusOf: base.radiusOf,
     angleOf: (i) => base.angleOf(i) + a,
-    // base scans by its own angles: query with the target un-rotated
-    cellByAngle: (i, target) => base.cellByAngle(i, target - a),
     ringSectorOf: base.ringSectorOf ? (i) => base.ringSectorOf!(i) : undefined,
   }
 }

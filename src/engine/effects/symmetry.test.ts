@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { linePoints } from '../shapes/index.ts'
 import {
   REPEAT_MODES,
-  polarAngleMaps,
   repeatDef,
   symmetryPairPoints,
   symmetryPoints,
@@ -259,50 +258,6 @@ describe('repeat modes (wallpaper / tiling)', () => {
   it('caps pathological orbit sizes', () => {
     const pts = symmetryPoints(1, 1, 64, 64, 'p1', 8, 4)
     expect(pts.length).toBeLessThanOrEqual(4096)
-  })
-})
-
-describe('polarAngleMaps (non-square lattices)', () => {
-  /** Apply an angle map to a cartesian point about the origin */
-  const apply = (f: (a: number, r: number) => number, x: number, y: number): [number, number] => {
-    const r = Math.hypot(x, y)
-    const a2 = f(Math.atan2(y, x), r)
-    return [r * Math.cos(a2), r * Math.sin(a2)]
-  }
-
-  it('mirrorX reflects left↔right (x negates, y stays)', () => {
-    const [f] = polarAngleMaps('mirrorX', 8)
-    const [x, y] = apply(f, 3, 1)
-    expect(x).toBeCloseTo(-3)
-    expect(y).toBeCloseTo(1)
-  })
-
-  it('mirrorY reflects top↔bottom (y negates, x stays)', () => {
-    const [f] = polarAngleMaps('mirrorY', 8)
-    const [x, y] = apply(f, 3, 1)
-    expect(x).toBeCloseTo(3)
-    expect(y).toBeCloseTo(-1)
-  })
-
-  it('kaleido mirrors across the vertical axis like the square-grid math', () => {
-    const maps = polarAngleMaps('kaleido', 6)
-    expect(maps).toHaveLength(6) // 5 rotations + 1 mirror
-    const [x, y] = apply(maps[maps.length - 1], 3, 1)
-    expect(x).toBeCloseTo(-3)
-    expect(y).toBeCloseTo(1)
-  })
-
-  it('radial yields fold−1 rotations and diag8 yields the 7 other D4 elements', () => {
-    expect(polarAngleMaps('radial', 6)).toHaveLength(5)
-    expect(polarAngleMaps('diag8', 8)).toHaveLength(7)
-    expect(polarAngleMaps('quad', 8)).toHaveLength(3)
-  })
-
-  it('returns no maps for none and repeat modes', () => {
-    expect(polarAngleMaps('none', 8)).toHaveLength(0)
-    for (const mode of REPEAT_MODES) {
-      expect(polarAngleMaps(mode, 8), mode).toHaveLength(0)
-    }
   })
 })
 

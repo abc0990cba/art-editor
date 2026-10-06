@@ -7,12 +7,8 @@ import {
   type Link,
   type SymmetryState,
 } from '../../engine/core/doc.ts'
-import {
-  angleInFilledWedge,
-  polarAngleMaps,
-  symmetryPairPoints,
-  symmetryPoints,
-} from '../../engine/effects/symmetry.ts'
+import { gridSymmetryOrbit, gridSymmetryPairs } from '../../engine/effects/symmetry-grid.ts'
+import { symmetryPairPoints, symmetryPoints } from '../../engine/effects/symmetry.ts'
 import { PENDING_OBJ, type Staging } from '../../engine/geometry/index.ts'
 import { makeGrid, isPlainSquare } from '../../engine/grids/index.ts'
 import { brushAnchor, brushOffsets } from '../../engine/paint/brush.ts'
@@ -186,41 +182,15 @@ export function useCanvasStaging({
           radialOpts,
         ).map(([x, y]) => y * bw + x)
       }
-      const maps = polarAngleMaps(symmetry.mode, symmetry.n, radialOpts)
-      if (maps.length === 0) return [idx]
-      const base = grid.angleOf(idx)
-      // radial sector gate: nothing is painted outside the filled wedge
-      if (radialOpts && !angleInFilledWedge(base, symmetry.n, radialOpts)) return []
-      const out = new Set<number>([idx])
-      const r = grid.radiusOf(idx)
-      for (const f of maps) {
-        const j = grid.cellByAngle(idx, f(base, r))
-        if (j >= 0) out.add(j)
-      }
-      return [...out]
+      return gridSymmetryOrbit(grid, idx, symmetry, radialOpts)
     },
     [isSquare, bw, bh, symmetry, grid, radialOpts],
   )
 
-  /** Symmetry copies of a cell pair under the polar maps (non-square connector/shape pairs) */
+  /** Symmetry copies of a cell pair under the grid maps (non-square connector/shape pairs) */
   const polarPairs = useCallback(
-    (aIdx: number, bIdx: number): [number, number][] => {
-      const maps = polarAngleMaps(symmetry.mode, symmetry.n, radialOpts)
-      if (maps.length === 0) return []
-      const out: [number, number][] = []
-      const seen = new Set<number>([aIdx])
-      const aa = grid.angleOf(aIdx)
-      const ab = grid.angleOf(bIdx)
-      for (const f of maps) {
-        const ia = grid.cellByAngle(aIdx, f(aa, grid.radiusOf(aIdx)))
-        const ib = grid.cellByAngle(bIdx, f(ab, grid.radiusOf(bIdx)))
-        if (ia >= 0 && ib >= 0 && !seen.has(ia)) {
-          seen.add(ia)
-          out.push([ia, ib])
-        }
-      }
-      return out
-    },
+    (aIdx: number, bIdx: number): [number, number][] =>
+      gridSymmetryPairs(grid, aIdx, bIdx, symmetry, radialOpts),
     [symmetry, grid, radialOpts],
   )
 

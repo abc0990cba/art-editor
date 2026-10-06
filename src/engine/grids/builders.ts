@@ -1,7 +1,6 @@
 import type { Pt } from '../geometry/marching-squares.ts'
 import type { Grid, GridType } from './index.ts'
 import { buildLattice } from './lattices.ts'
-import { byAngle } from './polar.ts'
 
 const HEX_R = 1 // hexagon circumradius (pointy-top)
 const HEX_W = Math.sqrt(3) * HEX_R // column step
@@ -96,7 +95,6 @@ function makeSquare(cols: number, rows: number): Grid {
     },
     radiusOf,
     angleOf,
-    cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
   }
 }
 
@@ -156,7 +154,6 @@ function makeHex(cols: number, rows: number): Grid {
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,
-    cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
   }
 }
 
@@ -222,7 +219,6 @@ function makeTriangle(cols: number, rows: number): Grid {
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,
-    cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
   }
 }
 
@@ -339,7 +335,6 @@ function makeRadial(cols: number, rows: number, even: boolean): Grid {
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,
-    cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
     ringSectorOf: (i) => {
       const ring = ringOfArr[i]
       return [ring, i - ringStart[ring], ringSectors[ring]]

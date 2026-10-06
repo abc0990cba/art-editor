@@ -46,11 +46,9 @@ export interface Grid {
   polygon(i: number): Pt[]
   cellAt(x: number, y: number): number
   edgeNeighbors(i: number): number[]
-  /** Polar coordinates of the cell center relative to the canvas center (for symmetry) */
+  /** Polar coordinates of the cell center relative to the canvas center (fill scopes) */
   radiusOf(i: number): number
   angleOf(i: number): number
-  /** Cell on the same radius ring closest to the target angle (-1 when none) */
-  cellByAngle(i: number, targetAngle: number): number
   /** Radial grids only: [ring index, sector index in the ring, sector count of the ring] */
   ringSectorOf?(i: number): [number, number, number]
 }

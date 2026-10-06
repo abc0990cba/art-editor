@@ -1,6 +1,5 @@
 import type { Pt } from '../geometry/marching-squares.ts'
 import type { Grid, GridType } from './index.ts'
-import { byAngle } from './polar.ts'
 
 /**
  * Lattices beyond the classic four (square/hex/triangle/radial). Each maps 1:1 onto the flat
@@ -72,7 +71,6 @@ function makeSheared(type: 'diamond' | 'iso', cols: number, rows: number): Grid 
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,
-    cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
   }
 }
 
@@ -124,7 +122,6 @@ function makeBrick(cols: number, rows: number): Grid {
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,
-    cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
   }
 }
 
@@ -218,7 +215,6 @@ function makeOctasquare(cols: number, rows: number): Grid {
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,
-    cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
   }
 }
 
@@ -284,7 +280,6 @@ function makeHexFlat(cols: number, rows: number): Grid {
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,
-    cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
   }
 }
 
@@ -359,6 +354,5 @@ function makeRhombille(cols: number, rows: number): Grid {
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,
-    cellByAngle: (i, target) => byAngle(count, radiusOf, angleOf, i, target),
   }
 }

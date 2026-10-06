@@ -308,15 +308,10 @@ describe('radial grid: equal cells per ring (radialEven)', () => {
     expect(Math.max(...counts)).toBeLessThanOrEqual(24)
   })
 
-  it('cellAt(center(i)) round-trips and cellByAngle stays on the ring', () => {
+  it('cellAt(center(i)) round-trips on every cell', () => {
     for (let i = 0; i < g.count; i++) {
       const c = g.center(i)
       expect(g.cellAt(c.x, c.y)).toBe(i)
-      const r0 = g.radiusOf(i)
-      for (let a = 0; a < 12; a++) {
-        const j = g.cellByAngle(i, (a / 12) * 2 * Math.PI)
-        if (j >= 0) expect(Math.abs(g.radiusOf(j) - r0)).toBeLessThanOrEqual(0.75)
-      }
     }
   })
 

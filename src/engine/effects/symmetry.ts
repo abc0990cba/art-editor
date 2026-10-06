@@ -13,7 +13,7 @@ export {
   repeatDef,
   type RepeatDef,
 } from './symmetry-repeat.ts'
-export { angleInFilledWedge, type RadialOpts } from './symmetry-radial.ts'
+export { type RadialOpts } from './symmetry-radial.ts'
 
 export const MIN_CELL = 4
 export const MAX_CELL = 64
@@ -127,56 +127,6 @@ export function clampCell(v: unknown, fallback = 16): number {
 
 /** Point map of one symmetry copy, in buffer coordinates. */
 export type SymTransform = (x: number, y: number) => [number, number]
-
-/**
- * Angle maps (about the canvas center) of the non-identity copies of the finite modes, for lattices
- * without buffer-space mirrors (hex/triangle/radial). Angles use canvas coordinates (y grows
- * downward). Each map takes the center-relative angle and radius (the radius matters only for the
- * radial twist). The axes match the square-grid buffer math and the drawn guides: mirrorX reflects
- * across the vertical axis (left↔right, θ → π−θ), mirrorY across the horizontal axis (top↔bottom, θ
- * → −θ); kaleido mirrors across the vertical axis like the square-grid sources [[dx,dy],
- * [−dx,dy]].
- */
-export function polarAngleMaps(
-  mode: SymMode,
-  n: number,
-  radial?: RadialOpts,
-): ((a: number, r: number) => number)[] {
-  const tw = twistRad(radial)
-  switch (mode) {
-    case 'mirrorX': {
-      return [(a) => Math.PI - a]
-    }
-    case 'mirrorY': {
-      return [(a) => -a]
-    }
-    case 'quad': {
-      return [(a) => Math.PI - a, (a) => -a, (a) => Math.PI + a]
-    }
-    case 'diag8': {
-      return [
-        (a) => Math.PI - a,
-        (a) => -a,
-        (a) => Math.PI / 2 - a,
-        (a) => -Math.PI / 2 - a,
-        (a) => a + Math.PI / 2,
-        (a) => a + Math.PI,
-        (a) => a + (3 * Math.PI) / 2,
-      ]
-    }
-    case 'radial':
-    case 'kaleido': {
-      const fold = foldCount(n)
-      const out: ((a: number, r: number) => number)[] = []
-      for (let k = 1; k < fold; k++) out.push((a, r) => a + (k * 2 * Math.PI) / fold + tw * r)
-      if (mode === 'kaleido') out.push((a, r) => Math.PI - a + tw * r)
-      return out
-    }
-    default: {
-      return []
-    }
-  }
-}
 
 /**
  * Point-map for every symmetry copy of the finite modes (mirrors, quad, diag8, radial, kaleido).
