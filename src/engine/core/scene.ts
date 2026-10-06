@@ -18,6 +18,7 @@
  */
 
 import { paletteLuma } from '../color/color.ts'
+import { docGrid } from '../grids/index.ts'
 import { graphColors, type Graph } from '../nodes'
 import { evalGraphMemo } from '../nodes/eval-memo.ts'
 import type { Doc, ElementStyle, Link } from './doc'
@@ -255,7 +256,11 @@ interface Composite {
 const compositeCache = new WeakMap<SceneLayer[], Composite>()
 
 function buildComposite(doc: Doc, dims: string): Composite {
-  const length = doc.cols * doc.sub * doc.rows * doc.sub
+  // non-square lattices index cells by grid count, which can exceed the cols×rows buffer
+  // (rhombille's 3 faces per hex, octasquare's gap squares) — allocate the larger of the two,
+  // mirroring the load-time allocation in project-parse
+  const grid = docGrid(doc)
+  const length = Math.max(doc.cols * doc.sub * doc.rows * doc.sub, grid.count)
   const cells = new Uint16Array(length)
   const cellObj = new Uint32Array(length)
   const links: Link[] = []
@@ -299,6 +304,7 @@ function buildComposite(doc: Doc, dims: string): Composite {
           {
             bw: doc.cols * doc.sub,
             bh: doc.rows * doc.sub,
+            grid,
             paletteLen: derived.length,
             hexValue,
             luma,
@@ -334,8 +340,9 @@ export function syncDoc(doc: Doc): Doc {
   const layers = doc.layers
   if (!layers) return doc
   // the base palette fingerprint is part of the key: graph colors resolve against it,
-  // so a palette edit must rebuild the derived palette and re-evaluate the graphs
-  const dims = `${doc.gridType}|${doc.cols}|${doc.rows}|${doc.sub}|${doc.palette.join(',')}`
+  // so a palette edit must rebuild the derived palette and re-evaluate the graphs;
+  // rotation/even-ness feed the grid the transform nodes evaluate against
+  const dims = `${doc.gridType}|${doc.cols}|${doc.rows}|${doc.sub}|${doc.gridRotation ?? 0}|${doc.radialEven ? 'e' : 'u'}|${doc.palette.join(',')}`
   let cached = compositeCache.get(layers)
   if (!cached || cached.dims !== dims) {
     cached = buildComposite(doc, dims)

@@ -10,14 +10,17 @@
  */
 
 import type { ElementStyle } from '../core/doc'
+import type { Grid } from '../grids/index.ts'
 import { withNodeRng } from './context'
 import { nodeDef, resolveParams } from './registry'
 import type { Cells, Graph, GraphNode, ParamValue, RasterNodeDef } from './types'
 
 export interface EvalInput {
-  /** Buffer size in cells */
+  /** Buffer size in cells: cols×rows of the square detail buffer (sub-cells for square grids) */
   bw: number
   bh: number
+  /** The document grid; required for correct transform-node math on compound lattices */
+  grid?: Grid
   /** Number of entries in the (derived) palette — ramps clamp against it */
   paletteLen: number
   /** Hex color → 1-based palette value */

@@ -5,7 +5,7 @@ import { bufferHeight, bufferWidth, cellColor, elementFromDoc } from '../core/do
 import { visibleObjs } from '../core/scene'
 import { isStrokeOn, strokeColorOf } from '../core/stroke.ts'
 import { gridBuildGeometry, gridMetaballField } from '../grids/geometry.ts'
-import { isPlainSquare, makeGrid } from '../grids/index.ts'
+import { docGrid, isPlainSquare, makeGrid } from '../grids/index.ts'
 import { evalGraphMemo } from '../nodes/eval-memo.ts'
 import { elementStyleKey, elementGeometry } from './elements.ts'
 import { createInlayColorOf, inlayFragment, isInlayOn } from './inlay.ts'
@@ -91,6 +91,7 @@ function sceneGeometry(doc: Doc, staging?: Staging): Geometry {
             {
               bw: doc.cols * doc.sub,
               bh: doc.rows * doc.sub,
+              grid: docGrid(doc),
               paletteLen: length,
               hexValue,
               luma,
@@ -213,6 +214,7 @@ export function metaballOverlayContours(doc: Doc): string[] {
             {
               bw: doc.cols * doc.sub,
               bh: doc.rows * doc.sub,
+              grid: docGrid(doc),
               paletteLen: length,
               hexValue,
               luma,

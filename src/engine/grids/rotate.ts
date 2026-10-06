@@ -45,6 +45,8 @@ export function rotatedGrid(base: Grid, deg: number): Grid {
       const p = unrot(x, y)
       return base.cellAt(p.x, p.y)
     },
+    // index translation is rotation-independent: it works in base lattice steps
+    translate: base.translate,
     edgeNeighbors: base.edgeNeighbors,
     radiusOf: base.radiusOf,
     angleOf: (i) => base.angleOf(i) + a,

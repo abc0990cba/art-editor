@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { paletteLuma } from '../../engine/color/color.ts'
 import { elementFromDoc } from '../../engine/core/doc.ts'
 import type { SceneObj } from '../../engine/core/scene.ts'
+import { docGrid } from '../../engine/grids/index.ts'
 import {
   GRAPH_PRESETS,
   fitGraphToCanvas,
@@ -198,6 +199,7 @@ export function NodeEditorCanvas({ onClose }: { onClose: () => void }) {
       {
         bw: doc.cols * doc.sub,
         bh: doc.rows * doc.sub,
+        grid: docGrid(doc),
         paletteLen: doc.palette.length,
         hexValue,
         luma: (value: number) => paletteLuma(doc.palette, value),

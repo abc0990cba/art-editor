@@ -7,6 +7,7 @@ interface MemoEntry {
   baseStyle: EvalInput['baseStyle']
   bw: number
   bh: number
+  grid: EvalInput['grid']
   paletteLen: number
   out: EvalOutput
 }
@@ -34,6 +35,7 @@ export function evalGraphMemo(
     hit.baseStyle === base.baseStyle &&
     hit.bw === base.bw &&
     hit.bh === base.bh &&
+    hit.grid === base.grid &&
     hit.paletteLen === base.paletteLen
   ) {
     return hit.out
@@ -45,6 +47,7 @@ export function evalGraphMemo(
     baseStyle: base.baseStyle,
     bw: base.bw,
     bh: base.bh,
+    grid: base.grid,
     paletteLen: base.paletteLen,
     out,
   })

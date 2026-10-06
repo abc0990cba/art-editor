@@ -154,6 +154,21 @@ function makeOctasquare(cols: number, rows: number): Grid {
     const { col, row } = gapOf(i)
     return { x: 2 + 2 * col, y: 2 + 2 * row }
   }
+  const translate = (i: number, dx: number, dy: number) => {
+    // octagons and gap squares translate inside their own lattices and never mix
+    if (isOct(i)) {
+      const { col, row } = octOf(i)
+      const c = col + dx
+      const r = row + dy
+      if (c < 0 || c >= cols || r < 0 || r >= rows) return -1
+      return r * cols + c
+    }
+    const { col, row } = gapOf(i)
+    const c = col + dx
+    const r = row + dy
+    if (c < 0 || c >= cols - 1 || r < 0 || r >= rows - 1) return -1
+    return cols * rows + r * (cols - 1) + c
+  }
   const polygon = (i: number) => {
     const { x, y } = center(i)
     if (isOct(i)) {
@@ -212,6 +227,7 @@ function makeOctasquare(cols: number, rows: number): Grid {
       }
       return cols * rows + grow * (cols - 1) + gcol
     },
+    translate,
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,
@@ -319,6 +335,14 @@ function makeRhombille(cols: number, rows: number): Grid {
   }
   const radiusOf = (i: number) => Math.hypot(center(i).x - w / 2, center(i).y - h / 2)
   const angleOf = (i: number) => Math.atan2(center(i).y - h / 2, center(i).x - w / 2)
+  const translate = (i: number, dx: number, dy: number) => {
+    // hexes translate in the (col, row) lattice; the lozenge face rides along unchanged
+    const { col, row, face } = rhOf(i)
+    const c = col + dx
+    const r = row + dy
+    if (c < 0 || c >= cols || r < 0 || r >= rows) return -1
+    return (r * cols + c) * 3 + face
+  }
   return {
     type: 'rhombille',
     cols,
@@ -351,6 +375,7 @@ function makeRhombille(cols: number, rows: number): Grid {
       const face = Math.floor(deg / 120) % 3
       return (row * cols + col) * 3 + face
     },
+    translate,
     edgeNeighbors: () => [],
     radiusOf,
     angleOf,

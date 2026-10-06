@@ -45,6 +45,13 @@ export interface Grid {
   center(i: number): Pt
   polygon(i: number): Pt[]
   cellAt(x: number, y: number): number
+  /**
+   * Native index translation by whole lattice steps: cell i moved (dx, dy) in lattice column/row
+   * space, -1 when it leaves the grid. Compound lattices (rhombille, octasquare) implement it
+   * because their indices are not row-major buffer positions; optional — row-major lattices
+   * translate through the plain square-buffer math.
+   */
+  translate?(i: number, dx: number, dy: number): number
   edgeNeighbors(i: number): number[]
   /** Polar coordinates of the cell center relative to the canvas center (fill scopes) */
   radiusOf(i: number): number
@@ -72,6 +79,22 @@ export function docSize(
 ): { w: number; h: number } {
   const g = makeGrid(type, cols, rows, false, rotation)
   return { w: g.w, h: g.h }
+}
+
+/**
+ * The document's own lattice at its current dims and rotation — the grid handed to graph evaluation
+ * and shared wherever a per-doc `makeGrid` call would repeat the same five arguments.
+ */
+export function docGrid(
+  doc: Pick<Doc, 'gridType' | 'cols' | 'rows' | 'radialEven' | 'gridRotation'>,
+): Grid {
+  return makeGrid(
+    doc.gridType,
+    doc.cols,
+    doc.rows,
+    doc.gridType === 'radial' && doc.radialEven,
+    doc.gridRotation ?? 0,
+  )
 }
 
 /**

@@ -14,6 +14,7 @@
  */
 
 import type { ElementStyle } from '../core/doc'
+import type { Grid } from '../grids/index.ts'
 
 export type NodeDomain = 'raster' | 'style' | 'vector'
 
@@ -80,9 +81,15 @@ export class Resolved {
 
 /** Everything an evaluate function may reach for. `rng` is node-bound and deterministic. */
 export interface EvalContext {
-  /** Buffer size in cells */
+  /** Buffer size in cells: cols×rows of the square detail buffer (sub-cells for square grids) */
   bw: number
   bh: number
+  /**
+   * The document grid, when the caller can provide it. Buffer indices are plain square row-major
+   * positions only when `grid.count === bw * bh`; compound lattices (rhombille, octasquare) index
+   * more cells and must be mapped through `grid.center`/`grid.cellAt` instead of `bw`/`bh` math.
+   */
+  grid?: Grid
   /** Number of entries in the (derived) palette */
   paletteLen: number
   /** Hex color → 1-based palette value */

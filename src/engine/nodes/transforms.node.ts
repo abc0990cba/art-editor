@@ -1,5 +1,6 @@
 /** Transform nodes: move or mirror the accumulated pixels. */
 
+import { gridSymmetryOrbit } from '../effects/symmetry-grid.ts'
 import { symmetryPoints } from '../effects/symmetry.ts'
 import { defineNode } from './types.ts'
 
@@ -33,9 +34,32 @@ export const TRANSFORM_NODES = [
       dy: { kind: 'int', min: -2048, max: 2048, default: 0, span: 'delta' },
     },
     evaluate: (ctx, p, input) => {
-      const out = new Map<number, number>()
       const dx = p.int('dx')
       const dy = p.int('dy')
+      if (dx === 0 && dy === 0) return input
+      const out = new Map<number, number>()
+      const g = ctx.grid
+      if (g && g.count !== ctx.bw * ctx.bh) {
+        // compound lattice (rhombille, octasquare): indices are not row-major buffer positions.
+        // The native translate is exact; the point-space fallback keeps other future lattices
+        // working at nominal cell pitches.
+        if (g.translate) {
+          for (const [i, v] of input) {
+            const j = g.translate(i, dx, dy)
+            if (j >= 0) out.set(j, v)
+          }
+          return out
+        }
+        const px = g.w / g.cols
+        const py = g.h / g.rows
+        for (const [i, v] of input) {
+          const c = g.center(i)
+          const far = g.polygon(i)[1]
+          const j = g.cellAt((c.x + far.x) / 2 + dx * px, (c.y + far.y) / 2 + dy * py)
+          if (j >= 0) out.set(j, v)
+        }
+        return out
+      }
       for (const [i, v] of input) {
         const x = (i % ctx.bw) + dx
         const y = Math.floor(i / ctx.bw) + dy
@@ -63,6 +87,15 @@ export const TRANSFORM_NODES = [
       const out = new Map<number, number>()
       const mode = p.str('mode') as Parameters<typeof symmetryPoints>[4]
       const n = p.int('n')
+      const g = ctx.grid
+      if (g && g.count !== ctx.bw * ctx.bh) {
+        // compound lattice: mirror/rotate geometrically through the grid-aware orbits,
+        // which snap every copy onto lattice cells (the square decode would scramble them)
+        for (const [i, v] of input) {
+          for (const j of gridSymmetryOrbit(g, i, { mode, n })) out.set(j, v)
+        }
+        return out
+      }
       for (const [i, v] of input) {
         const x = i % ctx.bw
         const y = Math.floor(i / ctx.bw)
