@@ -4,41 +4,16 @@ import { DEFAULT_TRACE_PARAMS, TRACE_PRESETS } from '../../engine/trace/params.t
 import { useI18n } from '../../shared/i18n/i18n.provider.tsx'
 import { useDemoImage } from '../../shared/lib/use-demo-image.hook.ts'
 import { ConfirmDialog } from '../../shared/ui/confirm-dialog.component.tsx'
-import { CheckRow, Chip, PresetCard, Section, Slider, TextField } from '../../shared/ui/index.tsx'
+import { Chip, PresetCard, Section, Slider, TextField } from '../../shared/ui/index.tsx'
 import { Tooltip } from '../../shared/ui/tooltip.component.tsx'
 import { useStore } from '../../state/editor.store.ts'
+import { TraceSection } from './vector-trace-section.component.tsx'
 
 /**
  * Right-column control panel of the vector mode: preset library (built-ins + user presets from
  * IndexedDB) and the vtracer parameter sections. Only shows the controls that the current tracer
  * actually consumes (outline vs centerline, color vs binary).
  */
-
-/** Labeled chip group for enum-ish parameter values. */
-function EnumChips<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string
-  value: T
-  options: { v: T; label: string }[]
-  onChange: (v: T) => void
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-muted text-xs">{label}</span>
-      <div className="flex flex-wrap gap-1">
-        {options.map((o) => (
-          <Chip key={o.v} active={value === o.v} onClick={() => onChange(o.v)}>
-            {o.label}
-          </Chip>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export function VectorParamsPanel() {
   const { t } = useI18n()
@@ -187,158 +162,6 @@ function PresetsSection() {
           }}
           onClose={() => setDeleteId(null)}
         />
-      )}
-    </Section>
-  )
-}
-
-/** Tracing parameters; shows only the controls the current tracer consumes. */
-function TraceSection() {
-  const { t } = useI18n()
-  const params = useStore((s) => s.vectorParams)
-  const patch = useStore((s) => s.patchVectorParams)
-  const isOutline = params.tracer === 'outline'
-  const isColor = params.colorMode === 'color'
-  return (
-    <Section title={t('vector.trace.section')} icon="style" defaultOpen>
-      <EnumChips
-        label={t('vector.tracer')}
-        value={params.tracer}
-        options={[
-          { v: 'outline', label: t('vector.tracer.outline') },
-          { v: 'centerline', label: t('vector.tracer.centerline') },
-        ]}
-        onChange={(tracer) => patch({ tracer })}
-      />
-      <Slider
-        label={t('vector.threshold')}
-        title={t('vector.threshold.desc')}
-        value={params.binaryThreshold}
-        min={0}
-        max={255}
-        onChange={(binaryThreshold) => patch({ binaryThreshold })}
-      />
-      <CheckRow
-        label={t('vector.invert')}
-        checked={params.binaryInvert}
-        onChange={(binaryInvert) => patch({ binaryInvert })}
-      />
-      {isOutline && (
-        <>
-          <EnumChips
-            label={t('vector.colormode')}
-            value={params.colorMode}
-            options={[
-              { v: 'color', label: t('vector.colormode.color') },
-              { v: 'binary', label: t('vector.colormode.binary') },
-            ]}
-            onChange={(colorMode) => patch({ colorMode })}
-          />
-          <EnumChips
-            label={t('vector.hierarchical')}
-            value={params.hierarchical}
-            options={[
-              { v: 'stacked', label: t('vector.hierarchical.stacked') },
-              { v: 'cutout', label: t('vector.hierarchical.cutout') },
-              { v: 'mosaic', label: t('vector.hierarchical.mosaic') },
-            ]}
-            onChange={(hierarchical) => patch({ hierarchical })}
-          />
-          <EnumChips
-            label={t('vector.mode')}
-            value={params.mode}
-            options={[
-              { v: 'spline', label: t('vector.mode.spline') },
-              { v: 'polygon', label: t('vector.mode.polygon') },
-              { v: 'none', label: t('vector.mode.none') },
-            ]}
-            onChange={(mode) => patch({ mode })}
-          />
-        </>
-      )}
-      {isOutline && isColor && (
-        <>
-          <Slider
-            label={t('vector.colorPrecision')}
-            title={t('vector.colorPrecision.desc')}
-            value={params.colorPrecision}
-            min={1}
-            max={8}
-            onChange={(colorPrecision) => patch({ colorPrecision })}
-          />
-          <Slider
-            label={t('vector.layerDifference')}
-            title={t('vector.layerDifference.desc')}
-            value={params.layerDifference}
-            min={0}
-            max={128}
-            onChange={(layerDifference) => patch({ layerDifference })}
-          />
-        </>
-      )}
-      <Slider
-        label={t('vector.speckle')}
-        title={t('vector.speckle.desc')}
-        value={params.filterSpeckle}
-        min={0}
-        max={128}
-        onChange={(filterSpeckle) => patch({ filterSpeckle })}
-      />
-      <Slider
-        label={t('vector.length')}
-        title={t('vector.length.desc')}
-        value={params.lengthThreshold}
-        min={0}
-        max={10}
-        step={0.5}
-        onChange={(lengthThreshold) => patch({ lengthThreshold })}
-      />
-      {isOutline && params.mode === 'spline' && (
-        <>
-          <Slider
-            label={t('vector.corner')}
-            title={t('vector.corner.desc')}
-            value={params.cornerThreshold}
-            min={0}
-            max={180}
-            onChange={(cornerThreshold) => patch({ cornerThreshold })}
-          />
-          <Slider
-            label={t('vector.splice')}
-            title={t('vector.splice.desc')}
-            value={params.spliceThreshold}
-            min={0}
-            max={180}
-            onChange={(spliceThreshold) => patch({ spliceThreshold })}
-          />
-          <Slider
-            label={t('vector.iterations')}
-            title={t('vector.iterations.desc')}
-            value={params.maxIterations}
-            min={1}
-            max={30}
-            onChange={(maxIterations) => patch({ maxIterations })}
-          />
-        </>
-      )}
-      {!isOutline && (
-        <>
-          <Slider
-            label={t('vector.minStroke')}
-            value={params.minStrokeLength}
-            min={0}
-            max={64}
-            onChange={(minStrokeLength) => patch({ minStrokeLength })}
-          />
-          <Slider
-            label={t('vector.strokeWidth')}
-            display={(v) => (v === 0 ? t('vector.strokeWidth.auto') : String(v))}
-            value={params.strokeWidth}
-            min={0}
-            max={32}
-            onChange={(strokeWidth) => patch({ strokeWidth })}
-          />
-        </>
       )}
     </Section>
   )

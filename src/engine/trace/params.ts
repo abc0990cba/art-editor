@@ -65,8 +65,10 @@ export const DEFAULT_TRACE_PARAMS: TraceParams = {
 }
 
 /**
- * Built-in presets; labels live in i18n (`vector.preset.<id>`). `demo` is a free stock photo (Lorem
- * Picsum) the preset ships with, so the effect can be tried on a real image in one tap.
+ * Built-in presets; labels live in i18n (`vector.preset.<id>`). `demo` is the photo the preset
+ * ships with, so the effect can be tried on a real image in one tap: a free stock photo (Lorem
+ * Picsum) or, for the `vt*` group, one of the VTracer webapp's own sample images bundled under
+ * `/tracer/samples/` (see `public/tracer/samples/CREDITS.md`).
  */
 export interface TracePreset {
   id: string
@@ -107,7 +109,7 @@ export const TRACE_PRESETS: readonly TracePreset[] = [
   },
   {
     id: 'logo',
-    params: { colorPrecision: 6, layerDifference: 24, filterSpeckle: 32, mode: 'spline' },
+    params: { colorPrecision: 6, layerDifference: 24, filterSpeckle: 16, mode: 'spline' },
     demo: demo(1050),
   },
   {
@@ -131,6 +133,54 @@ export const TRACE_PRESETS: readonly TracePreset[] = [
     params: { colorPrecision: 2, layerDifference: 64, filterSpeckle: 16, hierarchical: 'stacked' },
     demo: demo(365),
   },
+  /**
+   * The VTracer webapp's six sample configurations (https://www.visioncortex.org/vtracer/),
+   * transcribed 1:1 from its `presetConfigs` — every shared value (stacked, segment length 4,
+   * splice 45, path precision 8) is the default, so only the overrides are listed.
+   */
+  {
+    id: 'vtTrain',
+    params: {
+      colorMode: 'binary',
+      filterSpeckle: 4,
+      colorPrecision: 6,
+      layerDifference: 16,
+      mode: 'spline',
+      cornerThreshold: 60,
+    },
+    demo: '/tracer/samples/k1-drawing.jpg',
+  },
+  {
+    id: 'vtCity',
+    params: { filterSpeckle: 4, colorPrecision: 8, layerDifference: 25, cornerThreshold: 60 },
+    demo: '/tracer/samples/cityscape-sunset.jpg',
+  },
+  {
+    id: 'vtTree',
+    params: { filterSpeckle: 4, colorPrecision: 8, layerDifference: 28, cornerThreshold: 60 },
+    demo: '/tracer/samples/gum-tree.jpg',
+  },
+  {
+    id: 'vtDessert',
+    params: { filterSpeckle: 8, colorPrecision: 7, layerDifference: 64, cornerThreshold: 60 },
+    demo: '/tracer/samples/dessert-poster.png',
+  },
+  {
+    id: 'vtDog',
+    params: { filterSpeckle: 10, colorPrecision: 8, layerDifference: 48, cornerThreshold: 180 },
+    demo: '/tracer/samples/dog.jpg',
+  },
+  {
+    id: 'vtTank',
+    params: {
+      filterSpeckle: 0,
+      colorPrecision: 8,
+      layerDifference: 0,
+      mode: 'none',
+      cornerThreshold: 180,
+    },
+    demo: '/tracer/samples/tank-unit.png',
+  },
 ]
 
 function clamp(v: number, min: number, max: number): number {
@@ -152,7 +202,7 @@ export function normalizeTraceParams(raw: Partial<TraceParams> | null | undefine
     mode: p.mode === 'polygon' || p.mode === 'none' ? p.mode : 'spline',
     filterSpeckle: clampInt(p.filterSpeckle, 0, 128),
     colorPrecision: clampInt(p.colorPrecision, 1, 8),
-    layerDifference: clampInt(p.layerDifference, 0, 128),
+    layerDifference: clampInt(p.layerDifference, 0, 255),
     cornerThreshold: clamp(p.cornerThreshold, 0, 180),
     lengthThreshold: clamp(p.lengthThreshold, 0, 10),
     maxIterations: clampInt(p.maxIterations, 1, 30),

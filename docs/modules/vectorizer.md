@@ -16,7 +16,7 @@ reuses this pipeline's clustering and outline stages.
 | File | Role |
 |---|---|
 | [`src/engine/trace/trace.ts`](../../src/engine/trace/trace.ts) | `traceImage` facade; stages are public for hybrid pipelines |
-| [`src/engine/trace/params.ts`](../../src/engine/trace/params.ts) | `TraceParams` (17 fields, vtracer option names documented), `normalizeTraceParams`, `TRACE_PRESETS` (10) |
+| [`src/engine/trace/params.ts`](../../src/engine/trace/params.ts) | `TraceParams` (17 fields, vtracer option names documented), `normalizeTraceParams`, `TRACE_PRESETS` (10 style presets + 6 webapp samples) |
 | [`src/engine/trace/quantize.ts`](../../src/engine/trace/quantize.ts) | hierarchical NN-chain color clustering (`MAX_LAYERS = 254`, label 255 = transparent) |
 | [`src/engine/trace/binary-layer.ts`](../../src/engine/trace/binary-layer.ts) | directed edge-boundary tracing; right turn wins at diagonal joints; evenodd nesting |
 | [`src/engine/trace/simplify.ts`](../../src/engine/trace/simplify.ts) | collinear merging + closed-loop RDP anchored on a farthest-point pair |
@@ -41,6 +41,19 @@ pixel to its topmost layer) → per-layer `traceMask` (speckle filter drops 4-co
 components below `minArea`) → hole filtering → per-layer
 `normalizeLoop → simplifyLoop(lengthThreshold/2) → loopToPath` (or `mosaicPaths`) →
 `composeSvg`. Stats: clusters, paths, vertices, strokes, ms.
+
+**Web-app parity** ([visioncortex.org/vtracer](https://www.visioncortex.org/vtracer/)): the
+panel mirrors the site's control surface — same defaults (speckle 4, color precision 6,
+layer difference 16, corner 60, segment 4, splice 45, precision 8; Color + Stacked + Spline
+on load), same slider ranges (speckle 1–16, layer difference 0–255, segment length 3.5–10,
+corner/splice 0–180), and the same visibility rules: color precision/layer difference hide in
+B/W mode; corner/segment/splice show only in spline mode (the centerline tracer, a project
+addition, keeps its own segment-length slider). `mode: 'none'` is labelled **Pixel** like on
+the site (exact cluster boundary). App-only additions beyond the site: outline/centerline
+tracer choice, threshold/invert, mosaic hierarchy, hole handling, iterations, visible path
+precision. The six `vt*` presets in `TRACE_PRESETS` transcribe the site's `presetConfigs`
+verbatim and ship its sample images under `public/tracer/samples/` (credits there in
+`CREDITS.md`) — clicking a preset card applies the settings and loads that image.
 
 **Centerline mode** (project addition, not in vtracer): threshold → Zhang–Suen thinning →
 skeleton chain extraction (degree ≠ 2 = junction/end) → simplify → cubic fitting → **stroke**
